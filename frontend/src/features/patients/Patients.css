@@ -1,0 +1,67 @@
+.demographics-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+
+.demographics-avatar-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 14rem;
+}
+
+.demographics-avatar-icon {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: var(--space-4);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demographics-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--space-4);
+  flex: 3;
+  width: 100%;
+}
+
+.demographics-field-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  display: block;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-1);
+}
+
+.demographics-field-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.patient-history-section {
+  margin-bottom: var(--space-6);
+}
+
+.patient-history-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}

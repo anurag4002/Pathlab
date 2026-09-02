@@ -1,0 +1,241 @@
+.bill-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--space-6);
+}
+
+.bill-form-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.bill-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+}
+
+.bill-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bill-card-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.bill-card-title {
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* Department Selector Pills */
+.department-selector-scroll {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.department-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-bold);
+  min-width: 6rem;
+  height: 4.25rem;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.department-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.department-btn.active {
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+/* Test Picker */
+.test-picker-list {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  max-height: 11.25rem;
+  overflow-y: auto;
+  background-color: var(--color-surface);
+}
+
+.test-picker-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.625rem;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.test-picker-item:last-child {
+  border-bottom: none;
+}
+
+.test-picker-item:hover {
+  background-color: var(--color-primary-light);
+}
+
+/* Bill Items Table */
+.bill-items-table {
+  width: 100%;
+  font-size: var(--font-size-sm);
+  border-collapse: collapse;
+}
+
+.bill-items-table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.bill-items-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Optional field toggle badges */
+.optional-field-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.optional-badge-btn {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0.25rem 0.75rem;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+
+.optional-badge-btn.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary-subtle);
+}
+
+/* Gender Toggle */
+.gender-toggle-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.gender-toggle-btn {
+  flex: 1;
+  padding: 0.5rem 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.gender-toggle-btn.active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* Summary Rows */
+.payment-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.payment-summary-row:last-of-type {
+  border-bottom: none;
+}
+
+.print-invoice-area {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.875rem;
+  color: #000;
+  padding: var(--space-4);
+}
+
+.print-invoice-header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.print-invoice-divider {
+  border: none;
+  border-top: 2px dashed #000;
+  margin: var(--space-3) 0;
+}
+
+.print-invoice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  line-height: 1.5;
+}
+
+.print-invoice-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  line-height: 1.5;
+}
