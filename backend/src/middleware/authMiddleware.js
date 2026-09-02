@@ -15,6 +15,10 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
 
+      if (decoded.role === 'Patient' || !decoded.id) {
+        return errorResponse(res, 'Access denied. Administrator privileges required.', 403);
+      }
+
       req.user = await User.findById(decoded.id).select('-password');
       if (!req.user) {
         return errorResponse(res, MESSAGES.AUTH.USER_NOT_FOUND, 404);

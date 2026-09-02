@@ -1,23 +1,12 @@
 import apiClient from './apiClient';
 
 export const login = async (email, password) => {
-  // Bypass backend for testing frontend UI
-  const mockData = {
-    success: true,
-    data: {
-      token: 'mock-jwt-token-12345',
-      user: {
-        _id: 'mock-admin-id',
-        name: 'Test Admin',
-        email: email || 'admin@purepathlab.com',
-        role: 'Admin',
-        status: 'Active'
-      }
-    }
-  };
-  localStorage.setItem('ppl_token', mockData.data.token);
-  localStorage.setItem('ppl_user', JSON.stringify(mockData.data.user));
-  return mockData;
+  const response = await apiClient.post('/auth/login', { email, password });
+  if (response.data.success) {
+    localStorage.setItem('ppl_token', response.data.data.token);
+    localStorage.setItem('ppl_user', JSON.stringify(response.data.data.user));
+  }
+  return response.data;
 };
 
 export const getCurrentUser = async () => {
@@ -55,4 +44,3 @@ export const deleteUser = async (id) => {
   const response = await apiClient.delete(`/users/${id}`);
   return response.data;
 };
-

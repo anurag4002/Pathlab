@@ -23,3 +23,8 @@ export const getActivityLogs = async () => {
   const response = await apiClient.get('/dashboard/activities');
   return response.data;
 };
+
+export const getMonthlyTrends = async () => {
+  const response = await apiClient.get('/dashboard/trends');
+  return response.data;
+};

@@ -9,5 +9,6 @@ router.get('/summary', dashboardController.getDashboardSummary);
 router.get('/business', dashboardController.getDailyBusinessReport);
 router.get('/referral', dashboardController.getReferralReport);
 router.get('/activities', dashboardController.getActivityLogs);
+router.get('/trends', dashboardController.getMonthlyTrendsReport);
 
 module.exports = router;

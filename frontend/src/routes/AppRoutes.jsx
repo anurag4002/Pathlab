@@ -4,8 +4,14 @@ import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
 import AppLayout from '../components/layout/AppLayout';
 
+// Public Landing Page
+import LandingPage from '../pages/public/LandingPage';
+
 // Auth
 import Login from '../features/auth/pages/Login';
+
+// Patient Portal
+import PatientReportPortal from '../pages/patient/PatientReportPortal';
 
 // Dashboard
 import DashboardPage from '../features/dashboard/pages/DashboardPage';
@@ -17,7 +23,7 @@ import PatientDetailsPage from '../features/patients/pages/PatientDetailsPage';
 // Billing (feature-based)
 import BillsPage from '../features/billing/pages/BillsPage';
 
-// Cases (legacy pages, no decomposition needed — clean enough)
+// Cases
 import Transactions from '../pages/cases/Transactions';
 import ReferralDoctors from '../pages/cases/ReferralDoctors';
 import Agents from '../pages/cases/Agents';
@@ -60,14 +66,21 @@ import BrowserSecurity from '../pages/manage/BrowserSecurity';
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public Login Route */}
+      {/* Public Landing Page */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* Public Admin & Staff Login Routes */}
+      <Route path="/admin/login" element={<Login />} />
       <Route path="/login" element={<Login />} />
 
-      {/* Protected Master Portal Layout */}
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-        {/* Redirect from root to dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Public Patient Report Portal Routes */}
+      <Route path="/patient/report" element={<PatientReportPortal />} />
+      <Route path="/reports" element={<PatientReportPortal />} />
 
+      {/* Protected Master Admin/Staff Portal Layout */}
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
 
         {/* Cases */}

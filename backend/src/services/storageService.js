@@ -2,53 +2,91 @@ const fs = require('fs');
 const path = require('path');
 const { UPLOAD_DIR } = require('../config/environment');
 
-// Ensure upload directory exists
-const absoluteUploadDir = path.resolve(process.cwd(), UPLOAD_DIR);
-if (!fs.existsSync(absoluteUploadDir)) {
-  fs.mkdirSync(absoluteUploadDir, { recursive: true });
+// Ensure base upload / private storage directory exists
+const baseStorageDir = path.resolve(__dirname, '../../', UPLOAD_DIR);
+if (!fs.existsSync(baseStorageDir)) {
+  fs.mkdirSync(baseStorageDir, { recursive: true });
 }
 
 /**
  * Storage Service Abstraction
- * Currently uses local file system, designed to be swapped with S3/Cloud storage easily.
+ * Handles local private filesystem storage with clean hooks for S3 / Cloud storage integration.
  */
-const storageService = {
+class StorageService {
   /**
-   * Save a file to storage
-   * @param {Object} file - Express multer file object
-   * @returns {Promise<string>} - Returns the stored file path or identifier
+   * Save a buffer or file to private storage
+   * @param {string} subFolder - Subdirectory name (e.g., 'reports', 'xray', 'usg')
+   * @param {string} fileName - Destination filename
+   * @param {Buffer} buffer - File buffer
+   * @returns {Promise<{ relativePath: string, fullPath: string }>}
    */
-  upload: async (file) => {
-    // With multer, the file is already saved to UPLOAD_DIR via the middleware.
-    // In a cloud implementation, this method would read the buffer and upload to S3.
-    // For now, just return the relative path.
-    return `/uploads/${file.filename}`;
-  },
+  async uploadFile(subFolder, fileName, buffer) {
+    const targetDir = path.join(baseStorageDir, subFolder);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const fullPath = path.join(targetDir, fileName);
+    await fs.promises.writeFile(fullPath, buffer);
+    const relativePath = path.join(UPLOAD_DIR, subFolder, fileName).replace(/\\/g, '/');
+
+    return {
+      relativePath,
+      fullPath
+    };
+  }
 
   /**
-   * Get the absolute path to a stored file (for downloading/sending)
-   * @param {string} fileIdentifier - The path/identifier stored in DB
-   * @returns {string} - Absolute path on disk (or signed URL for cloud)
+   * Check if a file exists in private storage
+   * @param {string} relativePath
+   * @returns {boolean}
    */
-  get: (fileIdentifier) => {
-    const filename = path.basename(fileIdentifier);
-    return path.join(absoluteUploadDir, filename);
-  },
+  fileExists(relativePath) {
+    if (!relativePath) return false;
+    const fullPath = path.resolve(__dirname, '../../', relativePath);
+    return fs.existsSync(fullPath);
+  }
 
   /**
-   * Delete a file from storage
-   * @param {string} fileIdentifier 
+   * Get absolute path for an authorized download/view
+   * @param {string} relativePath
+   * @returns {string|null}
    */
-  delete: async (fileIdentifier) => {
+  getFilePath(relativePath) {
+    if (!relativePath) return null;
+    const fullPath = path.resolve(__dirname, '../../', relativePath);
+    return fs.existsSync(fullPath) ? fullPath : null;
+  }
+
+  /**
+   * Get readable stream for file
+   * @param {string} relativePath
+   * @returns {fs.ReadStream|null}
+   */
+  getFileStream(relativePath) {
+    const fullPath = this.getFilePath(relativePath);
+    if (!fullPath) return null;
+    return fs.createReadStream(fullPath);
+  }
+
+  /**
+   * Delete a file from private storage
+   * @param {string} relativePath
+   * @returns {Promise<boolean>}
+   */
+  async deleteFile(relativePath) {
     try {
-      const filePath = storageService.get(fileIdentifier);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const fullPath = this.getFilePath(relativePath);
+      if (fullPath) {
+        await fs.promises.unlink(fullPath);
+        return true;
       }
+      return false;
     } catch (err) {
-      console.error(`Failed to delete file ${fileIdentifier}:`, err);
+      console.error('[STORAGE SERVICE] Delete Error:', err.message);
+      return false;
     }
   }
-};
+}
 
-module.exports = storageService;
+module.exports = new StorageService();

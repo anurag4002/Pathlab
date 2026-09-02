@@ -1,8 +1,18 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 const MobileSidebar = ({ isOpen, onClose }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Close mobile sidebar on route transition
+    if (isOpen) {
+      onClose();
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -21,12 +31,13 @@ const MobileSidebar = ({ isOpen, onClose }) => {
 
   return (
     <div
+      className="mobile-sidebar-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+        backgroundColor: 'rgba(15, 23, 42, 0.6)',
         backdropFilter: 'blur(2px)',
-        zIndex: 1000,
+        zIndex: 1050,
         display: 'flex'
       }}
       onClick={onClose}
@@ -34,12 +45,15 @@ const MobileSidebar = ({ isOpen, onClose }) => {
       aria-modal="true"
     >
       <div
+        className="mobile-sidebar-drawer"
         style={{
-          width: 'var(--sidebar-width)',
+          width: 'var(--sidebar-width, 16.5rem)',
           height: '100%',
           position: 'relative',
           boxShadow: 'var(--shadow-xl)',
-          backgroundColor: 'var(--color-surface)'
+          backgroundColor: 'var(--color-surface, #ffffff)',
+          display: 'flex',
+          flexDirection: 'column'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -48,14 +62,14 @@ const MobileSidebar = ({ isOpen, onClose }) => {
           onClick={onClose}
           style={{
             position: 'absolute',
-            top: 'var(--space-4)',
-            right: 'var(--space-4)',
+            top: '0.875rem',
+            right: '0.875rem',
             background: 'none',
             border: 'none',
-            color: 'var(--color-text-muted)',
+            color: 'var(--color-text-muted, #64748b)',
             cursor: 'pointer',
-            zIndex: 1010,
-            padding: 'var(--space-1)',
+            zIndex: 1060,
+            padding: '0.25rem',
             display: 'flex'
           }}
           aria-label="Close mobile navigation"

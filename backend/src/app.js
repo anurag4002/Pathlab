@@ -1,21 +1,30 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { CLIENT_URL, UPLOAD_DIR } = require('./config/environment');
+const { CLIENT_URL } = require('./config/environment');
 const errorHandler = require('./middleware/errorMiddleware');
 
 const app = express();
 
 // Middlewares
+const allowedOrigins = [
+  CLIENT_URL,
+  'http://localhost:3000',
+  'http://localhost:5173'
+].filter(Boolean);
+
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, '../', UPLOAD_DIR)));
 
 // API Routes Import
 const authRoutes = require('./routes/authRoutes');
@@ -31,6 +40,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const usgRoutes = require('./routes/usgRoutes');
 const xrayRoutes = require('./routes/xrayRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const patientPortalRoutes = require('./routes/patientPortalRoutes');
 
 // API Routes Mount
 app.use('/api/auth', authRoutes);
@@ -46,7 +56,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/usg', usgRoutes);
 app.use('/api/xray', xrayRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
+app.use('/api/patient', patientPortalRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

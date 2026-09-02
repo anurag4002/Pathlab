@@ -10,8 +10,12 @@
     z-index: 1001;
   }
 
-  .sidebar.open {
-    transform: translateX(0);
+  .sidebar.open,
+  .mobile-sidebar-drawer .sidebar {
+    transform: translateX(0) !important;
+    position: relative !important;
+    height: 100% !important;
+    width: 100% !important;
   }
 }
 

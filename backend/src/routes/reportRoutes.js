@@ -8,6 +8,7 @@ const upload = require('../middleware/uploadMiddleware');
 router.use(protect);
 
 router.get('/', reportController.getReports);
+router.get('/:id/download', reportController.downloadReport);
 router.post('/upload', upload.single('file'), reportController.uploadReport);
 router.delete('/:id', authorize('Admin'), reportController.deleteReport);
 

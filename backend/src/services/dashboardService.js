@@ -210,9 +210,78 @@ const getActivities = async () => {
     .limit(100);
 };
 
+const getMonthlyTrends = async () => {
+  const months = [];
+  const now = new Date();
+
+  // Generate last 6 months list
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthName = d.toLocaleString('default', { month: 'short' });
+    const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    months.push({
+      month: monthName,
+      year: d.getFullYear(),
+      startOfMonth,
+      endOfMonth
+    });
+  }
+
+  const trends = await Promise.all(
+    months.map(async (m) => {
+      // Aggregate income transactions in this month
+      const incomeAgg = await Transaction.aggregate([
+        {
+          $match: {
+            type: 'Income',
+            date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$amount' }
+          }
+        }
+      ]);
+
+      // Aggregate expenses in this month
+      const expenseAgg = await Expense.aggregate([
+        {
+          $match: {
+            date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$amount' }
+          }
+        }
+      ]);
+
+      const revenue = incomeAgg[0] ? incomeAgg[0].total : 0;
+      const expenses = expenseAgg[0] ? expenseAgg[0].total : 0;
+
+      return {
+        month: m.month,
+        year: m.year,
+        revenue,
+        expenses,
+        net: revenue - expenses
+      };
+    })
+  );
+
+  return trends;
+};
+
 module.exports = {
   getDashboardStats,
   getDailyBusiness,
   getReferralBusiness,
-  getActivities
+  getActivities,
+  getMonthlyTrends
 };

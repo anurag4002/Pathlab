@@ -13,6 +13,12 @@ const MESSAGES = {
     DELETED: 'Patient profile deleted successfully',
     NOT_FOUND: 'Patient profile not found'
   },
+  PATIENT_PORTAL: {
+    OTP_SENT: 'OTP dispatched to your registered mobile number',
+    OTP_VERIFIED: 'OTP verified successfully',
+    NO_REPORTS: 'No diagnostic reports found for this mobile number',
+    REPORT_NOT_FOUND: 'Requested report not found or access denied'
+  },
   BILL: {
     CREATED: 'Invoice generated successfully',
     UPDATED: 'Invoice details updated successfully',

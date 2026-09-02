@@ -1,29 +1,30 @@
 const mongoose = require('mongoose');
-const { OTP_EXPIRY_MINUTES } = require('../config/environment');
 
-const otpSessionSchema = new mongoose.Schema({
-  mobileNumber: {
+const OtpSessionSchema = new mongoose.Schema({
+  phone: {
     type: String,
     required: true,
-    index: true,
+    index: true
   },
   otpHash: {
     type: String,
+    required: true
+  },
+  expiresAt: {
+    type: Date,
     required: true,
+    expires: 0
   },
   attempts: {
     type: Number,
-    default: 0,
+    default: 0
   },
-  isVerified: {
+  verified: {
     type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    expires: OTP_EXPIRY_MINUTES * 60, // Document automatically removed after expiry
+    default: false
   }
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.model('OtpSession', otpSessionSchema);
+module.exports = mongoose.model('OtpSession', OtpSessionSchema);

@@ -39,9 +39,19 @@ const getActivityLogs = async (req, res, next) => {
   }
 };
 
+const getMonthlyTrendsReport = async (req, res, next) => {
+  try {
+    const trends = await dashboardService.getMonthlyTrends();
+    return successResponse(res, 'Monthly trends aggregated successfully', trends);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardSummary,
   getDailyBusinessReport,
   getReferralReport,
-  getActivityLogs
+  getActivityLogs,
+  getMonthlyTrendsReport
 };

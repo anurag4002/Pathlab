@@ -1,4 +1,7 @@
+const path = require('path');
+const fs = require('fs');
 const reportService = require('../services/reportService');
+const Report = require('../models/Report');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
@@ -49,6 +52,26 @@ const uploadReport = async (req, res, next) => {
   }
 };
 
+const downloadReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const report = await Report.findById(id);
+    if (!report || !report.fileUrl) {
+      return errorResponse(res, 'Report file not found', 404);
+    }
+
+    const filepath = path.resolve(__dirname, '../../', report.fileUrl);
+    if (!fs.existsSync(filepath)) {
+      return errorResponse(res, 'Physical report file missing on server', 404);
+    }
+
+    const filename = `Report_${report.registrationNumber}_${id}${path.extname(report.fileUrl)}`;
+    return res.download(filepath, filename);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteReport = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -71,5 +94,6 @@ const deleteReport = async (req, res, next) => {
 module.exports = {
   getReports,
   uploadReport,
+  downloadReport,
   deleteReport
 };
