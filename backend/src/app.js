@@ -8,16 +8,8 @@ const errorHandler = require('./middleware/errorMiddleware');
 const app = express();
 
 // Middlewares
-const allowedOrigins = [
-  CLIENT_URL,
-  'http://localhost:3000',
-  'http://localhost:5173'
-].filter(Boolean);
-
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
+  origin: true,
   credentials: true
 }));
 
@@ -28,11 +20,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(async (req, res, next) => {
   try {
     await connectDatabase();
-    next();
   } catch (err) {
     console.error('Database connection warning in middleware:', err.message);
-    next();
   }
+  next();
 });
 
 // Static uploads serving
@@ -40,6 +31,7 @@ const uploadBase = process.env.VERCEL
   ? '/tmp/uploads'
   : path.resolve(__dirname, '../', UPLOAD_DIR);
 app.use('/uploads', express.static(uploadBase));
+app.use('/api/uploads', express.static(uploadBase));
 
 // API Routes Import
 const authRoutes = require('./routes/authRoutes');
@@ -57,25 +49,31 @@ const xrayRoutes = require('./routes/xrayRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const patientPortalRoutes = require('./routes/patientPortalRoutes');
 
-// API Routes Mount
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/patients', patientRoutes);
-app.use('/api/doctors', doctorRoutes);
-app.use('/api/agents', agentRoutes);
-app.use('/api/bills', billRoutes);
-app.use('/api/tests', testRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/usg', usgRoutes);
-app.use('/api/xray', xrayRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/patient', patientPortalRoutes);
+// Helper to register routes on both /api/path and /path
+const registerAllRoutes = (prefix) => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/users`, userRoutes);
+  app.use(`${prefix}/patients`, patientRoutes);
+  app.use(`${prefix}/doctors`, doctorRoutes);
+  app.use(`${prefix}/agents`, agentRoutes);
+  app.use(`${prefix}/bills`, billRoutes);
+  app.use(`${prefix}/tests`, testRoutes);
+  app.use(`${prefix}/reports`, reportRoutes);
+  app.use(`${prefix}/expenses`, expenseRoutes);
+  app.use(`${prefix}/transactions`, transactionRoutes);
+  app.use(`${prefix}/usg`, usgRoutes);
+  app.use(`${prefix}/xray`, xrayRoutes);
+  app.use(`${prefix}/dashboard`, dashboardRoutes);
+  app.use(`${prefix}/patient`, patientPortalRoutes);
+};
+
+// Mount routes for both standard prefix and rewritten prefix
+registerAllRoutes('/api');
+registerAllRoutes('');
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'Pure Path Lab Backend' });
+app.get(['/api/health', '/health', '/'], (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'Pure Path Lab Backend', timestamp: new Date().toISOString() });
 });
 
 // Central Error Handler

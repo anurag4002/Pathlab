@@ -7,13 +7,15 @@ connectDatabase().catch(err => {
   console.error('Initial database connection warning:', err.message);
 });
 
-// Start Server on configured PORT
-const server = app.listen(PORT, () => {
-  console.log(`Pure Path Lab Backend Server running on port ${PORT}`);
-});
+// Start Server when executed directly locally (not in serverless)
+if (!process.env.VERCEL) {
+  const server = app.listen(PORT, () => {
+    console.log(`Pure Path Lab Backend Server running on port ${PORT}`);
+  });
 
-process.on('unhandledRejection', (err) => {
-  console.error(`Unhandled Rejection Error: ${err.message}`);
-});
+  process.on('unhandledRejection', (err) => {
+    console.error(`Unhandled Rejection Error: ${err.message}`);
+  });
+}
 
 module.exports = app;
