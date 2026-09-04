@@ -2,17 +2,22 @@ const app = require('./app');
 const connectDatabase = require('./config/database');
 const { PORT } = require('./config/environment');
 
-// Connect to MongoDB
-connectDatabase();
+// Connect to MongoDB on local standalone execution
+if (process.env.NODE_ENV !== 'test') {
+  connectDatabase().catch(err => {
+    console.error('Initial database connection warning:', err.message);
+  });
+}
 
-// Start Server
-const server = app.listen(PORT, () => {
-  console.log(`Pure Path Lab Backend Server running on port ${PORT}`);
-});
+// Start Server when run directly
+if (!process.env.VERCEL) {
+  const server = app.listen(PORT, () => {
+    console.log(`Pure Path Lab Backend Server running on port ${PORT}`);
+  });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-});
+  process.on('unhandledRejection', (err) => {
+    console.error(`Unhandled Rejection Error: ${err.message}`);
+  });
+}
+
+module.exports = app;

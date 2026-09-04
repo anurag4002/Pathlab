@@ -14,15 +14,10 @@ const generateOtp = () => {
 
 const sendOtp = async (phone, otp) => {
   if (SMS_PROVIDER === 'console' || process.env.NODE_ENV === 'development') {
-    console.log(`\n========================================`);
-    console.log(`[OTP SERVICE] OTP for ${phone}: ${otp}`);
-    console.log(`========================================\n`);
+    console.log(`[Pure Path Lab] OTP for ${phone}: ${otp}`);
     return true;
   }
 
-  // Placeholder abstraction for external SMS provider (e.g. Twilio / MSG91 / Fast2SMS)
-  // When SMS_PROVIDER credentials are in .env, plug provider HTTP request here.
-  console.log(`[OTP SERVICE] Sending SMS via provider (${SMS_PROVIDER}) to ${phone}`);
   return true;
 };
 

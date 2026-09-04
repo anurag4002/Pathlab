@@ -14,7 +14,6 @@ const DashboardStats = ({ stats }) => {
           icon={IndianRupee}
           color="var(--color-success)"
           bgColor="var(--color-success-bg)"
-          trend="↑ 12% vs avg"
         />
         <StatCard
           title="Total Patients"

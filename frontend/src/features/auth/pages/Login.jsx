@@ -71,7 +71,11 @@ const Login = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email/phone or password');
+      if (!err.response) {
+        setError('Unable to reach the backend server. Please verify the backend server is running on port 5001.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid email/phone or password');
+      }
     } finally {
       setLoading(false);
     }

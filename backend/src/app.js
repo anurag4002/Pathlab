@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { CLIENT_URL } = require('./config/environment');
+const { CLIENT_URL, UPLOAD_DIR } = require('./config/environment');
+const connectDatabase = require('./config/database');
 const errorHandler = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -15,7 +16,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow all origins in production or check whitelist
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'production') {
       callback(null, true);
     } else {
       callback(null, true);
@@ -23,8 +25,29 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Ensure Database is connected before API handlers execute
+app.use(async (req, res, next) => {
+  try {
+    await connectDatabase();
+    next();
+  } catch (err) {
+    console.error('Failed to connect to database in middleware:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please check MongoDB configuration.'
+    });
+  }
+});
+
+// Static uploads serving
+const uploadBase = process.env.VERCEL
+  ? '/tmp/uploads'
+  : path.resolve(__dirname, '../', UPLOAD_DIR);
+app.use('/uploads', express.static(uploadBase));
 
 // API Routes Import
 const authRoutes = require('./routes/authRoutes');

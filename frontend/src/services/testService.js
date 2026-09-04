@@ -21,11 +21,11 @@ export const deleteTest = async (id) => {
   return response.data;
 };
 
-// Categories CRUD
 export const getCategories = async () => {
   const response = await apiClient.get('/tests/categories');
   return response.data;
 };
+export const getTestCategories = getCategories;
 
 export const createCategory = async (data) => {
   const response = await apiClient.post('/tests/categories', data);

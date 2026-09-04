@@ -3,21 +3,33 @@ const path = require('path');
 const fs = require('fs');
 const { UPLOAD_DIR } = require('../config/environment');
 
+const getUploadPath = (req) => {
+  let subfolder = 'reports';
+  if (req.originalUrl && req.originalUrl.includes('/api/usg')) {
+    subfolder = 'usg';
+  } else if (req.originalUrl && req.originalUrl.includes('/api/xray')) {
+    subfolder = 'xray';
+  }
+
+  const baseDir = process.env.VERCEL
+    ? '/tmp/uploads'
+    : path.resolve(__dirname, '../../', UPLOAD_DIR);
+
+  const fullPath = path.join(baseDir, subfolder);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+  }
+  return fullPath;
+};
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    let subfolder = 'reports';
-    // Dynamically choose folder based on endpoint path or field
-    if (req.originalUrl.includes('/api/usg')) {
-      subfolder = 'usg';
-    } else if (req.originalUrl.includes('/api/xray')) {
-      subfolder = 'xray';
+    try {
+      const uploadPath = getUploadPath(req);
+      cb(null, uploadPath);
+    } catch (err) {
+      cb(err);
     }
-    
-    const uploadPath = path.resolve(__dirname, '../../', UPLOAD_DIR, subfolder);
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
