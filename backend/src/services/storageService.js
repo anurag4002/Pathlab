@@ -2,10 +2,21 @@ const fs = require('fs');
 const path = require('path');
 const { UPLOAD_DIR } = require('../config/environment');
 
-// Ensure base upload / private storage directory exists
-const baseStorageDir = path.resolve(__dirname, '../../', UPLOAD_DIR);
-if (!fs.existsSync(baseStorageDir)) {
-  fs.mkdirSync(baseStorageDir, { recursive: true });
+const getBaseStorageDir = () => {
+  if (process.env.VERCEL) {
+    return '/tmp/uploads';
+  }
+  return path.resolve(__dirname, '../../', UPLOAD_DIR);
+};
+
+const baseStorageDir = getBaseStorageDir();
+
+try {
+  if (!fs.existsSync(baseStorageDir)) {
+    fs.mkdirSync(baseStorageDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Storage directory initialization warning:', err.message);
 }
 
 /**
@@ -43,7 +54,7 @@ class StorageService {
    */
   fileExists(relativePath) {
     if (!relativePath) return false;
-    const fullPath = path.resolve(__dirname, '../../', relativePath);
+    const fullPath = path.join(baseStorageDir, path.basename(relativePath));
     return fs.existsSync(fullPath);
   }
 
@@ -54,7 +65,7 @@ class StorageService {
    */
   getFilePath(relativePath) {
     if (!relativePath) return null;
-    const fullPath = path.resolve(__dirname, '../../', relativePath);
+    const fullPath = path.join(baseStorageDir, path.basename(relativePath));
     return fs.existsSync(fullPath) ? fullPath : null;
   }
 

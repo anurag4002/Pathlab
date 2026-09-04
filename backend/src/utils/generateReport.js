@@ -4,7 +4,11 @@ const { UPLOAD_DIR } = require('../config/environment');
 
 const generateReportFile = async (patient, bill, test, findings, author) => {
   try {
-    const reportDir = path.join(__dirname, '../../', UPLOAD_DIR, 'reports');
+    const baseDir = process.env.VERCEL
+      ? '/tmp/uploads'
+      : path.resolve(__dirname, '../../', UPLOAD_DIR);
+
+    const reportDir = path.join(baseDir, 'reports');
     if (!fs.existsSync(reportDir)) {
       fs.mkdirSync(reportDir, { recursive: true });
     }
