@@ -1,25 +1,19 @@
 const mongoose = require('mongoose');
 const { MONGO_URI } = require('./environment');
 
-/**
- * Global is used here to maintain a cached connection across hot reloads
- * in development and serverless execution on platforms like Vercel.
- */
 let cached = global.mongoose;
-
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
 const connectDatabase = async () => {
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
     };
 
     cached.promise = mongoose.connect(MONGO_URI, opts).then((mongooseInstance) => {
