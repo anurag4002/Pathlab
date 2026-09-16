@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { getInvites, createInvite } from '../../services/doctorPortalService';
+import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
 const DoctorAccess = () => {
@@ -20,6 +21,12 @@ const DoctorAccess = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // Invite section
+  const [invites, setInvites] = useState([]);
+  const [invLoading, setInvLoading] = useState(false);
+  const [invForm, setInvForm] = useState({ name: '', email: '', phone: '' });
+  const [invToken, setInvToken] = useState('');
+  const [invSaving, setInvSaving] = useState(false);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -37,9 +44,18 @@ const DoctorAccess = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDoctors();
-  }, [search]);
+  const fetchInvites = async () => {
+    setInvLoading(true);
+    try { const r = await getInvites(); if (r.success) setInvites(r.data?.invites || r.data || []); }
+    catch (e) { console.error('invites', e); } finally { setInvLoading(false); }
+  };
+  useEffect(() => { fetchDoctors(); fetchInvites(); }, [search]);
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInvSaving(true); setInvToken('');
+    try { const r = await createInvite(invForm); if (r.success) { setInvToken(r.data?.token || r.data?.invite?.token || ''); setInvForm({ name: '', email: '', phone: '' }); fetchInvites(); } }
+    catch (e) { alert(e.response?.data?.message || 'Invite failed'); } finally { setInvSaving(false); }
+  };
 
   const handleOpenCreate = () => {
     setEditingDoc(null);
@@ -125,6 +141,19 @@ const DoctorAccess = () => {
           </Button>
         }
       />
+
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+        <h3 style={{ margin: '0 0 .75rem', display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={16} /> Invite Doctor (token link)</h3>
+        <form onSubmit={handleInvite} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input className="form-control" style={{ maxWidth: 200 }} placeholder="Name" value={invForm.name} onChange={(e) => setInvForm(s => ({ ...s, name: e.target.value }))} required />
+          <input className="form-control" style={{ maxWidth: 220 }} placeholder="Email" value={invForm.email} onChange={(e) => setInvForm(s => ({ ...s, email: e.target.value }))} required />
+          <input className="form-control" style={{ maxWidth: 160 }} placeholder="Phone" value={invForm.phone} onChange={(e) => setInvForm(s => ({ ...s, phone: e.target.value }))} />
+          <Button type="submit" size="sm" loading={invSaving}>Send Invite</Button>
+        </form>
+        {invToken && <p style={{ fontSize: '.8rem', marginTop: 8 }}>Invite token: <code>{invToken}</code></p>}
+        <DataTable headers={['Name', 'Email', 'Phone', 'Token / Status']} data={invites} loading={invLoading} emptyMessage="No invites yet."
+          renderRow={(iv, i) => (<tr key={iv._id || i}><td>{iv.name}</td><td>{iv.email}</td><td>{iv.phone || '-'}</td><td style={{ fontSize: '.78rem' }}><code>{iv.token || iv.status || '-'}</code></td></tr>)} />
+      </div>
 
       <DataTable
         headers={['Name', 'Email Address', 'Role', 'Status', 'Actions']}

@@ -58,7 +58,17 @@ const TestSchema = new mongoose.Schema({
     enum: ['Active', 'Inactive'],
     default: 'Active',
     index: true
-  }
+  },
+  // Machine-readable normals for the abnormal checker + age/sex restrictions.
+  normalLow: { type: Number, default: null },
+  normalHigh: { type: Number, default: null },
+  criticalLow: { type: Number, default: null },
+  criticalHigh: { type: Number, default: null },
+  ageMin: { type: Number, default: null },
+  ageMax: { type: Number, default: null },
+  sexApplicable: { type: String, enum: ['Any', 'Male', 'Female'], default: 'Any' },
+  // True for formula-derived entries (e.g. MCV, eGFR) — not directly billable alone.
+  isDerived: { type: Boolean, default: false }
 }, {
   timestamps: true
 });

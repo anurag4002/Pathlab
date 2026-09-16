@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { getReports } from '../../services/reportService';
+import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
-import { Search, Download } from 'lucide-react';
+import { Download, FileDown, QrCode } from 'lucide-react';
 import { DataTable, PageHeader } from '../../components/common';
 
 const SearchReports = () => {
@@ -32,6 +33,15 @@ const SearchReports = () => {
     fetchReports();
   }, [debouncedSearch]);
 
+  const handleQr = async (report) => {
+    try {
+      const res = await fetchReportQr(report._id);
+      if (res.success) window.open(res.data.verifyUrl, '_blank', 'noopener');
+    } catch {
+      alert('Failed to load report QR');
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -55,13 +65,29 @@ const SearchReports = () => {
             <td>{report.test ? `${report.test.name} (${report.test.code})` : 'General Findings'}</td>
             <td>{formatDate(report.reportDate)}</td>
             <td>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
-              >
-                <Download size={14} /> Download
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  onClick={() => downloadReportPdf(report._id, true)}
+                >
+                  <FileDown size={14} /> PDF
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  onClick={() => handleQr(report)}
+                >
+                  <QrCode size={14} /> QR
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
+                >
+                  <Download size={14} /> Download
+                </button>
+              </div>
             </td>
           </tr>
         )}

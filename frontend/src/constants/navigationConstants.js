@@ -35,7 +35,8 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Patients', path: '/cases/patients' },
       { title: 'Transactions', path: '/cases/transactions' },
       { title: 'Referral Doctors', path: '/cases/doctors' },
-      { title: 'Agents', path: '/cases/agents' }
+      { title: 'Agents', path: '/cases/agents' },
+      { title: 'Modality', path: '/cases/modality', roles: ['Admin', 'Employee'] }
     ]
   },
   {
@@ -74,13 +75,27 @@ export const SIDEBAR_NAV_ITEMS = [
     ]
   },
   {
+    title: 'Doctor',
+    icon: 'Stethoscope',
+    roles: ['Doctor'],
+    children: [
+      { title: 'My Cases', path: '/doctor' }
+    ]
+  },
+  {
     title: 'Manage',
     icon: 'Settings',
     roles: ['Admin'],
     children: [
       { title: 'Employee Login', path: '/manage/employees' },
       { title: 'Doctor Access', path: '/manage/doctors' },
-      { title: 'Browser Security', path: '/manage/security' }
+      { title: 'Browser Security', path: '/manage/security' },
+      { title: 'Lab Profile', path: '/setup/profile' },
+      { title: 'Onboarding', path: '/setup/onboarding' },
+      { title: 'Templates', path: '/delivery/templates' },
+      { title: 'Reviews', path: '/delivery/reviews' },
+      { title: 'Tickets', path: '/support/tickets' },
+      { title: 'Subscription', path: '/support/subscription' }
     ]
   }
 ];

@@ -12,6 +12,8 @@ const getBills = async (req, res, next) => {
       search: req.query.search,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
+      department: req.query.department,
+      includeVoided: req.query.includeVoided === 'true' || req.query.includeVoided === '1',
       page: req.query.page,
       limit: req.query.limit
     };
@@ -87,5 +89,75 @@ module.exports = {
   getBills,
   getBillById,
   createBill,
-  collectPayment
+  collectPayment,
+  voidBill,
+  billPdfDownload,
+  billQr,
+  billBarcode
 };
+
+const Bill = require('../models/Bill');
+const LabProfile = require('../models/LabProfile');
+const { billPdf } = require('../services/pdfService');
+const { qrDataURL, qrBuffer, billVerifyUrl } = require('../services/qrService');
+const { toSVG: barcodeSVG } = require('../services/code39Service');
+
+async function voidBill(req, res, next) {
+  try {
+    const bill = await billService.voidBill(req.params.id, req.body.reason, req.user._id);
+    await Activity.create({
+      user: req.user._id,
+      action: 'Void Bill',
+      module: 'Cases',
+      description: `Voided invoice ${bill.billNumber}. Reason: ${req.body.reason || 'not specified'}.`
+    });
+    return successResponse(res, 'Bill voided (kept in history)', bill);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function billPdfDownload(req, res, next) {
+  try {
+    const letterhead = req.query.letterhead !== '0';
+    const bill = await Bill.findById(req.params.id).populate('patient').populate('referringDoctor').populate('agent').populate('items');
+    if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    const token = await billService.ensureBillQrToken(bill);
+    let profile = null;
+    try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
+    const qrPng = await qrBuffer(billVerifyUrl(token));
+    const pdf = await billPdf(
+      { bill, patient: bill.patient, doctor: bill.referringDoctor, agent: bill.agent, items: bill.items, profile },
+      { letterhead, qrPng }
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('X-Bill-PDF', 'v2-table-engine');
+    res.setHeader('Content-Disposition', `attachment; filename="Bill_${bill.billNumber}.pdf"`);
+    return res.send(pdf);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function billQr(req, res, next) {
+  try {
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    const token = await billService.ensureBillQrToken(bill);
+    const dataUrl = await qrDataURL(billVerifyUrl(token));
+    return successResponse(res, 'Bill QR generated', { qrToken: token, verifyUrl: billVerifyUrl(token), qrDataUrl: dataUrl });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function billBarcode(req, res, next) {
+  try {
+    const bill = await Bill.findById(req.params.id).select('billNumber');
+    if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.send(barcodeSVG(bill.billNumber));
+  } catch (error) {
+    next(error);
+  }
+}

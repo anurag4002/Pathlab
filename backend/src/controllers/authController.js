@@ -17,19 +17,27 @@ const login = async (req, res, next) => {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
     }
 
-    const { email, password } = req.body;
-    const authData = await authService.login(email, password);
+    // Browser allow-list enforcement (bootstrap mode when none registered).
+    const browserCheck = await authService.checkBrowserAllowed(req.body.browserCode || req.headers['x-browser-code']);
+    if (!browserCheck.allowed) {
+      return errorResponse(res, browserCheck.reason, 403);
+    }
+
+    const { email, password, remember } = req.body;
+    const authData = await authService.login(email, password, remember === true);
 
     if (!authData) {
       return errorResponse(res, MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
     }
 
-    // Log Activity
+    // Log Activity (with IP/UA so Browser Security shows real sessions)
     await Activity.create({
       user: authData.user._id,
       action: 'Login',
       module: 'Authentication',
-      description: `User ${authData.user.name} logged in successfully.`
+      description: `User ${authData.user.name} logged in successfully.`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] || ''
     });
 
     return successResponse(res, MESSAGES.AUTH.LOGIN_SUCCESS, authData);
@@ -136,7 +144,58 @@ const forgotPassword = async (req, res, next) => {
     }
 
     const result = await authService.requestPasswordReset(email);
+    return successResponse(res, result.message, { channel: result.channel });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return errorResponse(res, 'Email/phone, OTP and new password are required', 400);
+    }
+    const result = await authService.resetPasswordWithOtp(email, otp, newPassword);
     return successResponse(res, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const requestEmailOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return errorResponse(res, 'Email is required', 400);
+    }
+    const result = await authService.requestEmailOtp(email);
+    return successResponse(res, result.message);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyEmailOtp = async (req, res, next) => {
+  try {
+    const { email, otp, remember } = req.body;
+    if (!email || !otp) {
+      return errorResponse(res, 'Email and OTP are required', 400);
+    }
+    const browserCheck = await authService.checkBrowserAllowed(req.body.browserCode || req.headers['x-browser-code']);
+    if (!browserCheck.allowed) {
+      return errorResponse(res, browserCheck.reason, 403);
+    }
+    const authData = await authService.verifyEmailOtp(email, otp, remember === true);
+    await Activity.create({
+      user: authData.user._id,
+      action: 'Email OTP Login',
+      module: 'Authentication',
+      description: `User ${authData.user.name} logged in via email OTP.`,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] || ''
+    });
+    return successResponse(res, MESSAGES.AUTH.LOGIN_SUCCESS, authData);
   } catch (error) {
     next(error);
   }
@@ -176,6 +235,9 @@ module.exports = {
   getFacebookAuthUrl,
   facebookAuth,
   forgotPassword,
+  resetPassword,
+  requestEmailOtp,
+  verifyEmailOtp,
   getCurrentUser,
   logout
 };

@@ -4,6 +4,8 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
+const PERMISSION_KEYS = ['billing', 'reports', 'rates', 'finance', 'settings', 'patients', 'delivery'];
+
 const EmployeeLogin = () => {
   const { user: currentUser } = useAuth();
   const [employees, setEmployees] = useState([]);
@@ -12,7 +14,7 @@ const EmployeeLogin = () => {
   // Form States
   const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active', permissions: [] });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -26,12 +28,18 @@ const EmployeeLogin = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const res = await getUsers({ search });
-      if (res.success) {
-        // filter out Doctor roles since they are managed separately
-        const list = res.data.filter(u => u.role === 'Employee' || u.role === 'Admin');
-        setEmployees(list);
+      const [empRes, adminRes] = await Promise.all([
+        getUsers({ role: 'Employee', search }).catch(() => null),
+        getUsers({ role: 'Admin', search }).catch(() => null),
+      ]);
+      let list = [];
+      if (empRes?.success) list = list.concat(empRes.data);
+      if (adminRes?.success) list = list.concat(adminRes.data);
+      if (!empRes && !adminRes) {
+        const res = await getUsers({ search });
+        if (res.success) list = res.data.filter(u => u.role === 'Employee' || u.role === 'Admin');
       }
+      setEmployees(Array.isArray(list) ? list : list?.users || []);
     } catch (err) {
       console.error('Failed to load employee list', err);
     } finally {
@@ -45,7 +53,7 @@ const EmployeeLogin = () => {
 
   const handleOpenCreate = () => {
     setEditingEmployee(null);
-    setFormData({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active' });
+    setFormData({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active', permissions: [] });
     setErrors({});
     setFormOpen(true);
   };
@@ -58,7 +66,8 @@ const EmployeeLogin = () => {
       phone: emp.phone || '',
       password: '', // blank password unless changing
       role: emp.role,
-      status: emp.status
+      status: emp.status,
+      permissions: emp.permissions || []
     });
     setErrors({});
     setFormOpen(true);
@@ -73,6 +82,7 @@ const EmployeeLogin = () => {
     return Object.keys(errs).length === 0;
   };
 
+  const togglePerm = (k) => setFormData(p => ({ ...p, permissions: p.permissions.includes(k) ? p.permissions.filter(x => x !== k) : [...p.permissions, k] }));
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -80,7 +90,7 @@ const EmployeeLogin = () => {
     setSubmitLoading(true);
     try {
       let res;
-      const payload = { ...formData };
+      const payload = { ...formData, permissions: formData.permissions || [] };
       if (!payload.password) delete payload.password; // don't send empty password on edit
 
       if (editingEmployee) {
@@ -250,6 +260,17 @@ const EmployeeLogin = () => {
               required
               style={{ flex: 1 }}
             />
+          </div>
+
+          <div>
+            <label className="form-label"><span>Permissions</span></label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+              {PERMISSION_KEYS.map(k => (
+                <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.85rem', textTransform: 'capitalize' }}>
+                  <input type="checkbox" checked={formData.permissions.includes(k)} onChange={() => togglePerm(k)} /> {k}
+                </label>
+              ))}
+            </div>
           </div>
 
         </form>

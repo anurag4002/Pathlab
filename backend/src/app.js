@@ -1,20 +1,26 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { CLIENT_URL, UPLOAD_DIR } = require('./config/environment');
+const { CORS_ORIGIN, CORS_CREDENTIALS, UPLOAD_DIR } = require('./config/environment');
+const { buildCorsOptions } = require('./config/cors');
+const securityHeaders = require('./middleware/securityHeaders');
+const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 const connectDatabase = require('./config/database');
 const errorHandler = require('./middleware/errorMiddleware');
 
 const app = express();
+app.disable('x-powered-by');
+app.use(securityHeaders);
 
-// Middlewares
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// CORS is allowlist-driven via env (CORS_ORIGIN / CORS_CREDENTIALS).
+// Never use origin:true in production — it reflects any origin with credentials.
+app.use(cors(buildCorsOptions({ CORS_ORIGIN, CORS_CREDENTIALS })));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Tier-1 flood protection on every /api route (health checks skipped inside).
+app.use('/api', generalLimiter);
 
 // Ensure Database is connected before API handlers execute
 app.use(async (req, res, next) => {
@@ -48,28 +54,40 @@ const usgRoutes = require('./routes/usgRoutes');
 const xrayRoutes = require('./routes/xrayRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const patientPortalRoutes = require('./routes/patientPortalRoutes');
+const publicRoutes = require('./routes/publicRoutes');
+const setupRoutes = require('./routes/setupRoutes');
+const notifyRoutes = require('./routes/notifyRoutes');
+const supportRoutes = require('./routes/supportRoutes');
+const modalityRoutes = require('./routes/modalityRoutes');
+const doctorPortalRoutes = require('./routes/doctorPortalRoutes');
+const exportRoutes = require('./routes/exportRoutes');
 
-// Helper to register routes on both /api/path and /path
-const registerAllRoutes = (prefix) => {
-  app.use(`${prefix}/auth`, authRoutes);
-  app.use(`${prefix}/users`, userRoutes);
-  app.use(`${prefix}/patients`, patientRoutes);
-  app.use(`${prefix}/doctors`, doctorRoutes);
-  app.use(`${prefix}/agents`, agentRoutes);
-  app.use(`${prefix}/bills`, billRoutes);
-  app.use(`${prefix}/tests`, testRoutes);
-  app.use(`${prefix}/reports`, reportRoutes);
-  app.use(`${prefix}/expenses`, expenseRoutes);
-  app.use(`${prefix}/transactions`, transactionRoutes);
-  app.use(`${prefix}/usg`, usgRoutes);
-  app.use(`${prefix}/xray`, xrayRoutes);
-  app.use(`${prefix}/dashboard`, dashboardRoutes);
-  app.use(`${prefix}/patient`, patientPortalRoutes);
-};
-
-// Mount routes for both standard prefix and rewritten prefix
-registerAllRoutes('/api');
-registerAllRoutes('');
+// All API routers are mounted ONLY under /api.
+// Do NOT add a bare mount (registerAllRoutes('')): it doubles the attack
+// surface and breaks prefix-dependent logic such as the upload-folder
+// resolution in uploadMiddleware (which checks for '/api/usg', '/api/xray').
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/agents', agentRoutes);
+app.use('/api/bills', billRoutes);
+app.use('/api/tests', testRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/usg', usgRoutes);
+app.use('/api/xray', xrayRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/patient', patientPortalRoutes);
+// Public QR self-service (no auth inside) + parity domains.
+app.use('/api/public', publicRoutes);
+app.use('/api/setup', setupRoutes);
+app.use('/api/notify', notifyRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/modality', modalityRoutes);
+app.use('/api/doctor', doctorPortalRoutes);
+app.use('/api/export', exportRoutes);
 
 // Health check endpoint
 app.get(['/api/health', '/health', '/'], (req, res) => {

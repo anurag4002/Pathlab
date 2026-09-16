@@ -6,6 +6,8 @@ import AppLayout from '../components/layout/AppLayout';
 
 // Public Landing Page
 import LandingPage from '../pages/public/LandingPage';
+import VerifyReportPage from '../pages/public/VerifyReport';
+import VerifyBill from '../pages/public/VerifyBill';
 
 // Auth
 import Login from '../features/auth/pages/Login';
@@ -27,6 +29,7 @@ import BillsPage from '../features/billing/pages/BillsPage';
 import Transactions from '../pages/cases/Transactions';
 import ReferralDoctors from '../pages/cases/ReferralDoctors';
 import Agents from '../pages/cases/Agents';
+import ModalityCases from '../pages/cases/ModalityCases';
 
 // Lab
 import TodaysReports from '../pages/lab/TodaysReports';
@@ -63,6 +66,15 @@ import EmployeeLogin from '../pages/manage/EmployeeLogin';
 import DoctorAccess from '../pages/manage/DoctorAccess';
 import BrowserSecurity from '../pages/manage/BrowserSecurity';
 
+// Setup / Delivery / Support / Doctor
+import LabProfile from '../pages/setup/LabProfile';
+import Onboarding from '../pages/setup/Onboarding';
+import Templates from '../pages/delivery/Templates';
+import Reviews from '../pages/delivery/Reviews';
+import Tickets from '../pages/support/Tickets';
+import Subscription from '../pages/support/Subscription';
+import DoctorPortal from '../pages/doctor/DoctorPortal';
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -76,6 +88,10 @@ const AppRoutes = () => {
       {/* Public Patient Report Portal Routes */}
       <Route path="/patient/report" element={<PatientReportPortal />} />
       <Route path="/reports" element={<PatientReportPortal />} />
+
+      {/* Public report verification (Labsmart parity) */}
+      <Route path="/r/:token" element={<VerifyReportPage />} />
+      <Route path="/r/bill/:token" element={<VerifyBill />} />
 
       {/* Protected Master Admin/Staff Portal Layout */}
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -91,6 +107,9 @@ const AppRoutes = () => {
         <Route path="/cases/transactions" element={<Transactions />} />
         <Route path="/cases/doctors" element={<ReferralDoctors />} />
         <Route path="/cases/agents" element={<Agents />} />
+        <Route element={<RoleRoute allowedRoles={['Admin', 'Employee']} />}>
+          <Route path="/cases/modality" element={<ModalityCases />} />
+        </Route>
 
         {/* Lab */}
         <Route path="/lab/reports" element={<TodaysReports />} />
@@ -127,6 +146,17 @@ const AppRoutes = () => {
           <Route path="/manage/employees" element={<EmployeeLogin />} />
           <Route path="/manage/doctors" element={<DoctorAccess />} />
           <Route path="/manage/security" element={<BrowserSecurity />} />
+          <Route path="/setup/profile" element={<LabProfile />} />
+          <Route path="/setup/onboarding" element={<Onboarding />} />
+          <Route path="/delivery/templates" element={<Templates />} />
+          <Route path="/delivery/reviews" element={<Reviews />} />
+          <Route path="/support/tickets" element={<Tickets />} />
+          <Route path="/support/subscription" element={<Subscription />} />
+        </Route>
+
+        {/* Doctor portal */}
+        <Route element={<RoleRoute allowedRoles={['Doctor', 'Admin']} />}>
+          <Route path="/doctor" element={<DoctorPortal />} />
         </Route>
       </Route>
 

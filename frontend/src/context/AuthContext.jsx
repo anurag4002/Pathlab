@@ -19,10 +19,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const loginUser = async (email, password) => {
+  const loginUser = async (email, password, options = {}) => {
     setLoading(true);
     try {
-      const data = await apiLogin(email, password);
+      const data = await apiLogin(email, password, options);
       if (data.success) {
         setToken(data.data.token);
         setUser(data.data.user);
@@ -60,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         login: loginUser,
+        loginUser,
         logout: logoutUser,
         isAuthenticated: !!token,
         hasRole

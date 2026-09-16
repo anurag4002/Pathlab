@@ -50,6 +50,10 @@ body {
 }
 
 /* Print Styling */
+@page {
+  margin: 12mm;
+}
+
 @media print {
   body {
     background-color: #ffffff !important;
@@ -77,8 +81,59 @@ body {
     max-width: 100% !important;
   }
 
+  /* Invoice-only printing: hide the app + modal chrome, show just the bill.
+     Visibility (not display) keeps layout so the invoice starts at page top. */
+  body:has(.printable-area) > #root > *:not(:has(.printable-area)) {
+    display: none !important;
+  }
+
+  body:has(.printable-area) * {
+    visibility: hidden;
+  }
+
+  body:has(.printable-area) .printable-area,
+  body:has(.printable-area) .printable-area * {
+    visibility: visible;
+  }
+
+  /* Unclip the modal so the full invoice prints (not just the viewport). */
+  .modal-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+
+  .modal-content {
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .modal-header,
+  .modal-footer {
+    display: none !important;
+  }
+
+  .modal-body {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+
   .printable-area {
     display: block !important;
     width: 100% !important;
+    position: static !important;
+    padding: 0 !important;
+    color: #000 !important;
+  }
+
+  .printable-area img {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

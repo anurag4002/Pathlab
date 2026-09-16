@@ -32,6 +32,13 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['Active', 'Inactive'],
     default: 'Active'
+  },
+  // Granular permission matrix (Labsmart FR-MANAGE). Admin implies all.
+  // Keys: billing, reports, rates, finance, settings, patients, delivery.
+  permissions: {
+    type: Map,
+    of: Boolean,
+    default: {}
   }
 }, {
   timestamps: true

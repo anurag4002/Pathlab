@@ -5,10 +5,15 @@ const { UPLOAD_DIR } = require('../config/environment');
 
 const getUploadPath = (req) => {
   let subfolder = 'reports';
-  if (req.originalUrl && req.originalUrl.includes('/api/usg')) {
+  const url = req.originalUrl || '';
+  if (url.includes('/api/usg')) {
     subfolder = 'usg';
-  } else if (req.originalUrl && req.originalUrl.includes('/api/xray')) {
+  } else if (url.includes('/api/xray')) {
     subfolder = 'xray';
+  } else if (url.includes('/api/signatures') || url.includes('/signatures')) {
+    subfolder = 'signatures';
+  } else if (url.includes('/api/lab-profile') || url.includes('/api/setup') || url.includes('/letterhead')) {
+    subfolder = 'letterheads';
   }
 
   const baseDir = process.env.VERCEL

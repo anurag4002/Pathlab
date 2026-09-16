@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { getXrayCases, createXrayCase, updateXrayCase } from '../../services/xrayService';
+import { deleteXrayCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
-import { Plus, Edit2, Download } from 'lucide-react';
+import useAuth from '../../hooks/useAuth';
+import { Plus, Edit2, Download, Trash2 } from 'lucide-react';
 import downloadFile from '../../utils/downloadFile';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, StatusBadge, ConfirmDialog } from '../../components/common';
 
 const TodaysXrayCases = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [cases, setCases] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -19,6 +23,26 @@ const TodaysXrayCases = () => {
   const [formData, setFormData] = useState({ patient: '', referringDoctor: '', findings: '', file: null, status: 'Completed' });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  // Admin delete
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const res = await deleteXrayCase(deleteTarget._id);
+      if (res.success) {
+        setDeleteTarget(null);
+        fetchCases();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete X-Ray case');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const fetchCases = async () => {
     setLoading(true);
@@ -55,7 +79,7 @@ const TodaysXrayCases = () => {
 
   const handleOpenCreate = () => {
     setEditingCase(null);
-    setFormData({ patient: '', referringDoctor: '', findings: 'CHEST PA & LATERAL VIEWS:\nLung fields are clear. No focal infiltration or consolidation. Cardiothoracic ratio is normal. Hila and mediastinum are normal. Pleural spaces are free.\nIMPRESSION: Normal Chest Radiograph.', file: null, status: 'Completed' });
+    setFormData({ patient: '', referringDoctor: '', findings: '', file: null, status: 'Completed' });
     setErrors({});
     setFormOpen(true);
   };
@@ -127,7 +151,7 @@ const TodaysXrayCases = () => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Status', 'Download Scan', 'Actions']}
+        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Download Scan', 'Actions']}
         data={cases}
         loading={loading}
         emptyMessage="No X-Ray cases recorded today."
@@ -137,6 +161,7 @@ const TodaysXrayCases = () => {
             <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
             <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
             <td>{c.referringDoctor?.name || 'Self'}</td>
+            <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
             <td>
               <StatusBadge status={c.status} />
             </td>
@@ -154,13 +179,24 @@ const TodaysXrayCases = () => {
               )}
             </td>
             <td>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                onClick={() => handleOpenEdit(c)}
-              >
-                <Edit2 size={14} /> Findings
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  onClick={() => handleOpenEdit(c)}
+                >
+                  <Edit2 size={14} /> Findings
+                </button>
+                {isAdmin && (
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    onClick={() => setDeleteTarget(c)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             </td>
           </tr>
         )}
@@ -238,6 +274,15 @@ const TodaysXrayCases = () => {
 
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        loading={deleteLoading}
+        title="Delete X-Ray case?"
+        message={`Permanently delete X-Ray case for ${deleteTarget?.patient?.name || 'this patient'}?`}
+      />
     </div>
   );
 };

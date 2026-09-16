@@ -24,6 +24,16 @@ const ActivitySchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
     index: true
+  },
+  ip: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  userAgent: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, {
   timestamps: true

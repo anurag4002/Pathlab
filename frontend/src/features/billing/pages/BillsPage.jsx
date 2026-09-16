@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { getBills, collectPayment, getBillById } from '../../../services/billService';
+import { getBills, collectPayment, getBillById, voidBill } from '../../../services/billService';
 import { getPatients } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
 import { getAgents } from '../../../services/agentService';
 import { getTests } from '../../../services/testService';
 import { getPackages } from '../../../services/packageService';
-import { DataTable, PageHeader, Button, StatusBadge, Select } from '../../../components/common';
+import { downloadBillPdf, fetchBillQr, printBillPdf } from '../../../services/publicService';
+import { DataTable, PageHeader, Button, StatusBadge, Select, ConfirmDialog } from '../../../components/common';
 import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/billConstants';
+import { DEPARTMENTS } from '../billingConstants';
 import BillCreateForm from '../components/BillCreateForm';
 import PaymentCollectModal from '../components/PaymentCollectModal';
-import BillPrintPreview from '../components/BillPrintPreview';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
-import { Plus, Printer, CreditCard } from 'lucide-react';
+import useAuth from '../../../hooks/useAuth';
+import { Plus, Printer, CreditCard, Ban, QrCode, FileDown } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 
@@ -21,6 +23,8 @@ const BillsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
 
   const isCreateView = location.pathname.endsWith('/new');
 
@@ -39,6 +43,7 @@ const BillsPage = () => {
   const { page, limit, goToPage } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterDept, setFilterDept] = useState('');
 
   // Modals
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -47,13 +52,13 @@ const BillsPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentSubmitLoading, setPaymentSubmitLoading] = useState(false);
 
-  const [printModalOpen, setPrintModalOpen] = useState(false);
-  const [activePrintBill, setActivePrintBill] = useState(null);
+  const [voidTarget, setVoidTarget] = useState(null);
+  const [voidLoading, setVoidLoading] = useState(false);
 
   const fetchBillsList = async () => {
     setLoading(true);
     try {
-      const res = await getBills({ search: debouncedSearch, paymentStatus: filterStatus, page, limit });
+      const res = await getBills({ search: debouncedSearch, paymentStatus: filterStatus, department: filterDept || undefined, page, limit });
       if (res.success) {
         setBills(res.data.bills);
         setPaginationInfo(res.data.pagination);
@@ -88,7 +93,7 @@ const BillsPage = () => {
     if (!isCreateView) {
       fetchBillsList();
     }
-  }, [debouncedSearch, filterStatus, page, limit, isCreateView]);
+  }, [debouncedSearch, filterStatus, filterDept, page, limit, isCreateView]);
 
   useEffect(() => {
     fetchFormOptions();
@@ -122,15 +127,37 @@ const BillsPage = () => {
     }
   };
 
+  // Print sends the server PDF straight to the print dialog (no new tab).
   const handleOpenPrint = async (bill) => {
     try {
-      const res = await getBillById(bill._id);
-      if (res.success) {
-        setActivePrintBill(res.data);
-        setPrintModalOpen(true);
-      }
+      await printBillPdf(bill._id, true);
     } catch {
-      alert('Failed to load bill print layout');
+      alert('Failed to print bill');
+    }
+  };
+
+  const handleVoidConfirm = async () => {
+    if (!voidTarget) return;
+    setVoidLoading(true);
+    try {
+      const res = await voidBill(voidTarget._id, 'Voided from ledger');
+      if (res.success) {
+        setVoidTarget(null);
+        fetchBillsList();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to void bill');
+    } finally {
+      setVoidLoading(false);
+    }
+  };
+
+  const handleShowQr = async (bill) => {
+    try {
+      const res = await fetchBillQr(bill._id);
+      if (res.success) window.open(res.data.verifyUrl, '_blank', 'noopener');
+    } catch {
+      alert('Failed to load bill QR');
     }
   };
 
@@ -159,12 +186,19 @@ const BillsPage = () => {
         }
       />
 
-      <div style={{ marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)' }}>
         <Select
           placeholder="All Payment Statuses"
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); goToPage(1); }}
           options={BILL_STATUS_OPTIONS}
+          style={{ maxWidth: '15rem' }}
+        />
+        <Select
+          placeholder="All Departments"
+          value={filterDept}
+          onChange={(e) => { setFilterDept(e.target.value); goToPage(1); }}
+          options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))}
           style={{ maxWidth: '15rem' }}
         />
       </div>
@@ -203,13 +237,24 @@ const BillsPage = () => {
             <td><StatusBadge status={bill.paymentStatus} /></td>
             <td>{formatDate(bill.date)}</td>
             <td>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                 <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />}>
                   Print
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => downloadBillPdf(bill._id, true)} icon={<FileDown size={14} />}>
+                  PDF
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />}>
+                  QR
                 </Button>
                 {bill.dueAmount > 0 && (
                   <Button variant="primary" size="sm" onClick={() => handleOpenPayment(bill)} icon={<CreditCard size={14} />}>
                     Pay
+                  </Button>
+                )}
+                {isAdmin && !bill.isVoided && (
+                  <Button variant="danger" size="sm" onClick={() => setVoidTarget(bill)} icon={<Ban size={14} />}>
+                    Void
                   </Button>
                 )}
               </div>
@@ -230,10 +275,14 @@ const BillsPage = () => {
         loading={paymentSubmitLoading}
       />
 
-      <BillPrintPreview
-        isOpen={printModalOpen}
-        onClose={() => setPrintModalOpen(false)}
-        bill={activePrintBill}
+      <ConfirmDialog
+        isOpen={!!voidTarget}
+        onClose={() => setVoidTarget(null)}
+        onConfirm={handleVoidConfirm}
+        loading={voidLoading}
+        title="Void this bill?"
+        message={`Void invoice ${voidTarget?.billNumber}? It stays in history as voided.`}
+        confirmText="Yes, Void"
       />
     </div>
   );

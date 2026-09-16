@@ -21,8 +21,13 @@ export const DEPARTMENTS = [
 
 export const PATIENT_TITLES = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Baby'];
 
+const hay = (t) => `${t?.name || ''} ${t?.code || ''} ${t?.category?.name || ''}`.toLowerCase();
+const anyKw = (t, kws) => { const h = hay(t); return kws.some((k) => h.includes(k)); };
+
 export const filterTestsByDepartment = (tests = [], department) => {
-  if (department === 'LAB') {
+  const dept = String(department || '').toUpperCase().trim();
+  if (!dept) return tests;
+  if (dept === 'LAB') {
     return tests.filter(
       (t) =>
         !t.name.toLowerCase().includes('usg') &&
@@ -32,7 +37,7 @@ export const filterTestsByDepartment = (tests = [], department) => {
         !t.category?.name?.toLowerCase().includes('xray')
     );
   }
-  if (department === 'USG') {
+  if (dept === 'USG') {
     return tests.filter(
       (t) =>
         t.name.toLowerCase().includes('usg') ||
@@ -40,7 +45,7 @@ export const filterTestsByDepartment = (tests = [], department) => {
         t.category?.name?.toLowerCase().includes('usg')
     );
   }
-  if (department === 'DIGITAL XRAY' || department === 'XRAY') {
+  if (dept === 'DIGITAL XRAY' || dept === 'XRAY') {
     return tests.filter(
       (t) =>
         t.name.toLowerCase().includes('xray') ||
@@ -49,5 +54,25 @@ export const filterTestsByDepartment = (tests = [], department) => {
         t.category?.name?.toLowerCase().includes('xray')
     );
   }
-  return [];
+  const KW = {
+    'CT SCAN': ['ct scan', 'computed tomography', 'computed', ' ct '],
+    CT: ['ct scan', 'computed tomography', 'computed', ' ct '],
+    MRI: ['mri', 'magnetic resonance', 'magnetic'],
+    ECG: ['ecg', 'electrocardio', 'electrocardiogram'],
+    'OUTSOURCE LAB': ['outsource', 'outsourced', 'referral-out', 'referral out', 'send-out', 'send out'],
+    OUTSOURCE: ['outsource', 'outsourced', 'referral-out', 'referral out', 'send-out', 'send out'],
+    EPS: ['eps', 'electrophoresis', 'protein electrophoresis'],
+    OPG: ['opg', 'orthopantomogram', 'panoramic dental', 'dental x-ray'],
+    CARDIOLOGY: ['cardio', 'echocardiography', 'echo', 'tmt', 'treadmill', 'holter', 'doppler cardiac'],
+    EEG: ['eeg', 'electroencephalo', 'electroencephalogram'],
+    MAMMOGRAPHY: ['mammo', 'mammography', 'breast']
+  };
+  if (KW[dept]) {
+    const matched = tests.filter((t) => anyKw(t, KW[dept]));
+    // Never return [] for a known dept due to over-filtering: fall back to
+    // category-name match only before giving up (truly no match -> []).
+    if (matched.length > 0) return matched;
+    return tests.filter((t) => (t.category?.name || '').toLowerCase().includes(dept.toLowerCase().split(' ')[0]));
+  }
+  return tests;
 };

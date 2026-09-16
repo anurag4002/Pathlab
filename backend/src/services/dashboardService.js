@@ -134,11 +134,57 @@ const getDailyBusiness = async (startDate, endDate) => {
     }
   });
 
+  // Cashier-wise: income grouped by receivedBy (User) — replaces the mocked
+  // "Add Cashier" alert with real per-clerk collections.
+  const cashierWise = {};
+  transactions.forEach(t => {
+    if (t.type !== 'Income') return;
+    const id = t.receivedBy && t.receivedBy._id ? String(t.receivedBy._id) : 'unknown';
+    const name = (t.receivedBy && t.receivedBy.name) || 'Unknown';
+    if (!cashierWise[id]) cashierWise[id] = { userId: id, name, income: 0, count: 0 };
+    cashierWise[id].income += t.amount;
+    cashierWise[id].count += 1;
+  });
+
+  // Case-type split: bills grouped by department (LAB/USG/XRAY/CT/...).
+  const billDepts = await Bill.aggregate([
+    { $match: { date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
+    { $group: { _id: '$department', count: { $sum: 1 }, billed: { $sum: '$totalAmount' }, collected: { $sum: '$paidAmount' }, due: { $sum: '$dueAmount' } } },
+    { $sort: { billed: -1 } }
+  ]);
+  const caseSplit = billDepts.map(d => ({
+    department: d._id || 'LAB',
+    count: d.count,
+    billed: d.billed,
+    collected: d.collected,
+    due: d.due
+  }));
+
+  // Monthly overview (BETA): per-day income/expenses/net for the window.
+  const byDay = {};
+  transactions.forEach(t => {
+    const k = new Date(t.date).toISOString().slice(0, 10);
+    if (!byDay[k]) byDay[k] = { date: k, income: 0, refunds: 0, expenses: 0, net: 0 };
+    if (t.type === 'Income') byDay[k].income += t.amount;
+    if (t.type === 'Refund') byDay[k].refunds += t.amount;
+  });
+  expenses.forEach(e => {
+    const k = new Date(e.date).toISOString().slice(0, 10);
+    if (!byDay[k]) byDay[k] = { date: k, income: 0, refunds: 0, expenses: 0, net: 0 };
+    byDay[k].expenses += e.amount;
+  });
+  Object.values(byDay).forEach(d => { d.net = d.income - d.refunds - d.expenses; });
+  const monthlyOverview = Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date));
+
   return {
     totalIncome,
     totalExpenses,
+    totalRefunds,
     netIncome,
     incomeSplit,
+    cashierWise: Object.values(cashierWise),
+    caseSplit,
+    monthlyOverview,
     transactions
   };
 };

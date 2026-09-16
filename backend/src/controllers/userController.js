@@ -45,7 +45,8 @@ const createUser = async (req, res, next) => {
       phone,
       role,
       password,
-      status: status || 'Active'
+      status: status || 'Active',
+      permissions: req.body.permissions || {}
     });
 
     // Log Activity
@@ -85,6 +86,9 @@ const updateUser = async (req, res, next) => {
     if (phone) user.phone = phone;
     if (role) user.role = role;
     if (status) user.status = status;
+    if (req.body.permissions && typeof req.body.permissions === 'object') {
+      user.permissions = req.body.permissions;
+    }
     if (password && password.trim() !== '') {
       user.password = password; // pre-save hook will hash it
     }

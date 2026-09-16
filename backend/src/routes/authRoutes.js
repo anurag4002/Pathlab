@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
+const { authLimiter, verifyLimiter } = require('../middleware/rateLimitMiddleware');
 
-router.post('/login', authController.login);
+router.post('/login', authLimiter, authController.login);
 router.get('/google/url', authController.getGoogleAuthUrl);
-router.post('/google', authController.googleAuth);
+router.post('/google', authLimiter, authController.googleAuth);
 router.get('/facebook/url', authController.getFacebookAuthUrl);
-router.post('/facebook', authController.facebookAuth);
-router.post('/forgot-password', authController.forgotPassword);
+router.post('/facebook', authLimiter, authController.facebookAuth);
+router.post('/forgot-password', authLimiter, authController.forgotPassword);
+router.post('/reset-password', verifyLimiter, authController.resetPassword);
+router.post('/email-otp/request', authLimiter, authController.requestEmailOtp);
+router.post('/email-otp/verify', verifyLimiter, authController.verifyEmailOtp);
 router.get('/me', protect, authController.getCurrentUser);
 router.post('/logout', protect, authController.logout);
 

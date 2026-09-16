@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates } from '../../services/usgService';
+import { deleteUSGCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
-import { Plus, Edit2, Printer } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge } from '../../components/common';
+import useAuth from '../../hooks/useAuth';
+import { Plus, Edit2, Printer, Trash2 } from 'lucide-react';
+import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog } from '../../components/common';
 
 const TodaysUSGCases = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [cases, setCases] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -23,6 +27,26 @@ const TodaysUSGCases = () => {
   // Print Case State
   const [printTarget, setPrintTarget] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
+
+  // Admin delete
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const res = await deleteUSGCase(deleteTarget._id);
+      if (res.success) {
+        setDeleteTarget(null);
+        fetchCases();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete USG case');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const fetchCases = async () => {
     setLoading(true);
@@ -144,7 +168,7 @@ const TodaysUSGCases = () => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Status', 'Actions']}
+        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Status', 'Actions']}
         data={cases}
         loading={loading}
         emptyMessage="No ultrasonography cases recorded today."
@@ -155,6 +179,7 @@ const TodaysUSGCases = () => {
             <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
             <td>{c.referringDoctor?.name || 'Self'}</td>
             <td>{c.templateName || 'Custom Findings'}</td>
+            <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
             <td>
               <StatusBadge status={c.status} />
             </td>
@@ -174,6 +199,15 @@ const TodaysUSGCases = () => {
                 >
                   <Printer size={14} /> Print
                 </button>
+                {isAdmin && (
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    onClick={() => setDeleteTarget(c)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </td>
           </tr>
@@ -297,14 +331,24 @@ const TodaysUSGCases = () => {
 
             <div style={{ borderTop: '1px solid #000', marginTop: '2rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
               <div style={{ textAlign: 'center', width: '200px' }}>
-                <div style={{ height: '40px' }}></div>
-                <strong>Dr. Anil Mehta, MD</strong><br />
+                {printTarget.signatureUrl && <img src={`/${printTarget.signatureUrl}`} alt="Signature" style={{ height: '40px', objectFit: 'contain' }} />}
+                <div style={{ height: printTarget.signatureUrl ? '4px' : '40px' }}></div>
+                <strong>Authorised Signatory</strong><br />
                 <span>Consultant Radiologist</span>
               </div>
             </div>
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        loading={deleteLoading}
+        title="Delete USG case?"
+        message={`Permanently delete USG case for ${deleteTarget?.patient?.name || 'this patient'}?`}
+      />
     </div>
   );
 };

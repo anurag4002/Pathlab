@@ -4,7 +4,7 @@ const Transaction = require('../models/Transaction');
 const generateBillNumber = require('../utils/generateBillNumber');
 
 const createBill = async (billData, createdByUserId) => {
-  const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod } = billData;
+  const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod, department } = billData;
 
   // Calculate totals
   let subtotal = 0;
@@ -37,6 +37,7 @@ const createBill = async (billData, createdByUserId) => {
     dueAmount,
     paymentMethod: paymentMethod || 'Cash',
     paymentStatus,
+    department: (department || 'LAB').toUpperCase(),
     createdBy: createdByUserId
   });
 
@@ -75,6 +76,13 @@ const createBill = async (billData, createdByUserId) => {
 const getBills = async (filters = {}) => {
   const query = {};
 
+  if (!filters.includeVoided) {
+    query.isVoided = { $ne: true };
+  }
+
+  if (filters.department) {
+    query.department = String(filters.department).toUpperCase();
+  }
   if (filters.paymentStatus) {
     query.paymentStatus = filters.paymentStatus;
   }
@@ -185,9 +193,41 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
   return await getBillById(bill._id);
 };
 
+// Fraud guard: void instead of hard delete. Voided bills stay in history
+// (excluded from lists by default) and keep their transactions untouched.
+const voidBill = async (billId, reason, userId) => {
+  const bill = await Bill.findById(billId);
+  if (!bill) {
+    const err = new Error('Invoice not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (bill.isVoided) return bill;
+  if (bill.paidAmount > 0) {
+    const err = new Error('Cannot void a bill with collected payments. Issue a refund instead.');
+    err.statusCode = 400;
+    throw err;
+  }
+  bill.isVoided = true;
+  bill.voidReason = reason || '';
+  await bill.save();
+  return bill;
+};
+
+const ensureBillQrToken = async (bill) => {
+  if (bill.qrToken) return bill.qrToken;
+  const { newPublicToken } = require('./qrService');
+  const { JWT_SECRET } = require('../config/environment');
+  bill.qrToken = newPublicToken(JWT_SECRET);
+  await bill.save();
+  return bill.qrToken;
+};
+
 module.exports = {
   createBill,
   getBills,
   getBillById,
-  addPayment
+  addPayment,
+  voidBill,
+  ensureBillQrToken
 };

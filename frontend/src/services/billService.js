@@ -19,3 +19,8 @@ export const collectPayment = async (id, paymentData) => {
   const response = await apiClient.post(`/bills/${id}/payment`, paymentData);
   return response.data;
 };
+
+export const voidBill = async (id, reason) => {
+  const response = await apiClient.post(`/bills/${id}/void`, { reason });
+  return response.data;
+};

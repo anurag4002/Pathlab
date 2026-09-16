@@ -1,11 +1,35 @@
 import apiClient from './apiClient';
 
-export const login = async (email, password) => {
-  const response = await apiClient.post('/auth/login', { email, password });
+export const login = async (email, password, { remember = false, browserCode = '' } = {}) => {
+  const response = await apiClient.post('/auth/login', { email, password, remember, browserCode });
   if (response.data.success) {
     localStorage.setItem('ppl_token', response.data.data.token);
     localStorage.setItem('ppl_user', JSON.stringify(response.data.data.user));
   }
+  return response.data;
+};
+
+export const requestEmailOtp = async (email) => {
+  const response = await apiClient.post('/auth/email-otp/request', { email });
+  return response.data;
+};
+
+export const verifyEmailOtp = async (email, otp, { remember = false, browserCode = '' } = {}) => {
+  const response = await apiClient.post('/auth/email-otp/verify', { email, otp, remember, browserCode });
+  if (response.data.success) {
+    localStorage.setItem('ppl_token', response.data.data.token);
+    localStorage.setItem('ppl_user', JSON.stringify(response.data.data.user));
+  }
+  return response.data;
+};
+
+export const requestPasswordReset = async (email) => {
+  const response = await apiClient.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async (email, otp, newPassword) => {
+  const response = await apiClient.post('/auth/reset-password', { email, otp, newPassword });
   return response.data;
 };
 

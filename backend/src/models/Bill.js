@@ -63,6 +63,30 @@ const BillSchema = new mongoose.Schema({
     default: Date.now,
     index: true
   },
+  // Modality / department for case-type split (LAB, USG, XRAY, CT, MRI, ...).
+  department: {
+    type: String,
+    trim: true,
+    default: 'LAB',
+    index: true
+  },
+  // Public self-service token for bill QR (GET /r/bill/:token, no login).
+  qrToken: {
+    type: String,
+    default: null,
+    index: true
+  },
+  // Fraud guard: void instead of hard delete (P-9).
+  isVoided: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  voidReason: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

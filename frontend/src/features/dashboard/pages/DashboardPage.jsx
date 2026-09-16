@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getSummary } from '../../../services/dashboardService';
+import { getOnboarding } from '../../../services/setupService';
+import { getSubscription } from '../../../services/supportService';
 import useAuth from '../../../hooks/useAuth';
 import { LoadingSpinner } from '../../../components/common';
 import DashboardStats from '../components/DashboardStats';
@@ -15,6 +18,51 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
+const OnboardingWidget = () => {
+  const [progress, setProgress] = useState(null);
+  useEffect(() => {
+    getOnboarding().then((res) => { if (res.success) setProgress(res.data); }).catch(() => {});
+  }, []);
+  if (!progress || (progress.percent ?? 0) >= 100) return null;
+  return (
+    <div className="dashboard-card" style={{ marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <strong style={{ fontSize: '0.9rem' }}>Getting started — {progress.done}/{progress.total} done ({progress.percent}%)</strong>
+        <Link to="/setup/onboarding" style={{ fontSize: '0.825rem', fontWeight: '600' }}>Continue setup</Link>
+      </div>
+      <div style={{ height: '8px', background: 'var(--color-border, #e2e8f0)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ width: `${progress.percent}%`, height: '100%', background: 'var(--color-primary, #2563eb)' }} />
+      </div>
+    </div>
+  );
+};
+
+const TrialWidget = () => {
+  const [sub, setSub] = useState(null);
+  useEffect(() => {
+    getSubscription().then((res) => { if (res.success) setSub(res.data?.subscription || null); }).catch(() => {});
+  }, []);
+  if (!sub) return null;
+  const plan = sub.plan || {};
+  return (
+    <div className="dashboard-card" style={{ marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ fontSize: '0.875rem' }}>
+          <strong>{plan.name || 'Trial'} plan</strong>
+          {' · '}<span>{sub.status}</span>
+          {sub.trialEndsAt && <span> · trial ends {new Date(sub.trialEndsAt).toLocaleDateString()}</span>}
+          {(plan.yearlyCaseCap || plan.dailyCourtesyCap) && (
+            <span style={{ color: 'var(--color-text-muted, #64748b)' }}>
+              {' '}· caps: {plan.yearlyCaseCap ? `${plan.yearlyCaseCap}/yr` : ''}{plan.yearlyCaseCap && plan.dailyCourtesyCap ? ', ' : ''}{plan.dailyCourtesyCap ? `${plan.dailyCourtesyCap}/day` : ''}
+            </span>
+          )}
+        </div>
+        <Link to="/support/subscription" style={{ fontSize: '0.825rem', fontWeight: '600' }}>Manage subscription</Link>
+      </div>
+    </div>
+  );
+};
+
 const DashboardPage = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -25,9 +73,7 @@ const DashboardPage = () => {
     setLoading(true);
     try {
       const res = await getSummary();
-      if (res.success) {
-        setStats(res.data);
-      }
+      if (res.success) setStats(res.data);
     } catch (err) {
       setError('Failed to load dashboard metrics. Please refresh.');
     } finally {
@@ -66,18 +112,13 @@ const DashboardPage = () => {
       </div>
 
       {error && (
-        <div
-          style={{
-            padding: 'var(--space-3) var(--space-4)',
-            backgroundColor: 'var(--color-danger-bg)',
-            color: 'var(--color-danger)',
-            borderRadius: 'var(--radius-sm)',
-            marginBottom: 'var(--space-4)'
-          }}
-        >
+        <div style={{ padding: 'var(--space-3) var(--space-4)', backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger)', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-4)' }}>
           {error}
         </div>
       )}
+
+      <OnboardingWidget />
+      <TrialWidget />
 
       {/* Primary & Secondary KPI Metrics */}
       <DashboardStats stats={stats} />

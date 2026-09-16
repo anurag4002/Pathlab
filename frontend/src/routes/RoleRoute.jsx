@@ -1,8 +1,11 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 
-const RoleRoute = ({ children, allowedRoles }) => {
+// Pathless layout route: renders <Outlet/> for nested <Route> children.
+// (Returning `children` would render nothing — Route children are route
+// definitions, not React children — blank-screening every wrapped page.)
+const RoleRoute = ({ allowedRoles }) => {
   const { user, hasRole, loading } = useAuth();
 
   if (loading) {
@@ -13,7 +16,7 @@ const RoleRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return children;
+  return <Outlet />;
 };
 
 export default RoleRoute;

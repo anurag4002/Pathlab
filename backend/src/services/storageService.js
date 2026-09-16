@@ -48,13 +48,24 @@ class StorageService {
   }
 
   /**
+   * Normalize a stored fileUrl to a path relative to the storage root.
+   * Accepts 'uploads/reports/f', 'src/uploads/reports/f' or 'reports/f'.
+   */
+  stripStoragePrefix(relativePath) {
+    if (!relativePath) return '';
+    return String(relativePath)
+      .replace(/\\/g, '/')
+      .replace(/^(src\/)?uploads\//, '');
+  }
+
+  /**
    * Check if a file exists in private storage
    * @param {string} relativePath
    * @returns {boolean}
    */
   fileExists(relativePath) {
     if (!relativePath) return false;
-    const fullPath = path.join(baseStorageDir, path.basename(relativePath));
+    const fullPath = path.join(baseStorageDir, this.stripStoragePrefix(relativePath));
     return fs.existsSync(fullPath);
   }
 
@@ -65,7 +76,7 @@ class StorageService {
    */
   getFilePath(relativePath) {
     if (!relativePath) return null;
-    const fullPath = path.join(baseStorageDir, path.basename(relativePath));
+    const fullPath = path.join(baseStorageDir, this.stripStoragePrefix(relativePath));
     return fs.existsSync(fullPath) ? fullPath : null;
   }
 

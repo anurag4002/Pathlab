@@ -136,7 +136,8 @@ const BillCreateForm = ({
         items: selectedItems,
         discount: discountAmount,
         paidAmount,
-        paymentMethod
+        paymentMethod,
+        department: activeDepartment
       });
 
       if (res.success) {
