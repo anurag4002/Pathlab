@@ -31,6 +31,26 @@ export const saveReportResults = async (id, results) => {
   return response.data;
 };
 
+export const saveReportResultsDraft = async (id, results) => {
+  const response = await apiClient.put(`/reports/${id}/results/draft`, { results });
+  return response.data;
+};
+
+export const submitReportResults = async (id, results) => {
+  const response = await apiClient.put(`/reports/${id}/results/submit`, { results });
+  return response.data;
+};
+
+export const getPendingLabCases = async (params = {}) => {
+  const response = await apiClient.get('/reports/pending-cases', { params });
+  return response.data;
+};
+
+export const getReportForEntry = async (id) => {
+  const response = await apiClient.get(`/reports/${id}/entry`);
+  return response.data;
+};
+
 export const signReport = async (id, signatureId) => {
   const response = await apiClient.post(`/reports/${id}/sign`, { signatureId });
   return response.data;

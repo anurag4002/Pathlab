@@ -10,8 +10,12 @@ const upload = require('../middleware/uploadMiddleware');
 router.use(protect);
 
 router.get('/', reportController.getReports);
+router.get('/pending-cases', requirePermission('reports'), reportController.getPendingLabCases);
+router.get('/:id/entry', requirePermission('reports'), reportController.getReportForEntry);
 router.post('/result', requirePermission('reports'), reportController.createResultReport);
 router.put('/:id/results', requirePermission('reports'), reportController.saveResults);
+router.put('/:id/results/draft', requirePermission('reports'), reportController.saveResultsDraft);
+router.put('/:id/results/submit', requirePermission('reports'), reportController.submitResults);
 router.post('/:id/sign', requirePermission('reports'), reportController.signReport);
 router.put('/:id/tat', requirePermission('reports'), reportController.updateTat);
 router.get('/:id/pdf', reportController.reportPdfDownload);

@@ -190,12 +190,114 @@ const ensureQrToken = async (report) => {
   return report.qrToken;
 };
 
+// Save entered results as draft (status stays Registered)
+const saveResultsDraft = async (reportId, entries = [], user) => {
+  const report = await Report.findById(reportId).populate('patient');
+  if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+
+  const patient = report.patient || {};
+  const testIds = entries.map((e) => e.test).filter(Boolean);
+  const tests = await Test.find({ _id: { $in: testIds } });
+  const byId = {};
+  tests.forEach((t) => { byId[String(t._id)] = t; });
+
+  const valueMap = {};
+  entries.forEach((e) => {
+    const t = e.test ? byId[String(e.test)] : null;
+    const key = (t && (t.code || t.name)) || e.testName;
+    if (key) valueMap[key] = e.value;
+    if (t && t.name) valueMap[t.name] = e.value;
+  });
+
+  const { derived } = derive(valueMap, { age: patient.age, gender: patient.gender });
+
+  const buildRow = (test, testName, value, unit, isDerived) => {
+    const ev = evaluateResult(value, test, { age: patient.age, gender: patient.gender });
+    return {
+      test: test ? test._id : null,
+      testName: testName || (test && test.name) || '',
+      value: value === undefined || value === null ? '' : String(value),
+      unit: unit || (test && test.unit) || '',
+      flag: ev.flag,
+      derived: !!isDerived
+    };
+  };
+
+  const rows = entries.map((e) => {
+    const t = e.test ? byId[String(e.test)] : null;
+    return buildRow(t, e.testName, e.value, e.unit, false);
+  });
+  derived.forEach((d) => {
+    rows.push(buildRow(null, d.testName, d.value, d.unit, true));
+  });
+
+  report.results = rows;
+  report.tat = report.tat || {};
+  if (!report.tat.received) report.tat.received = new Date();
+  // Keep status as Registered for draft
+  if (report.status === 'Registered') report.status = 'Draft';
+  await report.save();
+  return report;
+};
+
+// Submit entered results (status becomes Reported)
+const submitResults = async (reportId, entries = [], user) => {
+  const report = await Report.findById(reportId).populate('patient');
+  if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+
+  const patient = report.patient || {};
+  const testIds = entries.map((e) => e.test).filter(Boolean);
+  const tests = await Test.find({ _id: { $in: testIds } });
+  const byId = {};
+  tests.forEach((t) => { byId[String(t._id)] = t; });
+
+  const valueMap = {};
+  entries.forEach((e) => {
+    const t = e.test ? byId[String(e.test)] : null;
+    const key = (t && (t.code || t.name)) || e.testName;
+    if (key) valueMap[key] = e.value;
+    if (t && t.name) valueMap[t.name] = e.value;
+  });
+
+  const { derived } = derive(valueMap, { age: patient.age, gender: patient.gender });
+
+  const buildRow = (test, testName, value, unit, isDerived) => {
+    const ev = evaluateResult(value, test, { age: patient.age, gender: patient.gender });
+    return {
+      test: test ? test._id : null,
+      testName: testName || (test && test.name) || '',
+      value: value === undefined || value === null ? '' : String(value),
+      unit: unit || (test && test.unit) || '',
+      flag: ev.flag,
+      derived: !!isDerived
+    };
+  };
+
+  const rows = entries.map((e) => {
+    const t = e.test ? byId[String(e.test)] : null;
+    return buildRow(t, e.testName, e.value, e.unit, false);
+  });
+  derived.forEach((d) => {
+    rows.push(buildRow(null, d.testName, d.value, d.unit, true));
+  });
+
+  report.results = rows;
+  report.tat = report.tat || {};
+  if (!report.tat.received) report.tat.received = new Date();
+  report.tat.reported = new Date();
+  report.status = 'Reported';
+  await report.save();
+  return report;
+};
+
 module.exports = {
   getReports,
   createReport,
   deleteReport,
   createResultReport,
   saveResults,
+  saveResultsDraft,
+  submitResults,
   signReport,
   updateTat,
   ensureQrToken
