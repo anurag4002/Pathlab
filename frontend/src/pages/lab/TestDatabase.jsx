@@ -4,7 +4,10 @@ import formatCurrency from '../../utils/formatCurrency';
 import { SAMPLE_TYPES } from '../../constants/labConstants';
 import { TEST_UNITS } from '../../constants/testConstants';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
+import RangeEditor, { validateRanges, normalizeRangePayload } from '../../components/lab/RangeEditor';
+import DerivedTestEditor from '../../components/lab/DerivedTestEditor';
+import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 
 const TestDatabase = () => {
   const [tests, setTests] = useState([]);
@@ -14,7 +17,8 @@ const TestDatabase = () => {
   // Form States
   const [formOpen, setFormOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
-  const [formData, setFormData] = useState({ name: '', code: '', category: '', sampleType: '', unit: '', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active' });
+  const EMPTY_FORM = { name: '', code: '', category: '', sampleType: '', unit: '', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active', normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', ageMin: '', ageMax: '', sexApplicable: 'Any', isDerived: false, formula: '' };
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -24,6 +28,8 @@ const TestDatabase = () => {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // Phase 2 — child-test checklist selection (UI helper for the formula)
+  const [derivedChildIds, setDerivedChildIds] = useState([]);
 
   const fetchTests = async () => {
     setLoading(true);
@@ -57,13 +63,15 @@ const TestDatabase = () => {
 
   const handleOpenCreate = () => {
     setEditingTest(null);
-    setFormData({ name: '', code: '', category: '', sampleType: 'Blood (EDTA)', unit: 'g/dL', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active' });
+    setDerivedChildIds([]);
+    setFormData({ ...EMPTY_FORM, sampleType: 'Blood (EDTA)', unit: 'g/dL' });
     setErrors({});
     setFormOpen(true);
   };
 
   const handleOpenEdit = (test) => {
     setEditingTest(test);
+    setDerivedChildIds([]);
     setFormData({
       name: test.name,
       code: test.code,
@@ -76,7 +84,16 @@ const TestDatabase = () => {
       price: String(test.price || 0),
       description: test.description || '',
       interpretation: test.interpretation || '',
-      status: test.status
+      status: test.status,
+      normalLow: test.normalLow ?? '',
+      normalHigh: test.normalHigh ?? '',
+      criticalLow: test.criticalLow ?? '',
+      criticalHigh: test.criticalHigh ?? '',
+      ageMin: test.ageMin ?? '',
+      ageMax: test.ageMax ?? '',
+      sexApplicable: test.sexApplicable || 'Any',
+      isDerived: !!test.isDerived,
+      formula: test.formula || ''
     });
     setErrors({});
     setFormOpen(true);
@@ -91,6 +108,10 @@ const TestDatabase = () => {
     if (!formData.price || isNaN(formData.price) || Number(formData.price) < 0) {
       errs.price = 'Valid test charge price is required';
     }
+    Object.assign(errs, validateRanges(formData));
+    if (formData.isDerived && !String(formData.formula || '').trim()) {
+      errs.formula = 'Derived tests require a formula';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -104,7 +125,10 @@ const TestDatabase = () => {
       let res;
       const payload = {
         ...formData,
-        price: Number(formData.price)
+        price: Number(formData.price),
+        ...normalizeRangePayload(formData),
+        isDerived: !!formData.isDerived,
+        formula: formData.isDerived ? String(formData.formula || '').trim() : ''
       };
 
       if (editingTest) {
@@ -152,6 +176,23 @@ const TestDatabase = () => {
         }
       />
 
+      <div style={{ marginBottom: '12px', maxWidth: '480px' }}>
+        <TestCombobox
+          label="Quick find test"
+          placeholder="Type to jump to a test…"
+          onSelect={(t) => {
+            const full = tests.find((x) => x._id === t._id);
+            handleOpenEdit(full || t);
+          }}
+          onCreateNew={(name) => {
+            setEditingTest(null);
+            setFormData({ ...EMPTY_FORM, name });
+            setErrors({});
+            setFormOpen(true);
+          }}
+        />
+      </div>
+
       <DataTable
         headers={['Code', 'Name', 'Category', 'Sample Type', 'Unit', 'Price', 'Status', 'Actions']}
         data={tests}
@@ -163,7 +204,19 @@ const TestDatabase = () => {
         renderRow={(test) => (
           <tr key={test._id}>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{test.code}</td>
-            <td style={{ fontWeight: '600' }}>{test.name}</td>
+            <td style={{ fontWeight: '600' }}>
+              {test.name}
+              {test.isDerived && (
+                <span style={{ marginLeft: '6px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: '#e0e7ff', color: '#3730a3', padding: '1px 6px', borderRadius: '999px' }}>
+                  DERIVED
+                </span>
+              )}
+              {(test.normalLow !== null && test.normalLow !== undefined && test.normalLow !== '') && (
+                <span style={{ display: 'block', fontWeight: 400, fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                  Range: {String(test.normalLow)} – {String(test.normalHigh ?? '')} {test.unit || ''}
+                </span>
+              )}
+            </td>
             <td>{test.category?.name || 'Uncategorized'}</td>
             <td>{test.sampleType}</td>
             <td>{test.unit || 'N/A'}</td>
@@ -306,6 +359,39 @@ const TestDatabase = () => {
               style={{ flex: 1 }}
             />
           </div>
+
+          {/* Phase 2 — numeric ranges alongside legacy strings (strings kept for display templates) */}
+          <RangeEditor
+            value={formData}
+            errors={errors}
+            onChange={(patch) => setFormData(prev => ({ ...prev, ...patch }))}
+          />
+          {(formData.normalLow !== '' || formData.normalHigh !== '') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+              <span>Range check preview (high bound):</span>
+              <RangeFlagBadge
+                value={formData.normalHigh}
+                test={{
+                  normalLow: formData.normalLow === '' ? null : Number(formData.normalLow),
+                  normalHigh: formData.normalHigh === '' ? null : Number(formData.normalHigh),
+                  criticalLow: formData.criticalLow === '' ? null : Number(formData.criticalLow),
+                  criticalHigh: formData.criticalHigh === '' ? null : Number(formData.criticalHigh)
+                }}
+              />
+            </div>
+          )}
+
+          <DerivedTestEditor
+            isDerived={formData.isDerived}
+            formula={formData.formula}
+            tests={tests.filter((t) => !editingTest || t._id !== editingTest._id)}
+            childIds={derivedChildIds}
+            error={errors.formula}
+            onChange={(patch) => {
+              if (patch.childIds !== undefined) setDerivedChildIds(patch.childIds);
+              else setFormData(prev => ({ ...prev, ...patch }));
+            }}
+          />
 
           <Input
             label="Brief Description"

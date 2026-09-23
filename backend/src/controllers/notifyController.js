@@ -5,6 +5,7 @@ const { getBalance, topup, getHistory } = require('../services/creditsService');
 const { sendTemplated } = require('../services/notificationService');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
+const Job = require('../models/Job');
 
 const DEFAULT_TEMPLATES = [
   { key: 'otp', channel: 'sms', body: 'Your Pure Path Lab OTP is {{otp}}. Valid for 5 minutes.', variables: ['otp'] },
@@ -43,10 +44,43 @@ const upsertTemplate = async (req, res, next) => {
 
 const sendMessage = async (req, res, next) => {
   try {
-    const { channel, templateKey, to, vars } = req.body;
+    const { channel, templateKey, to, vars, reportId, billId } = req.body;
     if (!['sms', 'whatsapp', 'email'].includes(channel)) return errorResponse(res, 'Invalid channel', 400);
     if (!to) return errorResponse(res, 'Recipient is required', 400);
     const result = await sendTemplated(channel, templateKey, to, vars || {});
+    // Record a DeliveryAttempt whenever a report/bill context is present
+    // (backward-compat: silently skip if model or ids unavailable).
+    // Also record channel-only sends with report/bill null would add noise,
+    // so only record when reportId or billId is supplied.
+    if (reportId || billId) {
+      try {
+        const DeliveryAttempt = require('../models/DeliveryAttempt');
+        let patientRef = null;
+        if (reportId) {
+          try {
+            const Report = require('../models/Report');
+            const rep = await Report.findById(reportId).select('patient bill');
+            if (rep) {
+              patientRef = rep.patient || null;
+              // Fall back to the report's own bill when billId not supplied.
+              req.body._resolvedBillId = billId || (rep.bill ? String(rep.bill) : null);
+            }
+          } catch (e) { /* best-effort lookup */ }
+        }
+        await DeliveryAttempt.create({
+          report: reportId || null,
+          bill: billId || req.body._resolvedBillId || null,
+          patient: patientRef,
+          channel,
+          to: String(to),
+          templateKey: templateKey || '',
+          status: result.ok ? 'Sent' : 'Failed',
+          error: result.ok ? '' : (result.error || 'Send failed'),
+          providerId: result.messageId || result.provider || '',
+          createdBy: req.user ? req.user._id : null
+        });
+      } catch (e) { /* delivery log best-effort; never blocks send */ }
+    }
     if (!result.ok) return errorResponse(res, result.error || 'Send failed', 402);
     await Activity.create({
       user: req.user._id, action: 'Send Message', module: 'Delivery',
@@ -54,6 +88,17 @@ const sendMessage = async (req, res, next) => {
     });
     return successResponse(res, 'Message sent', result);
   } catch (error) {
+    // Persist failed sends so Admin can inspect + retry via GET /api/jobs.
+    try {
+      await Job.create({
+        type: 'notify',
+        status: 'Failed',
+        payload: req.body || {},
+        error: error.message || 'Notify send threw',
+        attempts: 1,
+        createdBy: req.user ? req.user._id : null
+      });
+    } catch (e) { /* job ledger best-effort */ }
     next(error);
   }
 };

@@ -4,17 +4,19 @@ import useDebounce from '../../hooks/useDebounce';
 import formatDate from '../../utils/formatDate';
 import { Search } from 'lucide-react';
 import { DataTable, PageHeader, StatusBadge } from '../../components/common';
+import CaseFilterBar from '../../components/usg/CaseFilterBar';
 
 const SearchUSGCases = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const debouncedSearch = useDebounce(search, 500);
 
   const fetchCases = async () => {
     setLoading(true);
     try {
-      const res = await getUSGCases({ search: debouncedSearch });
+      const res = await getUSGCases({ search: debouncedSearch, status: statusFilter || undefined });
       if (res.success) {
         setCases(res.data);
       }
@@ -27,7 +29,8 @@ const SearchUSGCases = () => {
 
   useEffect(() => {
     fetchCases();
-  }, [debouncedSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statusFilter]);
 
   return (
     <div>
@@ -35,6 +38,8 @@ const SearchUSGCases = () => {
         title="Search USG Case Files"
         subtitle="Look up historical ultrasonography records by patient name"
       />
+
+      <CaseFilterBar status={statusFilter} onStatusChange={setStatusFilter} />
 
       <DataTable
         headers={['Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Findings Description', 'Status']}

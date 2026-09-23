@@ -29,7 +29,7 @@ export const QUICK_ACTIONS = [
   },
   {
     label: 'Upload Report',
-    path: '/lab/reports/today?upload=true',
+    path: '/lab/reports?upload=true',
     icon: 'Upload',
     description: 'Attach clinical report findings files',
     roles: ['Admin', 'Employee']

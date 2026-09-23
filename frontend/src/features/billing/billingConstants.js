@@ -19,7 +19,12 @@ export const DEPARTMENTS = [
   { name: 'MAMMOGRAPHY', icon: Activity }
 ];
 
-export const PATIENT_TITLES = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Baby'];
+export const PATIENT_TITLES = ['Mr','Mrs','Smt','Kumari','Shri','Miss','Master','Mohd','Baby','Baby of','Wife of','Mother of','Son of','Daughter of','Ms','Miss-Mrs','Selvi','Sk','PROF','Dr','Child','Md','Mx','Mrs.'];
+export const DEPT_TO_CASE_TYPE = {
+  'LAB': 'LabCase', 'USG': 'UsgCase', 'DIGITAL XRAY': 'DigitalXrayCase', 'XRAY': 'XrayCase',
+  'OUTSOURCE LAB': 'OutsourceLabCase', 'ECG': 'EcgCase', 'CT SCAN': 'CtScanCase', 'MRI': 'MriCase',
+  'EPS': 'EpsCase', 'OPG': 'OpgCase', 'CARDIOLOGY': 'CardiologyCase', 'EEG': 'EegCase', 'MAMMOGRAPHY': 'MammographyCase'
+};
 
 const hay = (t) => `${t?.name || ''} ${t?.code || ''} ${t?.category?.name || ''}`.toLowerCase();
 const anyKw = (t, kws) => { const h = hay(t); return kws.some((k) => h.includes(k)); };

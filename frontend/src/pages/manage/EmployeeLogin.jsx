@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, ConfirmDialog, StatusBadge } from '../../components/common';
+import EmployeeForm from './components/EmployeeForm';
+import { permsToMap } from './components/PermissionMatrix';
 
-const PERMISSION_KEYS = ['billing', 'reports', 'rates', 'finance', 'settings', 'patients', 'delivery'];
+const EMPTY_FORM = {
+  name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active',
+  permissions: {}, designation: '', qualification: '', joiningDate: '', departments: [], documents: '',
+};
 
 const EmployeeLogin = () => {
   const { user: currentUser } = useAuth();
@@ -14,7 +19,7 @@ const EmployeeLogin = () => {
   // Form States
   const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active', permissions: [] });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -53,7 +58,7 @@ const EmployeeLogin = () => {
 
   const handleOpenCreate = () => {
     setEditingEmployee(null);
-    setFormData({ name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active', permissions: [] });
+    setFormData(EMPTY_FORM);
     setErrors({});
     setFormOpen(true);
   };
@@ -67,7 +72,14 @@ const EmployeeLogin = () => {
       password: '', // blank password unless changing
       role: emp.role,
       status: emp.status,
-      permissions: emp.permissions || []
+      // Phase 25 — backend stores permissions as a Map (object over the
+      // wire); legacy arrays are converted to { key: true } on the way in.
+      permissions: permsToMap(emp.permissions),
+      designation: emp.designation || '',
+      qualification: emp.qualification || '',
+      joiningDate: emp.joiningDate || emp.joinedOn?.split?.('T')?.[0] || '',
+      departments: emp.departments || (emp.department ? [emp.department] : []),
+      documents: emp.documents || '',
     });
     setErrors({});
     setFormOpen(true);
@@ -78,11 +90,14 @@ const EmployeeLogin = () => {
     if (!formData.name.trim()) errs.name = 'Name is required';
     if (!formData.email.trim()) errs.email = 'Email is required';
     if (!editingEmployee && !formData.password) errs.password = 'Password is required';
+    if (!(formData.departments || []).length) errs.departments = 'Pick at least one department';
+    if (formData.role === 'Admin' && editingEmployee?._id === currentUser?._id && formData.status !== 'Active') {
+      errs.status = 'You cannot deactivate your own admin account';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const togglePerm = (k) => setFormData(p => ({ ...p, permissions: p.permissions.includes(k) ? p.permissions.filter(x => x !== k) : [...p.permissions, k] }));
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -90,8 +105,27 @@ const EmployeeLogin = () => {
     setSubmitLoading(true);
     try {
       let res;
-      const payload = { ...formData, permissions: formData.permissions || [] };
-      if (!payload.password) delete payload.password; // don't send empty password on edit
+      // Phase 25 — send permissions as an OBJECT MAP { key: true } to match
+      // the backend Map. Never send the legacy array shape.
+      const permsMap = permsToMap(formData.permissions);
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        status: formData.status,
+        permissions: permsMap,
+        // Phase 19 — extended profile fields. Backend gap: User model +
+        // create/update whitelists do not persist these yet; they are sent
+        // for forward-compat and documented in the form note.
+        designation: formData.designation || undefined,
+        qualification: formData.qualification || undefined,
+        joiningDate: formData.joiningDate || undefined,
+        departments: formData.departments,
+        documents: formData.documents || undefined,
+      };
+      if (!formData.password) delete payload.password;
+      else payload.password = formData.password;
 
       if (editingEmployee) {
         res = await updateUser(editingEmployee._id, payload);
@@ -182,7 +216,8 @@ const EmployeeLogin = () => {
         )}
       />
 
-      {/* Form Modal */}
+      {/* Form Modal — Phase 19 extended form + Phase 25 permission matrix.
+          Sessions panel omitted: session list/revoke endpoints do not exist. */}
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
@@ -198,81 +233,14 @@ const EmployeeLogin = () => {
           </>
         }
       >
-        <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-          {errors.api && <div className="form-error">{errors.api}</div>}
-          
-          <Input
-            label="Full Name"
-            name="name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            error={errors.name}
-            required
+        <form onSubmit={handleFormSubmit}>
+          <EmployeeForm
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+            editing={!!editingEmployee}
+            isSuperadmin={editingEmployee?.role === 'Admin' && Object.keys(permsToMap(editingEmployee?.permissions)).length === 0}
           />
-
-          <Input
-            label="Email Address"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            error={errors.email}
-            required
-          />
-
-          <Input
-            label="Phone"
-            name="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-          />
-
-          <Input
-            label={editingEmployee ? "Reset Password (Leave blank to keep current)" : "Password *"}
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-            error={errors.password}
-            required={!editingEmployee}
-          />
-
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <Select
-              label="Portal Role"
-              value={formData.role}
-              onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-              options={[
-                { value: 'Employee', label: 'Laboratory Operator / Employee' },
-                { value: 'Admin', label: 'Administrator' }
-              ]}
-              required
-              style={{ flex: 1 }}
-            />
-            <Select
-              label="Status"
-              value={formData.status}
-              onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-              options={[
-                { value: 'Active', label: 'Active' },
-                { value: 'Inactive', label: 'Inactive' }
-              ]}
-              required
-              style={{ flex: 1 }}
-            />
-          </div>
-
-          <div>
-            <label className="form-label"><span>Permissions</span></label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-              {PERMISSION_KEYS.map(k => (
-                <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.85rem', textTransform: 'capitalize' }}>
-                  <input type="checkbox" checked={formData.permissions.includes(k)} onChange={() => togglePerm(k)} /> {k}
-                </label>
-              ))}
-            </div>
-          </div>
-
         </form>
       </Modal>
 

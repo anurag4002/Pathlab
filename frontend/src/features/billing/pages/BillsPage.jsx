@@ -7,15 +7,19 @@ import { getAgents } from '../../../services/agentService';
 import { getTests } from '../../../services/testService';
 import { getPackages } from '../../../services/packageService';
 import { downloadBillPdf, fetchBillQr, printBillPdf } from '../../../services/publicService';
-import { DataTable, PageHeader, Button, StatusBadge, Select, ConfirmDialog } from '../../../components/common';
+import { DataTable, PageHeader, Button, StatusBadge, Select, AdvancedFilterBar, DURATION_OPTIONS } from '../../../components/common';
 import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/billConstants';
+export const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
 import { DEPARTMENTS } from '../billingConstants';
 import BillCreateForm from '../components/BillCreateForm';
 import PaymentCollectModal from '../components/PaymentCollectModal';
+import { LabelPrintSheet } from '../../../components/lab';
+import VoidReasonDialog from '../components/VoidReasonDialog';
+import { usePermissions } from '../../../hooks/usePermission';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
-import { Plus, Printer, CreditCard, Ban, QrCode, FileDown } from 'lucide-react';
+import { Plus, Printer, CreditCard, Ban, QrCode, FileDown, Tag } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 
@@ -44,6 +48,8 @@ const BillsPage = () => {
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDept, setFilterDept] = useState('');
+  const [adv, setAdv] = useState({ duration: 'Past 7 days', regNo: '', firstName: '', referredBy: '', collectionCentre: '', agent: '', hasDue: false, cancelled: false, caseType: '', uhid: '', dailyCaseNo: '' });
+  const setAdvKey = (k, v) => { setAdv((p) => ({ ...p, [k]: v })); };
 
   // Modals
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -55,10 +61,32 @@ const BillsPage = () => {
   const [voidTarget, setVoidTarget] = useState(null);
   const [voidLoading, setVoidLoading] = useState(false);
 
+  // Phase 8 + 11 — label / sticker printing per bill.
+  const [labelTarget, setLabelTarget] = useState(null);
+  const [payError, setPayError] = useState('');
+  const { can } = usePermissions();
+  const canBill = can('billing');
+
   const fetchBillsList = async () => {
     setLoading(true);
     try {
-      const res = await getBills({ search: debouncedSearch, paymentStatus: filterStatus, department: filterDept || undefined, page, limit });
+      const res = await getBills({
+        search: debouncedSearch || undefined,
+        paymentStatus: filterStatus || undefined,
+        department: filterDept || undefined,
+        duration: adv.duration || undefined,
+        regNo: adv.regNo || undefined,
+        firstName: adv.firstName || undefined,
+        referredBy: adv.referredBy || undefined,
+        collectionCentre: adv.collectionCentre || undefined,
+        agent: adv.agent || undefined,
+        hasDue: adv.hasDue ? 'true' : undefined,
+        cancelled: adv.cancelled ? 'true' : undefined,
+        caseType: adv.caseType || undefined,
+        uhid: adv.uhid || undefined,
+        dailyCaseNo: adv.dailyCaseNo || undefined,
+        page, limit
+      });
       if (res.success) {
         setBills(res.data.bills);
         setPaginationInfo(res.data.pagination);
@@ -93,7 +121,8 @@ const BillsPage = () => {
     if (!isCreateView) {
       fetchBillsList();
     }
-  }, [debouncedSearch, filterStatus, filterDept, page, limit, isCreateView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, filterStatus, filterDept, page, limit, isCreateView, adv.duration, adv.referredBy, adv.collectionCentre, adv.agent, adv.hasDue, adv.cancelled, adv.caseType]);
 
   useEffect(() => {
     fetchFormOptions();
@@ -105,14 +134,25 @@ const BillsPage = () => {
     setPaymentTargetBill(bill);
     setPaymentAmount(bill.dueAmount);
     setPaymentMethod('Cash');
+    setPayError('');
     setPaymentModalOpen(true);
   };
 
   const handlePaymentSubmit = async () => {
-    if (paymentAmount <= 0 || paymentAmount > paymentTargetBill.dueAmount) {
-      alert('Invalid payment amount');
+    const amt = Number(paymentAmount);
+    if (!amt || amt <= 0) {
+      setPayError('Amount must be greater than 0.');
       return;
     }
+    if (amt > Number(paymentTargetBill.dueAmount)) {
+      setPayError(`Amount cannot exceed the due balance (${paymentTargetBill.dueAmount}).`);
+      return;
+    }
+    if (!paymentMethod) {
+      setPayError('Payment mode is required.');
+      return;
+    }
+    setPayError('');
     setPaymentSubmitLoading(true);
     try {
       const res = await collectPayment(paymentTargetBill._id, { amount: paymentAmount, paymentMethod });
@@ -136,11 +176,12 @@ const BillsPage = () => {
     }
   };
 
-  const handleVoidConfirm = async () => {
+  const handleVoidConfirm = async (reason) => {
     if (!voidTarget) return;
+    if (!reason || !String(reason).trim()) return;
     setVoidLoading(true);
     try {
-      const res = await voidBill(voidTarget._id, 'Voided from ledger');
+      const res = await voidBill(voidTarget._id, String(reason).trim());
       if (res.success) {
         setVoidTarget(null);
         fetchBillsList();
@@ -174,19 +215,37 @@ const BillsPage = () => {
     );
   }
 
+  // Department filter is sent to the server AND applied client-side, so the
+  // ledger stays correct even if the server ignores the param.
+  const visibleBills = filterDept
+    ? bills.filter((b) => String(b.department || '').toUpperCase() === String(filterDept).toUpperCase())
+    : bills;
+
   return (
     <div>
       <PageHeader
         title="Billing Ledger"
         subtitle="Manage patient billing receipts and outstanding balances"
         action={
-          <Button variant="primary" onClick={() => navigate('/cases/bills/new')} icon={<Plus size={16} />}>
-            Create Bill
-          </Button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {!canBill && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                No billing permission — actions hidden (server still enforces).
+              </span>
+            )}
+            {canBill && (
+              <Button variant="primary" onClick={() => navigate('/cases/bills/new')} icon={<Plus size={16} />}>
+                Create Bill
+              </Button>
+            )}
+          </div>
         }
       />
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+        Refunds and post-payment bill edits are disabled — no backend endpoints exist for them.
+      </p>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
         <Select
           placeholder="All Payment Statuses"
           value={filterStatus}
@@ -203,9 +262,29 @@ const BillsPage = () => {
         />
       </div>
 
+      <AdvancedFilterBar
+        values={adv}
+        onChange={setAdvKey}
+        onSearch={() => { goToPage(1); fetchBillsList(); }}
+        onClear={() => { setAdv({ duration: '', regNo: '', firstName: '', referredBy: '', collectionCentre: '', agent: '', hasDue: false, cancelled: false, caseType: '', uhid: '', dailyCaseNo: '' }); setSearch(''); setFilterStatus(''); setFilterDept(''); goToPage(1); }}
+        fields={[
+          { key: 'duration', label: 'Duration', type: 'select', options: DURATION_OPTIONS },
+          { key: 'regNo', label: 'Reg.no.', type: 'text', placeholder: 'Reg.no.' },
+          { key: 'firstName', label: 'Patient first name', type: 'text', placeholder: 'First name' },
+          { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
+          { key: 'dailyCaseNo', label: 'Daily case no.', type: 'text', placeholder: 'DCN' },
+          { key: 'referredBy', label: 'Referred by', type: 'select', options: doctors.map((d) => ({ value: d._id || d.id || d.value, label: d.name || d.label })) },
+          { key: 'collectionCentre', label: 'Collection centre', type: 'select', options: [{ value: 'Main', label: 'Main' }] },
+          { key: 'agent', label: 'Sample agent', type: 'select', options: agents.map((a) => ({ value: a._id || a.id || a.value, label: a.name || a.label })) },
+          { key: 'caseType', label: 'Case type', type: 'select', options: CASE_TYPE_OPTIONS },
+          { key: 'hasDue', label: 'Has due', type: 'toggle' },
+          { key: 'cancelled', label: 'Cancelled', type: 'toggle' },
+        ]}
+      />
+
       <DataTable
         headers={BILL_TABLE_HEADERS}
-        data={bills}
+        data={visibleBills}
         loading={loading}
         emptyMessage="No billing records found."
         searchValue={search}
@@ -223,6 +302,7 @@ const BillsPage = () => {
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{bill.billNumber}</td>
             <td>{bill.patient?.name || 'Walk-in Patient'}</td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{formatCurrency(bill.totalAmount)}</td>
+            <td>{formatCurrency(bill.discount || 0)}</td>
             <td style={{ color: 'var(--color-success)', fontWeight: 'var(--font-weight-semibold)' }}>
               {formatCurrency(bill.paidAmount)}
             </td>
@@ -247,6 +327,9 @@ const BillsPage = () => {
                 <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />}>
                   QR
                 </Button>
+                <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />}>
+                  Labels
+                </Button>
                 {bill.dueAmount > 0 && (
                   <Button variant="primary" size="sm" onClick={() => handleOpenPayment(bill)} icon={<CreditCard size={14} />}>
                     Pay
@@ -257,6 +340,12 @@ const BillsPage = () => {
                     Void
                   </Button>
                 )}
+                <Button variant="secondary" size="sm" disabled title="No backend endpoint exists for refunds">
+                  Refund
+                </Button>
+                <Button variant="secondary" size="sm" disabled title="No backend endpoint exists for editing a bill after payment">
+                  Edit
+                </Button>
               </div>
             </td>
           </tr>
@@ -273,16 +362,22 @@ const BillsPage = () => {
         setPaymentMethod={setPaymentMethod}
         onSubmit={handlePaymentSubmit}
         loading={paymentSubmitLoading}
+        error={payError}
       />
 
-      <ConfirmDialog
+      <LabelPrintSheet
+        isOpen={!!labelTarget}
+        onClose={() => setLabelTarget(null)}
+        patient={labelTarget?.patient}
+        bill={labelTarget}
+      />
+
+      <VoidReasonDialog
         isOpen={!!voidTarget}
         onClose={() => setVoidTarget(null)}
+        bill={voidTarget}
         onConfirm={handleVoidConfirm}
         loading={voidLoading}
-        title="Void this bill?"
-        message={`Void invoice ${voidTarget?.billNumber}? It stays in history as voided.`}
-        confirmText="Yes, Void"
       />
     </div>
   );

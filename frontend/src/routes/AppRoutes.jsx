@@ -50,6 +50,10 @@ import CaseWiseReport from '../pages/business/CaseWiseReport';
 import BusinessAnalysis from '../pages/business/BusinessAnalysis';
 import DataExport from '../pages/business/DataExport';
 import Activities from '../pages/business/Activities';
+import Cashbook from '../pages/business/Cashbook';
+import AuditLog from '../pages/settings/AuditLog';
+import TestUsage from '../pages/analytics/TestUsage';
+import Jobs from '../pages/settings/Jobs';
 
 // USG
 import TodaysUSGCases from '../pages/usg/TodaysUSGCases';
@@ -65,10 +69,13 @@ import XrayReports from '../pages/xray/XrayReports';
 import EmployeeLogin from '../pages/manage/EmployeeLogin';
 import DoctorAccess from '../pages/manage/DoctorAccess';
 import BrowserSecurity from '../pages/manage/BrowserSecurity';
+import RateRevision from '../pages/settings/RateRevision';
+import Signatures from '../pages/settings/Signatures';
 
 // Setup / Delivery / Support / Doctor
 import LabProfile from '../pages/setup/LabProfile';
 import Onboarding from '../pages/setup/Onboarding';
+import TatConfig from '../pages/settings/TatConfig';
 import Templates from '../pages/delivery/Templates';
 import Reviews from '../pages/delivery/Reviews';
 import Tickets from '../pages/support/Tickets';
@@ -129,7 +136,10 @@ const AppRoutes = () => {
         <Route path="/business/cases" element={<CaseWiseReport />} />
         <Route path="/business/analysis" element={<BusinessAnalysis />} />
         <Route path="/business/export" element={<DataExport />} />
+        <Route path="/lab/export" element={<DataExport />} />
         <Route path="/business/activities" element={<Activities />} />
+        <Route path="/business/cashbook" element={<Cashbook />} />
+        <Route path="/analytics/test-usage" element={<TestUsage />} />
 
         {/* USG */}
         <Route path="/usg/today" element={<TodaysUSGCases />} />
@@ -146,8 +156,13 @@ const AppRoutes = () => {
           <Route path="/manage/employees" element={<EmployeeLogin />} />
           <Route path="/manage/doctors" element={<DoctorAccess />} />
           <Route path="/manage/security" element={<BrowserSecurity />} />
+          <Route path="/settings/rate-revision" element={<RateRevision />} />
+          <Route path="/settings/signatures" element={<Signatures />} />
           <Route path="/setup/profile" element={<LabProfile />} />
           <Route path="/setup/onboarding" element={<Onboarding />} />
+          <Route path="/settings/jobs" element={<Jobs />} />
+          <Route path="/settings/tat" element={<TatConfig />} />
+          <Route path="/settings/audit-log" element={<AuditLog />} />
           <Route path="/delivery/templates" element={<Templates />} />
           <Route path="/delivery/reviews" element={<Reviews />} />
           <Route path="/support/tickets" element={<Tickets />} />

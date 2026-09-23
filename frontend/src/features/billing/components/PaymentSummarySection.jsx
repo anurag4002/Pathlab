@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import { Input, Select, Button } from '../../../components/common';
 import { PAYMENT_METHODS } from '../../../constants/billConstants';
 import formatCurrency from '../../../utils/formatCurrency';
+import DiscountRow from './DiscountRow';
 import '../Billing.css';
 
 const PaymentSummarySection = ({
@@ -40,42 +41,13 @@ const PaymentSummarySection = ({
         <strong>{formatCurrency(subtotal)}</strong>
       </div>
 
-      {/* Discount Row */}
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <label className="form-label" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Discount %
-        </label>
-        <div style={{ display: 'flex', alignItems: 'stretch' }}>
-          <input
-            type="number"
-            className={`form-control ${errors?.discount ? 'has-error' : ''}`}
-            value={discountPercent}
-            min={0}
-            max={100}
-            onChange={(e) =>
-              setDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))
-            }
-            placeholder="0"
-            style={{ borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', flex: 1 }}
-          />
-          <span
-            style={{
-              padding: '0 var(--space-3)',
-              border: '1px solid var(--color-primary)',
-              borderLeft: 'none',
-              backgroundColor: 'var(--color-primary)',
-              color: 'var(--color-text-inverse)',
-              display: 'flex',
-              alignItems: 'center',
-              fontWeight: 'var(--font-weight-bold)',
-              borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-              fontSize: 'var(--font-size-base)'
-            }}
-          >
-            %
-          </span>
-        </div>
-      </div>
+      {/* Discount Row (Phase 22 — DiscountRow with subtotal validation) */}
+      <DiscountRow
+        subtotal={subtotal}
+        discountPercent={discountPercent}
+        setDiscountPercent={setDiscountPercent}
+        error={errors?.discount}
+      />
 
       {/* Amount Received */}
       <Input

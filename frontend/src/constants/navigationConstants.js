@@ -17,11 +17,13 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin'],
     children: [
       { title: 'Daily Business', path: '/business/daily' },
+      { title: 'Cashbook', path: '/business/cashbook' },
       { title: 'Expenses', path: '/business/expenses' },
       { title: 'Due Reports', path: '/business/dues' },
       { title: 'Referral Business', path: '/business/referrals' },
       { title: 'Case Wise Report', path: '/business/cases' },
       { title: 'Business Analysis', path: '/business/analysis' },
+      { title: 'Test Usage', path: '/analytics/test-usage' },
       { title: 'Data Export', path: '/business/export' },
       { title: 'Activities', path: '/business/activities' }
     ]
@@ -48,6 +50,7 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Search Reports', path: '/lab/search' },
       { title: 'Test Database', path: '/lab/tests', roles: ['Admin'] },
       { title: 'Test Packages', path: '/lab/packages', roles: ['Admin'] },
+      { title: 'Rate Revision', path: '/settings/rate-revision', roles: ['Admin'] },
       { title: 'Test Panels', path: '/lab/panels', roles: ['Admin'] },
       { title: 'Test Categories', path: '/lab/categories', roles: ['Admin'] },
       { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin'] },
@@ -88,9 +91,11 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin'],
     children: [
       { title: 'Employee Login', path: '/manage/employees' },
+      { title: 'Audit Log', path: '/settings/audit-log' },
       { title: 'Doctor Access', path: '/manage/doctors' },
       { title: 'Browser Security', path: '/manage/security' },
       { title: 'Lab Profile', path: '/setup/profile' },
+      { title: 'Job Queue', path: '/settings/jobs' },
       { title: 'Onboarding', path: '/setup/onboarding' },
       { title: 'Templates', path: '/delivery/templates' },
       { title: 'Reviews', path: '/delivery/reviews' },

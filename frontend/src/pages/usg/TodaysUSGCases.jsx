@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates } from '../../services/usgService';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, uploadUSGImage } from '../../services/usgService';
 import { deleteUSGCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
+import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
 import { Plus, Edit2, Printer, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, ImageUploader } from '../../components/common';
+import CaseFilterBar from '../../components/usg/CaseFilterBar';
+import InlineSignButton from '../../components/usg/InlineSignButton';
+
+const caseImages = (c) => c?.images || c?.imageUrls || [];
 
 const TodaysUSGCases = () => {
   const { user } = useAuth();
@@ -17,12 +22,27 @@ const TodaysUSGCases = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Phase 24-backed branding (fallbacks = previous hardcoded strings)
+  const [labProfile, setLabProfile] = useState(null);
+  const [signatures, setSignatures] = useState([]);
+
+  // Phase 13 — filter bar (dept / assigned / status / search). Params are
+  // sent server-side AND applied client-side until backend filtering lands.
+  const [deptFilter, setDeptFilter] = useState('');
+  const [assignedFilter, setAssignedFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
+
   // Form States
   const [formOpen, setFormOpen] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
   const [formData, setFormData] = useState({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
+  // Phase 5 — uploaded image URLs for the case being edited (non-blocking:
+  // uploads run in the background; saving never waits for them).
+  const [caseImageUrls, setCaseImageUrls] = useState([]);
+  const [uploaderKey, setUploaderKey] = useState(0);
 
   // Print Case State
   const [printTarget, setPrintTarget] = useState(null);
@@ -52,7 +72,12 @@ const TodaysUSGCases = () => {
     setLoading(true);
     try {
       const todayStr = new Date().toISOString().split('T')[0];
-      const res = await getUSGCases({ date: todayStr });
+      const res = await getUSGCases({
+        date: todayStr,
+        status: statusFilter || undefined,
+        department: deptFilter || undefined,
+        assignedTo: assignedFilter || undefined
+      });
       if (res.success) {
         setCases(res.data);
       }
@@ -65,14 +90,18 @@ const TodaysUSGCases = () => {
 
   const loadOptions = async () => {
     try {
-      const [patRes, docRes, tempRes] = await Promise.all([
+      const [patRes, docRes, tempRes, profRes, sigRes] = await Promise.all([
         getPatients({ limit: 100 }),
         getDoctors({ status: 'Active' }),
-        getUSGTemplates()
+        getUSGTemplates(),
+        getLabProfile().catch(() => null),
+        getSignatures().catch(() => null)
       ]);
       if (patRes.success) setPatients(patRes.data.patients);
       if (docRes.success) setDoctors(docRes.data);
       if (tempRes.success) setTemplates(tempRes.data);
+      if (profRes?.success) setLabProfile(profRes.data?.profile || profRes.data);
+      if (sigRes?.success) setSignatures(Array.isArray(sigRes.data) ? sigRes.data : sigRes.data?.signatures || []);
     } catch (err) {
       console.error('Failed to load options', err);
     }
@@ -81,11 +110,27 @@ const TodaysUSGCases = () => {
   useEffect(() => {
     fetchCases();
     loadOptions();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, deptFilter, assignedFilter]);
+
+  // Client-side filter pass (works regardless of server support).
+  const filteredCases = useMemo(() => {
+    const q = searchFilter.trim().toLowerCase();
+    return cases.filter((c) => {
+      if (assignedFilter && (c.referringDoctor?._id || c.referringDoctor) !== assignedFilter) return false;
+      if (statusFilter && c.status !== statusFilter) return false;
+      if (q) {
+        const hay = `${c.patient?.name || ''} ${c.patient?.registrationNumber || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [cases, assignedFilter, statusFilter, searchFilter]);
 
   const handleOpenCreate = () => {
     setEditingCase(null);
     setFormData({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
+    setCaseImageUrls([]);
     setErrors({});
     setFormOpen(true);
   };
@@ -99,6 +144,8 @@ const TodaysUSGCases = () => {
       findings: c.findings,
       status: c.status
     });
+    setCaseImageUrls(caseImages(c));
+    setUploaderKey((k) => k + 1);
     setErrors({});
     setFormOpen(true);
   };
@@ -155,6 +202,20 @@ const TodaysUSGCases = () => {
     setPrintOpen(true);
   };
 
+  const handleSigned = (updated) => {
+    if (!updated) return fetchCases();
+    setCases((prev) => prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)));
+  };
+
+  // Lab-profile branding with fallbacks to the previous hardcoded strings.
+  const labName = labProfile?.labName || 'PURE PATH LAB';
+  const labTagline = labProfile?.tagline || 'Pathology & Diagnostic Center';
+  const labContact = [labProfile?.address, labProfile?.phone, labProfile?.email].filter(Boolean).join(' · ');
+  const logoSrc = labProfile?.logoUrl ? `/${String(labProfile.logoUrl).replace(/^\//, '')}` : '/logo.jpg';
+  const usgSignature = signatures.find((s) => (s.modalities || s.assignedDepartments || []).includes('USG')) || signatures[0];
+  const signatoryName = usgSignature?.name || printTarget?.signedBy?.name || 'Authorised Signatory';
+  const signatoryTitle = usgSignature?.title || 'Consultant Radiologist';
+
   return (
     <div>
       <PageHeader
@@ -167,9 +228,22 @@ const TodaysUSGCases = () => {
         }
       />
 
+      <CaseFilterBar
+        department={deptFilter}
+        onDepartmentChange={setDeptFilter}
+        departments={[{ value: 'USG', label: 'USG' }]}
+        assignedTo={assignedFilter}
+        onAssignedChange={setAssignedFilter}
+        assignees={doctors.map((d) => ({ value: d._id, label: d.name }))}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        search={searchFilter}
+        onSearchChange={setSearchFilter}
+      />
+
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Status', 'Actions']}
-        data={cases}
+        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Images', 'Status', 'Actions']}
+        data={filteredCases}
         loading={loading}
         emptyMessage="No ultrasonography cases recorded today."
         renderRow={(c) => (
@@ -180,11 +254,12 @@ const TodaysUSGCases = () => {
             <td>{c.referringDoctor?.name || 'Self'}</td>
             <td>{c.templateName || 'Custom Findings'}</td>
             <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
+            <td style={{ textAlign: 'center' }}>{caseImages(c).length || '—'}</td>
             <td>
               <StatusBadge status={c.status} />
             </td>
             <td>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem' }}
@@ -199,6 +274,12 @@ const TodaysUSGCases = () => {
                 >
                   <Printer size={14} /> Print
                 </button>
+                <InlineSignButton
+                  caseId={c._id}
+                  modality="usg"
+                  signed={c.status === 'Completed' || !!c.signatureUrl}
+                  onSigned={handleSigned}
+                />
                 {isAdmin && (
                   <button
                     className="btn btn-danger"
@@ -232,7 +313,7 @@ const TodaysUSGCases = () => {
       >
         <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
           {errors.api && <div className="form-error">{errors.api}</div>}
-          
+
           <Select
             label="Patient Profile"
             value={formData.patient}
@@ -272,6 +353,22 @@ const TodaysUSGCases = () => {
             {errors.findings && <p className="form-error">{errors.findings}</p>}
           </div>
 
+          {editingCase ? (
+            <div className="form-group">
+              <label className="form-label">Case Images (upload runs in background — saving is never blocked)</label>
+              <ImageUploader
+                key={uploaderKey}
+                uploadFn={(file, prog) => uploadUSGImage(editingCase._id, file, prog)}
+                initialUrls={caseImages(editingCase)}
+                onUploaded={setCaseImageUrls}
+              />
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              Save the case first — images can be attached while editing.
+            </p>
+          )}
+
           <Select
             label="Case Status"
             value={formData.status}
@@ -302,12 +399,14 @@ const TodaysUSGCases = () => {
           <div className="printable-area" style={{ padding: '16px', color: '#000', fontSize: '0.9rem', lineHeight: '1.5' }}>
             <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <img
-                src="/logo.jpg"
+                src={logoSrc}
                 alt="Logo"
                 style={{ width: '64px', height: '64px', borderRadius: '50%', marginBottom: '4px', objectFit: 'cover' }}
               />
-              <h2 style={{ margin: 0, fontWeight: '700' }}>PURE PATH LAB</h2>
-              <p style={{ margin: '2px 0' }}>ULTRASONOGRAPHY REPORT</p>
+              <h2 style={{ margin: 0, fontWeight: '700' }}>{labName}</h2>
+              <p style={{ margin: '2px 0' }}>{labTagline}</p>
+              {labContact && <p style={{ margin: '2px 0', fontSize: '0.75rem' }}>{labContact}</p>}
+              <p style={{ margin: '2px 0', fontWeight: '600' }}>ULTRASONOGRAPHY REPORT</p>
               <div style={{ borderBottom: '2px solid #000', margin: '10px 0', width: '100%' }}></div>
             </div>
 
@@ -329,12 +428,34 @@ const TodaysUSGCases = () => {
               {printTarget.findings}
             </div>
 
+            {caseImages(printTarget).length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <strong>ATTACHED IMAGES:</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '8px' }}>
+                  {caseImages(printTarget).map((src, i) => (
+                    <img
+                      key={i}
+                      src={String(src).startsWith('/') || String(src).startsWith('http') ? src : `/${src}`}
+                      alt={`USG image ${i + 1}`}
+                      style={{ width: '100%', maxHeight: 260, objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: 6, background: '#000' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div style={{ borderTop: '1px solid #000', marginTop: '2rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
               <div style={{ textAlign: 'center', width: '200px' }}>
-                {printTarget.signatureUrl && <img src={`/${printTarget.signatureUrl}`} alt="Signature" style={{ height: '40px', objectFit: 'contain' }} />}
-                <div style={{ height: printTarget.signatureUrl ? '4px' : '40px' }}></div>
-                <strong>Authorised Signatory</strong><br />
-                <span>Consultant Radiologist</span>
+                {(usgSignature?.imageUrl || printTarget.signatureUrl) && (
+                  <img
+                    src={usgSignature?.imageUrl ? `/${String(usgSignature.imageUrl).replace(/^\//, '')}` : `/${printTarget.signatureUrl}`}
+                    alt="Signature"
+                    style={{ height: '40px', objectFit: 'contain' }}
+                  />
+                )}
+                <div style={{ height: (usgSignature?.imageUrl || printTarget.signatureUrl) ? '4px' : '40px' }}></div>
+                <strong>{signatoryName}</strong><br />
+                <span>{signatoryTitle}</span>
               </div>
             </div>
           </div>

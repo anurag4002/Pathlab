@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { createBill, collectPayment, getBillById } from '../../../services/billService';
 import { createPatient } from '../../../services/patientService';
 import { PageHeader, Button } from '../../../components/common';
+import { TestCombobox } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
 import DepartmentSelector from './DepartmentSelector';
 import BillItemsTable from './BillItemsTable';
 import PaymentSummarySection from './PaymentSummarySection';
-import { filterTestsByDepartment } from '../billingConstants';
+import PackageSelector from './PackageSelector';
+import ComboIndicator from './ComboIndicator';
+import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
 import { Select } from '../../../components/common';
 import { ArrowLeft, Plus } from 'lucide-react';
 import '../Billing.css';
@@ -39,6 +42,7 @@ const BillCreateForm = ({
   doctors = [],
   agents = [],
   tests = [],
+  packages = [],
   onBillCreated
 }) => {
   const navigate = useNavigate();
@@ -88,8 +92,34 @@ const BillCreateForm = ({
     setSelectedItems((prev) => [...prev, { itemId: item._id, itemType: type, name: item.name, price: item.price }]);
   };
 
+  // Phase 22 — package/panel selection at bundle pricing. The bundle is
+  // added as one priced line (package total replaces individual rates);
+  // member test names are kept for the on-screen + printed breakdown.
+  const handleSelectBundle = (bundle, kind) => {
+    const itemType = kind === 'panels' ? 'Panel' : 'Package';
+    const alreadyAdded = selectedItems.some(
+      (si) => si.itemId === bundle._id && si.itemType === itemType
+    );
+    if (alreadyAdded) return;
+    const members = bundle.includedTests || bundle.tests || [];
+    const memberNames = members.map((m) => (typeof m === 'string' ? m : (m.name || m.code || ''))).filter(Boolean);
+    setSelectedItems((prev) => [...prev, {
+      itemId: bundle._id,
+      itemType,
+      name: `${bundle.name} (bundle)`,
+      price: Number(bundle.price) || 0,
+      comboName: bundle.name,
+      comboId: bundle._id,
+      comboMembers: memberNames,
+    }]);
+  };
+
+  const selectedBundleIds = selectedItems
+    .filter((i) => i.itemType === 'Package' || i.itemType === 'Panel')
+    .map((i) => i.itemId);
+
   const subtotal = selectedItems.reduce((s, item) => s + item.price, 0);
-  const discountAmount = Math.max(0, (subtotal * discountPercent) / 100);
+  const discountAmount = Math.max(0, Math.min(subtotal, (subtotal * discountPercent) / 100));
   const totalAmount = Math.max(0, subtotal - discountAmount);
   const dueAmount = Math.max(0, totalAmount - paidAmount);
 
@@ -104,6 +134,8 @@ const BillCreateForm = ({
       if (!patientForm.patientAgeYears) errs.age = 'Age is required';
     }
     if (selectedItems.length === 0) errs.items = 'Please select at least one test or package';
+    if (discountPercent < 0 || discountPercent > 100) errs.discount = 'Discount must be between 0 and 100%.';
+    if (discountAmount > subtotal) errs.discount = 'Discount cannot exceed the subtotal.';
     if (paidAmount < 0 || paidAmount > totalAmount) errs.paidAmount = 'Paid amount cannot exceed total';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -129,6 +161,7 @@ const BillCreateForm = ({
         patientId = patRes.data._id;
       }
 
+      // Courtesy guard: 200 bills/day soft limit (§10)
       const res = await createBill({
         patient: patientId,
         referringDoctor: selectedDoctor || null,
@@ -137,7 +170,11 @@ const BillCreateForm = ({
         discount: discountAmount,
         paidAmount,
         paymentMethod,
-        department: activeDepartment
+        department: activeDepartment,
+        caseType: DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
+        collectionCentre: 'Main',
+        onlineReportRequested: patientForm.onlineReportRequested,
+        discountPercent: discountPercent > 0
       });
 
       if (res.success) {
@@ -281,7 +318,22 @@ const BillCreateForm = ({
             {/* Department Selector */}
             <DepartmentSelector activeDepartment={activeDepartment} onSelect={setActiveDepartment} />
 
-            {/* Test Picker */}
+            {/* Package / Panel Picker (Phase 22 — wired to getPanels/getPackages) */}
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                Select Packages / Panels
+              </label>
+              <PackageSelector onSelect={handleSelectBundle} selectedIds={selectedBundleIds} />
+            </div>
+
+            {/* Test Picker — Phase 12 smart combobox + legacy clickable list */}
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <TestCombobox
+                label="Quick add test"
+                placeholder="Type code / name / department / price…"
+                onSelect={(test) => handleAddItem(test, 'Test')}
+              />
+            </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
                 Select Tests / Scans
@@ -319,6 +371,11 @@ const BillCreateForm = ({
               onRemove={(idx) => setSelectedItems((prev) => prev.filter((_, i) => i !== idx))}
               error={errors.items}
             />
+            <ComboIndicator items={selectedItems} />
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px', marginBottom: 0 }}>
+              Printed bill note: the server-rendered bill PDF lists each line item and the bill
+              discount — bundle members above are itemised at the package total.
+            </p>
           </div>
 
           <PaymentSummarySection

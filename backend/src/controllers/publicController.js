@@ -119,4 +119,63 @@ const downloadPublicBill = async (req, res, next) => {
   }
 };
 
-module.exports = { verifyReport, downloadPublicReport, verifyBill, downloadPublicBill };
+const { toSVG: barcodeSVG } = require('../services/code39Service');
+
+// GET /api/public/case/:caseId/barcode — Code39 SVG from the case's
+// registrationNumber. Falls back to the raw caseId when the case (or its
+// registration number) cannot be resolved. Public (no auth), like the bill
+// barcode pattern.
+async function caseBarcode(req, res, next) {
+  try {
+    const { caseId } = req.params;
+    let value = String(caseId || '');
+    try {
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        const report = await Report.findById(value).select('registrationNumber').lean();
+        if (report && report.registrationNumber) {
+          value = report.registrationNumber;
+        } else {
+          const Patient = require('../models/Patient');
+          const patient = await Patient.findById(value).select('registrationNumber').lean();
+          if (patient && patient.registrationNumber) value = patient.registrationNumber;
+        }
+      } else {
+        const Patient = require('../models/Patient');
+        const patient = await Patient.findOne({ registrationNumber: value }).select('registrationNumber').lean();
+        if (patient && patient.registrationNumber) value = patient.registrationNumber;
+      }
+    } catch (e) { /* fallback to raw caseId */ }
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.send(barcodeSVG(value));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// GET /api/public/sample/:sampleId/barcode — Code39 SVG for a sample tube.
+// No Sample model exists in this repo, so the raw :sampleId value is encoded
+// directly (documented; a future Sample lookup can enrich this). Public.
+async function sampleBarcode(req, res, next) {
+  try {
+    const { sampleId } = req.params;
+    let value = String(sampleId || '');
+    try {
+      const mongoose = require('mongoose');
+      // If a Sample model is ever registered, prefer its stored barcode.
+      if (mongoose.modelNames().includes('Sample')) {
+        const Sample = mongoose.model('Sample');
+        const doc = await Sample.findById(value).lean().catch(() => null);
+        if (doc && (doc.barcode || doc.sampleCode || doc.code)) {
+          value = String(doc.barcode || doc.sampleCode || doc.code);
+        }
+      }
+    } catch (e) { /* encode raw sampleId */ }
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.send(barcodeSVG(value));
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { verifyReport, downloadPublicReport, verifyBill, downloadPublicBill, caseBarcode, sampleBarcode };

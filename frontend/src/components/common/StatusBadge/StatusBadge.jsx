@@ -7,6 +7,8 @@ const getVariant = (status) => {
     case 'paid':
     case 'active':
     case 'completed':
+    case 'signed':
+    case 'verified':
     case 'cleared':
     case 'cash':
     case 'upi':
@@ -15,16 +17,21 @@ const getVariant = (status) => {
     case 'card':
     case 'inprogress':
     case 'doctor':
+    case 'registered':
+    case 'collected':
       return 'warning';
     case 'pending':
     case 'inactive':
     case 'due':
     case 'refund':
     case 'cancelled':
+    case 'rejected':
       return 'danger';
     case 'admin':
     case 'employee':
     case 'insurance':
+    case 'reported':
+    case 'received':
       return 'info';
     default:
       return 'neutral';

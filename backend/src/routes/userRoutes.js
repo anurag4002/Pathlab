@@ -9,6 +9,8 @@ router.use(authorize('Admin'));
 
 router.get('/', userController.getUsers);
 router.post('/', userController.createUser);
+router.get('/:id/sessions', userController.getUserSessions);
+router.post('/:id/revoke-sessions', userController.revokeUserSessions);
 router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 

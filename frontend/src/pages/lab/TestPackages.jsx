@@ -3,7 +3,7 @@ import { getPackages, createPackage, updatePackage, deletePackage } from '../../
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
 
 const TestPackages = () => {
   const [packages, setPackages] = useState([]);
@@ -260,7 +260,16 @@ const TestPackages = () => {
             />
           </div>
 
-          {/* Checklist of tests */}
+          {/* Checklist of tests — Phase 12 combobox quick-add + legacy checklist */}
+          <div className="form-group">
+            <TestCombobox
+              label="Quick add test to package"
+              placeholder="Type to find and add a test…"
+              onSelect={(t) => setFormData(prev => (
+                prev.includedTests.includes(t._id) ? prev : { ...prev, includedTests: [...prev.includedTests, t._id] }
+              ))}
+            />
+          </div>
           <div className="form-group">
             <label className="form-label" style={{ marginBottom: '8px' }}>
               Select Tests to Include {errors.includedTests && <span className="form-error"> - {errors.includedTests}</span>}

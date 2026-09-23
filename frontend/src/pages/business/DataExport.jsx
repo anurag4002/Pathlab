@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
-import { getBills } from '../../services/billService';
-import { getPatients } from '../../services/patientService';
-import { getExpenses } from '../../services/expenseService';
-import { downloadServerCsv } from '../../services/exportService';
-import { FileSpreadsheet, Download, Server } from 'lucide-react';
-import { PageHeader, Button, Select, DatePicker } from '../../components/common';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  downloadServerCsv,
+  fetchExportPreviewCount,
+  EXPORT_DATASETS,
+} from '../../services/exportService';
+import { FileSpreadsheet, Download, RefreshCw, AlertTriangle } from 'lucide-react';
+import { PageHeader, Button, Select, DatePicker, DataTable } from '../../components/common';
 
-const DATASETS = [
-  { value: 'bills', label: 'Bills' },
-  { value: 'patients', label: 'Patients' },
-  { value: 'expenses', label: 'Expenses' },
-  { value: 'transactions', label: 'Transactions' }
-];
 const PRESETS = ['Today', 'Last 31d', 'Last 365d', 'Custom'];
+
+const DATASET_META = {
+  bills: { label: 'Bills', hint: 'Billing ledger incl. patient, totals, payments and void flags.' },
+  patients: { label: 'Patients', hint: 'Patient registry with demographics and contact lines.' },
+  expenses: { label: 'Expenses', hint: 'Operating expense vouchers with category and method.' },
+  transactions: { label: 'Transactions', hint: 'Cash-book transactions with type, method and receiver.' },
+};
 
 const toISODate = (d) => d.toISOString().split('T')[0];
 const presetRange = (preset, custom) => {
@@ -23,147 +25,165 @@ const presetRange = (preset, custom) => {
   return custom;
 };
 
+// Phase 26 — Data Export Center wired to GET /api/export/:dataset
+// (server returns text/csv; client-side JSON→CSV fallback lives in
+// exportService for resilience). Route: /business/export (+ /lab/export alias).
 const DataExport = () => {
-  const [loadingType, setLoadingType] = useState('');
-  const [dataset, setDataset] = useState('bills');
   const [preset, setPreset] = useState('Last 31d');
   const [customStart, setCustomStart] = useState(toISODate(new Date()));
   const [customEnd, setCustomEnd] = useState(toISODate(new Date()));
-  const [serverLoading, setServerLoading] = useState(false);
+  const [counts, setCounts] = useState({});
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [activeDataset, setActiveDataset] = useState('');
+  const [progress, setProgress] = useState('');
+  const [error, setError] = useState('');
+  const [lastResult, setLastResult] = useState(null);
 
-  const triggerCSVDownload = (headers, rows, filename) => {
-    const csvRows = [
-      headers.join(','),
-      ...rows.map(row => row.map(val => {
-        const str = String(val === null || val === undefined ? '' : val);
-        return `"${str.replace(/"/g, '""')}"`;
-      }).join(','))
-    ];
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${filename}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const range = presetRange(preset, { startDate: customStart, endDate: customEnd });
 
-  const handleExportBills = async () => {
-    setLoadingType('bills');
+  const loadPreviewCounts = useCallback(async () => {
+    setPreviewLoading(true);
+    setPreviewError('');
     try {
-      const res = await getBills({ limit: 500 });
-      if (res.success) {
-        const headers = ['Invoice Number', 'Patient Name', 'Gross Total', 'Paid Amount', 'Due Balance', 'Payment Status', 'Date'];
-        const rows = res.data.bills.map(b => [b.billNumber, b.patient?.name || 'Walk-in', b.totalAmount, b.paidAmount, b.dueAmount, b.paymentStatus, b.date]);
-        triggerCSVDownload(headers, rows, 'billing_ledger');
-      }
+      const entries = await Promise.all(
+        EXPORT_DATASETS.map(async (ds) => {
+          try {
+            const n = await fetchExportPreviewCount(ds, range);
+            return [ds, n];
+          } catch {
+            return [ds, null];
+          }
+        })
+      );
+      setCounts(Object.fromEntries(entries));
     } catch (err) {
-      alert('Failed to export bills ledger');
+      setPreviewError(err.response?.data?.message || 'Failed to preview export sizes');
     } finally {
-      setLoadingType('');
+      setPreviewLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset, customStart, customEnd]);
+
+  useEffect(() => {
+    loadPreviewCounts();
+  }, [loadPreviewCounts]);
+
+  const handleDownload = async (dataset) => {
+    setActiveDataset(dataset);
+    setProgress(`Preparing ${dataset} CSV…`);
+    setError('');
+    setLastResult(null);
+    try {
+      const result = await downloadServerCsv(dataset, range);
+      setLastResult({ dataset, ...result });
+      setProgress('');
+    } catch (err) {
+      setError(err.response?.data?.message || `Export of ${dataset} failed`);
+      setProgress('');
+    } finally {
+      setActiveDataset('');
     }
   };
 
-  const handleExportPatients = async () => {
-    setLoadingType('patients');
-    try {
-      const res = await getPatients({ limit: 500 });
-      if (res.success) {
-        const headers = ['Registration Code', 'Patient Name', 'Age', 'Gender', 'Phone', 'Address', 'Referral Doctor'];
-        const rows = res.data.patients.map(p => [p.registrationNumber, p.name, p.age, p.gender, p.phone, p.address || '', p.referringDoctor?.name || 'Self']);
-        triggerCSVDownload(headers, rows, 'patient_directory');
-      }
-    } catch (err) {
-      alert('Failed to export patient registry');
-    } finally {
-      setLoadingType('');
-    }
-  };
-
-  const handleExportExpenses = async () => {
-    setLoadingType('expenses');
-    try {
-      const res = await getExpenses();
-      if (res.success) {
-        const headers = ['Voucher Date', 'Category', 'Description', 'Payment Method', 'Amount'];
-        const rows = res.data.map(e => [e.date, e.category, e.description || '', e.paymentMethod, e.amount]);
-        triggerCSVDownload(headers, rows, 'expense_ledger');
-      }
-    } catch (err) {
-      alert('Failed to export expense vouchers');
-    } finally {
-      setLoadingType('');
-    }
-  };
-
-  const handleServerExport = async () => {
-    setServerLoading(true);
-    try {
-      const { startDate, endDate } = presetRange(preset, { startDate: customStart, endDate: customEnd });
-      await downloadServerCsv(dataset, { startDate, endDate });
-    } catch (err) {
-      alert(err.response?.data?.message || 'Server export failed');
-    } finally {
-      setServerLoading(false);
-    }
-  };
-
-  const cardStyle = { display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'space-between' };
+  const invalidRange = range.startDate > range.endDate;
 
   return (
     <div>
       <PageHeader
         title="Clinical Data Export Center"
-        subtitle="Export ledger sheets, patient directories, and financial logs to standard CSV spreadsheets"
+        subtitle="Pick a dataset and date window, check the preview count, then download the server CSV"
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Invoices Billing Ledger</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export billing histories including patients tags, gross charges, discounts, and payments.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportBills} loading={loadingType === 'bills'}><Download size={16} /> Export Invoices (CSV)</Button>
-        </div>
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <Select
+          name="preset"
+          label="Date window"
+          value={preset}
+          onChange={(e) => setPreset(e.target.value)}
+          options={PRESETS.map((p) => ({ value: p, label: p }))}
+          placeholder=""
+          style={{ minWidth: '160px' }}
+        />
+        {preset === 'Custom' && (
+          <>
+            <DatePicker label="From" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+            <DatePicker label="To" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+          </>
+        )}
+        <Button variant="secondary" size="sm" onClick={loadPreviewCounts} loading={previewLoading}>
+          <RefreshCw size={14} /> Refresh preview
+        </Button>
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+          Window: {range.startDate} → {range.endDate}
+        </span>
+      </div>
 
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Patients Registry</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export patients directories with demographic files, contact lines, and reference markers.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportPatients} loading={loadingType === 'patients'}><Download size={16} /> Export Patients (CSV)</Button>
+      {invalidRange && (
+        <div className="card" style={{ borderLeft: '4px solid var(--color-danger, #dc2626)', marginBottom: '1rem', fontSize: '0.85rem' }}>
+          <AlertTriangle size={14} /> Start date is after end date — adjust the window before exporting.
         </div>
-
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Operating Expense Vouchers</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export facilities bills, collection agents commissions, office rents, and supply costs.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportExpenses} loading={loadingType === 'expenses'}><Download size={16} /> Export Expenses (CSV)</Button>
+      )}
+      {previewError && (
+        <div className="card" style={{ borderLeft: '4px solid var(--color-danger, #dc2626)', marginBottom: '1rem', fontSize: '0.85rem' }}>
+          {previewError}
         </div>
-
-        {/* Server-side export card */}
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><Server size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Server Export (Date Window)</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Generate CSV on the server with a dataset and date window.</p>
-          </div>
-          <Select name="dataset" label="Dataset" value={dataset} onChange={(e) => setDataset(e.target.value)} options={DATASETS} placeholder="" />
-          <Select name="preset" label="Window" value={preset} onChange={(e) => setPreset(e.target.value)}
-            options={PRESETS.map((p) => ({ value: p, label: p }))} placeholder="" />
-          {preset === 'Custom' && (
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <DatePicker label="From" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ flex: 1 }} />
-              <DatePicker label="To" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ flex: 1 }} />
+      )}
+      {(progress || error || lastResult) && (
+        <div className="card" style={{ marginBottom: '1rem', fontSize: '0.85rem' }} role="status">
+          {progress && <div>Generating… {progress}</div>}
+          {error && <div style={{ color: 'var(--color-danger, #dc2626)' }}>Error: {error}</div>}
+          {lastResult && (
+            <div style={{ color: 'var(--color-success, #16a34a)' }}>
+              Downloaded {lastResult.filename} ({lastResult.source === 'client-fallback' ? 'built client-side from JSON fallback' : 'server CSV'}
+              {typeof lastResult.rows === 'number' ? `, ${lastResult.rows} rows` : ''}).
             </div>
           )}
-          <Button variant="primary" onClick={handleServerExport} loading={serverLoading}><Download size={16} /> Export {dataset} (Server CSV)</Button>
         </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        {EXPORT_DATASETS.map((ds) => (
+          <div key={ds} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
+              <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>{DATASET_META[ds].label}</h4>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{DATASET_META[ds].hint}</p>
+              <p style={{ fontSize: '0.8rem', marginTop: '8px' }}>
+                Preview rows:{' '}
+                <strong>{previewLoading ? '…' : counts[ds] === null || counts[ds] === undefined ? 'unavailable' : counts[ds]}</strong>
+              </p>
+            </div>
+            <Button variant="primary" onClick={() => handleDownload(ds)} loading={activeDataset === ds} disabled={invalidRange}>
+              <Download size={16} /> Export {DATASET_META[ds].label} (CSV)
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h4 style={{ fontWeight: '700', fontSize: '0.95rem', marginBottom: '0.5rem' }}>Export summary</h4>
+        <DataTable
+          headers={['Dataset', 'Preview rows', 'Action']}
+          data={EXPORT_DATASETS.map((ds) => ({ ds }))}
+          emptyMessage="No datasets configured."
+          renderRow={({ ds }) => (
+            <tr key={ds}>
+              <td style={{ fontWeight: '600' }}>{DATASET_META[ds].label}</td>
+              <td>{previewLoading ? '…' : counts[ds] ?? 'unavailable'}</td>
+              <td>
+                <Button variant="secondary" size="sm" onClick={() => handleDownload(ds)} loading={activeDataset === ds} disabled={invalidRange}>
+                  <Download size={14} /> Download
+                </Button>
+              </td>
+            </tr>
+          )}
+        />
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+          Source: GET /api/export/:dataset (text/csv). Large windows stream from the server (up to 5000 rows per
+          dataset); if the response arrives as JSON it is serialized to CSV in the browser instead. Export history is
+          not yet provided by the backend.
+        </p>
       </div>
     </div>
   );

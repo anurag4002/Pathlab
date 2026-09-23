@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { getExpenses } from '../../services/expenseService';
+import { getLabProfile } from '../../services/setupService';
 import { sendMessage } from '../../services/notifyService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { Printer, Mail } from 'lucide-react';
 import { PageHeader, DataTable, DatePicker, StatusBadge, Select } from '../../components/common';
+import { DEPARTMENTS } from '../../features/billing/billingConstants';
+import { usePermissions } from '../../hooks/usePermission';
 
 const DailyBusiness = () => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -19,6 +22,16 @@ const DailyBusiness = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [cashierFilter, setCashierFilter] = useState('All');
   const [emailLoading, setEmailLoading] = useState(false);
+  // Phase 17 — department filter on the ledger. No server-side department
+  // param exists on the ledger query, so this is applied client-side on the
+  // returned transactions/bills.
+  const [deptFilter, setDeptFilter] = useState('');
+  // Phase 24 — lab identity + invoice footer sourced from the lab profile
+  // (never hardcoded) for the emailed summary and on-screen footer.
+  const [labName, setLabName] = useState('Pathology Lab');
+  const [invoiceFooter, setInvoiceFooter] = useState('');
+  const { can } = usePermissions();
+  const canFinance = can('finance') || can('billing');
 
   const fetchBusinessLedger = async () => {
     setLoading(true);
@@ -40,6 +53,22 @@ const DailyBusiness = () => {
     fetchBusinessLedger();
   }, [startDate, endDate]);
 
+  useEffect(() => {
+    getLabProfile()
+      .then((r) => {
+        const profile = r?.data?.profile || r?.data || {};
+        if (profile.labName) setLabName(profile.labName);
+        if (profile.invoiceFooter || profile.disclaimer) setInvoiceFooter(profile.invoiceFooter || profile.disclaimer || '');
+        else {
+          try {
+            const local = JSON.parse(localStorage.getItem('ppl_branding') || '{}');
+            if (local.disclaimer) setInvoiceFooter(local.disclaimer);
+          } catch (e) { /* ignore */ }
+        }
+      })
+      .catch(() => { /* keep fallbacks */ });
+  }, []);
+
   const totalIncome = data?.totalIncome || 0;
   const totalRefunds = data?.totalRefunds || 0;
   const collectionCharge = 0;
@@ -55,15 +84,18 @@ const DailyBusiness = () => {
     return tx.patient?.name?.toLowerCase().includes(q) || tx.bill?.billNumber?.toLowerCase().includes(q);
   };
   const matchCashier = (tx) => cashierFilter === 'All' || (tx.receivedBy?.name || 'Unknown') === cashierFilter;
+  const matchDeptTx = (tx) => !deptFilter || String(tx.bill?.department || '').toUpperCase() === deptFilter.toUpperCase();
+  const matchDeptBill = (b) => !deptFilter || String(b.department || '').toUpperCase() === deptFilter.toUpperCase();
 
-  const getFilteredTransactions = () => (data?.transactions || []).filter((tx) => matchSearch(tx) && matchCashier(tx));
+  const getFilteredTransactions = () => (data?.transactions || []).filter((tx) => matchSearch(tx) && matchCashier(tx) && matchDeptTx(tx));
 
   const getFilteredBills = () => {
     const list = data?.transactions?.map(tx => tx.bill).filter(Boolean) || [];
     const uniqueBills = Array.from(new Map(list.map(b => [b._id, b])).values());
-    if (!searchQuery.trim()) return uniqueBills;
+    const deptScoped = uniqueBills.filter(matchDeptBill);
+    if (!searchQuery.trim()) return deptScoped;
     const q = searchQuery.toLowerCase();
-    return uniqueBills.filter(b =>
+    return deptScoped.filter(b =>
       b.billNumber?.toLowerCase().includes(q) || b.patient?.name?.toLowerCase().includes(q));
   };
 
@@ -79,7 +111,7 @@ const DailyBusiness = () => {
     if (!to || !to.trim()) return;
     setEmailLoading(true);
     try {
-      const fallbackText = `Daily summary ${startDate} to ${endDate}: Net ${formatCurrency(netIncome)}, Income ${formatCurrency(totalIncome)}, Refunds ${formatCurrency(totalRefunds)}, Expenses ${formatCurrency(totalExpenses)}.`;
+      const fallbackText = `${labName} — Daily summary ${startDate} to ${endDate}: Net ${formatCurrency(netIncome)}, Income ${formatCurrency(totalIncome)}, Refunds ${formatCurrency(totalRefunds)}, Expenses ${formatCurrency(totalExpenses)}.${invoiceFooter ? ` ${invoiceFooter}` : ''}`;
       await sendMessage({ channel: 'email', templateKey: 'daily-summary', to: to.trim(), vars: { fallbackText, subject: 'Daily business summary' } });
       alert('Summary emailed.');
     } catch (err) {
@@ -117,8 +149,12 @@ const DailyBusiness = () => {
           <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>to</span>
           <DatePicker label="" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ marginBottom: 0, width: '150px' }} />
         </div>
-        <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
-          Today: {formatDate(new Date()).split(',')[0]}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); }}>Today</button>
+          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const u = new URL(window.location.href); u.searchParams.set('from', startDate); u.searchParams.set('to', endDate); navigator.clipboard?.writeText(u.toString()); alert('Link copied: ' + u.toString()); }}>Share URL</button>
+          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+            Date - {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}, {new Date().toLocaleDateString('en-IN')}
+          </div>
         </div>
       </div>
 
@@ -132,11 +168,18 @@ const DailyBusiness = () => {
           <div className="card" style={{ padding: '1.25rem', backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-color)', borderRadius: 'var(--border-radius-md)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '1rem', fontWeight: '600', color: 'var(--primary-color)' }}>
             <span>Total Income {formatCurrency(totalIncome)}</span>
             <span>+</span>
-            <span>Collection Charge {formatCurrency(collectionCharge)}</span>
+            <span>Collection Charge {formatCurrency(collectionCharge)} <a href="#cc" onClick={(e) => { e.preventDefault(); alert('Collection charges = extra doorstep/sample-collection fee added on top of test price. Configure per centre.'); }} style={{ fontSize: '0.75rem' }}>(How collection charges work?)</a></span>
             <span>-</span>
             <span>Expenses {formatCurrency(totalExpenses)}</span>
             <span>=</span>
             <span style={{ color: 'var(--color-success)', fontWeight: '700' }}>Net Income {formatCurrency(netIncome)}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <span className="card" style={{ padding: '4px 12px' }}>Transactions: <strong>{data?.transactions?.length || 0}</strong></span>
+            <span className="card" style={{ padding: '4px 12px' }}>Bills: <strong>{data?.billsCount ?? data?.transactions?.length ?? 0}</strong></span>
+            <span className="card" style={{ padding: '4px 12px' }}>Expenses: <strong>{expensesList.length}</strong></span>
+            <span className="card" style={{ padding: '4px 12px' }}>Previous day bills: <strong>{data?.prevDayBills ?? '—'}</strong> (query yesterday via Today → -1 day)</span>
           </div>
 
           {/* Payment Method Split Bar */}
@@ -196,7 +239,13 @@ const DailyBusiness = () => {
             </div>
           )}
 
-          {/* Filter Tabs & Search + Cashier filter */}
+          {!canFinance && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
+          Your role has no finance permission — figures below are display-only; the server still enforces access.
+        </p>
+      )}
+
+      {/* Filter Tabs & Search + Cashier filter */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {['transactions', 'bills', 'expenses'].map((t) => (
@@ -207,6 +256,8 @@ const DailyBusiness = () => {
               ))}
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Select name="department" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}
+                options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))} placeholder="All departments (client-side)" style={{ marginBottom: 0, minWidth: '200px' }} />
               <Select name="cashier" value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}
                 options={cashierOptions} placeholder="All cashiers" style={{ marginBottom: 0, minWidth: '160px' }} />
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius-sm)', padding: '4px 12px', backgroundColor: 'var(--bg-card)' }}>
@@ -215,6 +266,11 @@ const DailyBusiness = () => {
               </div>
             </div>
           </div>
+          {deptFilter && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+              Department filter applied client-side — no department param on the ledger query. Clear it to see all departments.
+            </p>
+          )}
 
           {/* Cashier-wise summary */}
           {(data?.cashierWise?.length > 0) && (
@@ -283,6 +339,10 @@ const DailyBusiness = () => {
               )}
             />
           )}
+
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1.5rem', textAlign: 'center' }}>
+            {labName}{invoiceFooter ? ` — ${invoiceFooter}` : ''}
+          </p>
         </>
       )}
     </div>

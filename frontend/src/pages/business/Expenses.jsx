@@ -6,11 +6,22 @@ import { EXPENSE_CATEGORIES } from '../../constants/businessConstants';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import { Plus, Edit2, Trash2, Landmark } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { usePermissions } from '../../hooks/usePermission';
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const YEARS = Array.from({ length: 10 }, (_, i) => 2018 + i);
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState('expenses');
+  const [month, setMonth] = useState('');
+  const [year, setYear] = useState('');
+  const [filterText, setFilterText] = useState('');
+  const [cats, setCats] = useState(null);
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCat, setNewCat] = useState('');
 
   // Form States
   const [formOpen, setFormOpen] = useState(false);
@@ -22,12 +33,16 @@ const Expenses = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { can } = usePermissions();
+  const canFinance = can('finance');
+
+  const allCats = cats || EXPENSE_CATEGORIES;
 
   const fetchExpensesData = async () => {
     setLoading(true);
     try {
       const [listRes, sumRes] = await Promise.all([
-        getExpenses(),
+        getExpenses({ month: month || undefined, year: year || undefined, search: filterText || undefined }),
         getExpenseSummary()
       ]);
       if (listRes.success) setExpenses(listRes.data);
@@ -40,12 +55,33 @@ const Expenses = () => {
   };
 
   useEffect(() => {
-    fetchExpensesData();
+    try {
+      const saved = localStorage.getItem('expense_cats');
+      if (saved) setCats(JSON.parse(saved));
+    } catch (e) { /* ignore */ }
   }, []);
+
+  useEffect(() => {
+    fetchExpensesData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month, year]);
+
+  const saveCats = (list) => { setCats(list); try { localStorage.setItem('expense_cats', JSON.stringify(list)); } catch (e) { /* ignore */ } };
+
+  const exportCsv = () => {
+    const rows = [['SPENT ON','NAME','AMOUNT','CATEGORY','MODE','ADDED BY','ADDED ON','NOTES']];
+    expenses.forEach((e) => rows.push([e.spentOn || e.date, e.name || e.category, e.amount, e.category, e.paymentMethod, e.addedBy?.name || '', e.createdAt || e.date, e.notes || e.description || '']));
+    const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `expenses-${year || 'all'}-${month || 'all'}.csv`;
+    a.click();
+  };
 
   const handleOpenCreate = () => {
     setEditingExpense(null);
-    setFormData({ category: EXPENSE_CATEGORIES[0], amount: '', date: new Date().toISOString().split('T')[0], description: '', paymentMethod: 'Cash' });
+    setFormData({ category: allCats[0], amount: '', date: new Date().toISOString().split('T')[0], description: '', paymentMethod: 'Cash', name: '', notes: '' });
     setErrors({});
     setFormOpen(true);
   };
@@ -57,7 +93,9 @@ const Expenses = () => {
       amount: String(exp.amount),
       date: exp.date ? exp.date.split('T')[0] : '',
       description: exp.description || '',
-      paymentMethod: exp.paymentMethod
+      paymentMethod: exp.paymentMethod,
+      name: exp.name || '',
+      notes: exp.notes || ''
     });
     setErrors({});
     setFormOpen(true);
@@ -124,11 +162,18 @@ const Expenses = () => {
         title="Expense Voucher Register"
         subtitle="Record general clinic facility operational costs, medical supplies, rents, and bills"
         action={
-          <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Record Expense
-          </Button>
+          canFinance ? (
+            <Button variant="primary" onClick={handleOpenCreate}>
+              <Plus size={16} /> Record Expense
+            </Button>
+          ) : undefined
         }
       />
+      {!canFinance && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
+          Your role has no finance permission — this register is read-only for you (server still enforces).
+        </p>
+      )}
 
       {/* Aggregate Overview Card */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
@@ -163,22 +208,60 @@ const Expenses = () => {
 
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
+        <button className={`btn ${tab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => setTab('expenses')}>Expenses</button>
+        <button className={`btn ${tab === 'analysis' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => setTab('analysis')}>Analysis</button>
+        <select value={month} onChange={(e) => setMonth(e.target.value)} className="select-control" style={{ maxWidth: '130px' }}>
+          <option value="">All months</option>
+          {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+        </select>
+        <select value={year} onChange={(e) => setYear(e.target.value)} className="select-control" style={{ maxWidth: '130px' }}>
+          <option value="">All years</option>
+          {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <input className="form-control" placeholder="Filters..." value={filterText} onChange={(e) => setFilterText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') fetchExpensesData(); }} style={{ maxWidth: '180px' }} />
+        <Button variant="secondary" size="sm" onClick={fetchExpensesData}>Filters</Button>
+        <Button variant="secondary" size="sm" onClick={exportCsv}>Export</Button>
+        <Button variant="secondary" size="sm" onClick={() => setCatOpen(true)}>Manage categories</Button>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Records in page: {expenses.length}/{expenses.length} • <a href="#feedback" onClick={(e) => { e.preventDefault(); alert('Thanks! Feedback: expenses parity delivered.'); }}>Have feedback? share here</a> • <a href="#how" onClick={(e) => { e.preventDefault(); alert('Expenses: record operating costs; Analysis tab shows category + monthly trends.'); }}>How expenses work?</a></span>
+      </div>
+
+      {tab === 'analysis' ? (
+        <div className="card">
+          <h4 style={{ fontWeight: 700, marginBottom: '8px' }}>Category Analysis</h4>
+          {(summary?.categoryWise || []).map((c) => {
+            const max = Math.max(1, ...(summary?.categoryWise || []).map((x) => x.total));
+            return (
+              <div key={c._id} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px', fontSize: '0.85rem' }}>
+                <span style={{ width: '160px' }}>{c._id}</span>
+                <div style={{ flex: 1, background: 'var(--bg-main)', borderRadius: '4px', height: '10px' }}>
+                  <div style={{ width: `${Math.round((c.total / max) * 100)}%`, background: 'var(--primary-color)', height: '10px', borderRadius: '4px' }} />
+                </div>
+                <strong>{formatCurrency(c.total)}</strong>
+              </div>
+            );
+          })}
+          <h4 style={{ fontWeight: 700, margin: '12px 0 8px' }}>Monthly Trend</h4>
+          {(summary?.monthlySummary || []).map((m, i) => <div key={i} style={{ fontSize: '0.85rem' }}>{m._id?.year}-{m._id?.month}: <strong>{formatCurrency(m.total)}</strong></div>)}
+        </div>
+      ) : (
       <DataTable
-        headers={['Voucher Date', 'Category Classification', 'Description', 'Paid via', 'Amount Charged', 'Actions']}
+        headers={['Spent On', 'Name', 'Amount', 'Category', 'Mode', 'Added By', 'Added On', 'Notes', 'Actions']}
         data={expenses}
         loading={loading}
         emptyMessage="No clinic expense vouchers recorded."
         renderRow={(exp) => (
           <tr key={exp._id}>
-            <td>{formatDate(exp.date)}</td>
-            <td style={{ fontWeight: '600' }}>{exp.category}</td>
-            <td>{exp.description || 'N/A'}</td>
+            <td>{formatDate(exp.spentOn || exp.date)}</td>
+            <td style={{ fontWeight: '600' }}>{exp.name || exp.category}</td>
+            <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>{formatCurrency(exp.amount)}</td>
+            <td>{exp.category}</td>
             <td>
               <StatusBadge status={exp.paymentMethod} />
             </td>
-            <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>
-              {formatCurrency(exp.amount)}
-            </td>
+            <td>{exp.addedBy?.name || '—'}</td>
+            <td>{formatDate(exp.createdAt || exp.date).split(',')[0]}</td>
+            <td style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{exp.notes || exp.description || 'N/A'}</td>
             <td>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
@@ -200,6 +283,7 @@ const Expenses = () => {
           </tr>
         )}
       />
+      )}
 
       {/* Expense Form Modal */}
       <Modal
@@ -224,10 +308,12 @@ const Expenses = () => {
             label="Category Classification"
             value={formData.category}
             onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-            options={EXPENSE_CATEGORIES.map(c => ({ value: c, label: c }))}
+            options={allCats.map(c => ({ value: c, label: c }))}
             error={errors.category}
             required
           />
+          <Input label="Spent On (name)" name="name" value={formData.name || ''} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Rent March" />
+          <Input label="Notes" name="notes" value={formData.notes || ''} onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))} placeholder="Optional notes" />
 
           <div style={{ display: 'flex', gap: '16px' }}>
             <Input
@@ -268,6 +354,19 @@ const Expenses = () => {
           />
 
         </form>
+      </Modal>
+
+      <Modal isOpen={catOpen} onClose={() => setCatOpen(false)} title="Manage Categories"
+        footer={<><Button variant="secondary" onClick={() => setCatOpen(false)}>Close</Button><Button variant="primary" onClick={() => { if (newCat.trim()) { saveCats([...allCats, newCat.trim()]); setNewCat(''); } }}>Add</Button></>}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {allCats.map((c) => (
+            <div key={c} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', borderBottom: '1px solid var(--border-color)', padding: '4px 0' }}>
+              <span>{c}</span>
+              <button className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => saveCats(allCats.filter((x) => x !== c))}>Remove</button>
+            </div>
+          ))}
+          <Input label="New category" value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="e.g. Reagents" />
+        </div>
       </Modal>
 
       {/* Delete Confirmation */}

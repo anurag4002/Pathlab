@@ -88,5 +88,9 @@ export const fetchBarcodeSvgUrl = async (billId) => {
   const response = await apiClient.get(`/bills/${billId}/barcode.svg`, { responseType: 'blob' });
   return window.URL.createObjectURL(new Blob([response.data], { type: 'image/svg+xml' }));
 };
+// Phase 8/11 — bill barcode first: direct URL for
+// GET /api/public/bill/:billNumber/barcode (pure URL builder, no fetch).
+// Case/sample barcode endpoints do NOT exist — never build URLs for them.
+export const getBillBarcodeUrl = (billNumber) => `/api/public/bill/${billNumber}/barcode`;
 export const fetchBillQr = async (billId) => (await apiClient.get(`/bills/${billId}/qr`)).data;
 export const fetchReportQr = async (reportId) => (await apiClient.get(`/reports/${reportId}/qr`)).data;

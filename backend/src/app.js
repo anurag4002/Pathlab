@@ -56,11 +56,15 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const patientPortalRoutes = require('./routes/patientPortalRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const setupRoutes = require('./routes/setupRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
 const notifyRoutes = require('./routes/notifyRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const modalityRoutes = require('./routes/modalityRoutes');
 const doctorPortalRoutes = require('./routes/doctorPortalRoutes');
 const exportRoutes = require('./routes/exportRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const analysisRoutes = require('./routes/analysisRoutes');
 
 // All API routers are mounted ONLY under /api.
 // Do NOT add a bare mount (registerAllRoutes('')): it doubles the attack
@@ -83,11 +87,15 @@ app.use('/api/patient', patientPortalRoutes);
 // Public QR self-service (no auth inside) + parity domains.
 app.use('/api/public', publicRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/audit-log', auditLogRoutes);
 app.use('/api/notify', notifyRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/modality', modalityRoutes);
 app.use('/api/doctor', doctorPortalRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/analysis', analysisRoutes);
 
 // Health check endpoint
 app.get(['/api/health', '/health', '/'], (req, res) => {

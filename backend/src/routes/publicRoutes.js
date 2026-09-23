@@ -8,5 +8,8 @@ router.get('/r/:token', publicLimiter, publicController.verifyReport);
 router.get('/r/:token/download', publicLimiter, publicController.downloadPublicReport);
 router.get('/r/bill/:token', publicLimiter, publicController.verifyBill);
 router.get('/r/bill/:token/download', publicLimiter, publicController.downloadPublicBill);
+// Case + sample Code39 barcodes (public SVG, no auth — bill barcode untouched).
+router.get('/case/:caseId/barcode', publicLimiter, publicController.caseBarcode);
+router.get('/sample/:sampleId/barcode', publicLimiter, publicController.sampleBarcode);
 
 module.exports = router;
