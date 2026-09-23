@@ -22,6 +22,7 @@ import useAuth from '../../../hooks/useAuth';
 import { Plus, Printer, CreditCard, Ban, QrCode, FileDown, Tag } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
+import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 
 const BillsPage = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const BillsPage = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDept, setFilterDept] = useState('');
@@ -126,9 +127,20 @@ const BillsPage = () => {
 
   useEffect(() => {
     fetchFormOptions();
-    const querySearch = searchParams.get('search');
-    if (querySearch) setSearch(querySearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Consume an incoming `?search=` deep-link (View Bill / global search).
+  // Sanitized so a missing value can never show up as "undefined", and
+  // re-runs when the query string changes while already on this page.
+  useEffect(() => {
+    const querySearch = sanitizeBillSearchParam(searchParams.get('search'));
+    if (querySearch) {
+      setSearch(querySearch);
+      goToPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const handleOpenPayment = (bill) => {
     setPaymentTargetBill(bill);
@@ -242,7 +254,7 @@ const BillsPage = () => {
         }
       />
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-        Refunds and post-payment bill edits are disabled — no backend endpoints exist for them.
+        Refunds and post-payment bill edits are currently disabled.
       </p>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
@@ -290,12 +302,14 @@ const BillsPage = () => {
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by invoice number..."
+        stickyActions
         pagination={{
           total: paginationInfo.total,
           page,
           limit,
           pages: paginationInfo.pages,
-          onPageChange: goToPage
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
         }}
         renderRow={(bill) => (
           <tr key={bill._id}>
@@ -340,10 +354,10 @@ const BillsPage = () => {
                     Void
                   </Button>
                 )}
-                <Button variant="secondary" size="sm" disabled title="No backend endpoint exists for refunds">
+                <Button variant="secondary" size="sm" disabled title="Not available">
                   Refund
                 </Button>
-                <Button variant="secondary" size="sm" disabled title="No backend endpoint exists for editing a bill after payment">
+                <Button variant="secondary" size="sm" disabled title="Not available">
                   Edit
                 </Button>
               </div>

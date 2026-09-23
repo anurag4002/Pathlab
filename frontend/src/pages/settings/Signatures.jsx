@@ -3,15 +3,11 @@ import { Plus, Trash2, RefreshCw } from 'lucide-react';
 import { PageHeader, Button, Modal, Input, DataTable, EmptyState, ConfirmDialog } from '../../components/common';
 import { getSignatures, createSignature, deleteSignature, updateSignature } from '../../services/setupService';
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
+import useClientPagination from '../../hooks/useClientPagination';
 import { signatureDepartments, isSignatureActive, signatureImageSrc } from '../../utils/signatureUtils';
 
-// Phase 15 — Signatures manager (Admin). Sources from GET /api/setup/signatures.
-// Upload (POST) + delete (DELETE) work today. Assignment is captured at
-// create time via `modalities[]` (the real backend field; `assignedDepartments`
-// is accepted forward-compat if the backend ever adds it). Edit/deactivate
-// (PUT) does NOT exist on the backend — those controls attempt the call and
-// degrade to an explicit "backend pending" state instead of faking success.
-const PUT_PENDING = 'Backend pending: PUT /api/setup/signatures/:id does not exist yet.';
+// Signatures manager (Admin). Sources from GET /api/setup/signatures.
+// Upload (POST), edit/deactivate (PUT) and delete (DELETE) are all live.
 
 const Signatures = () => {
   const [items, setItems] = useState([]);
@@ -24,6 +20,9 @@ const Signatures = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [updatingId, setUpdatingId] = useState('');
+
+  // Client-side pagination.
+  const pg = useClientPagination(items, 10);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -89,10 +88,7 @@ const Signatures = () => {
       setNotice(`Signature ${next === 'Active' ? 'activated' : 'deactivated'}.`);
       fetchAll();
     } catch (err) {
-      const status = err.response?.status;
-      setNotice(status === 404
-        ? `${PUT_PENDING} Status left unchanged (still ${sig.status || 'Active'}).`
-        : (err.response?.data?.message || 'Failed to update signature'));
+      setNotice(err.response?.data?.message || 'Failed to update signature');
     } finally {
       setUpdatingId('');
     }
@@ -118,7 +114,7 @@ const Signatures = () => {
     <div>
       <PageHeader
         title="Signatures"
-        subtitle="Manage e-signatures assigned per department. Upload and delete work now; edit/deactivate awaits backend PUT."
+        subtitle="Manage e-signatures assigned per department."
         action={
           <Button variant="primary" onClick={() => { setForm({ name: '', title: '', departments: [], file: null }); setError(''); setOpen(true); }}>
             <Plus size={16} /> Add signature
@@ -144,9 +140,17 @@ const Signatures = () => {
       {items.length > 0 && (
         <DataTable
           headers={['Preview', 'Name', 'Title', 'Departments', 'Status', 'Actions']}
-          data={items}
+          data={pg.paged}
           loading={loading}
           emptyMessage="No signatures configured."
+          pagination={{
+            total: pg.total,
+            page: pg.page,
+            limit: pg.limit,
+            pages: pg.pages,
+            onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+          }}
           renderRow={(sig) => (
             <tr key={sig._id}>
               <td>
@@ -165,17 +169,14 @@ const Signatures = () => {
               <td>{sig.status || 'Active'}</td>
               <td>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <span title={PUT_PENDING}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={updatingId === String(sig._id)}
-                      title={PUT_PENDING}
-                      onClick={() => handleStatusToggle(sig)}
-                    >
-                      <RefreshCw size={14} /> {isSignatureActive(sig) ? 'Deactivate' : 'Activate'}*
-                    </Button>
-                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={updatingId === String(sig._id)}
+                    onClick={() => handleStatusToggle(sig)}
+                  >
+                    <RefreshCw size={14} /> {isSignatureActive(sig) ? 'Deactivate' : 'Activate'}
+                  </Button>
                   <Button variant="danger" size="sm" onClick={() => setDeleteTarget(sig)}>
                     <Trash2 size={14} />
                   </Button>
@@ -185,10 +186,6 @@ const Signatures = () => {
           )}
         />
       )}
-      <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 8 }}>
-        * Deactivate/activate attempts PUT which the backend does not implement yet — the button reports “backend pending” instead of faking a change.
-      </p>
-
       <Modal
         isOpen={open}
         onClose={() => setOpen(false)}

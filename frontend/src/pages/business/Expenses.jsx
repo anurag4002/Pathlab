@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getExpenses, createExpense, updateExpense, deleteExpense, getExpenseSummary } from '../../services/expenseService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
+import useClientPagination from '../../hooks/useClientPagination';
 import { EXPENSE_CATEGORIES } from '../../constants/businessConstants';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import { Plus, Edit2, Trash2, Landmark } from 'lucide-react';
@@ -35,6 +36,9 @@ const Expenses = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const { can } = usePermissions();
   const canFinance = can('finance');
+
+  // Client-side pagination (filters run server-side; pages slice the result).
+  const pg = useClientPagination(expenses, 10);
 
   const allCats = cats || EXPENSE_CATEGORIES;
 
@@ -171,7 +175,7 @@ const Expenses = () => {
       />
       {!canFinance && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
-          Your role has no finance permission — this register is read-only for you (server still enforces).
+          Your role has no finance permission — this register is read-only for you.
         </p>
       )}
 
@@ -209,18 +213,18 @@ const Expenses = () => {
       </div>
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-        <button className={`btn ${tab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => setTab('expenses')}>Expenses</button>
-        <button className={`btn ${tab === 'analysis' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => setTab('analysis')}>Analysis</button>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className="select-control" style={{ maxWidth: '130px' }}>
+        <button className={`btn ${tab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => { setTab('expenses'); pg.reset(); }}>Expenses</button>
+        <button className={`btn ${tab === 'analysis' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => { setTab('analysis'); pg.reset(); }}>Analysis</button>
+        <select value={month} onChange={(e) => { setMonth(e.target.value); pg.reset(); }} className="select-control" style={{ maxWidth: '130px' }}>
           <option value="">All months</option>
           {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
         </select>
-        <select value={year} onChange={(e) => setYear(e.target.value)} className="select-control" style={{ maxWidth: '130px' }}>
+        <select value={year} onChange={(e) => { setYear(e.target.value); pg.reset(); }} className="select-control" style={{ maxWidth: '130px' }}>
           <option value="">All years</option>
           {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <input className="form-control" placeholder="Filters..." value={filterText} onChange={(e) => setFilterText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') fetchExpensesData(); }} style={{ maxWidth: '180px' }} />
-        <Button variant="secondary" size="sm" onClick={fetchExpensesData}>Filters</Button>
+        <input className="form-control" placeholder="Filters..." value={filterText} onChange={(e) => setFilterText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { pg.reset(); fetchExpensesData(); } }} style={{ maxWidth: '180px' }} />
+        <Button variant="secondary" size="sm" onClick={() => { pg.reset(); fetchExpensesData(); }}>Filters</Button>
         <Button variant="secondary" size="sm" onClick={exportCsv}>Export</Button>
         <Button variant="secondary" size="sm" onClick={() => setCatOpen(true)}>Manage categories</Button>
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Records in page: {expenses.length}/{expenses.length} • <a href="#feedback" onClick={(e) => { e.preventDefault(); alert('Thanks! Feedback: expenses parity delivered.'); }}>Have feedback? share here</a> • <a href="#how" onClick={(e) => { e.preventDefault(); alert('Expenses: record operating costs; Analysis tab shows category + monthly trends.'); }}>How expenses work?</a></span>
@@ -247,9 +251,17 @@ const Expenses = () => {
       ) : (
       <DataTable
         headers={['Spent On', 'Name', 'Amount', 'Category', 'Mode', 'Added By', 'Added On', 'Notes', 'Actions']}
-        data={expenses}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No clinic expense vouchers recorded."
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(exp) => (
           <tr key={exp._id}>
             <td>{formatDate(exp.spentOn || exp.date)}</td>

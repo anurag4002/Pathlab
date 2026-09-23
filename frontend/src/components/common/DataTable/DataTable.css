@@ -62,6 +62,18 @@
   overflow-x: auto;
 }
 
+/* Bounded scroll body: vertical scroll + sticky header for long lists. */
+.data-table-wrapper.scrollable {
+  overflow: auto;
+}
+
+.data-table-wrapper.scrollable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--color-border);
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -94,4 +106,39 @@
 
 .data-table tbody tr:hover td {
   background-color: var(--color-surface-hover);
+}
+
+/* Dense variant: tighter padding so wide action tables fit without scrolling. */
+.data-table.dense th {
+  padding: var(--space-2) var(--space-3);
+}
+
+.data-table.dense td {
+  padding: var(--space-3) var(--space-3);
+}
+
+/* Frozen actions column: stays visible while the table scrolls horizontally. */
+.data-table.sticky-actions th:last-child,
+.data-table.sticky-actions td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background-color: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -6px 0 6px -6px rgba(15, 23, 42, 0.18);
+}
+
+.data-table.sticky-actions thead th:last-child {
+  background-color: var(--color-background);
+  z-index: 3;
+}
+
+.data-table.sticky-actions tbody tr:hover td:last-child {
+  background-color: var(--color-surface-hover);
+}
+
+/* TAT countdown cells: allow the badge + text to wrap instead of forcing
+   one unbreakable line that blows out table width. */
+.data-table td .tat-wrap > span {
+  white-space: normal !important;
 }

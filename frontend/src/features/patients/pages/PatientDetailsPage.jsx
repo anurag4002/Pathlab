@@ -6,6 +6,8 @@ import PatientDemographicsCard from '../components/PatientDemographicsCard';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import downloadFile from '../../../utils/downloadFile';
+import useClientPagination from '../../../hooks/useClientPagination';
+import { buildBillsSearchUrl } from '../../../utils/billNavigation';
 import { ArrowLeft, ClipboardList, FileText, Wallet } from 'lucide-react';
 import '../Patients.css';
 
@@ -15,6 +17,20 @@ const PatientDetailsPage = () => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Per-section client pagination (single-patient history lists).
+  // Hooks stay above the early returns; empty lists paginate trivially.
+  const pgBills = useClientPagination(details?.bills || [], 5);
+  const pgReports = useClientPagination(details?.reports || [], 5);
+  const pgTx = useClientPagination(details?.transactions || [], 5);
+  const pgProps = (pg) => ({
+    total: pg.total,
+    page: pg.page,
+    limit: pg.limit,
+    pages: pg.pages,
+    onPageChange: pg.goToPage,
+    onLimitChange: pg.setLimit,
+  });
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -85,8 +101,9 @@ const PatientDetailsPage = () => {
           </div>
           <DataTable
             headers={['Bill No', 'Date', 'Gross Total', 'Paid', 'Due Balance', 'Status', 'Actions']}
-            data={bills}
+            data={pgBills.paged}
             emptyMessage="No billing records generated for this patient."
+            pagination={pgProps(pgBills)}
             renderRow={(bill) => (
               <tr key={bill._id}>
                 <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{bill.billNumber}</td>
@@ -98,13 +115,19 @@ const PatientDetailsPage = () => {
                 </td>
                 <td><StatusBadge status={bill.paymentStatus} /></td>
                 <td>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => navigate(`/cases/bills?search=${bill.billNumber}`)}
-                  >
-                    View Invoice
-                  </Button>
+                  {bill?.billNumber ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate(buildBillsSearchUrl(bill))}
+                    >
+                      View Invoice
+                    </Button>
+                  ) : (
+                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                      No bill no.
+                    </span>
+                  )}
                 </td>
               </tr>
             )}
@@ -119,8 +142,9 @@ const PatientDetailsPage = () => {
           </div>
           <DataTable
             headers={['Test / Panel', 'Uploaded On', 'Uploaded By', 'Download']}
-            data={reports}
+            data={pgReports.paged}
             emptyMessage="No diagnostic lab reports uploaded for this patient."
+            pagination={pgProps(pgReports)}
             renderRow={(report) => (
               <tr key={report._id}>
                 <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>
@@ -150,8 +174,9 @@ const PatientDetailsPage = () => {
           </div>
           <DataTable
             headers={['Date', 'Related Invoice', 'Amount', 'Method', 'Clerk']}
-            data={transactions}
+            data={pgTx.paged}
             emptyMessage="No payment transactions registered."
+            pagination={pgProps(pgTx)}
             renderRow={(tx) => (
               <tr key={tx._id}>
                 <td>{formatDate(tx.date)}</td>

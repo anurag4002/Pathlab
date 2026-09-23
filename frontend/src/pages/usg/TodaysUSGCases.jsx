@@ -6,6 +6,8 @@ import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
+import useDebounce from '../../hooks/useDebounce';
+import usePagination from '../../hooks/usePagination';
 import { Plus, Edit2, Printer, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, ImageUploader } from '../../components/common';
 import CaseFilterBar from '../../components/usg/CaseFilterBar';
@@ -28,10 +30,18 @@ const TodaysUSGCases = () => {
 
   // Phase 13 — filter bar (dept / assigned / status / search). Params are
   // sent server-side AND applied client-side until backend filtering lands.
+  // Unified Today + Search view: date scope + debounced search + pagination.
+  // Backend /api/usg supports only `search` (patient name), `date`, `status`
+  // — reg-no, doctor, from/to and pagination are applied client-side.
   const [deptFilter, setDeptFilter] = useState('');
   const [assignedFilter, setAssignedFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
+  const [dateScope, setDateScope] = useState('today'); // 'today' | 'all'
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const debouncedSearch = useDebounce(searchFilter, 500);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
 
   // Form States
   const [formOpen, setFormOpen] = useState(false);
@@ -71,18 +81,23 @@ const TodaysUSGCases = () => {
   const fetchCases = async () => {
     setLoading(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const res = await getUSGCases({
-        date: todayStr,
+      const params = {
         status: statusFilter || undefined,
         department: deptFilter || undefined,
-        assignedTo: assignedFilter || undefined
-      });
+        assignedTo: assignedFilter || undefined,
+        search: debouncedSearch.trim() || undefined,
+      };
+      // Today scope filters server-side; All-dates scope loads everything
+      // and filters client-side (backend has no from/to support).
+      if (dateScope === 'today' && !debouncedSearch.trim() && !fromDate && !toDate) {
+        params.date = new Date().toISOString().split('T')[0];
+      }
+      const res = await getUSGCases(params);
       if (res.success) {
-        setCases(res.data);
+        setCases(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
-      console.error('Failed to load today USG cases', err);
+      console.error('Failed to load USG cases', err);
     } finally {
       setLoading(false);
     }
@@ -111,21 +126,59 @@ const TodaysUSGCases = () => {
     fetchCases();
     loadOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, deptFilter, assignedFilter]);
+  }, []);
+
+  useEffect(() => {
+    goToPage(1);
+    fetchCases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, deptFilter, assignedFilter, debouncedSearch, dateScope]);
 
   // Client-side filter pass (works regardless of server support).
   const filteredCases = useMemo(() => {
     const q = searchFilter.trim().toLowerCase();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+    const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
     return cases.filter((c) => {
       if (assignedFilter && (c.referringDoctor?._id || c.referringDoctor) !== assignedFilter) return false;
       if (statusFilter && c.status !== statusFilter) return false;
+      if (dateScope === 'today' && !q && from === null && to === null) {
+        const d = c.date ? new Date(c.date).toISOString().split('T')[0] : '';
+        if (d !== todayStr) return false;
+      }
+      if (from !== null || to !== null) {
+        const t = c.date ? new Date(c.date).getTime() : NaN;
+        if (Number.isNaN(t)) return false;
+        if (from !== null && t < from) return false;
+        if (to !== null && t > to) return false;
+      }
       if (q) {
-        const hay = `${c.patient?.name || ''} ${c.patient?.registrationNumber || ''}`.toLowerCase();
+        const hay = `${c.patient?.name || ''} ${c.patient?.registrationNumber || ''} ${c.findings || ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [cases, assignedFilter, statusFilter, searchFilter]);
+  }, [cases, assignedFilter, statusFilter, searchFilter, dateScope, fromDate, toDate]);
+
+  // Client-side pagination (backend returns the full list — no page/limit).
+  const totalPages = Math.max(1, Math.ceil(filteredCases.length / limit));
+  const safePage = Math.min(page, totalPages);
+  const pagedCases = useMemo(() => {
+    const start = (safePage - 1) * limit;
+    return filteredCases.slice(start, start + limit);
+  }, [filteredCases, safePage, limit]);
+
+  const resetFilters = () => {
+    setDeptFilter('');
+    setAssignedFilter('');
+    setStatusFilter('');
+    setSearchFilter('');
+    setFromDate('');
+    setToDate('');
+    setDateScope('today');
+    goToPage(1);
+  };
 
   const handleOpenCreate = () => {
     setEditingCase(null);
@@ -219,8 +272,8 @@ const TodaysUSGCases = () => {
   return (
     <div>
       <PageHeader
-        title="Today's Ultrasonography Cases"
-        subtitle="Manage USG case findings, clinical report templates, and signatures verification"
+        title="USG Cases"
+        subtitle="Today's and historical ultrasonography cases — search, filter and paginate"
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
             <Plus size={16} /> Create USG Case
@@ -228,24 +281,79 @@ const TodaysUSGCases = () => {
         }
       />
 
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }} role="tablist" aria-label="Date scope">
+          {[
+            { value: 'today', label: "Today's Cases" },
+            { value: 'all', label: 'All / Search' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="tab"
+              aria-selected={dateScope === opt.value}
+              onClick={() => { setDateScope(opt.value); goToPage(1); }}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.8rem',
+                fontWeight: dateScope === opt.value ? 700 : 500,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: dateScope === opt.value ? 'var(--color-primary-light)' : 'var(--color-surface)',
+                color: dateScope === opt.value ? 'var(--color-primary)' : 'var(--color-text)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          From
+          <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); goToPage(1); }} className="select-control" />
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          To
+          <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); goToPage(1); }} className="select-control" />
+        </label>
+        {(deptFilter || assignedFilter || statusFilter || searchFilter || fromDate || toDate || dateScope !== 'today') && (
+          <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }} onClick={resetFilters}>
+            Clear filters
+          </button>
+        )}
+        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+          {filteredCases.length} case{filteredCases.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
       <CaseFilterBar
         department={deptFilter}
-        onDepartmentChange={setDeptFilter}
+        onDepartmentChange={(v) => { setDeptFilter(v); goToPage(1); }}
         departments={[{ value: 'USG', label: 'USG' }]}
         assignedTo={assignedFilter}
-        onAssignedChange={setAssignedFilter}
+        onAssignedChange={(v) => { setAssignedFilter(v); goToPage(1); }}
         assignees={doctors.map((d) => ({ value: d._id, label: d.name }))}
         status={statusFilter}
-        onStatusChange={setStatusFilter}
-        search={searchFilter}
-        onSearchChange={setSearchFilter}
+        onStatusChange={(v) => { setStatusFilter(v); goToPage(1); }}
       />
 
       <DataTable
         headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Images', 'Status', 'Actions']}
-        data={filteredCases}
+        data={pagedCases}
         loading={loading}
-        emptyMessage="No ultrasonography cases recorded today."
+        emptyMessage={dateScope === 'today' && !searchFilter && !fromDate && !toDate ? 'No ultrasonography cases recorded today.' : 'No ultrasonography cases matched your search query.'}
+        searchValue={searchFilter}
+        onSearchChange={(e) => { setSearchFilter(e.target.value); goToPage(1); }}
+        searchPlaceholder="Search name, reg no, findings..."
+        maxHeight={440}
+        stickyActions
+        pagination={{
+          total: filteredCases.length,
+          page: safePage,
+          limit,
+          pages: totalPages,
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
+        }}
         renderRow={(c) => (
           <tr key={c._id}>
             <td>{formatDate(c.date).split(',')[0]}</td>
@@ -258,18 +366,18 @@ const TodaysUSGCases = () => {
             <td>
               <StatusBadge status={c.status} />
             </td>
-            <td>
+            <td style={{ minWidth: 210 }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-secondary"
-                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   onClick={() => handleOpenEdit(c)}
                 >
                   <Edit2 size={14} /> Findings
                 </button>
                 <button
                   className="btn btn-secondary"
-                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   onClick={() => handlePrint(c)}
                 >
                   <Printer size={14} /> Print

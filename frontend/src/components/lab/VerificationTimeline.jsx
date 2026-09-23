@@ -30,17 +30,17 @@ const VerificationTimeline = ({ report }) => {
                 width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
                 background: s.done ? '#16a34a' : s.gated ? '#d1d5db' : '#f59e0b',
               }}
-              title={s.gated ? 'Backend pending: verify/reject endpoints do not exist' : s.done ? 'Done' : 'Pending'}
+              title={s.done ? 'Done' : s.gated ? 'Upcoming' : 'Pending'}
             />
             <span style={{ fontWeight: 600 }}>{s.label}</span>
             <span style={{ color: '#6b7280' }}>
-              {s.at ? formatDate(s.at) : s.gated ? '(backend pending)' : '(pending)'}
+              {s.at ? formatDate(s.at) : s.gated ? '(upcoming)' : '(pending)'}
             </span>
           </li>
         ))}
       </ol>
       <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: 8 }}>
-        Current status: <strong>{getReportStatusLabel(report.status)}</strong> (Verified/Rejected are display-only until backend lands).
+        Current status: <strong>{getReportStatusLabel(report.status)}</strong>
       </p>
     </div>
   );

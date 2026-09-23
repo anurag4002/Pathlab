@@ -64,11 +64,8 @@ const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) 
       <PermissionMatrix
         value={formData.permissions}
         onChange={(m) => set('permissions', m)}
-        disabledReason={isSuperadmin ? 'Superadmin retains all permissions — the matrix is shown for reference.' : undefined}
+        disabledReason={isSuperadmin ? 'Superadmin keeps all permissions — the matrix is shown for reference.' : undefined}
       />
-      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-        Note: active-sessions view / revoke is not available — session list endpoints do not exist on the backend.
-      </p>
     </div>
   );
 };

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { fetchBarcodeSvgUrl, getBillBarcodeUrl } from '../../services/publicService';
 
 /**
- * BarcodeSvg (Phase 8) — renders a server-generated Code39 barcode.
- * Bill barcodes ship first:
+ * BarcodeSvg — renders a server-generated Code39 barcode.
+ * Bill barcodes:
  *   - by bill id   -> GET /api/bills/:id/barcode.svg (auth, blob URL)
  *   - by billNumber -> GET /api/public/bill/:billNumber/barcode (direct img)
- * Case/sample barcodes are NOT called (endpoints do not exist).
+ * Case/sample barcodes use the public endpoints directly
+ * (/api/public/case/:id/barcode, /api/public/sample/:id/barcode) —
+ * see LabelPrintSheet.
  */
 const BarcodeSvg = ({ billId, billNumber, height = 56, label }) => {
   const [objectUrl, setObjectUrl] = useState('');

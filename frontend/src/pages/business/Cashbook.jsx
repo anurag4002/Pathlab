@@ -26,7 +26,7 @@ const Cashbook = () => {
   const debouncedSearch = useDebounce(search, 400);
   const [mode, setMode] = useState('');
   const [type, setType] = useState('');
-  const { page, limit, goToPage } = usePagination(1, 20);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 20);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const { can } = usePermissions();
   const canView = can('finance') || can('billing');
@@ -115,9 +115,10 @@ const Cashbook = () => {
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         pagination={{ total: paginationInfo.total, page, limit, pages: paginationInfo.pages }}
         goToPage={goToPage}
+        onLimitChange={setLimit}
       />
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-        Note: manual cash in/out entry is omitted — no backend endpoint exists for it.
+        Manual cash in/out entry is not available on this screen.
       </p>
     </div>
   );

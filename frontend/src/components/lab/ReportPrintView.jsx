@@ -15,7 +15,7 @@ const ReportPrintView = ({ report, qrDataUrl, verifyUrl, signatures = [] }) => {
   const results = report.results || [];
 
   return (
-    <div style={{ position: 'relative', fontSize: '0.85rem', color: '#111827' }}>
+    <div style={{ position: 'relative', fontSize: '0.85rem', color: '#111827', overflowWrap: 'break-word', minWidth: 0 }}>
       {!signed && (
         <div
           style={{

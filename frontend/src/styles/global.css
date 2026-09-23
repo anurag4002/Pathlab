@@ -22,6 +22,10 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* Allow shrinking below content min-width so wide tables scroll inside
+     their wrapper instead of pushing the whole page past the viewport. */
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .main-content.collapsed {
@@ -34,6 +38,7 @@ body {
   width: 100%;
   max-width: var(--page-max-width);
   margin: 0 auto;
+  min-width: 0;
 }
 
 /* Utilities */

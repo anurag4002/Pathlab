@@ -1,63 +1,142 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getSummary } from '../../services/dashboardService';
-import { getTestCategories } from '../../services/testService';
+import { getTestCategories, getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
-import { PageHeader, StatCard, EmptyState } from '../../components/common';
-import { FlaskConical, Receipt, Hourglass, Layers } from 'lucide-react';
+import { PageHeader, StatCard, EmptyState, Button } from '../../components/common';
+import { FlaskConical, Receipt, Hourglass, FolderOpen, Layers, ClipboardList, RefreshCw, AlertCircle } from 'lucide-react';
+import './TestCounts.css';
 
 const TestCounts = () => {
   const [stats, setStats] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchMetrics = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [statsRes, catRes, testsRes] = await Promise.all([
+        getSummary().catch(() => ({ data: null })),
+        getTestCategories().catch(() => ({ data: [] })),
+        getTests({ status: 'Active' }).catch(() => ({ data: [] })),
+      ]);
+
+      if (statsRes?.data) setStats(statsRes.data);
+      // GET /api/tests returns a plain array; be tolerant of both shapes.
+      const cats = catRes?.data;
+      setCategories(Array.isArray(cats) ? cats : cats?.categories || []);
+      const list = testsRes?.data;
+      setTests(Array.isArray(list) ? list : list?.tests || []);
+    } catch (err) {
+      console.error('Failed to load audit metrics', err);
+      setError('Could not load counts. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const [statsRes, catRes] = await Promise.all([
-          getSummary().catch(() => ({ data: null })),
-          getTestCategories().catch(() => ({ data: [] }))
-        ]);
-
-        if (statsRes?.data) {
-          setStats(statsRes.data);
-        }
-        if (catRes?.data) {
-          setCategories(catRes.data);
-        }
-      } catch (err) {
-        console.error('Failed to load audit metrics', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMetrics();
   }, []);
 
+  // Per-category test counts, sorted high → low.
+  const categoryCounts = useMemo(() => {
+    const byId = new Map();
+    categories.forEach((c) => byId.set(String(c._id), { name: c.name, count: 0 }));
+    let uncategorized = 0;
+    tests.forEach((t) => {
+      const id = t.category?._id ? String(t.category._id) : (typeof t.category === 'string' ? t.category : '');
+      if (id && byId.has(id)) byId.get(id).count += 1;
+      else uncategorized += 1;
+    });
+    const rows = [...byId.values()];
+    if (uncategorized > 0) rows.push({ name: 'Uncategorized', count: uncategorized });
+    return rows.sort((a, b) => b.count - a.count);
+  }, [categories, tests]);
+
+  const maxCount = Math.max(1, ...categoryCounts.map((c) => c.count));
+  const totalActive = tests.length;
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
-        <div className="spinner"></div>
+      <div className="test-counts-page">
+        <PageHeader
+          title="Test Counts"
+          subtitle="Live catalog volumes, category splits and operational totals"
+        />
+        <div className="test-counts-grid">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="test-counts-card" aria-hidden="true">
+              <div className="test-counts-skeleton" style={{ height: 18, width: '60%' }} />
+              <div className="test-counts-skeleton" style={{ height: 32, width: '40%' }} />
+            </div>
+          ))}
+        </div>
+        <div className="test-counts-split">
+          <div className="test-counts-card" aria-hidden="true">
+            <div className="test-counts-skeleton" style={{ height: 18, width: '45%' }} />
+            <div className="test-counts-skeleton" style={{ height: 90 }} />
+          </div>
+          <div className="test-counts-card" aria-hidden="true">
+            <div className="test-counts-skeleton" style={{ height: 18, width: '45%' }} />
+            <div className="test-counts-skeleton" style={{ height: 90 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !stats && categories.length === 0) {
+    return (
+      <div className="test-counts-page">
+        <PageHeader title="Test Counts" subtitle="Live catalog volumes, category splits and operational totals" />
+        <div className="test-counts-card">
+          <EmptyState
+            icon={AlertCircle}
+            title="Could not load counts"
+            message={error}
+          />
+          <div>
+            <Button variant="primary" onClick={fetchMetrics} icon={<RefreshCw size={15} />}>
+              Retry
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="test-counts-page">
       <PageHeader
-        title="Diagnostic Tests Audit Summary"
-        subtitle="Operational metrics overview of clinical testing volumes, orders, and category splits"
+        title="Test Counts"
+        subtitle="Live catalog volumes, category splits and operational totals"
+        action={
+          <Button variant="secondary" onClick={fetchMetrics} icon={<RefreshCw size={15} />}>
+            Refresh
+          </Button>
+        }
       />
 
-      <div className="stat-grid">
+      <div className="test-counts-grid">
         <StatCard
-          title="Active Tests Database"
-          value={stats?.totalTests || 0}
+          title="Active Tests"
+          value={totalActive || stats?.totalTests || 0}
           icon={FlaskConical}
           color="var(--color-primary, #2563eb)"
           bgColor="var(--color-primary-light, #eff6ff)"
         />
         <StatCard
-          title="Today's Patient Bills"
+          title="Test Categories"
+          value={categories.length}
+          icon={FolderOpen}
+          color="var(--color-info, #0284c7)"
+          bgColor="var(--color-info-bg, #f0f9ff)"
+        />
+        <StatCard
+          title="Today's Bills"
           value={stats?.todayBills || 0}
           icon={Receipt}
           color="var(--color-success, #16a34a)"
@@ -72,63 +151,56 @@ const TestCounts = () => {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
-        {/* Category distribution */}
-        <div className="card">
-          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--color-text, #0f172a)' }}>
-            Active Test Categories
-          </h3>
-          {categories.length === 0 ? (
+      <div className="test-counts-split">
+        <section className="test-counts-card" aria-label="Tests by category">
+          <h3 className="test-counts-card-title"><Layers size={17} /> Tests by Category</h3>
+          {categoryCounts.length === 0 ? (
             <EmptyState
               icon={Layers}
               title="No Categories Defined"
               message="Test categories will appear here once configured in the catalog."
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {categories.map((cat) => (
-                <div
-                  key={cat._id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    borderBottom: '1px solid var(--color-border, #e2e8f0)',
-                    paddingBottom: '6px'
-                  }}
-                >
-                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary, #334155)' }}>
-                    {cat.name}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-success, #16a34a)', backgroundColor: 'var(--color-success-bg, #f0fdf4)', padding: '2px 8px', borderRadius: '4px' }}>
-                    Active
-                  </span>
+            <div className="test-counts-row">
+              {categoryCounts.map((cat) => (
+                <div key={cat.name} className="test-counts-cat">
+                  <div className="test-counts-cat-top">
+                    <span className="test-counts-cat-name" title={cat.name}>{cat.name}</span>
+                    <span className="test-counts-cat-count">{cat.count} test{cat.count === 1 ? '' : 's'}</span>
+                  </div>
+                  <div className="test-counts-bar" aria-hidden="true">
+                    <div
+                      className="test-counts-bar-fill"
+                      style={{ width: `${Math.round((cat.count / maxCount) * 100)}%` }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Operational Overview */}
-        <div className="card">
-          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem', color: 'var(--color-text, #0f172a)' }}>
-            Operational Summary
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '6px', fontSize: '0.875rem' }}>
-              <span>Total Invoiced Cases</span>
-              <strong style={{ color: 'var(--color-primary, #2563eb)' }}>{stats?.totalCasesCount || 0}</strong>
+        <section className="test-counts-card" aria-label="Operational summary">
+          <h3 className="test-counts-card-title"><ClipboardList size={17} /> Operational Summary</h3>
+          <div>
+            <div className="test-counts-summary-row">
+              <span>Total invoiced cases</span>
+              <strong className="accent">{stats?.totalCasesCount || 0}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '6px', fontSize: '0.875rem' }}>
-              <span>Total Registered Patients</span>
+            <div className="test-counts-summary-row">
+              <span>Total registered patients</span>
               <strong>{stats?.totalPatients || 0}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', fontSize: '0.875rem' }}>
-              <span>Total Catalogued Tests</span>
-              <strong>{stats?.totalTests || 0}</strong>
+            <div className="test-counts-summary-row">
+              <span>Total catalogued tests</span>
+              <strong>{stats?.totalTests || totalActive}</strong>
+            </div>
+            <div className="test-counts-summary-row">
+              <span>Total revenue collected</span>
+              <strong>{formatCurrency(stats?.paymentSummary?.cleared ?? stats?.todayRevenue ?? 0)}</strong>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

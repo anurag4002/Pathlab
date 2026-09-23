@@ -1,7 +1,7 @@
 import React from 'react';
 import './Pagination.css';
 
-const Pagination = ({ page, pages, total, limit, onPageChange, className = '' }) => {
+const Pagination = ({ page, pages, total, limit, onPageChange, onLimitChange, pageSizeOptions = [10, 20, 50], className = '' }) => {
   const startIdx = (page - 1) * limit + 1;
   const endIdx = Math.min(page * limit, total);
 
@@ -26,6 +26,20 @@ const Pagination = ({ page, pages, total, limit, onPageChange, className = '' })
       <div className="pagination-info">
         Showing <strong>{total === 0 ? 0 : startIdx}</strong> to <strong>{endIdx}</strong> of{' '}
         <strong>{total}</strong> entries
+        {onLimitChange && (
+          <label className="pagination-size">
+            Rows
+            <select
+              value={limit}
+              onChange={(e) => onLimitChange(Number(e.target.value))}
+              aria-label="Rows per page"
+            >
+              {pageSizeOptions.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <div className="pagination-buttons">
         <button

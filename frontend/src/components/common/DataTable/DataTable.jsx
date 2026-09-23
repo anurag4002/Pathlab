@@ -17,6 +17,9 @@ const DataTable = ({
   pagination, // { total, page, limit, pages, onPageChange }
   renderRow,  // (item, index) => JSX
   toolbarActions,
+  maxHeight, // e.g. 420 — bounded scroll body with sticky header
+  dense = false, // compact cell padding for wide action tables
+  stickyActions = false, // freeze the last (actions) column on horizontal scroll
   className = ''
 }) => {
   const showToolbar = Boolean(onSearchChange || toolbarActions);
@@ -46,8 +49,11 @@ const DataTable = ({
         </div>
       )}
 
-      <div className="data-table-wrapper">
-        <table className="data-table">
+      <div
+        className={`data-table-wrapper${maxHeight ? ' scrollable' : ''}`}
+        style={maxHeight ? { maxHeight } : undefined}
+      >
+        <table className={`data-table${dense ? ' dense' : ''}${stickyActions ? ' sticky-actions' : ''}`}>
           <thead>
             <tr>
               {headers.map((h, i) => (
@@ -82,6 +88,7 @@ const DataTable = ({
           total={pagination.total}
           limit={pagination.limit}
           onPageChange={pagination.onPageChange}
+          onLimitChange={pagination.onLimitChange}
         />
       )}
     </div>

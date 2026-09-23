@@ -17,7 +17,7 @@ const DueReports = () => {
   // Search & Pagination
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
 
   // Payment Modal
@@ -36,16 +36,11 @@ const DueReports = () => {
   const fetchDueBills = async () => {
     setLoading(true);
     try {
-      // Fetch Partial and Pending bills
+      // Outstanding = Pending/Partial payment status; fully paid rows are
+      // excluded below as a safety net.
       const res = await getBills({
         search: debouncedSearch,
-        paymentStatus: 'Pending', // We will load Pending/Partial in separate fetches or filter in JS.
-        // Or we can let backend return all, and filter.
-        // Actually, our backend getBills accepts paymentStatus, so let's load all bills and filter in client or query.
-        // Let's filter in client-side or fetch Pending and Partial bills.
-        // Since getBills pagination returns limited, let's load all outstanding by not specifying paymentStatus,
-        // then filter, or fetch with Partial and Pending. Let's load without filtering status,
-        // and filter in the render row or search.
+        paymentStatus: 'Pending',
         page,
         limit
       });
@@ -115,21 +110,21 @@ const DueReports = () => {
       />
       {!canCollect && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
-          Your role has no billing/finance permission — the Collect action is hidden (server still enforces).
+          Your role has no billing/finance permission — the Collect action is hidden.
         </p>
       )}
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <Select
-          placeholder="All Departments (client-side)"
+          placeholder="All Departments"
           value={deptFilter}
-          onChange={(e) => setDeptFilter(e.target.value)}
+          onChange={(e) => { setDeptFilter(e.target.value); goToPage(1); }}
           options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))}
           style={{ maxWidth: '15rem', marginBottom: 0 }}
         />
         {deptFilter && (
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Filtered client-side — no department param on the dues query.
+            Department filter applies to the loaded rows.
           </span>
         )}
       </div>
@@ -140,14 +135,15 @@ const DueReports = () => {
         loading={loading}
         emptyMessage="No outstanding balances found."
         searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by invoice number..."
         pagination={{
           total: paginationInfo.total,
           page,
           limit,
           pages: paginationInfo.pages,
-          onPageChange: goToPage
+          onPageChange: goToPage,
+          onLimitChange: setLimit
         }}
         renderRow={(bill) => (
           <tr key={bill._id}>

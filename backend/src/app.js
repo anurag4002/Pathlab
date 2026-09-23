@@ -4,6 +4,7 @@ const path = require('path');
 const { CORS_ORIGIN, CORS_CREDENTIALS, UPLOAD_DIR } = require('./config/environment');
 const { buildCorsOptions } = require('./config/cors');
 const securityHeaders = require('./middleware/securityHeaders');
+const requestLogger = require('./middleware/requestLogger');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 const connectDatabase = require('./config/database');
 const errorHandler = require('./middleware/errorMiddleware');
@@ -18,6 +19,9 @@ app.use(cors(buildCorsOptions({ CORS_ORIGIN, CORS_CREDENTIALS })));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Console log for EVERY route: method, path, status + duration.
+app.use(requestLogger);
 
 // Tier-1 flood protection on every /api route (health checks skipped inside).
 app.use('/api', generalLimiter);

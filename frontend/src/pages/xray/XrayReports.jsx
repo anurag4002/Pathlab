@@ -3,6 +3,7 @@ import { getXrayCases } from '../../services/xrayService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
 import downloadFile from '../../utils/downloadFile';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Download, Printer } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal } from '../../components/common';
 import XrayImagePane from '../../components/xray/XrayImagePane';
@@ -16,6 +17,16 @@ const XrayReports = () => {
   // Print preview (aligned with USG preview + XrayImagePane)
   const [printTarget, setPrintTarget] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
+
+  // Search + client-side pagination (backend returns the full list).
+  const [search, setSearch] = useState('');
+  const filteredReports = reports.filter((c) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(c.patient?.name || '').toLowerCase().includes(q) ||
+      String(c.patient?.registrationNumber || '').toLowerCase().includes(q);
+  });
+  const pg = useClientPagination(filteredReports, 10);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -65,9 +76,20 @@ const XrayReports = () => {
 
       <DataTable
         headers={['Completed Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Download Scan File', 'Preview']}
-        data={reports}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No completed X-Ray scans archived yet."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search patient…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(c) => (
           <tr key={c._id}>
             <td>{formatDate(c.date).split(',')[0]}</td>

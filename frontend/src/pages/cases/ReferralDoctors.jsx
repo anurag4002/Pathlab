@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../services/doctorService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
@@ -20,6 +21,9 @@ const ReferralDoctors = () => {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Client-side pagination (GET /api/doctors returns the full list).
+  const pg = useClientPagination(doctors, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -131,12 +135,20 @@ const ReferralDoctors = () => {
 
       <DataTable
         headers={['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
-        data={doctors}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No referral doctor profiles matching your query."
         searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
         searchPlaceholder="Search by doctor name..."
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(doctor) => (
           <tr key={doctor._id}>
             <td style={{ fontWeight: '600' }}>{doctor.name}</td>

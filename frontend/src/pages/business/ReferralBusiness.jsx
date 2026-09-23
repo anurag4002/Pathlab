@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getReferralReport } from '../../services/dashboardService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Eye, FileSpreadsheet, Printer } from 'lucide-react';
 import { PageHeader, DataTable, DatePicker, Modal, Button } from '../../components/common';
 
@@ -12,6 +13,18 @@ const ReferralBusiness = () => {
 
   const [report, setReport] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Search + client-side pagination over the aggregated doctor rows.
+  const [search, setSearch] = useState('');
+  const filteredReport = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return report;
+    return report.filter((r) =>
+      String(r.doctorName || '').toLowerCase().includes(q) ||
+      String(r.contact || r.clinicHospital || '').toLowerCase().includes(q)
+    );
+  }, [report, search]);
+  const pg = useClientPagination(filteredReport, 10);
 
   // View details modal
   const [detailsTarget, setDetailsTarget] = useState(null);
@@ -104,12 +117,23 @@ const ReferralBusiness = () => {
 
       <DataTable
         headers={['S.No.', 'Referrer ID', 'Name', 'Contact', 'Total Cases', 'Cases In Filter', 'Commission %', 'Gross', 'Share Payable', 'Case Details']}
-        data={report}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No referral doctor billing generated in selected range."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search doctor…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(item, idx) => (
           <tr key={item.doctorId}>
-            <td>{idx + 1}</td>
+            <td>{(pg.page - 1) * pg.limit + idx + 1}</td>
             <td style={{ fontFamily: 'monospace' }}>{String(item.doctorId).slice(-6).toUpperCase()}</td>
             <td style={{ fontWeight: '600' }}>{item.doctorName}</td>
             <td>{item.contact || item.clinicHospital || '—'}</td>

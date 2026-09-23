@@ -43,7 +43,7 @@ const PermissionMatrix = ({ value, onChange, disabledReason }) => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-        <label className="form-label" style={{ margin: 0 }}><span>Permissions (object map sent to server)</span></label>
+        <label className="form-label" style={{ margin: 0 }}><span>Permissions</span></label>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" className="btn btn-secondary" style={{ padding: '2px 10px', fontSize: '0.75rem' }} onClick={() => setAll(true)}>All</button>
           <button type="button" className="btn btn-secondary" style={{ padding: '2px 10px', fontSize: '0.75rem' }} onClick={() => setAll(false)}>None</button>
@@ -57,9 +57,6 @@ const PermissionMatrix = ({ value, onChange, disabledReason }) => {
           </label>
         ))}
       </div>
-      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-        Saved as <code>{'{'} billing: true, ... {'}'}</code> to match the backend <code>Map</code>. UI gating is cosmetic — the server enforces.
-      </p>
     </div>
   );
 };

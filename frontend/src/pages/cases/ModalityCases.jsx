@@ -3,6 +3,8 @@ import { getModalityCases, createModalityCase, updateModalityCase, deleteModalit
 import { getPatients } from '../../services/patientService';
 import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog } from '../../components/common';
 import useAuth from '../../hooks/useAuth';
+import usePagination from '../../hooks/usePagination';
+import useDebounce from '../../hooks/useDebounce';
 import { Plus, ArrowRight, Trash2 } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
 
@@ -22,11 +24,25 @@ const ModalityCases = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Server-side search + pagination (GET /api/modality/cases).
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
+  const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
+
   const fetchCases = async () => {
     setLoading(true);
     try {
-      const res = await getModalityCases({ modality, limit: 50 });
-      if (res.success) setCases(res.data.cases);
+      const res = await getModalityCases({
+        modality,
+        search: debouncedSearch.trim() || undefined,
+        page,
+        limit,
+      });
+      if (res.success) {
+        setCases(res.data.cases);
+        setPaginationInfo(res.data.pagination || { total: 0, pages: 0 });
+      }
     } catch (err) {
       console.error('Failed to load modality cases', err);
     } finally {
@@ -38,7 +54,8 @@ const ModalityCases = () => {
     getPatients({ limit: 100 }).then((r) => { if (r.success) setPatients(r.data.patients); }).catch(() => {});
   }, []);
 
-  useEffect(() => { fetchCases(); }, [modality]);
+  useEffect(() => { fetchCases(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modality, debouncedSearch, page, limit]);
 
   const handleCreate = async () => {
     if (!form.patient) { alert('Select a patient'); return; }
@@ -88,7 +105,7 @@ const ModalityCases = () => {
       />
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
         {TABS.map((m) => (
-          <Button key={m} variant={m === modality ? 'primary' : 'secondary'} size="sm" onClick={() => setModality(m)}>{m}</Button>
+          <Button key={m} variant={m === modality ? 'primary' : 'secondary'} size="sm" onClick={() => { setModality(m); goToPage(1); }}>{m}</Button>
         ))}
       </div>
       <DataTable
@@ -96,6 +113,17 @@ const ModalityCases = () => {
         data={cases}
         loading={loading}
         emptyMessage={`No ${modality} cases found.`}
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
+        searchPlaceholder="Search procedure…"
+        pagination={{
+          total: paginationInfo.total,
+          page,
+          limit,
+          pages: paginationInfo.pages,
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
+        }}
         renderRow={(c) => (
           <tr key={c._id}>
             <td>{formatDate(c.caseDate)}</td>

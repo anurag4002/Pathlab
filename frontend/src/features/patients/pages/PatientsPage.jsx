@@ -37,7 +37,7 @@ const PatientsPage = () => {
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [adv, setAdv] = useState({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' });
   const setAdvKey = (k, v) => setAdv((p) => ({ ...p, [k]: v }));
@@ -205,7 +205,8 @@ const PatientsPage = () => {
           page,
           limit,
           pages: paginationInfo.pages,
-          onPageChange: goToPage
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
         }}
         renderRow={(patient) => (
           <tr key={patient._id}>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import useClientPagination from '../../hooks/useClientPagination';
 import { getTodaysReports, getPendingLabCases, getReportForEntry, uploadReport, deleteReport, createResultReport, saveReportResults, signReport, updateReportTat, verifyReport, resendReport, getDeliveryStatus } from '../../services/reportService';
 import { getPatients } from '../../services/patientService';
 import { getBills } from '../../services/billService';
@@ -239,6 +240,10 @@ const TodaysReports = () => {
 
   const visibleReports = tab === 'due' ? dueReports : filteredReports;
 
+  // Client-side pagination over the filtered worklist (plus pending list).
+  const pg = useClientPagination(visibleReports, 10);
+  const pgPending = useClientPagination(pendingCases, 10);
+
   const handleOpenUpload = () => {
     setFormData({ patient: '', bill: '', test: '', file: null });
     setFormErrors({});
@@ -410,9 +415,21 @@ const TodaysReports = () => {
     }
   };
 
-  // Phase 4+10 — open the in-app PDF preview (shared print layout + QR).
-  // Print/download inside the modal go through the single consistent path
-  // printReportPdf(id) / downloadReportPdf(id) → GET /api/reports/:id/pdf.
+  // Phase 4+10 — in-app PDF preview (shared print layout + QR), plus print
+  // state: server PDF via GET /api/reports/:id/pdf with failure feedback
+  // (previously an un-awaited fire-and-forget).
+  const [printingId, setPrintingId] = useState('');
+  const handlePrintPdf = async (id) => {
+    if (!id || printingId) return;
+    setPrintingId(id);
+    try {
+      await printReportPdf(id, true);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to print report — the server PDF could not be loaded.');
+    } finally {
+      setPrintingId('');
+    }
+  };
   const handleOpenPreview = async (report) => {
     const target = report || activeReport;
     if (!target?._id) return;
@@ -535,7 +552,7 @@ const TodaysReports = () => {
         return (
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
             {stats.map(([k, v]) => (
-              <button key={k} onClick={() => setStatusFilter(k === 'All' ? '' : k)} className={`btn ${statusFilter === (k === 'All' ? '' : k) ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '4px 10px', fontSize: '0.75rem' }}>{k} {v}</button>
+              <button key={k} onClick={() => { setStatusFilter(k === 'All' ? '' : k); pg.reset(); }} className={`btn ${statusFilter === (k === 'All' ? '' : k) ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '4px 10px', fontSize: '0.75rem' }}>{k} {v}</button>
             ))}
             <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="select-control" style={{ maxWidth: '160px', padding: '4px 8px', fontSize: '0.8rem' }}>
               <option value="Recent">Sort: Recent</option>
@@ -550,15 +567,15 @@ const TodaysReports = () => {
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem' }}>
         <WorklistTabs
           active={tab}
-          onChange={setTab}
+          onChange={(t) => { setTab(t); pg.reset(); pgPending.reset(); }}
           counts={{ today: filteredReports.length, due: dueReports.length, pending: pendingCases.length }}
         />
-        <DepartmentFilterChips options={deptOptions} value={dept} onChange={setDept} />
+        <DepartmentFilterChips options={deptOptions} value={dept} onChange={(d) => { setDept(d); pg.reset(); }} />
         <input
           type="text"
           placeholder="Search patient / reg no / bill / test…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); pg.reset(); }}
           className="select-control"
           style={{ maxWidth: '260px', padding: '4px 8px', fontSize: '0.8rem' }}
         />
@@ -566,19 +583,28 @@ const TodaysReports = () => {
 
       {tab === 'pending' ? (
         pendingError ? (
-          <EmptyState
-            title="Pending samples unavailable"
-            message={pendingError === 'unavailable'
-              ? 'The pending-samples endpoint (GET /api/reports/pending-cases) is not reachable (404). Showing today\u2019s reports instead — no data was lost.'
-              : pendingError}
+            <EmptyState
+              title="Pending samples unavailable"
+              message={pendingError === 'unavailable'
+                ? 'The pending-samples feed is not reachable right now. Showing today\u2019s reports instead — no data was lost.'
+                : pendingError}
             action={<Button variant="secondary" size="sm" onClick={() => setTab('today')}>Back to Today</Button>}
           />
         ) : (
           <DataTable
             headers={['Patient', 'Reg No', 'Bill Number', 'Items', 'Report Status', 'Actions']}
-            data={pendingCases}
+            data={pgPending.paged}
             loading={pendingLoading}
             emptyMessage="No pending samples — every lab bill already has a report."
+            maxHeight={440}
+            pagination={{
+              total: pgPending.total,
+              page: pgPending.page,
+              limit: pgPending.limit,
+              pages: pgPending.pages,
+              onPageChange: pgPending.goToPage,
+              onLimitChange: pgPending.setLimit,
+            }}
             renderRow={(pendingCase) => {
               const bill = pendingCase?.bill || {};
               const patient = bill?.patient || {};
@@ -607,19 +633,30 @@ const TodaysReports = () => {
       ) : (
         <DataTable
           headers={['Patient Reg No', 'Patient Name', 'Bill Number', 'Test', 'Completed Date', 'TAT', 'Status', 'Uploader', 'Actions']}
-          data={visibleReports}
+          data={pg.paged}
           loading={loading}
           emptyMessage={tab === 'due'
             ? 'Nothing due within the urgent window — all open reports are on time.'
             : 'No laboratory reports recorded today.'}
-          renderRow={(report) => (
-            <tr key={report._id}>
-              <td style={{ fontWeight: '600' }}>{report.registrationNumber}</td>
-              <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
-              <td>{report.bill?.billNumber || 'N/A'}</td>
-              <td>{report.test ? `${report.test.name} (${report.test.code})` : 'General Findings'}</td>
-              <td>{formatDate(report.reportDate)}</td>
-              <td><TatCountdown report={report} settings={tatSettings} /></td>
+          maxHeight={480}
+          dense
+          stickyActions
+          pagination={{
+            total: pg.total,
+            page: pg.page,
+            limit: pg.limit,
+            pages: pg.pages,
+            onPageChange: pg.goToPage,
+            onLimitChange: pg.setLimit,
+          }}
+        renderRow={(report) => (
+          <tr key={report._id}>
+            <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{report.registrationNumber}</td>
+            <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
+            <td style={{ whiteSpace: 'nowrap' }}>{report.bill?.billNumber || 'N/A'}</td>
+            <td>{report.test ? `${report.test.name} (${report.test.code})` : 'General Findings'}</td>
+            <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate)}>{formatDate(report.reportDate).split(',')[0]}</td>
+              <td style={{ maxWidth: 190 }}><span className="tat-wrap"><TatCountdown report={report} settings={tatSettings} /></span></td>
               <td>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span>{report.status}</span>
@@ -627,33 +664,34 @@ const TodaysReports = () => {
                 </div>
               </td>
               <td>{report.uploadedBy?.name || 'N/A'}</td>
-              <td>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openEntry(report)}>
+              <td style={{ minWidth: 150 }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
                     <FileEdit size={14} /> Enter results
                   </button>
                   {/* Phase 4 — in-app preview (shared print layout); PDF/Print
                       inside the modal use printReportPdf/downloadReportPdf. */}
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)}>
-                    <Eye size={14} /> Preview
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)} title="Preview">
+                    <Eye size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => printReportPdf(report._id, true)} title="Print the server-rendered PDF">
-                    <Printer size={14} /> Print
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handlePrintPdf(report._id)} disabled={printingId === report._id} title={printingId === report._id ? 'Printing…' : 'Print the server-rendered PDF'}>
+                    <Printer size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)}>
-                    <FileDown size={14} /> PDF
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)} title="Download PDF">
+                    <FileDown size={14} />
                   </button>
                   <button
                     className="btn btn-secondary"
                     style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                     onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
+                    title="Download uploaded file"
                   >
-                    <Download size={14} /> Download
+                    <Download size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setLabelTarget(report)} title="Print barcode labels / stickers (bill barcode; case/sample gated — backend pending)">
-                    <Tag size={14} /> Labels
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setLabelTarget(report)} title="Print barcode labels on the label printer (bill / case / sample)">
+                    <Tag size={14} />
                   </button>
-                  <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setDeleteTarget(report)}>
+                  <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setDeleteTarget(report)} title="Delete report">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -785,7 +823,7 @@ const TodaysReports = () => {
           <>
             <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
             <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
-            <Button variant="secondary" onClick={() => activeReport && printReportPdf(activeReport._id, true)} disabled={!activeReport?._id} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> Print</Button>
+            <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
             <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, true)}><FileDown size={14} /> PDF</Button>
             <Button variant="secondary" onClick={() => { setSendForm(f => ({ ...f, phone: activeReport?.patient?.phone || '' })); setSendOpen(true); }}><Send size={14} /> Send</Button>
             <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
@@ -973,15 +1011,17 @@ const TodaysReports = () => {
         onRejected={(rep) => { if (rep?._id) { setActiveReport(rep); fetchReports(); } }}
       />
 
-      {/* Phase 8+11 — labels from the report screen (bill barcode first;
-          case/sample labels gated with "backend pending" note inside;
-          never calls missing case/sample barcode endpoints). */}
+      {/* Labels from the report screen: bill / case / sample tabs with
+          thermal-printer stock sizes and public Code39 barcode endpoints. */}
       <LabelPrintSheet
         isOpen={!!labelTarget}
         onClose={() => setLabelTarget(null)}
         patient={labelTarget?.patient}
         bill={labelTarget?.bill}
         testName={labelTarget?.test ? `${labelTarget.test.name || ''}${labelTarget.test.code ? ` (${labelTarget.test.code})` : ''}` : 'General Findings'}
+        caseId={labelTarget?._id || ''}
+        caseLabel={labelTarget?.registrationNumber || ''}
+        sampleId={labelTarget?.registrationNumber || ''}
       />
     </div>
   );

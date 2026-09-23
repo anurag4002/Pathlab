@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Input } from '../../../components/common';
+import { Hash, CalendarDays, ListOrdered } from 'lucide-react';
 
 // Phase 23 — registration-number configuration with live preview.
 // Backend gap: POST/PUT /api/setup/lab-profile accepts ONLY caseStartNumber;
@@ -44,51 +45,74 @@ const RegNumberConfig = ({ startNumber, onStartNumberChange }) => {
   const persistLocal = () => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify({ prefix: prefix.toUpperCase(), dateFormat }));
-      setSavedNote('Prefix/format saved locally (backend accepts only the start number — server gap documented).');
+      setSavedNote('Prefix and format saved in this browser. The start number saves to the server.');
     } catch (e) {
       setSavedNote('Could not save locally.');
     }
   };
 
   return (
-    <div className="card" style={{ padding: '1rem', marginTop: '1rem' }}>
-      <h4 style={{ fontWeight: 700, marginBottom: '4px' }}>Registration Number Format</h4>
-      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-        Backend currently persists only the start number. Prefix and date format are kept in this browser
-        until the server accepts <code>registrationPrefix</code>/<code>dateFormat</code>. Historical numbers stay
-        searchable either way.
-      </p>
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+    <section className="lab-profile-card" aria-label="Registration number format">
+      <div className="lab-profile-card-header">
+        <span className="lab-profile-icon-box"><Hash size={18} /></span>
+        <div>
+          <h2 className="lab-profile-card-title">Registration Number Format</h2>
+          <p className="lab-profile-card-desc">
+            Only the start number is saved centrally. Prefix and date format are kept on this device.
+            Old numbers stay searchable either way.
+          </p>
+        </div>
+      </div>
+      <div className="lab-profile-grid">
         <Input
-          label="Prefix (A–Z, 0–9, no spaces)"
+          label="Prefix"
           value={prefix}
           onChange={(e) => { setPrefix(e.target.value.toUpperCase().slice(0, 8)); setSavedNote(''); }}
           error={!prefixValid ? 'Uppercase alphanumeric, 1–8 chars.' : undefined}
-          style={{ minWidth: '180px', flex: 1 }}
+          placeholder="PPL"
+          helperText="A–Z, 0–9, no spaces"
         />
-        <div className="form-group" style={{ flex: 1, minWidth: '180px' }}>
-          <label className="form-label">Date segment</label>
-          <select className="form-control" value={dateFormat} onChange={(e) => { setDateFormat(e.target.value); setSavedNote(''); }}>
-            <option value="YYYYMMDD">YYYYMMDD (e.g. 20260923)</option>
-            <option value="YYMMDD">YYMMDD (e.g. 260923)</option>
-          </select>
+        <div className="form-group">
+          <label className="form-label" htmlFor="reg-date-format">
+            <span>Date segment</span>
+          </label>
+          <div className="form-control-wrapper">
+            <select
+              id="reg-date-format"
+              className="form-control"
+              value={dateFormat}
+              onChange={(e) => { setDateFormat(e.target.value); setSavedNote(''); }}
+            >
+              <option value="YYYYMMDD">YYYYMMDD (e.g. 20260923)</option>
+              <option value="YYMMDD">YYMMDD (e.g. 260923)</option>
+            </select>
+          </div>
         </div>
         <Input
-          label="Start number (saved to server)"
+          label="Start number"
           type="number"
           value={startNumber ?? 1}
+          min={1}
           onChange={(e) => onStartNumberChange(Number(e.target.value))}
-          style={{ minWidth: '160px', flex: 1 }}
+          helperText="Saved to server"
         />
       </div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
-        <span style={{ fontSize: '0.85rem' }}>Next-number preview: <code style={{ fontWeight: 700 }}>{preview}</code></span>
-        <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={persistLocal}>
+      <div className="lab-profile-preview-bar">
+        <div>
+          <div className="lab-profile-preview-label">Next-number preview</div>
+          <div style={{ marginTop: 4 }}>
+            <span className="lab-profile-preview-code">{preview}</span>
+          </div>
+        </div>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={persistLocal}>
           Save prefix/format locally
         </button>
       </div>
-      {savedNote && <p style={{ fontSize: '0.78rem', color: 'var(--color-success)' }}>{savedNote}</p>}
-    </div>
+      {savedNote && <p className="lab-profile-note success" role="status">{savedNote}</p>}
+      <p className="lab-profile-note" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <CalendarDays size={13} /> Date segment uses today&apos;s date. <ListOrdered size={13} /> Sequence is zero-padded to 5 digits.
+      </p>
+    </section>
   );
 };
 

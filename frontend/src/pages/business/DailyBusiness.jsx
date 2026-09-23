@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { getExpenses } from '../../services/expenseService';
 import { getLabProfile } from '../../services/setupService';
 import { sendMessage } from '../../services/notifyService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Printer, Mail } from 'lucide-react';
 import { PageHeader, DataTable, DatePicker, StatusBadge, Select } from '../../components/common';
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
@@ -105,6 +106,19 @@ const DailyBusiness = () => {
     return expensesList.filter(e =>
       e.category?.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q));
   };
+
+  // Memoized filtered lists + per-tab client pagination.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fTx = useMemo(() => getFilteredTransactions(), [data, searchQuery, cashierFilter, deptFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fBills = useMemo(() => getFilteredBills(), [data, searchQuery, deptFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fExp = useMemo(() => getFilteredExpenses(), [expensesList, searchQuery]);
+  const pgTx = useClientPagination(fTx, 10);
+  const pgBills = useClientPagination(fBills, 10);
+  const pgExp = useClientPagination(fExp, 10);
+  const pgSplit = useClientPagination(data?.caseSplit || [], 10);
+  const resetPages = () => { pgTx.reset(); pgBills.reset(); pgExp.reset(); pgSplit.reset(); };
 
   const handleEmailSummary = async () => {
     const to = prompt('Recipient email for daily business summary:');
@@ -224,8 +238,16 @@ const DailyBusiness = () => {
               <h4 style={{ fontWeight: '700', fontSize: '0.875rem', marginBottom: '8px' }}>Case-Type Split</h4>
               <DataTable
                 headers={['Department', 'Cases', 'Billed', 'Collected', 'Due']}
-                data={data.caseSplit}
+                data={pgSplit.paged}
                 emptyMessage="No department split for this window."
+                pagination={{
+                  total: pgSplit.total,
+                  page: pgSplit.page,
+                  limit: pgSplit.limit,
+                  pages: pgSplit.pages,
+                  onPageChange: pgSplit.goToPage,
+                  onLimitChange: pgSplit.setLimit,
+                }}
                 renderRow={(c) => (
                   <tr key={c.department}>
                     <td style={{ fontWeight: '600' }}>{c.department}</td>
@@ -241,7 +263,7 @@ const DailyBusiness = () => {
 
           {!canFinance && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
-          Your role has no finance permission — figures below are display-only; the server still enforces access.
+          Your role has no finance permission — figures below are display-only.
         </p>
       )}
 
@@ -250,25 +272,25 @@ const DailyBusiness = () => {
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {['transactions', 'bills', 'expenses'].map((t) => (
                 <button key={t} className={`btn ${activeTab === t ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => { setActiveTab(t); setSearchQuery(''); }} style={{ padding: '0.5rem 1rem', fontSize: '0.825rem', textTransform: 'capitalize' }}>
-                  {t} ({t === 'transactions' ? getFilteredTransactions().length : t === 'bills' ? getFilteredBills().length : getFilteredExpenses().length})
+                  onClick={() => { setActiveTab(t); setSearchQuery(''); resetPages(); }} style={{ padding: '0.5rem 1rem', fontSize: '0.825rem', textTransform: 'capitalize' }}>
+                  {t} ({t === 'transactions' ? fTx.length : t === 'bills' ? fBills.length : fExp.length})
                 </button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Select name="department" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}
+              <Select name="department" value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); resetPages(); }}
                 options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))} placeholder="All departments (client-side)" style={{ marginBottom: 0, minWidth: '200px' }} />
-              <Select name="cashier" value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}
+              <Select name="cashier" value={cashierFilter} onChange={(e) => { setCashierFilter(e.target.value); resetPages(); }}
                 options={cashierOptions} placeholder="All cashiers" style={{ marginBottom: 0, minWidth: '160px' }} />
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: 'var(--border-radius-sm)', padding: '4px 12px', backgroundColor: 'var(--bg-card)' }}>
-                <input type="text" placeholder="Search in page..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                <input type="text" placeholder="Search in page..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPages(); }}
                   style={{ border: 'none', outline: 'none', fontSize: '0.825rem', width: '200px', background: 'transparent' }} />
               </div>
             </div>
           </div>
           {deptFilter && (
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '-0.5rem', marginBottom: '1rem' }}>
-              Department filter applied client-side — no department param on the ledger query. Clear it to see all departments.
+              Department filter applies to the loaded rows. Clear it to see all departments.
             </p>
           )}
 
@@ -287,8 +309,16 @@ const DailyBusiness = () => {
           {activeTab === 'transactions' && (
             <DataTable
               headers={['ID Ref', 'Patient Name', 'Date & Time', 'Method', 'Received By', 'Amount']}
-              data={getFilteredTransactions()}
+              data={pgTx.paged}
               emptyMessage="No transactions matched filters."
+              pagination={{
+                total: pgTx.total,
+                page: pgTx.page,
+                limit: pgTx.limit,
+                pages: pgTx.pages,
+                onPageChange: pgTx.goToPage,
+                onLimitChange: pgTx.setLimit,
+              }}
               renderRow={(tx) => (
                 <tr key={tx._id}>
                   <td style={{ fontSize: '0.75rem', fontFamily: 'Courier' }}>{tx._id.slice(-8).toUpperCase()}</td>
@@ -307,8 +337,16 @@ const DailyBusiness = () => {
           {activeTab === 'bills' && (
             <DataTable
               headers={['Bill Number', 'Patient Name', 'Date', 'Gross Total', 'Paid Amount', 'Due Balance', 'Status']}
-              data={getFilteredBills()}
+              data={pgBills.paged}
               emptyMessage="No bills matched filters."
+              pagination={{
+                total: pgBills.total,
+                page: pgBills.page,
+                limit: pgBills.limit,
+                pages: pgBills.pages,
+                onPageChange: pgBills.goToPage,
+                onLimitChange: pgBills.setLimit,
+              }}
               renderRow={(bill) => (
                 <tr key={bill._id}>
                   <td style={{ fontWeight: '600' }}>{bill.billNumber}</td>
@@ -326,8 +364,16 @@ const DailyBusiness = () => {
           {activeTab === 'expenses' && (
             <DataTable
               headers={['Date', 'Category Classification', 'Description', 'Method', 'Amount Charged']}
-              data={getFilteredExpenses()}
+              data={pgExp.paged}
               emptyMessage="No expenses logs matched filters."
+              pagination={{
+                total: pgExp.total,
+                page: pgExp.page,
+                limit: pgExp.limit,
+                pages: pgExp.pages,
+                onPageChange: pgExp.goToPage,
+                onLimitChange: pgExp.setLimit,
+              }}
               renderRow={(exp) => (
                 <tr key={exp._id}>
                   <td>{formatDate(exp.date).split(',')[0]}</td>

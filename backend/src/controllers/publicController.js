@@ -121,6 +121,23 @@ const downloadPublicBill = async (req, res, next) => {
 
 const { toSVG: barcodeSVG } = require('../services/code39Service');
 
+// GET /api/public/bill/:billNumber/barcode — Code39 SVG for a bill number.
+// Public (no auth): looks the bill up to confirm it exists, but always
+// encodes the requested bill number so labels print even for edge cases.
+async function billBarcodeByNumber(req, res, next) {
+  try {
+    const value = String(req.params.billNumber || '');
+    try {
+      const bill = await Bill.findOne({ billNumber: value }).select('billNumber').lean();
+      if (!bill) return errorResponse(res, 'Bill not found', 404);
+    } catch (e) { /* fall through and encode the raw value */ }
+    res.setHeader('Content-Type', 'image/svg+xml');
+    return res.send(barcodeSVG(value));
+  } catch (error) {
+    next(error);
+  }
+}
+
 // GET /api/public/case/:caseId/barcode — Code39 SVG from the case's
 // registrationNumber. Falls back to the raw caseId when the case (or its
 // registration number) cannot be resolved. Public (no auth), like the bill
@@ -178,4 +195,4 @@ async function sampleBarcode(req, res, next) {
   }
 }
 
-module.exports = { verifyReport, downloadPublicReport, verifyBill, downloadPublicBill, caseBarcode, sampleBarcode };
+module.exports = { verifyReport, downloadPublicReport, verifyBill, downloadPublicBill, billBarcodeByNumber, caseBarcode, sampleBarcode };

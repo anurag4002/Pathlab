@@ -4,7 +4,7 @@ import { DataTable, StatusBadge } from '../../../components/common';
 import formatDate from '../../../utils/formatDate';
 
 // Phase 18 — filterable transaction table for the cashbook.
-const TransactionTable = ({ transactions = [], loading, search, onSearchChange, pagination, goToPage }) => (
+const TransactionTable = ({ transactions = [], loading, search, onSearchChange, pagination, goToPage, onLimitChange }) => (
   <DataTable
     headers={['Date & Time', 'Patient', 'Bill Ref', 'Type', 'Mode', 'Received By', 'Amount']}
     data={transactions}
@@ -13,7 +13,7 @@ const TransactionTable = ({ transactions = [], loading, search, onSearchChange, 
     searchValue={search}
     onSearchChange={onSearchChange}
     searchPlaceholder="Search patient / bill no..."
-    pagination={pagination ? { ...pagination, onPageChange: goToPage } : undefined}
+    pagination={pagination ? { ...pagination, onPageChange: goToPage, onLimitChange } : undefined}
     renderRow={(tx) => (
       <tr key={tx._id}>
         <td>{formatDate(tx.date)}</td>

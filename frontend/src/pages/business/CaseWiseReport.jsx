@@ -20,7 +20,7 @@ const CaseWiseReport = () => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [centre, setCentre] = useState('');
   const [excludeCancelled, setExcludeCancelled] = useState(true);
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
 
   const toggleType = (t) => setSelectedTypes((p) => p.includes(t) ? p.filter((x) => x !== t) : [...p, t]);
@@ -115,7 +115,7 @@ const CaseWiseReport = () => {
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by invoice number..."
-        pagination={{ total: paginationInfo.total, page, limit, pages: paginationInfo.pages, onPageChange: goToPage }}
+        pagination={{ total: paginationInfo.total, page, limit, pages: paginationInfo.pages, onPageChange: goToPage, onLimitChange: setLimit }}
         renderRow={(bill) => (
           <tr key={bill._id}>
             <td style={{ fontWeight: '600' }}>{bill.billNumber}</td>

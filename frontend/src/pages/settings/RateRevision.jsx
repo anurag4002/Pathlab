@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getTests, updateTestRate, bulkUpdateTestRates } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
+import useClientPagination from '../../hooks/useClientPagination';
 import { DataTable, PageHeader, Button, Input, Select, ConfirmDialog } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 
@@ -61,6 +62,9 @@ const RateRevision = () => {
   const toggle = (id) => setSelected((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   const toggleAll = () => setSelected((prev) => (filtered.length > 0 && filtered.every((t) => prev.includes(t._id)) ? prev.filter((id) => !filtered.some((t) => t._id === id)) : [...new Set([...prev, ...filtered.map((t) => t._id)])]));
 
+  // Client-side pagination over the filtered test list.
+  const pg = useClientPagination(filtered, 10);
+
   const validate = () => {
     if (selected.length === 0) return 'Select at least one test';
     if (amount === '' || isNaN(Number(amount))) return 'Enter a valid revision amount';
@@ -117,7 +121,7 @@ const RateRevision = () => {
       />
       {!canRates && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
-          Your role has no rates permission — preview is visible but applying is hidden (server still enforces).
+          Your role has no rates permission — preview is visible but applying is hidden.
         </p>
       )}
 
@@ -141,7 +145,7 @@ const RateRevision = () => {
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <div style={{ flex: 1, minWidth: '160px' }}>
-          <Input label="Search tests" name="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Code / name / department" />
+          <Input label="Search tests" name="search" value={search} onChange={(e) => { setSearch(e.target.value); pg.reset(); }} placeholder="Code / name / department" />
         </div>
         <div style={{ flex: 1, minWidth: '140px' }}>
           <Select label="Revision mode" name="mode" value={mode} onChange={(e) => setMode(e.target.value)}
@@ -154,7 +158,7 @@ const RateRevision = () => {
         <div style={{ flex: 1, minWidth: '160px' }}>
           <Input label="Effective date (display only)" name="effectiveDate" type="date"
             value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)}
-            helperText="Client-side only — not enforced by the backend" />
+            helperText="For reference only" />
         </div>
       </div>
 
@@ -198,9 +202,17 @@ const RateRevision = () => {
 
       <DataTable
         headers={['Select', 'Code', 'Name', 'Department', 'Current Rate', 'New Rate', 'Action']}
-        data={filtered}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No tests found."
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(test) => {
           const isSel = selected.includes(test._id);
           const next = isSel ? newPriceFor(test.price) : null;
@@ -236,7 +248,7 @@ const RateRevision = () => {
         onConfirm={handleBulkApply}
         loading={applying}
         title="Apply bulk rate revision?"
-        message={`${preview.length} test(s) will be updated via PUT /api/tests/bulk-rate-update${effectiveDate ? ` (display effective date ${effectiveDate})` : ''}. This cannot be undone automatically.`}
+        message={`${preview.length} test(s) will be updated${effectiveDate ? ` (display effective date ${effectiveDate})` : ''}. This cannot be undone automatically.`}
       />
     </div>
   );

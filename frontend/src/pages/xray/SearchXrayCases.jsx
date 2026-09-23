@@ -1,71 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { getXrayCases } from '../../services/xrayService';
-import useDebounce from '../../hooks/useDebounce';
-import formatDate from '../../utils/formatDate';
-import { Search } from 'lucide-react';
-import { DataTable, PageHeader, StatusBadge } from '../../components/common';
-import CaseFilterBar from '../../components/usg/CaseFilterBar';
+import TodaysXrayCases from './TodaysXrayCases';
 
-const SearchXrayCases = () => {
-  const [cases, setCases] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const debouncedSearch = useDebounce(search, 500);
-
-  const fetchCases = async () => {
-    setLoading(true);
-    try {
-      const res = await getXrayCases({ search: debouncedSearch, status: statusFilter || undefined });
-      if (res.success) {
-        setCases(res.data);
-      }
-    } catch (err) {
-      console.error('Failed to search X-Ray cases', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCases();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter]);
-
-  return (
-    <div>
-      <PageHeader
-        title="Search X-Ray Case Files"
-        subtitle="Look up historical digital radiograph records by patient name"
-      />
-
-      <CaseFilterBar status={statusFilter} onStatusChange={setStatusFilter} />
-
-      <DataTable
-        headers={['Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Findings Description', 'Status']}
-        data={cases}
-        loading={loading}
-        emptyMessage="No X-Ray cases matched your search query."
-        searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
-        searchPlaceholder="Type patient name..."
-        renderRow={(c) => (
-          <tr key={c._id}>
-            <td>{formatDate(c.date).split(',')[0]}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
-            <td>{c.referringDoctor?.name || 'Self'}</td>
-            <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {c.findings}
-            </td>
-            <td>
-              <StatusBadge status={c.status} />
-            </td>
-          </tr>
-        )}
-      />
-    </div>
-  );
-};
-
-export default SearchXrayCases;
+// Merged: Today's Cases + Search Cases are now a single unified "X-Ray Cases"
+// page (TodaysXrayCases) with date scope, search bar, filters and pagination.
+// This module is kept so old imports keep working; /xray/search redirects to
+// /xray/today in AppRoutes.
+export default TodaysXrayCases;

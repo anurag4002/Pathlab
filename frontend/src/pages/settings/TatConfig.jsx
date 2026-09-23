@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getTests, updateTest } from '../../services/testService';
 import { PageHeader, Button, Input, DataTable } from '../../components/common';
+import useClientPagination from '../../hooks/useClientPagination';
 import { TAT_CONFIG_KEY, DEFAULT_TAT_SETTINGS, loadTatSettings } from '../../components/lab/TatCountdown';
 
 // Phase 16 — TAT Configuration Screen.
@@ -105,6 +106,9 @@ const TatConfig = () => {
     return tests.filter((t) => `${t.name || ''} ${t.code || ''}`.toLowerCase().includes(q));
   }, [tests, testSearch]);
 
+  // Client-side pagination over the filtered test list.
+  const pg = useClientPagination(filteredTests, 10);
+
   const draftFor = (test) => tatDrafts[test._id] ?? (test.tatHours ?? '');
 
   // Inline per-test TAT save. The update endpoint validates the full test
@@ -172,19 +176,27 @@ const TatConfig = () => {
         </div>
       </form>
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-        Stored locally (no backend config endpoint exists). Per-test values below are stored server-side and win over the default.
+        Defaults below are kept on this device. Per-test values are saved centrally and take precedence.
       </p>
 
       <h3 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>Per-test TAT (hours)</h3>
       {testsError && <p style={{ fontSize: '0.85rem', color: 'red' }}>{testsError}</p>}
       <DataTable
         headers={['Test', 'Code', 'TAT (h)', 'Effective', 'Actions']}
-        data={filteredTests}
+        data={pg.paged}
         loading={testsLoading}
         emptyMessage="No active tests found."
         searchValue={testSearch}
-        onSearchChange={(e) => setTestSearch(e.target.value)}
+        onSearchChange={(e) => { setTestSearch(e.target.value); pg.reset(); }}
         searchPlaceholder="Search tests…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(test) => {
           const effective = test.tatHours ?? form.defaultTatHours;
           return (

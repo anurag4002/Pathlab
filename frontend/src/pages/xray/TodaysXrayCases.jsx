@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getXrayCases, createXrayCase, updateXrayCase, uploadXrayImage } from '../../services/xrayService';
 import { deleteXrayCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
@@ -6,6 +6,8 @@ import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
+import useDebounce from '../../hooks/useDebounce';
+import usePagination from '../../hooks/usePagination';
 import { Plus, Edit2, Download, Trash2, Printer } from 'lucide-react';
 import downloadFile from '../../utils/downloadFile';
 import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ImageUploader, StatusBadge, ConfirmDialog } from '../../components/common';
@@ -23,6 +25,19 @@ const TodaysXrayCases = () => {
   // Phase 24-backed branding (fallbacks = previous hardcoded strings)
   const [labProfile, setLabProfile] = useState(null);
   const [signatures, setSignatures] = useState([]);
+
+  // Unified Today + Search view: date scope + debounced search + filters +
+  // pagination. Backend /api/xray supports only `search` (patient name),
+  // `date`, `status` — reg-no, doctor, from/to and pagination are applied
+  // client-side so the list works before server support lands.
+  const [dateScope, setDateScope] = useState('today'); // 'today' | 'all'
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [doctorFilter, setDoctorFilter] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
 
   // Form States
   const [formOpen, setFormOpen] = useState(false);
@@ -62,13 +77,21 @@ const TodaysXrayCases = () => {
   const fetchCases = async () => {
     setLoading(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const res = await getXrayCases({ date: todayStr });
+      const params = {
+        search: debouncedSearch.trim() || undefined,
+        status: statusFilter || undefined,
+      };
+      // Today scope filters server-side; All-dates scope loads everything
+      // and filters client-side (backend has no from/to support).
+      if (dateScope === 'today' && !debouncedSearch.trim() && !fromDate && !toDate) {
+        params.date = new Date().toISOString().split('T')[0];
+      }
+      const res = await getXrayCases(params);
       if (res.success) {
-        setCases(res.data);
+        setCases(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
-      console.error('Failed to load today Xray cases', err);
+      console.error('Failed to load X-Ray cases', err);
     } finally {
       setLoading(false);
     }
@@ -94,7 +117,59 @@ const TodaysXrayCases = () => {
   useEffect(() => {
     fetchCases();
     loadOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    goToPage(1);
+    fetchCases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, statusFilter, dateScope]);
+
+  // Client-side filter pass (works regardless of server support).
+  const filteredCases = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+    const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+    return cases.filter((c) => {
+      if (statusFilter && c.status !== statusFilter) return false;
+      if (doctorFilter && (c.referringDoctor?._id || c.referringDoctor) !== doctorFilter) return false;
+      if (dateScope === 'today' && !q && from === null && to === null) {
+        const d = c.date ? new Date(c.date).toISOString().split('T')[0] : '';
+        if (d !== todayStr) return false;
+      }
+      if (from !== null || to !== null) {
+        const t = c.date ? new Date(c.date).getTime() : NaN;
+        if (Number.isNaN(t)) return false;
+        if (from !== null && t < from) return false;
+        if (to !== null && t > to) return false;
+      }
+      if (q) {
+        const hay = `${c.patient?.name || ''} ${c.patient?.registrationNumber || ''} ${c.findings || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [cases, search, statusFilter, doctorFilter, dateScope, fromDate, toDate]);
+
+  // Client-side pagination (backend returns the full list — no page/limit).
+  const totalPages = Math.max(1, Math.ceil(filteredCases.length / limit));
+  const safePage = Math.min(page, totalPages);
+  const pagedCases = useMemo(() => {
+    const start = (safePage - 1) * limit;
+    return filteredCases.slice(start, start + limit);
+  }, [filteredCases, safePage, limit]);
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setDoctorFilter('');
+    setFromDate('');
+    setToDate('');
+    setDateScope('today');
+    goToPage(1);
+  };
 
   const handleOpenCreate = () => {
     setEditingCase(null);
@@ -181,8 +256,8 @@ const TodaysXrayCases = () => {
   return (
     <div>
       <PageHeader
-        title="Today's Digital X-Ray Cases"
-        subtitle="Manage Digital X-Ray records, findings reports, and scan attachments uploading"
+        title="X-Ray Cases"
+        subtitle="Today's and historical digital X-Ray cases — search, filter and paginate"
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
             <Plus size={16} /> Create X-Ray Case
@@ -190,11 +265,85 @@ const TodaysXrayCases = () => {
         }
       />
 
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }} role="tablist" aria-label="Date scope">
+          {[
+            { value: 'today', label: "Today's Cases" },
+            { value: 'all', label: 'All / Search' },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="tab"
+              aria-selected={dateScope === opt.value}
+              onClick={() => { setDateScope(opt.value); goToPage(1); }}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.8rem',
+                fontWeight: dateScope === opt.value ? 700 : 500,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: dateScope === opt.value ? 'var(--color-primary-light)' : 'var(--color-surface)',
+                color: dateScope === opt.value ? 'var(--color-primary)' : 'var(--color-text)',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          Referring doctor
+          <select value={doctorFilter} onChange={(e) => { setDoctorFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 170 }}>
+            <option value="">Everyone</option>
+            {doctors.map((d) => (
+              <option key={d._id} value={d._id}>{d.name}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          Status
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 140 }}>
+            <option value="">All statuses</option>
+            <option value="Pending">Pending Signature</option>
+            <option value="Completed">Completed Report</option>
+          </select>
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          From
+          <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); goToPage(1); }} className="select-control" />
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          To
+          <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); goToPage(1); }} className="select-control" />
+        </label>
+        {(doctorFilter || statusFilter || search || fromDate || toDate || dateScope !== 'today') && (
+          <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }} onClick={resetFilters}>
+            Clear filters
+          </button>
+        )}
+        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+          {filteredCases.length} case{filteredCases.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
       <DataTable
         headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Download Scan', 'Actions']}
-        data={cases}
+        data={pagedCases}
         loading={loading}
-        emptyMessage="No X-Ray cases recorded today."
+        emptyMessage={dateScope === 'today' && !search && !fromDate && !toDate ? 'No X-Ray cases recorded today.' : 'No X-Ray cases matched your search query.'}
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
+        searchPlaceholder="Search name, reg no, findings..."
+        maxHeight={440}
+        stickyActions
+        pagination={{
+          total: filteredCases.length,
+          page: safePage,
+          limit,
+          pages: totalPages,
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
+        }}
         renderRow={(c) => (
           <tr key={c._id}>
             <td>{formatDate(c.date).split(',')[0]}</td>

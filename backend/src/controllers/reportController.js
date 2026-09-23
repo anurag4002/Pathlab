@@ -217,7 +217,7 @@ async function loadReportPdfContext(id) {
       return { png: require('fs').readFileSync(abs), name: d.name, title: d.title };
     } catch (e) { return null; }
   }).filter(Boolean);
-  return { report, profile, testMap, token, signaturePngs };
+  return { report, patient: report.patient || null, bill: report.bill || null, profile, testMap, token, signaturePngs };
 }
 
 async function reportPdfDownload(req, res, next) {

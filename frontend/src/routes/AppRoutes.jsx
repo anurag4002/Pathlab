@@ -57,12 +57,10 @@ import Jobs from '../pages/settings/Jobs';
 
 // USG
 import TodaysUSGCases from '../pages/usg/TodaysUSGCases';
-import SearchUSGCases from '../pages/usg/SearchUSGCases';
 import ReportTemplates from '../pages/usg/ReportTemplates';
 
 // X-Ray
 import TodaysXrayCases from '../pages/xray/TodaysXrayCases';
-import SearchXrayCases from '../pages/xray/SearchXrayCases';
 import XrayReports from '../pages/xray/XrayReports';
 
 // Manage
@@ -77,9 +75,7 @@ import LabProfile from '../pages/setup/LabProfile';
 import Onboarding from '../pages/setup/Onboarding';
 import TatConfig from '../pages/settings/TatConfig';
 import Templates from '../pages/delivery/Templates';
-import Reviews from '../pages/delivery/Reviews';
 import Tickets from '../pages/support/Tickets';
-import Subscription from '../pages/support/Subscription';
 import DoctorPortal from '../pages/doctor/DoctorPortal';
 
 const AppRoutes = () => {
@@ -141,14 +137,14 @@ const AppRoutes = () => {
         <Route path="/business/cashbook" element={<Cashbook />} />
         <Route path="/analytics/test-usage" element={<TestUsage />} />
 
-        {/* USG */}
+        {/* USG — Today + Search merged into one Cases page */}
         <Route path="/usg/today" element={<TodaysUSGCases />} />
-        <Route path="/usg/search" element={<SearchUSGCases />} />
+        <Route path="/usg/search" element={<Navigate to="/usg/today" replace />} />
         <Route path="/usg/templates" element={<ReportTemplates />} />
 
-        {/* X-Ray */}
+        {/* X-Ray — Today + Search merged into one Cases page */}
         <Route path="/xray/today" element={<TodaysXrayCases />} />
-        <Route path="/xray/search" element={<SearchXrayCases />} />
+        <Route path="/xray/search" element={<Navigate to="/xray/today" replace />} />
         <Route path="/xray/reports" element={<XrayReports />} />
 
         {/* Manage — Admin Only */}
@@ -164,9 +160,7 @@ const AppRoutes = () => {
           <Route path="/settings/tat" element={<TatConfig />} />
           <Route path="/settings/audit-log" element={<AuditLog />} />
           <Route path="/delivery/templates" element={<Templates />} />
-          <Route path="/delivery/reviews" element={<Reviews />} />
           <Route path="/support/tickets" element={<Tickets />} />
-          <Route path="/support/subscription" element={<Subscription />} />
         </Route>
 
         {/* Doctor portal */}

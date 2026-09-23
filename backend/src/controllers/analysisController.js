@@ -4,12 +4,15 @@ const BillItem = require('../models/BillItem');
 const Test = require('../models/Test');
 const { successResponse, errorResponse } = require('../utils/response');
 
-// GET /api/analysis/test-usage?from=&to=&page=&limit=
+// GET /api/analysis/test-usage?from=&to=&search=&sort=desc|asc&page=&limit=
 // Server-side aggregation: Bills (window) -> BillItems (group by test) ->
-// Test catalog (code/name). Paginated; only the page is sent to the client.
+// Test catalog (code/name/category). Search + sort applied server-side;
+// only the requested page is sent to the client.
 const getTestUsage = async (req, res, next) => {
   try {
     const { from, to } = req.query;
+    const search = String(req.query.search || '').trim().toLowerCase();
+    const sort = req.query.sort === 'asc' ? 'asc' : 'desc';
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
@@ -33,6 +36,7 @@ const getTestUsage = async (req, res, next) => {
     if (billIds.length === 0) {
       return successResponse(res, 'Test usage loaded', {
         items: [],
+        top: [],
         slowest: [],
         totals: { orders: 0, revenue: 0, distinctTests: 0, bills: 0 },
         pagination: { total: 0, page, limit, pages: 0 }
@@ -54,24 +58,35 @@ const getTestUsage = async (req, res, next) => {
       { $sort: { count: -1 } }
     ]);
 
-    // Enrich Test-type rows with catalog code/name.
+    // Enrich Test-type rows with catalog code/name/category.
     const testIds = grouped
       .filter((g) => g.itemType === 'Test' && mongoose.Types.ObjectId.isValid(String(g._id)))
       .map((g) => new mongoose.Types.ObjectId(String(g._id)));
-    const tests = testIds.length ? await Test.find({ _id: { $in: testIds } }).select('code name').lean() : [];
+    const tests = testIds.length
+      ? await Test.find({ _id: { $in: testIds } }).select('code name category').populate('category', 'name').lean()
+      : [];
     const testMap = {};
     tests.forEach((t) => { testMap[String(t._id)] = t; });
 
-    const all = grouped.map((g) => {
+    let all = grouped.map((g) => {
       const catalog = testMap[String(g._id)];
       return {
         testId: String(g._id),
         code: catalog ? catalog.code : '',
         name: catalog ? catalog.name : (g.name || ''),
+        category: (catalog && catalog.category && catalog.category.name) || '',
         count: g.count,
         revenue: g.revenue
       };
     });
+
+    if (search) {
+      all = all.filter((r) =>
+        String(r.name || '').toLowerCase().includes(search) ||
+        String(r.code || '').toLowerCase().includes(search)
+      );
+    }
+    all.sort((a, b) => (sort === 'asc' ? a.count - b.count : b.count - a.count));
 
     const totals = {
       orders: all.reduce((s, r) => s + r.count, 0),
@@ -79,12 +94,15 @@ const getTestUsage = async (req, res, next) => {
       distinctTests: all.length,
       bills: billIds.length
     };
+    const desc = [...all].sort((a, b) => b.count - a.count);
+    const top = desc.slice(0, 5);
     const slowest = [...all].sort((a, b) => a.count - b.count).slice(0, 5);
     const total = all.length;
     const items = all.slice((page - 1) * limit, page * limit);
 
     return successResponse(res, 'Test usage loaded', {
       items,
+      top,
       slowest,
       totals,
       pagination: { total, page, limit, pages: Math.ceil(total / limit) }

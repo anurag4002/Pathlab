@@ -16,7 +16,7 @@ const Transactions = () => {
   const debouncedSearch = useDebounce(search, 500);
   const [filterType, setFilterType] = useState('');
   const [filterMethod, setFilterMethod] = useState('');
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
 
   const fetchTransactions = async () => {
@@ -96,7 +96,8 @@ const Transactions = () => {
           page,
           limit,
           pages: paginationInfo.pages,
-          onPageChange: goToPage
+          onPageChange: goToPage,
+          onLimitChange: setLimit
         }}
         renderRow={(tx) => (
           <tr key={tx._id}>

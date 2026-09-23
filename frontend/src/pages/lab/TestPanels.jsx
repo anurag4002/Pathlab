@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getPanels, createPanel, updatePanel, deletePanel } from '../../services/panelService';
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
@@ -20,6 +21,15 @@ const TestPanels = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search + client-side pagination (GET /api/panels returns the full list).
+  const [search, setSearch] = useState('');
+  const filteredPanels = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return panels;
+    return panels.filter((p) => String(p.name || '').toLowerCase().includes(q));
+  }, [panels, search]);
+  const pg = useClientPagination(filteredPanels, 10);
 
   const fetchPanels = async () => {
     setLoading(true);
@@ -160,9 +170,20 @@ const TestPanels = () => {
 
       <DataTable
         headers={['Panel Name', 'Included Tests', 'Price', 'Status', 'Actions']}
-        data={panels}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No test panels defined in the system."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search panels…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(panel) => (
           <tr key={panel._id}>
             <td style={{ fontWeight: '600' }}>{panel.name}</td>

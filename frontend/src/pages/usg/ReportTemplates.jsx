@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { getUSGTemplates } from '../../services/usgService';
 import { PageHeader, DataTable } from '../../components/common';
+import useClientPagination from '../../hooks/useClientPagination';
 
 const ReportTemplates = () => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const filtered = templates.filter((t) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(t.name || '').toLowerCase().includes(q) ||
+      String(t.findings || '').toLowerCase().includes(q);
+  });
+  const pg = useClientPagination(filtered, 10);
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -32,9 +41,20 @@ const ReportTemplates = () => {
 
       <DataTable
         headers={['Template Name', 'Default Findings Text']}
-        data={templates}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No clinical templates defined."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search templates…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(t, idx) => (
           <tr key={idx}>
             <td style={{ fontWeight: '600', verticalAlign: 'top', width: '220px' }}>{t.name}</td>

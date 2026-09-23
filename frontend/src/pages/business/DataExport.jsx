@@ -180,9 +180,7 @@ const DataExport = () => {
           )}
         />
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-          Source: GET /api/export/:dataset (text/csv). Large windows stream from the server (up to 5000 rows per
-          dataset); if the response arrives as JSON it is serialized to CSV in the browser instead. Export history is
-          not yet provided by the backend.
+          Large windows download as CSV (up to 5000 rows per dataset). Export history is not available.
         </p>
       </div>
     </div>

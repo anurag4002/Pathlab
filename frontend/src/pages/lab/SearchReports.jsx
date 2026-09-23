@@ -7,6 +7,7 @@ import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
+import usePagination from '../../hooks/usePagination';
 import { Download, FileDown, QrCode, Printer } from 'lucide-react';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
 
@@ -20,12 +21,20 @@ const STATUS_OPTIONS = [
   { value: 'Pending', label: 'Pending' },
 ];
 
+const cleanParam = (v) => {
+  if (v == null) return '';
+  const s = String(v).trim();
+  return s === 'undefined' || s === 'null' ? '' : s;
+};
+
 const SearchReports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [search, setSearch] = useState(cleanParam(searchParams.get('search')));
   const debouncedSearch = useDebounce(search, 500);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 20);
+  const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [tests, setTests] = useState([]);
   const [doctors, setDoctors] = useState([]);
 
@@ -60,10 +69,14 @@ const SearchReports = () => {
         duration: adv.from || adv.to ? undefined : (adv.duration || undefined),
         from: adv.from || undefined,
         to: adv.to || undefined,
-        limit: 50,
+        page,
+        limit,
       };
       const res = await getReports(params);
-      if (res.success) setReports(res.data.reports);
+      if (res.success) {
+        setReports(res.data.reports);
+        setPaginationInfo(res.data.pagination || { total: 0, pages: 0 });
+      }
     } catch (err) {
       console.error('Failed to query report records', err);
     } finally {
@@ -83,7 +96,7 @@ const SearchReports = () => {
     Object.entries({ ...adv, search: debouncedSearch }).forEach(([k, v]) => { if (v) qp[k] = v; });
     setSearchParams(qp, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, adv.status, adv.test, adv.duration, adv.from, adv.to, adv.referredBy, adv.cc]);
+  }, [debouncedSearch, adv.status, adv.test, adv.duration, adv.from, adv.to, adv.referredBy, adv.cc, page, limit]);
 
   const handleQr = async (report) => {
     try {
@@ -108,9 +121,9 @@ const SearchReports = () => {
 
       <AdvancedFilterBar
         values={adv}
-        onChange={setAdvKey}
-        onSearch={fetchReports}
-        onClear={() => { setAdv({ duration: '', firstName: '', status: '', referredBy: '', regNo: '', dailyCaseNo: '', uhid: '', cc: '', test: '', from: '', to: '' }); setSearch(''); }}
+        onChange={(k, v) => { setAdvKey(k, v); goToPage(1); }}
+        onSearch={() => { goToPage(1); fetchReports(); }}
+        onClear={() => { setAdv({ duration: '', firstName: '', status: '', referredBy: '', regNo: '', dailyCaseNo: '', uhid: '', cc: '', test: '', from: '', to: '' }); setSearch(''); goToPage(1); }}
         fields={[
           { key: 'duration', label: 'Duration', type: 'select', options: DURATION_OPTIONS },
           { key: 'firstName', label: 'Patient first name', type: 'text', placeholder: 'First name' },
@@ -132,8 +145,17 @@ const SearchReports = () => {
         loading={loading}
         emptyMessage="No laboratory reports matched your search filters."
         searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Type registration no / name / phone (e.g. PPL-2026)..."
+        stickyActions
+        pagination={{
+          total: paginationInfo.total,
+          page,
+          limit,
+          pages: paginationInfo.pages,
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
+        }}
         renderRow={(report) => (
           <tr key={report._id}>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{report.registrationNumber}</td>

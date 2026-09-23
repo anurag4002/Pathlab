@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getPackages, createPackage, updatePackage, deletePackage } from '../../services/packageService';
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
 
@@ -20,6 +21,15 @@ const TestPackages = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search + client-side pagination (GET /api/packages returns the full list).
+  const [search, setSearch] = useState('');
+  const filteredPackages = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return packages;
+    return packages.filter((p) => String(p.name || '').toLowerCase().includes(q));
+  }, [packages, search]);
+  const pg = useClientPagination(filteredPackages, 10);
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -161,9 +171,20 @@ const TestPackages = () => {
 
       <DataTable
         headers={['Package Name', 'Included Tests', 'Price', 'Applicable Gender', 'Status', 'Actions']}
-        data={packages}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No test packages defined in the system."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search packages…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(pkg) => (
           <tr key={pkg._id}>
             <td style={{ fontWeight: '600' }}>{pkg.name}</td>

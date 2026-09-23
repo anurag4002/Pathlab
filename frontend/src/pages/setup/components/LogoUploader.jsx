@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { ImagePlus, Trash2 } from 'lucide-react';
 
 // Phase 24 — logo uploader with client-side preview.
 // Tries the real upload endpoint first; falls back to a local preview URL
@@ -30,28 +31,45 @@ const LogoUploader = ({ value, onPreview, onFile }) => {
     onFile?.(file);
   };
 
+  const clear = () => {
+    setPreview('');
+    setError('');
+    onPreview?.('');
+    if (inputRef.current) inputRef.current.value = '';
+  };
+
   return (
     <div>
-      <label className="form-label"><span>Lab logo</span></label>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <label className="form-label" htmlFor="lab-logo-input">
+        <span>Lab logo</span>
+      </label>
+      <div className="lab-profile-logo-frame" style={{ marginBottom: 10 }}>
         {preview ? (
-          <img src={preview} alt="Lab logo preview" style={{ height: '48px', maxWidth: '180px', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '4px', background: '#fff' }} />
+          <img src={preview} alt="Lab logo preview" />
         ) : (
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No logo set</span>
+          <span className="lab-profile-logo-empty">
+            <ImagePlus size={22} />
+            No logo set
+          </span>
         )}
+      </div>
+      <div className="lab-profile-logo-actions">
         <input
           ref={inputRef}
+          id="lab-logo-input"
           type="file"
           accept="image/*"
-          style={{ fontSize: '0.8rem' }}
+          className="lab-profile-file-input"
+          style={{ flex: 1, minWidth: 180 }}
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
         {preview && (
-          <button type="button" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { setPreview(''); onPreview?.(''); if (inputRef.current) inputRef.current.value = ''; }}>
-            Clear
+          <button type="button" className="btn btn-secondary btn-sm" onClick={clear}>
+            <Trash2 size={13} /> Clear
           </button>
         )}
       </div>
+      <p className="lab-profile-note" style={{ marginTop: 6 }}>PNG with transparent background works best. Max 2 MB.</p>
       {error && <p className="form-error">{error}</p>}
     </div>
   );

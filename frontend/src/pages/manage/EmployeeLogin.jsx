@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { DataTable, PageHeader, Button, Modal, ConfirmDialog, StatusBadge } from '../../components/common';
@@ -29,6 +30,9 @@ const EmployeeLogin = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Client-side pagination (GET /api/users returns the full list).
+  const pg = useClientPagination(employees, 10);
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -174,12 +178,20 @@ const EmployeeLogin = () => {
 
       <DataTable
         headers={['Name', 'Email', 'Role', 'Status', 'Actions']}
-        data={employees}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No employee accounts matching query."
         searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
         searchPlaceholder="Search by name or email..."
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(emp) => (
           <tr key={emp._id}>
             <td style={{ fontWeight: '600' }}>{emp.name}</td>

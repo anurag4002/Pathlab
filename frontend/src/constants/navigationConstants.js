@@ -62,8 +62,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Radio',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: "Today's Cases", path: '/usg/today' },
-      { title: 'Search Cases', path: '/usg/search' },
+      { title: 'Cases', path: '/usg/today' },
       { title: 'Report Templates', path: '/usg/templates', roles: ['Admin'] }
     ]
   },
@@ -72,8 +71,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Layers',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: "Today's Cases", path: '/xray/today' },
-      { title: 'Search Cases', path: '/xray/search' },
+      { title: 'Cases', path: '/xray/today' },
       { title: 'X-Ray Reports', path: '/xray/reports' }
     ]
   },
@@ -98,9 +96,7 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Job Queue', path: '/settings/jobs' },
       { title: 'Onboarding', path: '/setup/onboarding' },
       { title: 'Templates', path: '/delivery/templates' },
-      { title: 'Reviews', path: '/delivery/reviews' },
-      { title: 'Tickets', path: '/support/tickets' },
-      { title: 'Subscription', path: '/support/subscription' }
+      { title: 'Tickets', path: '/support/tickets' }
     ]
   }
 ];

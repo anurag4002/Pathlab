@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSummary } from '../../../services/dashboardService';
 import { getOnboarding } from '../../../services/setupService';
-import { getSubscription } from '../../../services/supportService';
 import useAuth from '../../../hooks/useAuth';
 import { LoadingSpinner } from '../../../components/common';
 import DashboardStats from '../components/DashboardStats';
@@ -32,32 +31,6 @@ const OnboardingWidget = () => {
       </div>
       <div style={{ height: '8px', background: 'var(--color-border, #e2e8f0)', borderRadius: '4px', overflow: 'hidden' }}>
         <div style={{ width: `${progress.percent}%`, height: '100%', background: 'var(--color-primary, #2563eb)' }} />
-      </div>
-    </div>
-  );
-};
-
-const TrialWidget = () => {
-  const [sub, setSub] = useState(null);
-  useEffect(() => {
-    getSubscription().then((res) => { if (res.success) setSub(res.data?.subscription || null); }).catch(() => {});
-  }, []);
-  if (!sub) return null;
-  const plan = sub.plan || {};
-  return (
-    <div className="dashboard-card" style={{ marginBottom: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ fontSize: '0.875rem' }}>
-          <strong>{plan.name || 'Trial'} plan</strong>
-          {' · '}<span>{sub.status}</span>
-          {sub.trialEndsAt && <span> · trial ends {new Date(sub.trialEndsAt).toLocaleDateString()}</span>}
-          {(plan.yearlyCaseCap || plan.dailyCourtesyCap) && (
-            <span style={{ color: 'var(--color-text-muted, #64748b)' }}>
-              {' '}· caps: {plan.yearlyCaseCap ? `${plan.yearlyCaseCap}/yr` : ''}{plan.yearlyCaseCap && plan.dailyCourtesyCap ? ', ' : ''}{plan.dailyCourtesyCap ? `${plan.dailyCourtesyCap}/day` : ''}
-            </span>
-          )}
-        </div>
-        <Link to="/support/subscription" style={{ fontSize: '0.825rem', fontWeight: '600' }}>Manage subscription</Link>
       </div>
     </div>
   );
@@ -118,7 +91,6 @@ const DashboardPage = () => {
       )}
 
       <OnboardingWidget />
-      <TrialWidget />
 
       {/* Primary & Secondary KPI Metrics */}
       <DashboardStats stats={stats} />
