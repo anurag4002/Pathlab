@@ -1,0 +1,279 @@
+.onboarding-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.onboarding-hero {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+}
+
+.onboarding-ring {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.onboarding-ring svg {
+  transform: rotate(-90deg);
+}
+
+.onboarding-ring-track {
+  stroke: rgba(255, 255, 255, 0.25);
+}
+
+.onboarding-ring-fill {
+  stroke: #fff;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.onboarding-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.onboarding-hero-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.onboarding-hero-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-extrabold);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.onboarding-hero-sub {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+  margin: 0 0 var(--space-4) 0;
+}
+
+.onboarding-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background-color: #fff;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.onboarding-hero-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.onboarding-hero-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+}
+
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-4);
+}
+
+.onboarding-step {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.onboarding-step:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.onboarding-step.is-next {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+.onboarding-step.is-done {
+  opacity: 0.92;
+}
+
+.onboarding-step-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.onboarding-step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.onboarding-step.is-done .onboarding-step-icon {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.onboarding-step-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+.onboarding-step-badge.done {
+  background-color: var(--color-success-bg);
+  color: var(--color-success-hover);
+  border: 1px solid var(--color-success-border);
+}
+
+.onboarding-step-badge.next {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-subtle);
+}
+
+.onboarding-step-badge.todo {
+  background-color: var(--color-background);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.onboarding-step-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.onboarding-step-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.onboarding-step-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.onboarding-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.onboarding-card-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.onboarding-card-title svg {
+  color: var(--color-primary);
+}
+
+.onboarding-sig-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.onboarding-sig-preview {
+  height: 32px;
+  max-width: 140px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+}
+
+.onboarding-file-input {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  width: 100%;
+}
+
+.onboarding-file-input::file-selector-button {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  margin-right: var(--space-2);
+}
+
+.onboarding-file-input::file-selector-button:hover {
+  background-color: var(--color-surface-hover);
+}
+
+@media (max-width: 768px) {
+  .onboarding-sig-form {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-hero {
+    padding: var(--space-5);
+  }
+}

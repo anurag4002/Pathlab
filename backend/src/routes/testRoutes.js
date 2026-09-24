@@ -17,6 +17,9 @@ router.use(authorize('Admin'));
 
 // Tests CRUD
 router.post('/', testController.createTest);
+// Bulk + single rate updates must precede '/:id' so they are not captured as ids
+router.put('/bulk-rate-update', testController.bulkUpdateTestRates);
+router.put('/:id/rate', testController.updateTestRate);
 router.put('/:id', testController.updateTest);
 router.delete('/:id', testController.deleteTest);
 

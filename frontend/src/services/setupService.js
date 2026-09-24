@@ -18,6 +18,12 @@ export const setOnboardingStep = async (key, done = true) => (await apiClient.po
 export const getSignatures = async () => (await apiClient.get('/setup/signatures')).data;
 export const createSignature = async (formData) =>
   (await apiClient.post('/setup/signatures', formData, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+// Phase 15 — update/deactivate endpoint does NOT exist on the backend yet
+// (only GET/POST/DELETE /api/setup/signatures). Kept here so the UI can
+// attempt it and degrade to a clear "backend pending" state (no faking).
+export const updateSignature = async (id, data) =>
+  (await apiClient.put(`/setup/signatures/${id}`, data)).data;
+export const setSignatureStatus = async (id, status) => updateSignature(id, { status });
 export const deleteSignature = async (id) => (await apiClient.delete(`/setup/signatures/${id}`)).data;
 export const getBrowsers = async () => (await apiClient.get('/setup/browsers')).data;
 export const createBrowser = async (data) => (await apiClient.post('/setup/browsers', data)).data;

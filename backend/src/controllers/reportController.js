@@ -17,7 +17,19 @@ const getReports = async (req, res, next) => {
     const filters = {
       patientId: req.query.patientId,
       billId: req.query.billId,
-      registrationNumber: req.query.registrationNumber,
+      registrationNumber: req.query.registrationNumber || req.query.regNo,
+      regNo: req.query.regNo,
+      status: req.query.status,
+      uhid: req.query.uhid,
+      dailyCaseNo: req.query.dailyCaseNo,
+      cc: req.query.cc,
+      test: req.query.test,
+      firstName: req.query.firstName || req.query.patientName,
+      referredBy: req.query.referredBy,
+      duration: req.query.duration,
+      from: req.query.from || req.query.startDate,
+      to: req.query.to || req.query.endDate,
+      search: req.query.search,
       page: req.query.page,
       limit: req.query.limit
     };
@@ -112,7 +124,12 @@ module.exports = {
   getPendingLabCases,
   getReportForEntry,
   saveResultsDraft,
-  submitResults
+  submitResults,
+  verifyReport,
+  rejectReport,
+  resendReport,
+  addReportComment,
+  getDeliveryStatus
 };
 
 // ---- Result entry ----
@@ -200,7 +217,7 @@ async function loadReportPdfContext(id) {
       return { png: require('fs').readFileSync(abs), name: d.name, title: d.title };
     } catch (e) { return null; }
   }).filter(Boolean);
-  return { report, profile, testMap, token, signaturePngs };
+  return { report, patient: report.patient || null, bill: report.bill || null, profile, testMap, token, signaturePngs };
 }
 
 async function reportPdfDownload(req, res, next) {
@@ -426,6 +443,72 @@ async function submitResults(req, res, next) {
       description: `Submitted ${report.results.length} results for ${report.registrationNumber}.`
     });
     return successResponse(res, 'Results submitted successfully', report);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ---- Verification workflow + delivery-status ----
+// Frontend shapes (ungate banners later):
+//   verify/reject/resend/comment -> { report }
+//   GET /:id/delivery-status -> { report, deliveryHistory } (newest-first)
+
+async function verifyReport(req, res, next) {
+  try {
+    const report = await reportService.verifyReport(req.params.id, req.user);
+    await Activity.create({
+      user: req.user._id, action: 'Verify Report', module: 'Lab',
+      description: `Verified report ${report.registrationNumber}.`
+    });
+    return successResponse(res, 'Report verified', { report });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function rejectReport(req, res, next) {
+  try {
+    const report = await reportService.rejectReport(req.params.id, req.body && req.body.reason, req.user);
+    await Activity.create({
+      user: req.user._id, action: 'Reject Report', module: 'Lab',
+      description: `Rejected report ${report.registrationNumber}: ${report.rejectReason}`
+    });
+    return successResponse(res, 'Report rejected', { report });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function resendReport(req, res, next) {
+  try {
+    const report = await reportService.resendReport(req.params.id, req.user);
+    await Activity.create({
+      user: req.user._id, action: 'Resend Report', module: 'Lab',
+      description: `Re-queued rejected report ${report.registrationNumber} (resend #${report.resendCount}).`
+    });
+    return successResponse(res, 'Report re-queued for entry', { report });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function addReportComment(req, res, next) {
+  try {
+    const report = await reportService.addComment(req.params.id, req.body && req.body.body, req.user);
+    await Activity.create({
+      user: req.user._id, action: 'Comment Report', module: 'Lab',
+      description: `Commented on report ${report.registrationNumber}.`
+    });
+    return successResponse(res, 'Comment added', { report });
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getDeliveryStatus(req, res, next) {
+  try {
+    const { report, deliveryHistory } = await reportService.getDeliveryHistory(req.params.id);
+    return successResponse(res, 'Delivery status loaded', { report, deliveryHistory });
   } catch (error) {
     next(error);
   }

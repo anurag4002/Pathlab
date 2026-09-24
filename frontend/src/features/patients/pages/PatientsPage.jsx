@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
-import { DataTable, PageHeader, Button, ConfirmDialog, StatusBadge } from '../../../components/common';
+import { DataTable, PageHeader, Button, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../../components/common';
 import { PATIENT_TABLE_HEADERS } from '../../../constants/patientConstants';
 import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
 import usePagination from '../../../hooks/usePagination';
@@ -37,8 +37,10 @@ const PatientsPage = () => {
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage } = usePagination(1, 10);
+  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
+  const [adv, setAdv] = useState({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' });
+  const setAdvKey = (k, v) => setAdv((p) => ({ ...p, [k]: v }));
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -46,7 +48,17 @@ const PatientsPage = () => {
   const fetchPatientsList = async () => {
     setLoading(true);
     try {
-      const res = await getPatients({ search: debouncedSearch, page, limit });
+      const res = await getPatients({
+        search: debouncedSearch || undefined,
+        uhid: adv.uhid || undefined,
+        firstName: adv.firstName || undefined,
+        lastName: adv.lastName || undefined,
+        mobile: adv.mobile || undefined,
+        patientId: adv.patientId || undefined,
+        from: adv.from || undefined,
+        to: adv.to || undefined,
+        page, limit
+      });
       if (res.success) {
         setPatients(res.data.patients);
         setPaginationInfo(res.data.pagination);
@@ -79,7 +91,8 @@ const PatientsPage = () => {
 
   useEffect(() => {
     fetchPatientsList();
-  }, [debouncedSearch, page, limit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, page, limit, adv.uhid, adv.firstName, adv.lastName, adv.mobile, adv.patientId, adv.from, adv.to]);
 
   useEffect(() => {
     fetchDoctorsList();
@@ -163,8 +176,24 @@ const PatientsPage = () => {
         }
       />
 
+      <AdvancedFilterBar
+        values={adv}
+        onChange={setAdvKey}
+        onSearch={() => { goToPage(1); fetchPatientsList(); }}
+        onClear={() => { setAdv({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' }); setSearch(''); goToPage(1); }}
+        fields={[
+          { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
+          { key: 'firstName', label: 'First name', type: 'text', placeholder: 'First name' },
+          { key: 'lastName', label: 'Last name', type: 'text', placeholder: 'Last name' },
+          { key: 'mobile', label: 'Mobile number', type: 'text', placeholder: 'Mobile' },
+          { key: 'patientId', label: 'ID', type: 'text', placeholder: 'ID / Reg.no' },
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' },
+        ]}
+      />
+
       <DataTable
-        headers={PATIENT_TABLE_HEADERS}
+        headers={['Reg No', 'Name', 'Address', 'Mobile', 'Registered On', 'Referred By', 'Actions']}
         data={patients}
         loading={loading}
         emptyMessage="No patient profiles matched your query."
@@ -176,7 +205,8 @@ const PatientsPage = () => {
           page,
           limit,
           pages: paginationInfo.pages,
-          onPageChange: goToPage
+          onPageChange: goToPage,
+          onLimitChange: setLimit,
         }}
         renderRow={(patient) => (
           <tr key={patient._id}>
@@ -184,9 +214,9 @@ const PatientsPage = () => {
               {patient.registrationNumber}
             </td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{patient.name}</td>
-            <td>{patient.age} Yrs</td>
-            <td>{patient.gender}</td>
+            <td>{patient.address || '—'}</td>
             <td>{patient.phone}</td>
+            <td>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString('en-IN') : '—'}</td>
             <td>{patient.referringDoctor?.name || 'Self'}</td>
             <td>
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>

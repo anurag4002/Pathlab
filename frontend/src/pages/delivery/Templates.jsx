@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { getTemplates, saveTemplate } from '../../services/notifyService';
 import { PageHeader, DataTable, Button, Modal, Input } from '../../components/common';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Edit2 } from 'lucide-react';
 
 const Templates = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const filtered = list.filter((t) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(t.key || '').toLowerCase().includes(q) ||
+      String(t.channel || '').toLowerCase().includes(q) ||
+      String(t.body || t.content || '').toLowerCase().includes(q);
+  });
+  const pg = useClientPagination(filtered, 10);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ key: '', channel: 'sms', body: '' });
   const [saving, setSaving] = useState(false);
@@ -22,7 +32,18 @@ const Templates = () => {
   return (
     <div>
       <PageHeader title="Message Templates" subtitle="SMS / WhatsApp / Email templates" action={<Button size="sm" onClick={() => open(null)}>New Template</Button>} />
-      <DataTable headers={['Key', 'Channel', 'Body', 'Action']} data={list} loading={loading} emptyMessage="No templates."
+      <DataTable headers={['Key', 'Channel', 'Body', 'Action']} data={pg.paged} loading={loading} emptyMessage="No templates."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search templates…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(t, i) => (<tr key={t._id || i}><td style={{ fontWeight: 600 }}>{t.key}</td><td>{t.channel}</td>
           <td style={{ maxWidth: 320, fontSize: '.8rem' }}>{(t.body || t.content || '').slice(0, 100)}</td>
           <td><button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => open(t)}><Edit2 size={13} /></button></td></tr>)} />

@@ -8,6 +8,7 @@ import SearchCategory from './SearchCategory';
 import SearchResults from './SearchResults';
 import SearchResultItem from './SearchResultItem';
 import formatCurrency from '../../utils/formatCurrency';
+import { buildBillsSearchUrl } from '../../utils/billNavigation';
 import './Search.css';
 
 const GlobalSearch = () => {
@@ -38,7 +39,8 @@ const GlobalSearch = () => {
     if (type === 'Patient') {
       navigate(`/cases/patients/${item._id}`);
     } else if (type === 'Bill') {
-      navigate(`/cases/bills?search=${item.billNumber}`);
+      if (!item?.billNumber) return;
+      navigate(buildBillsSearchUrl(item));
     }
   };
 

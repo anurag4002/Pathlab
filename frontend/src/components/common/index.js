@@ -3,6 +3,7 @@ export { default as Input } from './Input/Input';
 export { default as Select } from './Select/Select';
 export { default as DatePicker } from './DatePicker/DatePicker';
 export { default as FileUploader } from './FileUploader/FileUploader';
+export { default as ImageUploader } from './ImageUploader/ImageUploader';
 export { default as Modal } from './Modal/Modal';
 export { default as ConfirmDialog } from './ConfirmDialog/ConfirmDialog';
 export { default as DataTable } from './DataTable/DataTable';
@@ -14,5 +15,8 @@ export { default as SignaturePreview } from './SignaturePreview/SignaturePreview
 export { default as TatTimeline } from './TatTimeline/TatTimeline';
 export { default as Letterhead } from './Letterhead/Letterhead';
 export { default as PageHeader } from './PageHeader/PageHeader';
+export { default as AdvancedFilterBar, DURATION_OPTIONS } from './AdvancedFilterBar/AdvancedFilterBar';
 export { default as EmptyState } from './EmptyState/EmptyState';
 export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
+export { default as TestCombobox } from './TestCombobox/TestCombobox';
+export { default as PatientPicker } from './PatientPicker/PatientPicker';

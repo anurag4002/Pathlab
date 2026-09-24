@@ -27,6 +27,14 @@ const PatientSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  // Universal Health ID (Labsmart §11). Optional + sparse so existing
+  // records stay valid; new registrations can enforce uniqueness.
+  uhid: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
   address: {
     type: String,
     trim: true

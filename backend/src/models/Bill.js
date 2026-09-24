@@ -70,6 +70,52 @@ const BillSchema = new mongoose.Schema({
     default: 'LAB',
     index: true
   },
+  // Case-wise report parity (§5): 13 Labsmart case types.
+  caseType: {
+    type: String,
+    enum: ['LabCase', 'UsgCase', 'DigitalXrayCase', 'XrayCase', 'OutsourceLabCase', 'EcgCase', 'CtScanCase', 'MriCase', 'EpsCase', 'OpgCase', 'CardiologyCase', 'EegCase', 'MammographyCase'],
+    default: 'LabCase',
+    index: true
+  },
+  collectionCentre: {
+    type: String,
+    trim: true,
+    default: 'Main',
+    index: true
+  },
+  // Exclude-cancelled filter parity. Prefer isVoided (fraud guard) but keep
+  // a lightweight cancelled flag for Labsmart-style soft cancels.
+  cancelled: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  cancelReason: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  // Denormalised patient lookup helpers for case-wise grid (UHID + DCN).
+  uhid: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
+  dailyCaseNo: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
+  discountPercent: {
+    type: Boolean,
+    default: false
+  },
+  onlineReportRequested: {
+    type: Boolean,
+    default: false
+  },
   // Public self-service token for bill QR (GET /r/bill/:token, no login).
   qrToken: {
     type: String,

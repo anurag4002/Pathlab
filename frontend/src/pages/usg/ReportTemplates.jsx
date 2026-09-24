@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getUSGTemplates } from '../../services/usgService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { PageHeader, DataTable, Button } from '../../components/common';
 import '../../styles/USG.css';
 
-/* Surfaces only the backend's user-facing `message` field (never stack traces),
-   with sensible fallbacks per failure type (same mapping as the other lab
-   screens). */
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
     const data = err.response.data;
-    if (data && typeof data.message === 'string' && data.message.trim()) {
-      return data.message;
-    }
+    if (data && typeof data.message === 'string' && data.message.trim()) return data.message;
     const status = err.response.status;
     if (status === 401) return 'Your session has expired. Please log in again.';
     if (status === 403) return 'You do not have permission to perform this action.';
@@ -27,33 +23,46 @@ const getApiErrorMessage = (err, fallback) => {
   return err?.message || fallback;
 };
 
-/* Read-only list of the templates served by GET /usg/templates — every name
-   and findings text below comes from that response; nothing is hardcoded. */
 const ReportTemplates = () => {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  // A failed load must read as an error, never as "no templates defined".
   const [loadError, setLoadError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
+    let active = true;
     const fetchTemplates = async () => {
       setLoading(true);
       try {
         const res = await getUSGTemplates();
-        if (res.success) {
-          setTemplates(res.data);
-          setLoadError(null);
+        if (!active) return;
+        if (!res?.success) {
+          setTemplates([]);
+          setLoadError(res?.message || 'Failed to load USG report templates.');
+          return;
         }
+        setTemplates(Array.isArray(res.data) ? res.data : []);
+        setLoadError(null);
       } catch (err) {
+        if (!active) return;
         setTemplates([]);
         setLoadError(getApiErrorMessage(err, 'Failed to load USG report templates.'));
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
     fetchTemplates();
+    return () => { active = false; };
   }, [reloadKey]);
+
+  const query = search.trim().toLowerCase();
+  const filtered = templates.filter((template) => {
+    if (!query) return true;
+    return String(template.name || '').toLowerCase().includes(query) ||
+      String(template.findings || '').toLowerCase().includes(query);
+  });
+  const pg = useClientPagination(filtered, 10);
 
   return (
     <div>
@@ -79,15 +88,29 @@ const ReportTemplates = () => {
 
       <DataTable
         headers={['Template Name', 'Default Findings Text']}
-        data={templates}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No clinical templates defined."
-        renderRow={(t, idx) => (
-          <tr key={idx}>
-            <td style={{ fontWeight: '600', verticalAlign: 'top', width: '220px' }}>{t.name}</td>
+        searchValue={search}
+        onSearchChange={(event) => {
+          setSearch(event.target.value);
+          pg.reset();
+        }}
+        searchPlaceholder="Search templates…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit
+        }}
+        renderRow={(template, index) => (
+          <tr key={template._id || index}>
+            <td style={{ fontWeight: '600', verticalAlign: 'top', width: '220px' }}>{template.name}</td>
             <td>
               <pre style={{ fontFamily: 'inherit', fontSize: '0.825rem', whiteSpace: 'pre-wrap', color: 'var(--color-text-muted)' }}>
-                {t.findings}
+                {template.findings}
               </pre>
             </td>
           </tr>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
 import { getInvites, createInvite } from '../../services/doctorPortalService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
@@ -27,6 +28,10 @@ const DoctorAccess = () => {
   const [invForm, setInvForm] = useState({ name: '', email: '', phone: '' });
   const [invToken, setInvToken] = useState('');
   const [invSaving, setInvSaving] = useState(false);
+
+  // Client-side pagination for both tables.
+  const pgInvites = useClientPagination(invites, 5);
+  const pgDoctors = useClientPagination(doctors, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -151,18 +156,34 @@ const DoctorAccess = () => {
           <Button type="submit" size="sm" loading={invSaving}>Send Invite</Button>
         </form>
         {invToken && <p style={{ fontSize: '.8rem', marginTop: 8 }}>Invite token: <code>{invToken}</code></p>}
-        <DataTable headers={['Name', 'Email', 'Phone', 'Token / Status']} data={invites} loading={invLoading} emptyMessage="No invites yet."
+        <DataTable headers={['Name', 'Email', 'Phone', 'Token / Status']} data={pgInvites.paged} loading={invLoading} emptyMessage="No invites yet."
+          pagination={{
+            total: pgInvites.total,
+            page: pgInvites.page,
+            limit: pgInvites.limit,
+            pages: pgInvites.pages,
+            onPageChange: pgInvites.goToPage,
+            onLimitChange: pgInvites.setLimit,
+          }}
           renderRow={(iv, i) => (<tr key={iv._id || i}><td>{iv.name}</td><td>{iv.email}</td><td>{iv.phone || '-'}</td><td style={{ fontSize: '.78rem' }}><code>{iv.token || iv.status || '-'}</code></td></tr>)} />
       </div>
 
       <DataTable
         headers={['Name', 'Email Address', 'Role', 'Status', 'Actions']}
-        data={doctors}
+        data={pgDoctors.paged}
         loading={loading}
         emptyMessage="No Doctor accounts configured."
         searchValue={search}
-        onSearchChange={(e) => setSearch(e.target.value)}
+        onSearchChange={(e) => { setSearch(e.target.value); pgDoctors.reset(); }}
         searchPlaceholder="Search by doctor name..."
+        pagination={{
+          total: pgDoctors.total,
+          page: pgDoctors.page,
+          limit: pgDoctors.limit,
+          pages: pgDoctors.pages,
+          onPageChange: pgDoctors.goToPage,
+          onLimitChange: pgDoctors.setLimit,
+        }}
         renderRow={(doc) => (
           <tr key={doc._id}>
             <td style={{ fontWeight: '600' }}>{doc.name}</td>

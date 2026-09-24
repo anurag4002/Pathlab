@@ -13,7 +13,8 @@ const app = require('../src/app');
 const EXPECTED_MOUNTS = [
   'auth', 'users', 'patients', 'doctors', 'agents', 'bills', 'tests',
   'reports', 'expenses', 'transactions', 'usg', 'xray', 'dashboard', 'patient',
-  'public', 'setup', 'notify', 'support', 'modality', 'doctor', 'export'
+  'public', 'setup', 'settings', 'audit-log', 'notify', 'support', 'modality', 'doctor', 'export',
+  'jobs', 'analysis'
 ];
 
 function routerMountRegexps() {

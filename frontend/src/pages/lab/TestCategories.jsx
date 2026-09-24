@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../services/testService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog } from '../../components/common';
 
@@ -17,6 +18,15 @@ const TestCategories = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search + client-side pagination.
+  const [search, setSearch] = useState('');
+  const filteredCategories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => String(c.name || '').toLowerCase().includes(q));
+  }, [categories, search]);
+  const pg = useClientPagination(filteredCategories, 10);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -114,9 +124,20 @@ const TestCategories = () => {
 
       <DataTable
         headers={['Category Name', 'Description', 'Actions']}
-        data={categories}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No clinical categories defined."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search categories…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(category) => (
           <tr key={category._id}>
             <td style={{ fontWeight: '600' }}>{category.name}</td>

@@ -17,6 +17,11 @@ router.put('/:id/results', requirePermission('reports'), reportController.saveRe
 router.put('/:id/results/draft', requirePermission('reports'), reportController.saveResultsDraft);
 router.put('/:id/results/submit', requirePermission('reports'), reportController.submitResults);
 router.post('/:id/sign', requirePermission('reports'), reportController.signReport);
+router.post('/:id/verify', requirePermission('reports'), reportController.verifyReport);
+router.post('/:id/reject', requirePermission('reports'), reportController.rejectReport);
+router.post('/:id/resend', requirePermission('reports'), reportController.resendReport);
+router.post('/:id/comments', requirePermission('reports'), reportController.addReportComment);
+router.get('/:id/delivery-status', requirePermission('reports'), reportController.getDeliveryStatus);
 router.put('/:id/tat', requirePermission('reports'), reportController.updateTat);
 router.get('/:id/pdf', reportController.reportPdfDownload);
 router.get('/:id/qr', reportController.reportQr);

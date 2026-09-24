@@ -19,12 +19,24 @@ const Modal = ({
     };
 
     if (isOpen) {
+      // Lock page scroll without shifting content right: hiding the page
+      // scrollbar otherwise adds a ~15px jump (visible behind the modal).
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
+      const prevOverflow = document.body.style.overflow;
+      const prevPaddingRight = document.body.style.paddingRight;
       document.body.style.overflow = 'hidden';
+      if (scrollBarWidth > 0) {
+        document.body.style.paddingRight = `${scrollBarWidth}px`;
+      }
       window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        document.body.style.paddingRight = prevPaddingRight;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
 
     return () => {
-      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);

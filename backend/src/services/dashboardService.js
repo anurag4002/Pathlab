@@ -75,6 +75,7 @@ const getDashboardStats = async () => {
   // Recent transactions
   const recentTransactions = await Transaction.find()
     .populate('patient', 'name registrationNumber')
+    .populate('bill', 'billNumber')
     .sort({ date: -1 })
     .limit(5);
 

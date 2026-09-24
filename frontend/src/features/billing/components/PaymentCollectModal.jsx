@@ -60,6 +60,7 @@ const PaymentCollectModal = ({
           options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
           required
         />
+        {error && <p className="form-error" style={{ margin: 0 }}>{error}</p>}
       </div>
     </Modal>
   );

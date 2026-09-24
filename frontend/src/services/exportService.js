@@ -1,6 +1,8 @@
 import apiClient from './apiClient';
 import { downloadBlob } from '../utils/downloadFile';
 
+export const EXPORT_DATASETS = ['bills', 'patients', 'expenses', 'transactions'];
+
 const getHeader = (headers, name) => {
   if (typeof headers?.get === 'function') {
     const headerValue = headers.get(name);
@@ -80,43 +82,123 @@ const toExportError = async (error) => {
   return exportError;
 };
 
-// Server-side CSV export (bills|patients|expenses|transactions) with the
-// backend's date-window contract; the service is capped at 5,000 rows.
-export const downloadServerCsv = async (dataset, { startDate, endDate } = {}) => {
+const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+export const toCsv = (headers, rows) =>
+  ['\uFEFF' + headers.map(esc).join(','), ...rows.map((row) => row.map(esc).join(','))].join('\n');
+
+export const downloadCsvText = (csvText, filename) => {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+  return downloadBlob(blob, filename);
+};
+
+const toText = async (data) => {
+  if (typeof data === 'string') return data;
+  if (typeof Blob !== 'undefined' && data instanceof Blob) return data.text();
+  if (data == null) return '';
+  return String(data);
+};
+
+// Fetch the export as text so both normal CSV responses and JSON fallback
+// payloads can be handled by the same client. HTTP errors are normalized here
+// for the export center and the daily ledger alike.
+export const fetchExportPayload = async (dataset, { startDate, endDate } = {}) => {
   try {
     const response = await apiClient.get(`/export/${dataset}`, {
       params: { startDate, endDate },
       responseType: 'blob'
     });
-    const contentType = getHeader(response.headers, 'content-type') || 'text/csv; charset=utf-8';
-
-    if (/application\/json|text\/html/i.test(contentType)) {
-      const error = new Error('The export service returned an unexpected file type.');
-      error.isExportError = true;
-      throw error;
-    }
-
-    const blob = response.data instanceof Blob
-      ? response.data
-      : new Blob([response.data || ''], { type: contentType });
-    if (blob.size === 0) {
-      const error = new Error('The export service returned an empty file.');
-      error.isExportError = true;
-      throw error;
-    }
-
-    const fallbackFilename = `${dataset}_${startDate || 'all'}_${endDate || 'all'}.csv`;
-    const filename = getContentDispositionFilename(
-      getHeader(response.headers, 'content-disposition'),
-      fallbackFilename
-    );
-    const downloadedFilename = downloadBlob(blob, filename);
     return {
-      filename: downloadedFilename,
-      contentType,
-      size: blob.size
+      data: await toText(response.data),
+      contentType: getHeader(response.headers, 'content-type') || 'text/csv; charset=utf-8',
+      headers: response.headers
     };
   } catch (error) {
     throw await toExportError(error);
   }
+};
+
+export const jsonToCsv = (payload, headers = null) => {
+  const list = Array.isArray(payload) ? payload : payload?.rows || payload?.data || [];
+  if (!list.length) return toCsv(headers || ['(empty)'], []);
+
+  const cols = headers || Object.keys(list[0] && typeof list[0] === 'object' ? list[0] : { value: '' });
+  const rows = list.map((item) =>
+    Array.isArray(item) ? item : cols.map((column) => (typeof item === 'object' && item !== null ? item[column] : item))
+  );
+  return toCsv(cols, rows);
+};
+
+const buildFilename = (dataset, startDate, endDate) =>
+  `${dataset}_${startDate || 'all'}_${endDate || 'all'}.csv`;
+
+const isJsonBody = (data, contentType) =>
+  /application\/json/i.test(contentType || '') ||
+  (typeof data === 'string' && (data.trim().startsWith('{') || data.trim().startsWith('[')));
+
+// Download the server-generated CSV. If a proxy/cache returns JSON instead,
+// serialize that payload client-side rather than saving an unusable file.
+export const downloadServerCsv = async (dataset, { startDate, endDate } = {}) => {
+  const { data, contentType, headers } = await fetchExportPayload(dataset, { startDate, endDate });
+  const fallbackFilename = buildFilename(dataset, startDate, endDate);
+  const filename = getContentDispositionFilename(
+    getHeader(headers, 'content-disposition'),
+    fallbackFilename
+  );
+
+  if (!isJsonBody(data, contentType)) {
+    if (!data) {
+      const error = new Error('The export service returned an empty file.');
+      error.isExportError = true;
+      throw error;
+    }
+    const csv = data.startsWith('\uFEFF') ? data : `\uFEFF${data}`;
+    const downloadedFilename = downloadCsvText(csv, filename);
+    return {
+      source: 'server',
+      filename: downloadedFilename,
+      contentType,
+      bytes: csv.length
+    };
+  }
+
+  let parsed = data;
+  try {
+    parsed = JSON.parse(data);
+  } catch {
+    // Preserve an unexpected non-CSV body as evidence instead of silently
+    // producing a misleading empty CSV.
+    const downloadedFilename = downloadCsvText(data, filename);
+    return { source: 'raw', filename: downloadedFilename, bytes: data.length };
+  }
+
+  const csv = jsonToCsv(parsed?.data ?? parsed);
+  const downloadedFilename = downloadCsvText(csv, filename);
+  const count = Array.isArray(parsed?.data) ? parsed.data.length : Array.isArray(parsed) ? parsed.length : 0;
+  return {
+    source: 'client-fallback',
+    filename: downloadedFilename,
+    bytes: csv.length,
+    rows: count
+  };
+};
+
+// Preview count: number of data rows the current window would export.
+export const fetchExportPreviewCount = async (dataset, { startDate, endDate } = {}) => {
+  const { data, contentType } = await fetchExportPayload(dataset, { startDate, endDate });
+  if (!isJsonBody(data, contentType) && typeof data === 'string' && data.includes('\n')) {
+    const lines = data.replace(/^\uFEFF/, '').split('\n').filter((line) => line.trim() !== '');
+    return Math.max(0, lines.length - 1);
+  }
+
+  let parsed = data;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return 0;
+    }
+  }
+  const list = Array.isArray(parsed) ? parsed : parsed?.data || parsed?.rows || [];
+  return Array.isArray(list) ? list.length : 0;
 };

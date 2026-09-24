@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getPackages, createPackage, updatePackage, deletePackage } from '../../services/packageService';
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
 
 const TestPackages = () => {
   const [packages, setPackages] = useState([]);
@@ -20,6 +21,15 @@ const TestPackages = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search + client-side pagination (GET /api/packages returns the full list).
+  const [search, setSearch] = useState('');
+  const filteredPackages = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return packages;
+    return packages.filter((p) => String(p.name || '').toLowerCase().includes(q));
+  }, [packages, search]);
+  const pg = useClientPagination(filteredPackages, 10);
 
   const fetchPackages = async () => {
     setLoading(true);
@@ -161,9 +171,20 @@ const TestPackages = () => {
 
       <DataTable
         headers={['Package Name', 'Included Tests', 'Price', 'Applicable Gender', 'Status', 'Actions']}
-        data={packages}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No test packages defined in the system."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search packages…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(pkg) => (
           <tr key={pkg._id}>
             <td style={{ fontWeight: '600' }}>{pkg.name}</td>
@@ -221,7 +242,7 @@ const TestPackages = () => {
           </>
         }
       >
-        <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
+        <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
           
           <Input
@@ -260,7 +281,16 @@ const TestPackages = () => {
             />
           </div>
 
-          {/* Checklist of tests */}
+          {/* Checklist of tests — Phase 12 combobox quick-add + legacy checklist */}
+          <div className="form-group">
+            <TestCombobox
+              label="Quick add test to package"
+              placeholder="Type to find and add a test…"
+              onSelect={(t) => setFormData(prev => (
+                prev.includedTests.includes(t._id) ? prev : { ...prev, includedTests: [...prev.includedTests, t._id] }
+              ))}
+            />
+          </div>
           <div className="form-group">
             <label className="form-label" style={{ marginBottom: '8px' }}>
               Select Tests to Include {errors.includedTests && <span className="form-error"> - {errors.includedTests}</span>}

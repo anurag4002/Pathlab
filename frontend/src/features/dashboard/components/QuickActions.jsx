@@ -8,6 +8,7 @@ import {
   FileEdit,
   TrendingUp,
   BarChart3,
+  Upload,
   ChevronRight
 } from 'lucide-react';
 import { QUICK_ACTIONS } from '../../../constants/dashboardConstants';
@@ -21,7 +22,8 @@ const ICON_MAP = {
   Radio,
   FileEdit,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Upload
 };
 
 const QuickActions = () => {

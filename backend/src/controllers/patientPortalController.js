@@ -4,6 +4,10 @@ const Patient = require('../models/Patient');
 const Report = require('../models/Report');
 const USGCase = require('../models/USGCase');
 const XrayCase = require('../models/XrayCase');
+const Test = require('../models/Test');
+const TestPackage = require('../models/TestPackage');
+const Inquiry = require('../models/Inquiry');
+const generateRegistrationNumber = require('../utils/generateRegistrationNumber');
 const otpService = require('../services/otpService');
 const storageService = require('../services/storageService');
 const { successResponse, errorResponse } = require('../utils/response');
@@ -19,14 +23,15 @@ const requestOtp = async (req, res, next) => {
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
 
-    // Check if any patient is registered under this phone
+    // Never block login: OTP is issued for any valid number. New visitors
+    // (no Patient record yet) create their profile after verification.
     const patientCount = await Patient.countDocuments({ phone: cleanPhone });
-    if (patientCount === 0) {
-      return errorResponse(res, 'No patient records found for this mobile number. Please check the number or contact Pure Path Lab.', 404);
-    }
 
     const result = await otpService.requestOtp(cleanPhone);
-    return successResponse(res, MESSAGES.PATIENT_PORTAL.OTP_SENT, result);
+    return successResponse(res, MESSAGES.PATIENT_PORTAL.OTP_SENT, {
+      ...result,
+      isNew: patientCount === 0
+    });
   } catch (error) {
     next(error);
   }
@@ -58,7 +63,8 @@ const verifyOtp = async (req, res, next) => {
     return successResponse(res, MESSAGES.PATIENT_PORTAL.OTP_VERIFIED, {
       token,
       phone: cleanPhone,
-      patients
+      patients,
+      isNew: patients.length === 0
     });
   } catch (error) {
     next(error);
@@ -276,9 +282,140 @@ const downloadPatientReport = async (req, res, next) => {
   }
 };
 
+// ---- Self-service registration + booking inquiries (no payment) ----
+
+// POST /api/patient/register — create the caller's own patient profile
+// after OTP verification. One phone may own several profiles (family).
+const registerPatient = async (req, res, next) => {
+  try {
+    const phone = req.patientPhone;
+    const { name, age, gender, address } = req.body || {};
+    if (!name || !String(name).trim()) {
+      return errorResponse(res, 'Full name is required', 400);
+    }
+    const ageNum = Number(age);
+    if (!Number.isFinite(ageNum) || ageNum < 0 || ageNum > 130) {
+      return errorResponse(res, 'Valid age is required', 400);
+    }
+    if (!['Male', 'Female', 'Other'].includes(gender)) {
+      return errorResponse(res, 'Gender must be Male, Female or Other', 400);
+    }
+    const registrationNumber = await generateRegistrationNumber();
+    const patient = await Patient.create({
+      registrationNumber,
+      name: String(name).trim(),
+      age: Math.floor(ageNum),
+      gender,
+      phone,
+      address: address ? String(address).trim() : ''
+    });
+    return successResponse(res, 'Profile created', patient, 201);
+  } catch (error) {
+    // Duplicate registration number (parallel self-registers): retry once.
+    if (error && error.code === 11000) {
+      try {
+        const { name, age, gender, address } = req.body || {};
+        const retry = await Patient.create({
+          registrationNumber: await generateRegistrationNumber(),
+          name: String(name).trim(),
+          age: Math.floor(Number(age)),
+          gender,
+          phone: req.patientPhone,
+          address: address ? String(address).trim() : ''
+        });
+        return successResponse(res, 'Profile created', retry, 201);
+      } catch (e) { /* fall through */ }
+    }
+    next(error);
+  }
+};
+
+// GET /api/patient/catalog — bookable tests + packages (no PHI).
+const getCatalog = async (req, res, next) => {
+  try {
+    const [tests, packages] = await Promise.all([
+      Test.find({ status: 'Active' }).select('name code price').sort({ name: 1 }).lean(),
+      TestPackage.find({ status: 'Active' }).select('name price').sort({ name: 1 }).lean()
+    ]);
+    return successResponse(res, 'Catalog loaded', { tests, packages });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/patient/inquiries — raise a booking inquiry (pay at lab, never
+// online: no bill is created and no payment is accepted here).
+const createInquiry = async (req, res, next) => {
+  try {
+    const phone = req.patientPhone;
+    const { patientId, name, items, preferredDate, note } = req.body || {};
+    const list = Array.isArray(items) ? items : [];
+    if (list.length === 0) {
+      return errorResponse(res, 'Select at least one test or package to book', 400);
+    }
+    if (list.length > 20) {
+      return errorResponse(res, 'Too many items in one booking (max 20)', 400);
+    }
+    let patientRef = null;
+    let displayName = String(name || '').trim();
+    if (patientId) {
+      const owned = await Patient.findOne({ _id: patientId, phone }).select('_id name');
+      if (!owned) return errorResponse(res, 'Unknown profile for this number', 400);
+      patientRef = owned._id;
+      if (!displayName) displayName = owned.name;
+    }
+    if (!displayName) {
+      const first = await Patient.findOne({ phone }).select('name');
+      displayName = first ? first.name : '';
+    }
+    if (!displayName) {
+      return errorResponse(res, 'Your name is required for the booking', 400);
+    }
+    const cleanItems = list.slice(0, 20).map((it) => ({
+      kind: ['Test', 'Package'].includes(it.kind) ? it.kind : 'Other',
+      refId: it.refId || null,
+      name: String(it.name || 'Test').slice(0, 120),
+      price: Math.max(0, Number(it.price) || 0)
+    }));
+    let prefDate = null;
+    if (preferredDate) {
+      const d = new Date(preferredDate);
+      if (Number.isNaN(d.getTime())) return errorResponse(res, 'Invalid preferred date', 400);
+      prefDate = d;
+    }
+    const inquiry = await Inquiry.create({
+      patient: patientRef,
+      name: displayName,
+      phone,
+      items: cleanItems,
+      preferredDate: prefDate,
+      note: String(note || '').slice(0, 500),
+      status: 'New',
+      source: 'portal'
+    });
+    return successResponse(res, 'Booking inquiry received. Pay at the lab — no online payment needed.', inquiry, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/patient/inquiries — the caller's own booking inquiries.
+const listMyInquiries = async (req, res, next) => {
+  try {
+    const docs = await Inquiry.find({ phone: req.patientPhone }).sort({ createdAt: -1 }).limit(50).lean();
+    return successResponse(res, 'Booking inquiries loaded', docs);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   requestOtp,
   verifyOtp,
+  registerPatient,
+  getCatalog,
+  createInquiry,
+  listMyInquiries,
   getPatientReports,
   getPatientReportById,
   downloadPatientReport

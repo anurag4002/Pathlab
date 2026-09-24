@@ -47,6 +47,35 @@ const deleteTest = async (id) => {
   return await Test.findByIdAndDelete(id);
 };
 
+const updateTestRate = async (id, price) => {
+  return await Test.findByIdAndUpdate(id, { price }, { new: true });
+};
+
+// Atomic-ish bulk rate update: sequential updates with per-item outcome counts.
+const bulkUpdateTestRates = async (updates = []) => {
+  const results = { ok: 0, failed: 0, errors: [] };
+  for (const u of updates) {
+    try {
+      if (!u || !u.id || u.price === undefined || u.price === null || isNaN(Number(u.price)) || Number(u.price) < 0) {
+        results.failed += 1;
+        results.errors.push({ id: u && u.id, error: 'Invalid id or price' });
+        continue;
+      }
+      const updated = await Test.findByIdAndUpdate(u.id, { price: Number(u.price) }, { new: true });
+      if (!updated) {
+        results.failed += 1;
+        results.errors.push({ id: u.id, error: 'Test not found' });
+      } else {
+        results.ok += 1;
+      }
+    } catch (err) {
+      results.failed += 1;
+      results.errors.push({ id: u && u.id, error: err.message });
+    }
+  }
+  return results;
+};
+
 // Panels
 const getPanels = async () => {
   return await TestPanel.find().populate('tests').sort({ name: 1 });
@@ -109,6 +138,8 @@ module.exports = {
   createTest,
   updateTest,
   deleteTest,
+  updateTestRate,
+  bulkUpdateTestRates,
   getPanels,
   createPanel,
   updatePanel,

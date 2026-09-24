@@ -165,12 +165,15 @@ function billPdf({ bill, patient, doctor, agent, items, profile }, { letterhead 
     .text('BILL / INVOICE', MARGIN, doc.y, { align: 'center', width: contentWidth(doc) });
   doc.moveDown(0.6);
 
+  // Patient may be missing (deleted record) — never crash the PDF.
+  const bp = patient || {};
+  const bDemo = [bp.gender, (bp.age === undefined || bp.age === null || bp.age === '') ? '' : `${bp.age}y`].filter(Boolean).join(', ');
   metaLines(doc, [
     ['Bill No: ', bill.billNumber],
-    ['Date: ', new Date(bill.date).toLocaleString()],
-    ['Patient: ', `${patient.name} (${patient.gender}, ${patient.age}y)`],
-    ['Reg No: ', patient.registrationNumber],
-    ['Phone: ', patient.phone],
+    ['Date: ', bill.date ? new Date(bill.date).toLocaleString() : '—'],
+    ['Patient: ', bDemo ? `${bp.name || 'Walk-in Patient'} (${bDemo})` : (bp.name || 'Walk-in Patient')],
+    ['Reg No: ', bp.registrationNumber || '—'],
+    ['Phone: ', bp.phone || '—'],
     ...(doctor ? [['Referred By: ', doctor.name]] : []),
     ...(bill.department ? [['Department: ', bill.department]] : [])
   ]);
@@ -228,11 +231,14 @@ function reportPdf({ report, patient, bill, testMap, profile }, { letterhead = t
     .text('LABORATORY REPORT', MARGIN, doc.y, { align: 'center', width: contentWidth(doc) });
   doc.moveDown(0.6);
 
+  // Patient may be missing (walk-in / deleted record) — never crash the PDF.
+  const p = patient || {};
+  const demoBits = [p.gender, (p.age === undefined || p.age === null || p.age === '') ? '' : `${p.age}y`].filter(Boolean).join(', ');
   metaLines(doc, [
-    ['Patient: ', `${patient.name} (${patient.gender}, ${patient.age}y)`],
-    ['Reg No: ', report.registrationNumber],
+    ['Patient: ', demoBits ? `${p.name || 'Walk-in Patient'} (${demoBits})` : (p.name || 'Walk-in Patient')],
+    ['Reg No: ', report.registrationNumber || (p.registrationNumber || '—')],
     ...(bill ? [['Bill No: ', bill.billNumber]] : []),
-    ['Report Date: ', new Date(report.reportDate).toLocaleString()],
+    ['Report Date: ', report.reportDate ? new Date(report.reportDate).toLocaleString() : '—'],
     ...((report.tat && report.tat.collected) ? [['Sample Collected: ', new Date(report.tat.collected).toLocaleString()]] : [])
   ]);
 

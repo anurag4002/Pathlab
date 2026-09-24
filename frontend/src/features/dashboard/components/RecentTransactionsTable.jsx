@@ -4,6 +4,7 @@ import { DataTable, StatusBadge, Button } from '../../../components/common';
 import { RECENT_TRANSACTIONS_HEADERS } from '../../../constants/dashboardConstants';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
+import { getBillNumber, buildBillsSearchUrl } from '../../../utils/billNavigation';
 import '../Dashboard.css';
 
 const hasValue = (value) =>
@@ -29,20 +30,21 @@ const RecentTransactionsTable = ({ transactions = [], loading = false }) => {
         loading={loading}
         emptyMessage="No financial transaction records logged yet."
         renderRow={(tx) => {
-          const billNumber = tx.bill?.billNumber;
+          const billNumber = getBillNumber(tx.bill);
+          const isOutflow = tx.type === 'Refund' || tx.type === 'Expense';
           return (
             <tr key={tx._id}>
               <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                {tx.patient?.name || '—'}
+                {tx.patient?.name || 'Walk-in Patient'}
               </td>
               <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-                {tx.patient?.registrationNumber || '—'}
+                {tx.patient?.registrationNumber || 'N/A'}
               </td>
               <td>
                 {tx.type ? <StatusBadge status={tx.type} /> : '—'}
               </td>
-              <td style={{ fontWeight: 'var(--font-weight-bold)', color: (tx.type === 'Refund' || tx.type === 'Expense') ? 'var(--color-danger)' : 'var(--color-text)' }}>
-                {(tx.type === 'Refund' || tx.type === 'Expense') && hasValue(tx.amount) ? `−${formatMoney(tx.amount)}` : formatMoney(tx.amount)}
+              <td style={{ fontWeight: 'var(--font-weight-bold)', color: isOutflow ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                {isOutflow && hasValue(tx.amount) ? `−${formatMoney(tx.amount)}` : formatMoney(tx.amount)}
               </td>
               <td>
                 {tx.paymentMethod ? <StatusBadge status={tx.paymentMethod} /> : '—'}
@@ -51,14 +53,18 @@ const RecentTransactionsTable = ({ transactions = [], loading = false }) => {
                 {formatDate(tx.date)}
               </td>
               <td>
-                {billNumber && (
+                {billNumber ? (
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => navigate(`/cases/bills?search=${encodeURIComponent(billNumber)}`)}
+                    onClick={() => navigate(buildBillsSearchUrl(tx.bill))}
                   >
                     View Bill
                   </Button>
+                ) : (
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
+                    No bill
+                  </span>
                 )}
               </td>
             </tr>

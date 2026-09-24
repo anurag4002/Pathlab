@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { getTickets, createTicket, setTicketStatus } from '../../services/supportService';
 import { PageHeader, DataTable, Button, Modal, Input, StatusBadge } from '../../components/common';
+import useClientPagination from '../../hooks/useClientPagination';
 import useAuth from '../../hooks/useAuth';
 
 const Tickets = () => {
   const { user } = useAuth();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const filtered = list.filter((t) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(t.subject || '').toLowerCase().includes(q) ||
+      String(t.message || '').toLowerCase().includes(q) ||
+      String(t.status || '').toLowerCase().includes(q);
+  });
+  const pg = useClientPagination(filtered, 10);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ subject: '', message: '', priority: 'Normal' });
   const isAdmin = user?.role === 'Admin';
@@ -23,7 +33,18 @@ const Tickets = () => {
   return (
     <div>
       <PageHeader title="Support Tickets" subtitle="Raise & track issues" action={<Button size="sm" onClick={() => setModal(true)}>New Ticket</Button>} />
-      <DataTable headers={['Subject', 'Priority', 'Status', 'Action']} data={list} loading={loading} emptyMessage="No tickets."
+      <DataTable headers={['Subject', 'Priority', 'Status', 'Action']} data={pg.paged} loading={loading} emptyMessage="No tickets."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search tickets…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(t, i) => (<tr key={t._id || i}><td style={{ fontWeight: 600 }}>{t.subject}<div style={{ fontWeight: 400, fontSize: '.78rem' }}>{(t.message || '').slice(0, 80)}</div></td>
           <td>{t.priority || '-'}</td><td><StatusBadge status={t.status} /></td>
           <td>{isAdmin && t.status !== 'Closed' ? <button className="btn btn-secondary" style={{ fontSize: '.72rem' }} onClick={() => close(t._id)}>Close</button> : '-'}</td></tr>)} />

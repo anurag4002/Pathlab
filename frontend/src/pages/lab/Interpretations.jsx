@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getInterpretations, createInterpretation, updateInterpretation, deleteInterpretation, getTests } from '../../services/testService';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 
@@ -18,6 +19,19 @@ const Interpretations = () => {
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Search + client-side pagination.
+  const [search, setSearch] = useState('');
+  const filteredInterpretations = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return interpretations;
+    return interpretations.filter((r) =>
+      String(r.test?.name || '').toLowerCase().includes(q) ||
+      String(r.resultCondition || '').toLowerCase().includes(q) ||
+      String(r.interpretationText || '').toLowerCase().includes(q)
+    );
+  }, [interpretations, search]);
+  const pg = useClientPagination(filteredInterpretations, 10);
 
   const fetchInterpretations = async () => {
     setLoading(true);
@@ -132,9 +146,20 @@ const Interpretations = () => {
 
       <DataTable
         headers={['Test Associated', 'Result Condition', 'Interpretation Text', 'Guidance Type', 'Status', 'Actions']}
-        data={interpretations}
+        data={pg.paged}
         loading={loading}
         emptyMessage="No clinical interpretations registered."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
+        searchPlaceholder="Search test, condition, text…"
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit,
+        }}
         renderRow={(interp) => (
           <tr key={interp._id}>
             <td style={{ fontWeight: '600' }}>

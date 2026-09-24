@@ -4,12 +4,44 @@ const generateRegistrationNumber = require('../utils/generateRegistrationNumber'
 const getAllPatients = async (filters = {}) => {
   const query = {};
 
+  // Labsmart §11 split filters: UHID / First / Last / Mobile / ID / From-To
+  if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
+  if (filters.firstName) query.name = { $regex: String(filters.firstName), $options: 'i' };
+  if (filters.lastName) {
+    // Last token of name matches last name
+    query.name = { $regex: `${String(filters.lastName)}`, $options: 'i' };
+  }
+  if (filters.mobile || filters.phone) {
+    const v = String(filters.mobile || filters.phone);
+    query.phone = { $regex: v, $options: 'i' };
+  }
+  if (filters.patientId || filters.id) {
+    const v = String(filters.patientId || filters.id);
+    // Match registrationNumber or _id
+    query.$and = query.$and || [];
+    const or = [{ registrationNumber: { $regex: v, $options: 'i' } }];
+    if (v.match(/^[0-9a-fA-F]{24}$/)) { try { or.push({ _id: v }); } catch (e) { /* ignore */ } }
+    query.$and.push({ $or: or });
+  }
+  if (filters.regNo) query.registrationNumber = { $regex: String(filters.regNo), $options: 'i' };
+  if (filters.from || filters.to || filters.startDate || filters.endDate) {
+    query.createdAt = {};
+    const from = filters.from || filters.startDate;
+    const to = filters.to || filters.endDate;
+    if (from) query.createdAt.$gte = new Date(from);
+    if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); query.createdAt.$lte = e; }
+  }
+
   if (filters.search) {
-    query.$or = [
-      { name: { $regex: filters.search, $options: 'i' } },
-      { phone: { $regex: filters.search, $options: 'i' } },
-      { registrationNumber: { $regex: filters.search, $options: 'i' } }
-    ];
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [
+        { name: { $regex: filters.search, $options: 'i' } },
+        { phone: { $regex: filters.search, $options: 'i' } },
+        { registrationNumber: { $regex: filters.search, $options: 'i' } },
+        { uhid: { $regex: filters.search, $options: 'i' } }
+      ]
+    });
   }
 
   // Support pagination

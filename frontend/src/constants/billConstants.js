@@ -15,6 +15,7 @@ export const BILL_TABLE_HEADERS = [
   'Bill Number',
   'Patient Name',
   'Total Amount',
+  'Discount',
   'Paid',
   'Due',
   'Status',

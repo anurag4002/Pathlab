@@ -68,7 +68,11 @@ const TestSchema = new mongoose.Schema({
   ageMax: { type: Number, default: null },
   sexApplicable: { type: String, enum: ['Any', 'Male', 'Female'], default: 'Any' },
   // True for formula-derived entries (e.g. MCV, eGFR) — not directly billable alone.
-  isDerived: { type: Boolean, default: false }
+  isDerived: { type: Boolean, default: false },
+  // Turnaround time for this test in hours. Null = fall back to lab default
+  // (Phase 16 TAT config). Consumed by the report worklist countdown.
+  tatHours: { type: Number, default: null, min: 0 },
+  formula: { type: String, trim: true, default: '' }
 }, {
   timestamps: true
 });

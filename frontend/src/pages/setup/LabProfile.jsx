@@ -19,8 +19,8 @@ import { validateEmail, validatePhone, validateNumber } from '../../utils/valida
 import assetSrc from '../../utils/assetSrc';
 import '../../styles/LabProfile.css';
 
-// Keep this list limited to the existing PUT /setup/lab-profile allowlist.
-// Logo and letterhead URLs are changed only through their upload endpoints.
+// Fields accepted by the current lab-profile API. Logo and letterhead URLs
+// are changed only through their upload endpoints.
 const EDITABLE_FIELDS = [
   'labName',
   'tagline',
@@ -34,6 +34,13 @@ const EDITABLE_FIELDS = [
   'emailEnabled',
   'smsSenderId',
   'googleReviewLink',
+  'website',
+  'disclaimer',
+  'invoiceFooter',
+  'registrationPrefix',
+  'registrationNumber',
+  'dateFormat',
+  'barcodeFormat',
   'caseStartNumber'
 ];
 
@@ -79,13 +86,15 @@ const comparableValue = (value) => (
 
 const isImageAsset = (url) => /\.(?:jpg|jpeg|png|gif|webp)(?:$|\?)/i.test(url);
 
-const validateAssetFile = (file, label) => {
-  if (!file) return `Choose a ${label} file.`;
+const validateAssetFile = (file, kind) => {
+  if (!file) return `Choose a ${kind} file.`;
   const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
-  if (!ALLOWED_ASSET_EXTENSIONS.includes(extension)) {
-    return 'Only PDF, JPG, JPEG, and PNG files are supported.';
+  const allowed = kind === 'logo' ? ['.jpg', '.jpeg', '.png'] : ALLOWED_ASSET_EXTENSIONS;
+  const maxBytes = kind === 'logo' ? 2 * 1024 * 1024 : MAX_ASSET_BYTES;
+  if (!allowed.includes(extension)) {
+    return kind === 'logo' ? 'Logo files must be JPG, JPEG, or PNG.' : 'Only PDF, JPG, JPEG, and PNG files are supported.';
   }
-  if (file.size > MAX_ASSET_BYTES) return 'The file must be 10 MB or smaller.';
+  if (file.size > maxBytes) return kind === 'logo' ? 'The logo must be 2 MB or smaller.' : 'The file must be 10 MB or smaller.';
   return '';
 };
 
@@ -247,32 +256,11 @@ const LabProfile = () => {
 
   useEffect(() => {
     let active = true;
-
-    getLabProfile().then((response) => {
-      if (!active) return;
-      if (!response?.success) {
-        setLoadError(response?.message || 'The lab profile service returned an unsuccessful response.');
-        return;
-      }
-
-      const nextProfile = getProfileData(response);
-      if (!nextProfile) {
-        setLoadError('The lab profile service returned no profile data.');
-        return;
-      }
-
-      setProfile(nextProfile);
-      setForm(getFormValues(nextProfile));
-    }).catch((error) => {
+    loadProfile().catch((error) => {
       if (active) setLoadError(getErrorMessage(error, 'Failed to load the lab profile.'));
-    }).finally(() => {
-      if (active) setLoading(false);
     });
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    return () => { active = false; };
+  }, [loadProfile]);
 
   const isDirty = useMemo(
     () => EDITABLE_FIELDS.some((field) => comparableValue(form[field]) !== comparableValue(profile?.[field])),
@@ -536,6 +524,15 @@ const LabProfile = () => {
                   onChange={(event) => updateField('tagline', event.target.value)}
                   disabled={fieldDisabled}
                 />
+                <Input
+                  id="website"
+                  name="website"
+                  label="Website"
+                  type="url"
+                  value={form.website ?? ''}
+                  onChange={(event) => updateField('website', event.target.value)}
+                  disabled={fieldDisabled}
+                />
               </div>
             </section>
 
@@ -555,6 +552,38 @@ const LabProfile = () => {
                   error={fieldErrors.caseStartNumber}
                   disabled={fieldDisabled}
                   helperText="Stored profile value; the current registration-number generator remains backend-controlled."
+                />
+                <Input
+                  id="registrationPrefix"
+                  name="registrationPrefix"
+                  label="Registration prefix"
+                  value={form.registrationPrefix ?? ''}
+                  onChange={(event) => updateField('registrationPrefix', event.target.value)}
+                  disabled={fieldDisabled}
+                />
+                <Input
+                  id="registrationNumber"
+                  name="registrationNumber"
+                  label="Registration number"
+                  value={form.registrationNumber ?? ''}
+                  onChange={(event) => updateField('registrationNumber', event.target.value)}
+                  disabled={fieldDisabled}
+                />
+                <Input
+                  id="dateFormat"
+                  name="dateFormat"
+                  label="Date format"
+                  value={form.dateFormat ?? ''}
+                  onChange={(event) => updateField('dateFormat', event.target.value)}
+                  disabled={fieldDisabled}
+                />
+                <Input
+                  id="barcodeFormat"
+                  name="barcodeFormat"
+                  label="Barcode format"
+                  value={form.barcodeFormat ?? ''}
+                  onChange={(event) => updateField('barcodeFormat', event.target.value)}
+                  disabled={fieldDisabled}
                 />
               </div>
               <div className="lab-profile-registration-note" role="note">
@@ -625,6 +654,30 @@ const LabProfile = () => {
                   rows={4}
                 />
                 {fieldErrors.address && <p className="form-error" id="address-error">{fieldErrors.address}</p>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="disclaimer">Patient disclaimer</label>
+                <textarea
+                  id="disclaimer"
+                  name="disclaimer"
+                  className="form-control lab-profile-textarea"
+                  value={form.disclaimer ?? ''}
+                  onChange={(event) => updateField('disclaimer', event.target.value)}
+                  disabled={fieldDisabled}
+                  rows={3}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="invoiceFooter">Invoice footer</label>
+                <textarea
+                  id="invoiceFooter"
+                  name="invoiceFooter"
+                  className="form-control lab-profile-textarea"
+                  value={form.invoiceFooter ?? ''}
+                  onChange={(event) => updateField('invoiceFooter', event.target.value)}
+                  disabled={fieldDisabled}
+                  rows={3}
+                />
               </div>
             </section>
 

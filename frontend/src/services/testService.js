@@ -21,6 +21,17 @@ export const deleteTest = async (id) => {
   return response.data;
 };
 
+// Phase 21 — single + bulk rate updates
+export const updateTestRate = async (id, price) => {
+  const response = await apiClient.put(`/tests/${id}/rate`, { price });
+  return response.data;
+};
+
+export const bulkUpdateTestRates = async (updates) => {
+  const response = await apiClient.put('/tests/bulk-rate-update', { updates });
+  return response.data;
+};
+
 export const getCategories = async () => {
   const response = await apiClient.get('/tests/categories');
   return response.data;

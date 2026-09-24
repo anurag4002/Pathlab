@@ -18,11 +18,13 @@ export const SIDEBAR_NAV_ITEMS = [
     children: [
       { title: 'Daily Business', path: '/business/daily' },
       { title: 'Monthly Business', path: '/business/monthly' },
+      { title: 'Cashbook', path: '/business/cashbook' },
       { title: 'Expenses', path: '/business/expenses' },
       { title: 'Due Reports', path: '/business/dues' },
       { title: 'Referral Business', path: '/business/referrals' },
       { title: 'Case Wise Report', path: '/business/cases' },
       { title: 'Business Analysis', path: '/business/analysis' },
+      { title: 'Test Usage', path: '/analytics/test-usage' },
       { title: 'Data Export', path: '/business/export' },
       { title: 'Activities', path: '/business/activities' }
     ]
@@ -34,6 +36,7 @@ export const SIDEBAR_NAV_ITEMS = [
     children: [
       { title: 'Bills', path: '/cases/bills' },
       { title: 'Patients', path: '/cases/patients' },
+      { title: 'Booking Inquiries', path: '/cases/inquiries' },
       { title: 'Transactions', path: '/cases/transactions' },
       { title: 'Referral Doctors', path: '/cases/doctors' },
       { title: 'Agents', path: '/cases/agents' },
@@ -52,6 +55,7 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Test Database', path: '/lab/tests', roles: ['Admin'] },
       { title: 'Normal Ranges', path: '/lab/normal-ranges', roles: ['Admin'] },
       { title: 'Test Packages', path: '/lab/packages', roles: ['Admin'] },
+      { title: 'Rate Revision', path: '/settings/rate-revision', roles: ['Admin'] },
       { title: 'Test Panels', path: '/lab/panels', roles: ['Admin'] },
       { title: 'Test Categories', path: '/lab/categories', roles: ['Admin'] },
       { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin'] },
@@ -65,8 +69,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Radio',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: "Today's Cases", path: '/usg/today' },
-      { title: 'Search Cases', path: '/usg/search' },
+      { title: 'Cases', path: '/usg/today' },
       { title: 'Report Templates', path: '/usg/templates', roles: ['Admin'] }
     ]
   },
@@ -75,8 +78,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Layers',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: "Today's Cases", path: '/xray/today' },
-      { title: 'Search Cases', path: '/xray/search' },
+      { title: 'Cases', path: '/xray/today' },
       { title: 'X-Ray Reports', path: '/xray/reports' }
     ]
   },
@@ -94,14 +96,14 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin'],
     children: [
       { title: 'User Management', path: '/manage/employees' },
+      { title: 'Audit Log', path: '/settings/audit-log' },
       { title: 'Doctor Access', path: '/manage/doctors' },
       { title: 'Browser Security', path: '/manage/security' },
       { title: 'Lab Profile', path: '/setup/profile' },
+      { title: 'Job Queue', path: '/settings/jobs' },
       { title: 'Onboarding', path: '/setup/onboarding' },
       { title: 'Templates', path: '/delivery/templates' },
-      { title: 'Reviews', path: '/delivery/reviews' },
-      { title: 'Tickets', path: '/support/tickets' },
-      { title: 'Subscription', path: '/support/subscription' }
+      { title: 'Tickets', path: '/support/tickets' }
     ]
   }
 ];

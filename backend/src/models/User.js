@@ -39,7 +39,13 @@ const UserSchema = new mongoose.Schema({
     type: Map,
     of: Boolean,
     default: {}
-  }
+  },
+  designation: { type: String, trim: true, default: '' },
+  qualification: { type: String, trim: true, default: '' },
+  joiningDate: { type: Date, default: null },
+  departments: { type: [String], default: [] },
+  documents: { type: [String], default: [] },
+  branch: { type: String, trim: true, default: 'Main' }
 }, {
   timestamps: true
 });

@@ -68,6 +68,13 @@ export const QUICK_ACTIONS = [
     icon: 'BarChart3',
     description: 'Review catalog and report activity',
     roles: ['Admin', 'Employee']
+  },
+  {
+    label: 'Upload Report',
+    path: '/lab/reports?upload=true',
+    icon: 'Upload',
+    description: 'Attach clinical report findings files',
+    roles: ['Admin', 'Employee']
   }
 ];
 

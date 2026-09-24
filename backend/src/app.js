@@ -4,6 +4,7 @@ const path = require('path');
 const { CORS_ORIGIN, CORS_CREDENTIALS, UPLOAD_DIR } = require('./config/environment');
 const { buildCorsOptions } = require('./config/cors');
 const securityHeaders = require('./middleware/securityHeaders');
+const requestLogger = require('./middleware/requestLogger');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 const connectDatabase = require('./config/database');
 const errorHandler = require('./middleware/errorMiddleware');
@@ -18,6 +19,9 @@ app.use(cors(buildCorsOptions({ CORS_ORIGIN, CORS_CREDENTIALS })));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Console log for EVERY route: method, path, status + duration.
+app.use(requestLogger);
 
 // Tier-1 flood protection on every /api route (health checks skipped inside).
 app.use('/api', generalLimiter);
@@ -56,11 +60,16 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const patientPortalRoutes = require('./routes/patientPortalRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const setupRoutes = require('./routes/setupRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const auditLogRoutes = require('./routes/auditLogRoutes');
 const notifyRoutes = require('./routes/notifyRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 const modalityRoutes = require('./routes/modalityRoutes');
 const doctorPortalRoutes = require('./routes/doctorPortalRoutes');
 const exportRoutes = require('./routes/exportRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const analysisRoutes = require('./routes/analysisRoutes');
+const inquiryRoutes = require('./routes/inquiryRoutes');
 
 // All API routers are mounted ONLY under /api.
 // Do NOT add a bare mount (registerAllRoutes('')): it doubles the attack
@@ -83,11 +92,16 @@ app.use('/api/patient', patientPortalRoutes);
 // Public QR self-service (no auth inside) + parity domains.
 app.use('/api/public', publicRoutes);
 app.use('/api/setup', setupRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/audit-log', auditLogRoutes);
 app.use('/api/notify', notifyRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/modality', modalityRoutes);
 app.use('/api/doctor', doctorPortalRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/analysis', analysisRoutes);
+app.use('/api/inquiries', inquiryRoutes);
 
 // Health check endpoint
 app.get(['/api/health', '/health', '/'], (req, res) => {

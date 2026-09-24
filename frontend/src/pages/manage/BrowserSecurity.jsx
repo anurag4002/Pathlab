@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getBrowsers, createBrowser, setBrowserStatus, deleteBrowser } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
+import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Ban, CheckCircle2, Trash2 } from 'lucide-react';
 import { PageHeader, DataTable, StatusBadge, Button, Modal, Input } from '../../components/common';
 
@@ -11,6 +12,22 @@ const BrowserSecurity = () => {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ code: '', label: '' });
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [loginSearch, setLoginSearch] = useState('');
+
+  const filteredBrowsers = browsers.filter((b) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(b.code || '').toLowerCase().includes(q) || String(b.label || '').toLowerCase().includes(q);
+  });
+  const filteredLogins = logins.filter((l) => {
+    const q = loginSearch.trim().toLowerCase();
+    if (!q) return true;
+    return String(l.user?.name || l.email || l.userName || '').toLowerCase().includes(q) ||
+      String(l.ip || '').toLowerCase().includes(q);
+  });
+  const pgBrowsers = useClientPagination(filteredBrowsers, 10);
+  const pgLogins = useClientPagination(filteredLogins, 10);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -42,7 +59,18 @@ const BrowserSecurity = () => {
     <div>
       <PageHeader title="Browser Security" subtitle="Allow-listed browsers + recent login feed"
         action={<Button variant="primary" size="sm" onClick={() => setModal(true)}><Plus size={14} /> Register Browser</Button>} />
-      <DataTable headers={['Code', 'Label', 'Status', 'Last Seen', 'Actions']} data={browsers} loading={loading} emptyMessage="No browsers registered."
+      <DataTable headers={['Code', 'Label', 'Status', 'Last Seen', 'Actions']} data={pgBrowsers.paged} loading={loading} emptyMessage="No browsers registered."
+        searchValue={search}
+        onSearchChange={(e) => { setSearch(e.target.value); pgBrowsers.reset(); }}
+        searchPlaceholder="Search code or label…"
+        pagination={{
+          total: pgBrowsers.total,
+          page: pgBrowsers.page,
+          limit: pgBrowsers.limit,
+          pages: pgBrowsers.pages,
+          onPageChange: pgBrowsers.goToPage,
+          onLimitChange: pgBrowsers.setLimit,
+        }}
         renderRow={(b, i) => (
           <tr key={b._id || i}>
             <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{b.code}</td>
@@ -56,7 +84,18 @@ const BrowserSecurity = () => {
             </div></td>
           </tr>)} />
       <h3 style={{ margin: '1.5rem 0 .5rem' }}>Recent Logins</h3>
-      <DataTable headers={['Date', 'User', 'Role', 'IP', 'User Agent', 'Action']} data={logins} loading={loading} emptyMessage="No login activity."
+      <DataTable headers={['Date', 'User', 'Role', 'IP', 'User Agent', 'Action']} data={pgLogins.paged} loading={loading} emptyMessage="No login activity."
+        searchValue={loginSearch}
+        onSearchChange={(e) => { setLoginSearch(e.target.value); pgLogins.reset(); }}
+        searchPlaceholder="Search user or IP…"
+        pagination={{
+          total: pgLogins.total,
+          page: pgLogins.page,
+          limit: pgLogins.limit,
+          pages: pgLogins.pages,
+          onPageChange: pgLogins.goToPage,
+          onLimitChange: pgLogins.setLimit,
+        }}
         renderRow={(l, i) => (
           <tr key={l._id || i}>
             <td>{formatDate(l.date || l.createdAt)}</td>

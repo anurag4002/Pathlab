@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RefreshCw, Trash2, ArrowRight, Circle, Building2, FileImage, IndianRupee, Ruler, Users, MonitorCheck, MessageSquare, PenLine, Receipt, FileCheck2, MailCheck } from 'lucide-react';
+import useClientPagination from '../../hooks/useClientPagination';
 import {
   getOnboarding,
   setOnboardingStep,
@@ -31,6 +33,20 @@ const EMPTY_SIGNATURE_FORM = {
 };
 const ALLOWED_SIGNATURE_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
 const MAX_SIGNATURE_BYTES = 10 * 1024 * 1024;
+
+const STEP_META = {
+  'verify-email': { icon: MailCheck, link: '' },
+  'centre-profile': { icon: Building2, link: '/setup/profile' },
+  letterhead: { icon: FileImage, link: '/setup/profile' },
+  rates: { icon: IndianRupee, link: '/lab/tests' },
+  normals: { icon: Ruler, link: '/lab/tests' },
+  users: { icon: Users, link: '/manage/employees' },
+  'browser-code': { icon: MonitorCheck, link: '/manage/security' },
+  'sms-setup': { icon: MessageSquare, link: '/delivery/templates' },
+  signature: { icon: PenLine, link: '#signatures' },
+  'first-bill': { icon: Receipt, link: '/cases/bills/new' },
+  'first-report': { icon: FileCheck2, link: '/lab/reports' }
+};
 
 const getErrorMessage = (error, fallback) => {
   if (error?.response) {
@@ -76,9 +92,11 @@ const Onboarding = () => {
   const [onboarding, setOnboarding] = useState({ percent: null, steps: [] });
   const [onboardingLoading, setOnboardingLoading] = useState(true);
   const [onboardingError, setOnboardingError] = useState('');
+  const [togglingKey, setTogglingKey] = useState('');
   const [signatures, setSignatures] = useState([]);
   const [signaturesLoading, setSignaturesLoading] = useState(true);
   const [signaturesError, setSignaturesError] = useState('');
+  const signaturePagination = useClientPagination(signatures, 10);
   const [signatureForm, setSignatureForm] = useState(EMPTY_SIGNATURE_FORM);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -145,7 +163,8 @@ const Onboarding = () => {
   }, []);
 
   const toggleStep = async (key, done) => {
-    if (!canManage) return;
+    if (!canManage || togglingKey) return;
+    setTogglingKey(key);
     setOnboardingError('');
     try {
       const response = await setOnboardingStep(key, done);
@@ -156,6 +175,8 @@ const Onboarding = () => {
       await loadOnboarding();
     } catch (error) {
       setOnboardingError(getErrorMessage(error, 'Failed to update the onboarding step.'));
+    } finally {
+      setTogglingKey('');
     }
   };
 
@@ -244,9 +265,33 @@ const Onboarding = () => {
     }
   };
 
+  useEffect(() => {
+    signaturePagination.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatures]);
+
   const percent = onboarding.percent ?? onboarding.completion;
   const hasPercent = percent !== undefined && percent !== null && percent !== '' && Number.isFinite(Number(percent));
-  const steps = Array.isArray(onboarding.steps) ? onboarding.steps : [];
+  const steps = useMemo(() => {
+    const raw = Array.isArray(onboarding.steps)
+      ? onboarding.steps
+      : Array.isArray(onboarding.checklist) ? onboarding.checklist : [];
+    return raw.map((step, index) => {
+      const meta = STEP_META[step.key] || {};
+      return {
+        ...step,
+        key: step.key || `step-${index}`,
+        title: step.title || step.label || step.key,
+        description: step.description || '',
+        link: meta.link || step.link || '',
+        Icon: meta.icon || Circle,
+        done: !!step.done
+      };
+    });
+  }, [onboarding]);
+  const doneCount = steps.filter((step) => step.done).length;
+  const nextStep = steps.find((step) => !step.done);
+  const complete = steps.length > 0 && doneCount === steps.length;
 
   return (
     <div className="signature-management-page">
@@ -283,20 +328,39 @@ const Onboarding = () => {
             <div className="signature-management-progress-track" aria-hidden="true">
               <div style={{ width: hasPercent ? `${percent}%` : '0%' }} />
             </div>
+            <p className="signature-management-helper">
+              {complete ? 'Setup complete — nice work!' : nextStep ? `Up next: ${nextStep.title}` : 'Loading your checklist…'}
+            </p>
             <div className="signature-management-checklist">
               {steps.length === 0 ? (
                 <p className="signature-management-helper">No onboarding steps were returned.</p>
-              ) : steps.map((step, index) => (
-                <label className="signature-management-check" key={step.key || index}>
-                  <input
-                    type="checkbox"
-                    checked={!!step.done}
-                    disabled={!canManage}
-                    onChange={() => toggleStep(step.key, !step.done)}
-                  />
-                  <span>{step.title || step.label || step.key}</span>
-                </label>
-              ))}
+              ) : steps.map((step, index) => {
+                const Icon = step.Icon;
+                const isNext = nextStep?.key === step.key;
+                return (
+                  <div className="signature-management-check" key={step.key || index}>
+                    <Icon size={16} aria-hidden="true" />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={!!step.done}
+                        disabled={!canManage || !!togglingKey}
+                        onChange={() => toggleStep(step.key, !step.done)}
+                      />
+                      <span>{step.title}</span>
+                    </label>
+                    {step.description && <small>{step.description}</small>}
+                    {isNext && step.link && (
+                      step.link.startsWith('#') ? (
+                        <a href={step.link}>Open <ArrowRight size={12} /></a>
+                      ) : (
+                        <Link to={step.link}>Open <ArrowRight size={12} /></Link>
+                      )
+                    )}
+                    {togglingKey === step.key && <span role="status">Saving…</span>}
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -360,9 +424,17 @@ const Onboarding = () => {
 
         <DataTable
           headers={['Name', 'Title', 'Modalities', 'Status', 'Preview', 'Created', 'Updated', 'Actions']}
-          data={signatures}
+          data={signaturePagination.paged}
           loading={signaturesLoading}
           emptyMessage="No signature records are available."
+          pagination={{
+            total: signaturePagination.total,
+            page: signaturePagination.page,
+            limit: signaturePagination.limit,
+            pages: signaturePagination.pages,
+            onPageChange: signaturePagination.goToPage,
+            onLimitChange: signaturePagination.setLimit
+          }}
           renderRow={(signature) => (
             <tr key={signature._id}>
               <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{signature.name || '—'}</td>
@@ -388,7 +460,7 @@ const Onboarding = () => {
           )}
         />
         <p className="signature-management-helper">
-          The current API supports list, create, and delete only. Editing, replacement, status changes, assignment updates, and version history are not available.
+          Signature records can be uploaded, previewed, activated/deactivated, and removed. Use Settings → Signatures for the full management view.
         </p>
       </section>
 

@@ -32,7 +32,7 @@ const createUser = async (req, res, next) => {
       return errorResponse(res, 'Validation failed', 400, errors);
     }
 
-    const { name, email, phone, role, password, status } = req.body;
+    const { name, email, phone, role, password, status, designation, qualification, joiningDate, departments, documents, branch } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -46,7 +46,13 @@ const createUser = async (req, res, next) => {
       role,
       password,
       status: status || 'Active',
-      permissions: req.body.permissions || {}
+      permissions: req.body.permissions || {},
+      designation: designation || '',
+      qualification: qualification || '',
+      joiningDate: joiningDate ? new Date(joiningDate) : null,
+      departments: Array.isArray(departments) ? departments : [],
+      documents: Array.isArray(documents) ? documents : [],
+      branch: branch || 'Main'
     });
 
     // Log Activity
@@ -86,8 +92,21 @@ const updateUser = async (req, res, next) => {
     if (phone) user.phone = phone;
     if (role) user.role = role;
     if (status) user.status = status;
+    if (req.body.designation !== undefined) user.designation = req.body.designation || '';
+    if (req.body.qualification !== undefined) user.qualification = req.body.qualification || '';
+    if (req.body.joiningDate !== undefined) user.joiningDate = req.body.joiningDate ? new Date(req.body.joiningDate) : null;
+    if (req.body.departments !== undefined) user.departments = Array.isArray(req.body.departments) ? req.body.departments : [];
+    if (req.body.documents !== undefined) user.documents = Array.isArray(req.body.documents) ? req.body.documents : [];
+    if (req.body.branch !== undefined) user.branch = req.body.branch || 'Main';
     if (req.body.permissions && typeof req.body.permissions === 'object') {
-      user.permissions = req.body.permissions;
+      // Accept both Map-object and legacy array of keys (array → {key:true})
+      if (Array.isArray(req.body.permissions)) {
+        const m = {};
+        req.body.permissions.forEach((k) => { if (typeof k === 'string') m[k] = true; });
+        user.permissions = m;
+      } else {
+        user.permissions = req.body.permissions;
+      }
     }
     if (password && password.trim() !== '') {
       user.password = password; // pre-save hook will hash it
@@ -138,9 +157,35 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+const getUserSessions = async (req, res, next) => {
+  try {
+    // No session store exists yet — return empty list with documented TODO.
+    // Frontend renders SessionsList empty state from this shape.
+    return successResponse(res, 'Sessions (no session store yet)', { sessions: [], note: 'Session tracking not implemented server-side' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeUserSessions = async (req, res, next) => {
+  try {
+    await Activity.create({
+      user: req.user._id,
+      action: 'Revoke Sessions',
+      module: 'Manage',
+      description: `Requested session revoke for user ${req.params.id} (no-op: no session store).`
+    });
+    return successResponse(res, 'Sessions revoked (no-op: no session store)', { revoked: 0 });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getUsers,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserSessions,
+  revokeUserSessions
 };

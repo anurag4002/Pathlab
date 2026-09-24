@@ -1,25 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Edit2, Trash2, UserCheck, UserX, RefreshCw } from 'lucide-react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
+import useClientPagination from '../../hooks/useClientPagination';
 import { validateEmail } from '../../utils/validators';
 import formatDate from '../../utils/formatDate';
-import {
-  DataTable,
-  PageHeader,
-  Button,
-  Modal,
-  Input,
-  Select,
-  ConfirmDialog,
-  StatusBadge,
-  PermissionMatrix
-} from '../../components/common';
-import normalizePermissions from '../../components/common/PermissionMatrix/normalizePermissions';
+import { DataTable, PageHeader, Button, Modal, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import EmployeeForm from './components/EmployeeForm';
+import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
 
-// Existing User model role values; no additional role taxonomy is introduced.
 const STAFF_ROLES = ['Employee', 'Admin'];
 const ROLE_OPTIONS = [
   { value: 'Employee', label: 'Laboratory operator / employee' },
@@ -36,14 +27,18 @@ const EMPTY_FORM = {
   password: '',
   role: 'Employee',
   status: 'Active',
-  permissions: {}
+  permissions: {},
+  designation: '',
+  qualification: '',
+  joiningDate: '',
+  departments: [],
+  documents: ''
 };
 
 const getErrorMessage = (error, fallback) => {
   if (error?.response) {
     const message = error.response.data?.message;
     if (typeof message === 'string' && message.trim()) return message;
-
     const status = error.response.status;
     if (status === 401) return 'Your session has expired. Please log in again.';
     if (status === 403) return 'You do not have permission to manage user accounts.';
@@ -52,7 +47,6 @@ const getErrorMessage = (error, fallback) => {
     if (status === 422) return 'The submitted user data is invalid.';
     if (status >= 500) return 'The server could not complete the user request.';
   }
-
   if (error?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
   if (error?.code === 'ERR_NETWORK' || error?.request) return 'Network error. Check your connection and try again.';
   return error?.message || fallback;
@@ -72,15 +66,11 @@ const getResponseError = (response, fallback) => ({
   fields: getFieldErrors(response?.errors)
 });
 
-const getPermissionKeys = (users) => [...new Set(
-  users.flatMap((user) => Object.keys(normalizePermissions(user.permissions)))
-)].sort();
-
 const EmployeeLogin = () => {
   const { user: currentUser } = useAuth();
   const canManage = currentUser?.role === 'Admin';
 
-  const [usersState, setUsersState] = useState({ key: null, data: [], permissionKeys: [], error: '' });
+  const [usersState, setUsersState] = useState({ key: null, data: [], error: '' });
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -94,7 +84,6 @@ const EmployeeLogin = () => {
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
-
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [statusTarget, setStatusTarget] = useState(null);
@@ -112,43 +101,43 @@ const EmployeeLogin = () => {
 
     getUsers(params).then((response) => {
       if (!active) return;
-
       if (!response?.success) {
         const responseError = getResponseError(response, 'The user service returned an unsuccessful response.');
-        setUsersState({ key: requestKey, data: [], permissionKeys: [], error: responseError.message });
+        setUsersState({ key: requestKey, data: [], error: responseError.message });
         return;
       }
-
       const rawUsers = Array.isArray(response.data) ? response.data : response.data?.users;
       if (!Array.isArray(rawUsers)) {
-        setUsersState({ key: requestKey, data: [], permissionKeys: [], error: 'The user service returned an invalid user list.' });
+        setUsersState({ key: requestKey, data: [], error: 'The user service returned an invalid user list.' });
         return;
       }
-
-      const staffUsers = rawUsers.filter((account) => STAFF_ROLES.includes(account.role));
       setUsersState({
         key: requestKey,
-        data: staffUsers,
-        permissionKeys: getPermissionKeys(staffUsers),
+        data: rawUsers.filter((account) => STAFF_ROLES.includes(account.role)),
         error: ''
       });
     }).catch((error) => {
-      if (active) {
-        setUsersState({ key: requestKey, data: [], permissionKeys: [], error: getErrorMessage(error, 'Failed to load user accounts.') });
-      }
+      if (active) setUsersState({ key: requestKey, data: [], error: getErrorMessage(error, 'Failed to load user accounts.') });
     });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [debouncedSearch, roleFilter, statusFilter, refreshKey, requestKey]);
 
-  const users = usersState.key === requestKey ? usersState.data : [];
-  const permissionKeys = usersState.key === requestKey ? usersState.permissionKeys : [];
+  const users = useMemo(
+    () => (usersState.key === requestKey ? usersState.data : []),
+    [usersState.key, usersState.data, requestKey]
+  );
+  const pg = useClientPagination(users, 10);
   const loading = usersState.key !== requestKey;
   const listError = usersState.key === requestKey ? usersState.error : '';
   const searchPending = search !== debouncedSearch;
   const hasFilters = Boolean(search.trim() || roleFilter || statusFilter);
+
+  useEffect(() => {
+    pg.reset();
+    // Reset client pagination whenever the server-side query changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, roleFilter, statusFilter, refreshKey]);
 
   const refreshUsers = () => setRefreshKey((value) => value + 1);
 
@@ -179,7 +168,14 @@ const EmployeeLogin = () => {
       password: '',
       role: account.role,
       status: account.status,
-      permissions: normalizePermissions(account.permissions)
+      permissions: permsToMap(account.permissions),
+      designation: account.designation || '',
+      qualification: account.qualification || '',
+      joiningDate: account.joiningDate || account.joinedOn?.split?.('T')?.[0] || '',
+      departments: Array.isArray(account.departments)
+        ? account.departments
+        : account.department ? [account.department] : [],
+      documents: Array.isArray(account.documents) ? account.documents.join(', ') : account.documents || ''
     });
     setFormErrors({});
     setFormError('');
@@ -192,25 +188,12 @@ const EmployeeLogin = () => {
     clearFormState();
   };
 
-  const updateField = (field, value) => {
-    setFormData((current) => ({ ...current, [field]: value }));
+  const updateFormData = (update) => {
+    setFormData(update);
     setFormErrors((current) => {
-      if (!current[field]) return current;
-      const next = { ...current };
-      delete next[field];
-      return next;
+      if (!Object.keys(current).length) return current;
+      return {};
     });
-    setFormError('');
-  };
-
-  const updatePermission = (key, enabled) => {
-    setFormData((current) => ({
-      ...current,
-      permissions: {
-        ...normalizePermissions(current.permissions),
-        [key]: enabled
-      }
-    }));
     setFormError('');
   };
 
@@ -227,11 +210,10 @@ const EmployeeLogin = () => {
     if (!phone) errors.phone = 'Phone is required.';
     if (!formData.role) errors.role = 'Role is required.';
     if (!formData.status) errors.status = 'Status is required.';
-    if (!editingUser && (!password || password.length < 4)) {
-      errors.password = 'Password must be at least 4 characters.';
-    } else if (editingUser && password && password.length < 4) {
-      errors.password = 'Password must be at least 4 characters.';
-    }
+    if (!editingUser && (!password || password.length < 4)) errors.password = 'Password must be at least 4 characters.';
+    else if (editingUser && password && password.length < 4) errors.password = 'Password must be at least 4 characters.';
+    if (!(formData.departments || []).length) errors.departments = 'Pick at least one department.';
+    if (editingUser?._id === currentUser?._id && formData.status !== 'Active') errors.status = 'You cannot deactivate your own account.';
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -241,40 +223,45 @@ const EmployeeLogin = () => {
     event.preventDefault();
     if (!canManage || submitLoading || !validateForm()) return;
 
-    const payload = {
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      role: formData.role,
-      status: formData.status
-    };
-    if (formData.password.trim()) payload.password = formData.password;
-    if (editingUser) payload.permissions = normalizePermissions(formData.permissions);
-
     setSubmitLoading(true);
     setFormError('');
     setActionError('');
     setNotice('');
 
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      role: formData.role,
+      status: formData.status,
+      permissions: permsToMap(formData.permissions),
+      designation: formData.designation?.trim() || undefined,
+      qualification: formData.qualification?.trim() || undefined,
+      joiningDate: formData.joiningDate || undefined,
+      departments: formData.departments,
+      documents: String(formData.documents || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    };
+    if (formData.password.trim()) payload.password = formData.password;
+
     try {
       const response = editingUser
         ? await updateUser(editingUser._id, payload)
         : await createUser(payload);
-
       if (!response?.success) {
         const responseError = getResponseError(response, 'The user account could not be saved.');
         setFormErrors(responseError.fields);
         setFormError(responseError.message);
         return;
       }
-
       setFormOpen(false);
       clearFormState();
       setNotice(response.message || 'User account saved.');
       refreshUsers();
     } catch (error) {
-      const responseErrors = getFieldErrors(error?.response?.data?.errors);
-      setFormErrors(responseErrors);
+      setFormErrors(getFieldErrors(error?.response?.data?.errors));
       setFormError(getErrorMessage(error, 'Failed to save the user account.'));
     } finally {
       setSubmitLoading(false);
@@ -292,7 +279,6 @@ const EmployeeLogin = () => {
     if (!deleteTarget || deleteLoading) return;
     setDeleteLoading(true);
     setActionError('');
-
     try {
       const response = await deleteUser(deleteTarget._id);
       if (!response?.success) {
@@ -323,7 +309,6 @@ const EmployeeLogin = () => {
     const nextStatus = statusTarget.status === 'Active' ? 'Inactive' : 'Active';
     setStatusLoading(true);
     setActionError('');
-
     try {
       const response = await updateUser(statusTarget._id, { status: nextStatus });
       if (!response?.success) {
@@ -350,7 +335,7 @@ const EmployeeLogin = () => {
     <div className="user-management-page">
       <PageHeader
         title="User Management"
-        subtitle="Manage existing laboratory operator and administrator accounts and API-backed permissions."
+        subtitle="Manage laboratory operator and administrator accounts, work profiles, and API-backed permissions."
         action={canManage ? (
           <Button variant="primary" onClick={openCreate} icon={<Plus size={16} />}>
             Create user
@@ -361,9 +346,7 @@ const EmployeeLogin = () => {
       {listError && (
         <div className="user-management-alert user-management-alert-error" role="alert">
           <span>{listError}</span>
-          <Button variant="secondary" size="sm" onClick={refreshUsers} disabled={loading}>
-            Retry
-          </Button>
+          <Button variant="secondary" size="sm" onClick={refreshUsers} disabled={loading}>Retry</Button>
         </div>
       )}
       {actionError && <div className="user-management-alert user-management-alert-error" role="alert">{actionError}</div>}
@@ -388,12 +371,7 @@ const EmployeeLogin = () => {
           placeholder=""
           disabled={loading}
         />
-        <Button
-          variant="secondary"
-          onClick={refreshUsers}
-          disabled={loading}
-          icon={<RefreshCw size={14} />}
-        >
+        <Button variant="secondary" onClick={refreshUsers} disabled={loading} icon={<RefreshCw size={14} />}>
           Refresh
         </Button>
       </div>
@@ -404,12 +382,20 @@ const EmployeeLogin = () => {
 
       <DataTable
         headers={['Name', 'Email', 'Phone', 'Role', 'Status', 'Created', 'Actions']}
-        data={users}
+        data={pg.paged}
         loading={loading || searchPending}
         emptyMessage={hasFilters ? 'No user accounts match the current search or filters.' : 'No user accounts are available.'}
         searchValue={search}
         onSearchChange={(event) => setSearch(event.target.value)}
         searchPlaceholder="Search by name, email, or phone..."
+        pagination={{
+          total: pg.total,
+          page: pg.page,
+          limit: pg.limit,
+          pages: pg.pages,
+          onPageChange: pg.goToPage,
+          onLimitChange: pg.setLimit
+        }}
         renderRow={(account) => {
           const isCurrentUser = account._id === currentUser?._id;
           return (
@@ -425,31 +411,13 @@ const EmployeeLogin = () => {
                   <span className="user-management-current">Current user</span>
                 ) : (
                   <div className="user-management-actions">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => openEdit(account)}
-                      aria-label={`Edit ${account.name || 'user'}`}
-                      disabled={!canManage}
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} disabled={!canManage}>
                       <Edit2 size={14} />
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => openStatusChange(account)}
-                      aria-label={`${account.status === 'Active' ? 'Deactivate' : 'Activate'} ${account.name || 'user'}`}
-                      disabled={!canManage}
-                    >
+                    <Button variant="secondary" size="sm" onClick={() => openStatusChange(account)} aria-label={`${account.status === 'Active' ? 'Deactivate' : 'Activate'} ${account.name || 'user'}`} disabled={!canManage}>
                       {account.status === 'Active' ? <UserX size={14} /> : <UserCheck size={14} />}
                     </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => openDelete(account)}
-                      aria-label={`Delete ${account.name || 'user'}`}
-                      disabled={!canManage}
-                    >
+                    <Button variant="danger" size="sm" onClick={() => openDelete(account)} aria-label={`Delete ${account.name || 'user'}`} disabled={!canManage}>
                       <Trash2 size={14} />
                     </Button>
                   </div>
@@ -464,6 +432,7 @@ const EmployeeLogin = () => {
         isOpen={formOpen}
         onClose={closeForm}
         title={editingUser ? 'Edit user account' : 'Create user account'}
+        size="lg"
         footer={
           <>
             <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>Cancel</Button>
@@ -471,85 +440,14 @@ const EmployeeLogin = () => {
           </>
         }
       >
-        <form className="user-management-form" onSubmit={submitForm} noValidate>
-          {formError && <div className="user-management-alert user-management-alert-error" role="alert">{formError}</div>}
-          <Input
-            label="Full name"
-            name="name"
-            value={formData.name}
-            onChange={(event) => updateField('name', event.target.value)}
-            error={formErrors.name}
-            disabled={submitLoading}
-            required
+        <form onSubmit={submitForm} noValidate>
+          <EmployeeForm
+            formData={formData}
+            setFormData={updateFormData}
+            errors={{ ...formErrors, api: formError }}
+            editing={!!editingUser}
+            isSuperadmin={editingUser?.role === 'Admin' && Object.keys(permsToMap(editingUser?.permissions)).length === 0}
           />
-          <Input
-            label="Email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={(event) => updateField('email', event.target.value)}
-            error={formErrors.email}
-            disabled={submitLoading}
-            required
-          />
-          <Input
-            label="Phone"
-            name="phone"
-            value={formData.phone}
-            onChange={(event) => updateField('phone', event.target.value)}
-            error={formErrors.phone}
-            disabled={submitLoading}
-            required
-          />
-          <Input
-            label={editingUser ? 'Reset password (leave blank to keep current)' : 'Password'}
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            value={formData.password}
-            onChange={(event) => updateField('password', event.target.value)}
-            error={formErrors.password}
-            helperText={editingUser ? 'Leave blank unless you intend to reset this password.' : 'The existing user API requires at least 4 characters.'}
-            disabled={submitLoading}
-            required={!editingUser}
-          />
-          <div className="user-management-form-grid">
-            <Select
-              label="Role"
-              name="role"
-              value={formData.role}
-              onChange={(event) => updateField('role', event.target.value)}
-              options={ROLE_OPTIONS}
-              error={formErrors.role}
-              disabled={submitLoading}
-              required
-            />
-            <Select
-              label="Status"
-              name="status"
-              value={formData.status}
-              onChange={(event) => updateField('status', event.target.value)}
-              options={STATUS_OPTIONS}
-              error={formErrors.status}
-              disabled={submitLoading}
-              required
-            />
-          </div>
-          {editingUser ? (
-            <PermissionMatrix
-              permissions={formData.permissions}
-              availableKeys={permissionKeys}
-              disabled={submitLoading}
-              onChange={updatePermission}
-            />
-          ) : (
-            <p className="user-management-helper">
-              Permission values can be configured after the user is created because the current API does not expose a permission catalog.
-            </p>
-          )}
-          <p className="user-management-helper">
-            Permission values are sent using the existing user API object shape. No permission matrix is inferred for empty or incomplete API data.
-          </p>
         </form>
       </Modal>
 
@@ -563,7 +461,6 @@ const EmployeeLogin = () => {
         confirmText={nextStatusLabel === 'deactivate' ? 'Deactivate' : 'Activate'}
         confirmVariant={nextStatusLabel === 'deactivate' ? 'danger' : 'primary'}
       />
-
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

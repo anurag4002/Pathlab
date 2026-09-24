@@ -23,6 +23,26 @@ const ReportSchema = new mongoose.Schema({
     ref: 'Test',
     default: null
   },
+  // Labsmart §16 parity: UHID / Daily case no. / Collection centre.
+  // Optional with defaults so old upload-only reports stay valid.
+  uhid: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
+  dailyCaseNo: {
+    type: String,
+    trim: true,
+    default: '',
+    index: true
+  },
+  cc: {
+    type: String,
+    trim: true,
+    default: 'Main',
+    index: true
+  },
   fileUrl: {
     type: String,
     required: false,
@@ -69,9 +89,42 @@ const ReportSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Registered', 'Collected', 'Received', 'Reported', 'Signed', 'Completed'],
+    enum: ['Pending', 'Registered', 'Collected', 'Received', 'Reported', 'Signed', 'Completed', 'Draft', 'Verified', 'Rejected'],
     default: 'Completed'
-  }
+  },
+  // Verification workflow (backward-compat: all optional with defaults).
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  verifiedAt: {
+    type: Date,
+    default: null
+  },
+  rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  rejectedAt: {
+    type: Date,
+    default: null
+  },
+  rejectReason: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  resendCount: {
+    type: Number,
+    default: 0
+  },
+  comments: [{
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    body: { type: String, trim: true, default: '' },
+    createdAt: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: true
 });

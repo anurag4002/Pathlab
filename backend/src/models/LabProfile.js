@@ -18,7 +18,15 @@ const LabProfileSchema = new mongoose.Schema({
   emailEnabled: { type: Boolean, default: false },
   smsSenderId: { type: String, trim: true, default: 'PUREPATH' },
   googleReviewLink: { type: String, trim: true, default: '' },
-  caseStartNumber: { type: Number, default: 1 }
+  caseStartNumber: { type: Number, default: 1 },
+  // Phase 24+ branding / registration extras (server allow-list).
+  website: { type: String, trim: true, default: '' },
+  disclaimer: { type: String, trim: true, default: '' },
+  invoiceFooter: { type: String, trim: true, default: '' },
+  registrationPrefix: { type: String, trim: true, uppercase: true, default: '' },
+  registrationNumber: { type: String, trim: true, default: '' },
+  dateFormat: { type: String, trim: true, default: 'YYYYMMDD' },
+  barcodeFormat: { type: String, trim: true, default: 'CODE39' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('LabProfile', LabProfileSchema);

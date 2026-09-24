@@ -13,6 +13,18 @@ const getBills = async (req, res, next) => {
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       department: req.query.department,
+      duration: req.query.duration,
+      regNo: req.query.regNo || req.query.regno,
+      firstName: req.query.firstName || req.query.patientName,
+      referredBy: req.query.referredBy || req.query.referrer,
+      collectionCentre: req.query.collectionCentre || req.query.centre,
+      agent: req.query.agent || req.query.sampleCollector,
+      hasDue: req.query.hasDue,
+      cancelled: req.query.cancelled,
+      excludeCancelled: req.query.excludeCancelled,
+      caseType: req.query.caseType,
+      uhid: req.query.uhid,
+      dailyCaseNo: req.query.dailyCaseNo,
       includeVoided: req.query.includeVoided === 'true' || req.query.includeVoided === '1',
       page: req.query.page,
       limit: req.query.limit
@@ -91,6 +103,10 @@ module.exports = {
   createBill,
   collectPayment,
   voidBill,
+  refundBill,
+  updateBill,
+  getCashbook,
+  createManualCashEntry,
   billPdfDownload,
   billQr,
   billBarcode
@@ -157,6 +173,55 @@ async function billBarcode(req, res, next) {
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
     res.setHeader('Content-Type', 'image/svg+xml');
     return res.send(barcodeSVG(bill.billNumber));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function refundBill(req, res, next) {
+  try {
+    const bill = await billService.refundBill(req.params.id, req.body || {}, req.user._id);
+    return successResponse(res, 'Refund recorded', bill);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateBill(req, res, next) {
+  try {
+    const bill = await billService.updateBill(req.params.id, req.body || {}, req.user);
+    await Activity.create({
+      user: req.user._id,
+      action: 'Update Bill',
+      module: 'Cases',
+      description: `Updated invoice ${bill.billNumber}.`
+    });
+    return successResponse(res, 'Bill updated', bill);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getCashbook(req, res, next) {
+  try {
+    const data = await billService.getCashbook({
+      from: req.query.from || req.query.startDate,
+      to: req.query.to || req.query.endDate,
+      mode: req.query.mode || req.query.paymentMethod,
+      type: req.query.type,
+      page: req.query.page,
+      limit: req.query.limit
+    });
+    return successResponse(res, 'Cashbook loaded', data);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function createManualCashEntry(req, res, next) {
+  try {
+    const txn = await billService.createManualCashEntry(req.body || {}, req.user._id);
+    return successResponse(res, 'Manual cash entry recorded', txn, 201);
   } catch (error) {
     next(error);
   }

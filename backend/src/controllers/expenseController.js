@@ -4,13 +4,22 @@ const Activity = require('../models/Activity');
 
 const getExpenses = async (req, res, next) => {
   try {
-    const { category, paymentMethod, startDate, endDate } = req.query;
+    const { category, paymentMethod, startDate, endDate, month, year, search } = req.query;
     const query = {};
 
     if (category) query.category = category;
     if (paymentMethod) query.paymentMethod = paymentMethod;
+    if (search) query.$or = [{ category: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }, { name: { $regex: search, $options: 'i' } }];
 
-    if (startDate || endDate) {
+    if (month || year) {
+      const y = parseInt(year) || new Date().getFullYear();
+      const m = month ? parseInt(month) : null;
+      if (m) {
+        query.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0, 23, 59, 59, 999) };
+      } else {
+        query.date = { $gte: new Date(y, 0, 1), $lte: new Date(y, 11, 31, 23, 59, 59, 999) };
+      }
+    } else if (startDate || endDate) {
       query.date = {};
       if (startDate) query.date.$gte = new Date(startDate);
       if (endDate) {
@@ -20,7 +29,7 @@ const getExpenses = async (req, res, next) => {
       }
     }
 
-    const expenses = await Expense.find(query).sort({ date: -1 });
+    const expenses = await Expense.find(query).populate('addedBy', 'name').sort({ date: -1 });
     return successResponse(res, 'Expenses fetched successfully', expenses);
   } catch (error) {
     next(error);
@@ -29,7 +38,7 @@ const getExpenses = async (req, res, next) => {
 
 const createExpense = async (req, res, next) => {
   try {
-    const { category, amount, date, description, paymentMethod } = req.body;
+    const { category, amount, date, description, paymentMethod, name, spentOn, notes } = req.body;
 
     if (!category || amount === undefined || amount <= 0) {
       return errorResponse(res, 'Category and positive amount are required', 400);
@@ -39,7 +48,11 @@ const createExpense = async (req, res, next) => {
       category,
       amount,
       date: date || Date.now(),
+      spentOn: spentOn || date || Date.now(),
+      name: name || category,
       description,
+      notes: notes || '',
+      addedBy: req.user?._id || null,
       paymentMethod: paymentMethod || 'Cash'
     });
 

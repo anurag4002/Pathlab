@@ -11,6 +11,14 @@ const getPatients = async (req, res, next) => {
   try {
     const filters = {
       search: req.query.search,
+      uhid: req.query.uhid,
+      firstName: req.query.firstName,
+      lastName: req.query.lastName,
+      mobile: req.query.mobile || req.query.phone,
+      patientId: req.query.patientId || req.query.id,
+      regNo: req.query.regNo || req.query.regno,
+      from: req.query.from || req.query.startDate,
+      to: req.query.to || req.query.endDate,
       page: req.query.page,
       limit: req.query.limit
     };

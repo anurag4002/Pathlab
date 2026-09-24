@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { getExpenses } from '../../services/expenseService';
 import { downloadServerCsv } from '../../services/exportService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
-import { Download, Printer, RefreshCw } from 'lucide-react';
+import { Download, Printer, RefreshCw, Mail } from 'lucide-react';
 import { PageHeader, DataTable, DatePicker, StatusBadge, Select, Button } from '../../components/common';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
@@ -69,6 +69,11 @@ const Metric = ({ label, value, color }) => (
     <strong style={{ fontSize: 'var(--font-size-lg)', color: color || 'var(--color-text)' }}>{value}</strong>
   </div>
 );
+import { getLabProfile } from '../../services/setupService';
+import { sendMessage } from '../../services/notifyService';
+import useClientPagination from '../../hooks/useClientPagination';
+import { DEPARTMENTS } from '../../features/billing/billingConstants';
+import { usePermissions } from '../../hooks/usePermission';
 
 const DailyBusiness = () => {
   // Default window: today, following the app-wide ISO-date convention.
@@ -90,6 +95,17 @@ const DailyBusiness = () => {
   const [exportError, setExportError] = useState(null);
   const [exportNotice, setExportNotice] = useState('');
   const exportInFlightRef = useRef(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+  // Phase 17 — department filter on the ledger. No server-side department
+  // param exists on the ledger query, so this is applied client-side on the
+  // returned transactions/bills.
+  const [deptFilter, setDeptFilter] = useState('');
+  // Phase 24 — lab identity + invoice footer sourced from the lab profile
+  // (never hardcoded) for the emailed summary and on-screen footer.
+  const [labName, setLabName] = useState('Pathology Lab');
+  const [invoiceFooter, setInvoiceFooter] = useState('');
+  const { can } = usePermissions();
+  const canFinance = can('finance') || can('billing');
 
   const invalidRange = !!(startDate && endDate && endDate < startDate);
 
@@ -172,21 +188,52 @@ const DailyBusiness = () => {
     fetchBusinessLedger();
   }, [startDate, endDate, invalidRange]);
 
+  useEffect(() => {
+    getLabProfile()
+      .then((r) => {
+        const profile = r?.data?.profile || r?.data || {};
+        if (profile.labName) setLabName(profile.labName);
+        if (profile.invoiceFooter || profile.disclaimer) {
+          setInvoiceFooter(profile.invoiceFooter || profile.disclaimer || '');
+        } else {
+          try {
+            const local = JSON.parse(localStorage.getItem('ppl_branding') || '{}');
+            if (local.disclaimer) setInvoiceFooter(local.disclaimer);
+          } catch {
+            // Keep the safe empty fallback when legacy branding data is invalid.
+          }
+        }
+      })
+      .catch(() => { /* keep fallbacks */ });
+  }, []);
+
+  const totalIncome = data?.totalIncome || 0;
+  const totalRefunds = data?.totalRefunds || 0;
+  const collectionCharge = 0;
+  const totalExpenses = data?.totalExpenses || 0;
+  const netIncome = data?.netIncome ?? totalIncome + collectionCharge - totalExpenses;
+
+  const cashierNames = [...new Set((data?.cashierWise || []).map((c) => c.name))].filter(Boolean);
+  const cashierOptions = [{ value: 'All', label: 'All cashiers' }, ...cashierNames.map((n) => ({ value: n, label: n }))];
+
   const matchSearch = (tx) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return tx.patient?.name?.toLowerCase().includes(q) || tx.bill?.billNumber?.toLowerCase().includes(q);
   };
   const matchCashier = (tx) => cashierFilter === 'All' || (tx.receivedBy?.name || 'Unknown') === cashierFilter;
+  const matchDeptTx = (tx) => !deptFilter || String(tx.bill?.department || '').toUpperCase() === deptFilter.toUpperCase();
+  const matchDeptBill = (b) => !deptFilter || String(b.department || '').toUpperCase() === deptFilter.toUpperCase();
 
-  const getFilteredTransactions = () => (data?.transactions || []).filter((tx) => matchSearch(tx) && matchCashier(tx));
+  const getFilteredTransactions = () => (data?.transactions || []).filter((tx) => matchSearch(tx) && matchCashier(tx) && matchDeptTx(tx));
 
   const getFilteredBills = () => {
     const list = data?.transactions?.map(tx => tx.bill).filter(Boolean) || [];
     const uniqueBills = Array.from(new Map(list.map(b => [b._id, b])).values());
-    if (!searchQuery.trim()) return uniqueBills;
+    const deptScoped = uniqueBills.filter(matchDeptBill);
+    if (!searchQuery.trim()) return deptScoped;
     const q = searchQuery.toLowerCase();
-    return uniqueBills.filter(b =>
+    return deptScoped.filter(b =>
       b.billNumber?.toLowerCase().includes(q) || b.patient?.name?.toLowerCase().includes(q));
   };
 
@@ -197,8 +244,33 @@ const DailyBusiness = () => {
       e.category?.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q));
   };
 
-  const cashierNames = [...new Set((data?.cashierWise || []).map((c) => c.name))].filter(Boolean);
-  const cashierOptions = [{ value: 'All', label: 'All cashiers' }, ...cashierNames.map((n) => ({ value: n, label: n }))];
+  // Memoized filtered lists + per-tab client pagination.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fTx = useMemo(() => getFilteredTransactions(), [data, searchQuery, cashierFilter, deptFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fBills = useMemo(() => getFilteredBills(), [data, searchQuery, deptFilter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fExp = useMemo(() => getFilteredExpenses(), [expensesList, searchQuery]);
+  const pgTx = useClientPagination(fTx, 10);
+  const pgBills = useClientPagination(fBills, 10);
+  const pgExp = useClientPagination(fExp, 10);
+  const pgSplit = useClientPagination(data?.caseSplit || [], 10);
+  const resetPages = () => { pgTx.reset(); pgBills.reset(); pgExp.reset(); pgSplit.reset(); };
+
+  const handleEmailSummary = async () => {
+    const to = prompt('Recipient email for daily business summary:');
+    if (!to || !to.trim()) return;
+    setEmailLoading(true);
+    try {
+      const fallbackText = `${labName} — Daily summary ${startDate} to ${endDate}: Net ${formatCurrency(netIncome)}, Income ${formatCurrency(totalIncome)}, Refunds ${formatCurrency(totalRefunds)}, Expenses ${formatCurrency(totalExpenses)}.${invoiceFooter ? ` ${invoiceFooter}` : ''}`;
+      await sendMessage({ channel: 'email', templateKey: 'daily-summary', to: to.trim(), vars: { fallbackText, subject: 'Daily business summary' } });
+      alert('Summary emailed.');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to email summary');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
 
   const overview = data?.monthlyOverview || [];
   const ovMax = Math.max(1, ...overview.map((d) => d.income || 0));
@@ -224,6 +296,18 @@ const DailyBusiness = () => {
             >
               Export {activeTab} for date range (CSV)
             </Button>
+            {canFinance && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Mail size={14} />}
+                loading={emailLoading}
+                disabled={invalidRange || loading}
+                onClick={handleEmailSummary}
+              >
+                Email summary
+              </Button>
+            )}
           </div>
         }
       />
@@ -235,8 +319,12 @@ const DailyBusiness = () => {
           <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>to</span>
           <DatePicker label="" value={endDate} onChange={handleEndDateChange} style={{ marginBottom: 0, width: '150px' }} />
         </div>
-        <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>
-          Today: {formatDate(new Date()).split(',')[0]}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); }}>Today</button>
+          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const u = new URL(window.location.href); u.searchParams.set('from', startDate); u.searchParams.set('to', endDate); navigator.clipboard?.writeText(u.toString()); alert('Link copied: ' + u.toString()); }}>Share URL</button>
+          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>
+            Date - {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}, {new Date().toLocaleDateString('en-IN')}
+          </div>
         </div>
       </div>
 
@@ -315,6 +403,7 @@ const DailyBusiness = () => {
                     <strong style={{ color: 'var(--color-text)' }}>{formatCurrency(amount)}</strong>
                   </div>
                 ))}
+
               </div>
             ) : (
               <div className="card" style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginBottom: 0 }}>
@@ -355,8 +444,16 @@ const DailyBusiness = () => {
               <h4 style={{ fontWeight: '700', fontSize: '0.875rem', marginBottom: '8px' }}>Case-Type Split</h4>
               <DataTable
                 headers={['Department', 'Cases', 'Billed', 'Collected', 'Due']}
-                data={data.caseSplit}
+                data={pgSplit.paged}
                 emptyMessage="No department split for this window."
+                pagination={{
+                  total: pgSplit.total,
+                  page: pgSplit.page,
+                  limit: pgSplit.limit,
+                  pages: pgSplit.pages,
+                  onPageChange: pgSplit.goToPage,
+                  onLimitChange: pgSplit.setLimit,
+                }}
                 renderRow={(c) => (
                   <tr key={c.department}>
                     <td style={{ fontWeight: '600' }}>{c.department}</td>
@@ -370,26 +467,40 @@ const DailyBusiness = () => {
             </div>
           )}
 
-          {/* Filter Tabs & Search + Cashier filter */}
+          {!canFinance && (
+        <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>
+          Your role has no finance permission — figures below are display-only.
+        </p>
+      )}
+
+      {/* Filter Tabs & Search + Cashier filter */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {['transactions', 'bills', 'expenses'].map((t) => (
                 <button key={t} className={`btn ${activeTab === t ? 'btn-primary' : 'btn-secondary'}`}
                   disabled={exporting}
-                  onClick={() => handleTabChange(t)} style={{ padding: '0.5rem 1rem', fontSize: '0.825rem', textTransform: 'capitalize' }}>
-                  {t} ({t === 'transactions' ? getFilteredTransactions().length : t === 'bills' ? getFilteredBills().length : getFilteredExpenses().length})
+                  onClick={() => { handleTabChange(t); resetPages(); }}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.825rem', textTransform: 'capitalize' }}>
+                  {t} ({t === 'transactions' ? fTx.length : t === 'bills' ? fBills.length : fExp.length})
                 </button>
               ))}
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Select name="cashier" value={cashierFilter} onChange={(e) => setCashierFilter(e.target.value)}
+              <Select name="department" value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); resetPages(); }}
+                options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))} placeholder="All departments (client-side)" style={{ marginBottom: 0, minWidth: '200px' }} />
+              <Select name="cashier" value={cashierFilter} onChange={(e) => { setCashierFilter(e.target.value); resetPages(); }}
                 options={cashierOptions} placeholder="All cashiers" style={{ marginBottom: 0, minWidth: '160px' }} />
               <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', backgroundColor: 'var(--color-surface)' }}>
-                <input type="text" placeholder="Search in page..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                <input type="text" placeholder="Search in page..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPages(); }}
                   style={{ border: 'none', outline: 'none', fontSize: '0.825rem', width: '200px', background: 'transparent' }} />
               </div>
             </div>
           </div>
+          {deptFilter && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '-0.5rem', marginBottom: '1rem' }}>
+              Department filter applies to the loaded rows. Clear it to see all departments.
+            </p>
+          )}
 
           {/* Cashier-wise summary (server-grouped collections per user) */}
           {(data?.cashierWise?.length > 0) && (
@@ -406,8 +517,16 @@ const DailyBusiness = () => {
           {activeTab === 'transactions' && (
             <DataTable
               headers={['ID Ref', 'Patient Name', 'Date & Time', 'Method', 'Received By', 'Amount']}
-              data={getFilteredTransactions()}
+              data={pgTx.paged}
               emptyMessage="No transactions matched filters."
+              pagination={{
+                total: pgTx.total,
+                page: pgTx.page,
+                limit: pgTx.limit,
+                pages: pgTx.pages,
+                onPageChange: pgTx.goToPage,
+                onLimitChange: pgTx.setLimit,
+              }}
               renderRow={(tx) => (
                 <tr key={tx._id}>
                   <td style={{ fontSize: '0.75rem', fontFamily: 'Courier' }}>{tx._id.slice(-8).toUpperCase()}</td>
@@ -426,8 +545,16 @@ const DailyBusiness = () => {
           {activeTab === 'bills' && (
             <DataTable
               headers={['Bill Number', 'Patient Name', 'Date', 'Gross Total', 'Paid Amount', 'Due Balance', 'Status']}
-              data={getFilteredBills()}
+              data={pgBills.paged}
               emptyMessage="No bills matched filters."
+              pagination={{
+                total: pgBills.total,
+                page: pgBills.page,
+                limit: pgBills.limit,
+                pages: pgBills.pages,
+                onPageChange: pgBills.goToPage,
+                onLimitChange: pgBills.setLimit,
+              }}
               renderRow={(bill) => (
                 <tr key={bill._id}>
                   <td style={{ fontWeight: '600' }}>{bill.billNumber}</td>
@@ -447,8 +574,16 @@ const DailyBusiness = () => {
           ) : (
             <DataTable
               headers={['Date', 'Category Classification', 'Description', 'Method', 'Amount Charged']}
-              data={getFilteredExpenses()}
+              data={pgExp.paged}
               emptyMessage="No expenses logs matched filters."
+              pagination={{
+                total: pgExp.total,
+                page: pgExp.page,
+                limit: pgExp.limit,
+                pages: pgExp.pages,
+                onPageChange: pgExp.goToPage,
+                onLimitChange: pgExp.setLimit,
+              }}
               renderRow={(exp) => (
                 <tr key={exp._id}>
                   <td>{formatDate(exp.date).split(',')[0]}</td>
@@ -460,6 +595,10 @@ const DailyBusiness = () => {
               )}
             />
           ))}
+
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1.5rem', textAlign: 'center' }}>
+            {labName}{invoiceFooter ? ` — ${invoiceFooter}` : ''}
+          </p>
         </>
       ))}
     </div>

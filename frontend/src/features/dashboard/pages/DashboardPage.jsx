@@ -9,7 +9,6 @@ import {
 } from '../../../services/dashboardService';
 import { getPendingLabCases, getReports } from '../../../services/reportService';
 import { getOnboarding } from '../../../services/setupService';
-import { getSubscription } from '../../../services/supportService';
 import useAuth from '../../../hooks/useAuth';
 import {
   Button,
@@ -121,57 +120,11 @@ const OnboardingWidget = ({ refreshKey, onRefresh }) => {
   );
 };
 
-const TrialWidget = ({ refreshKey, onRefresh }) => {
-  const [sub, setSub] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let active = true;
-    getSubscription().then((res) => {
-      if (!active) return;
-      if (res?.success) {
-        setError(null);
-        setSub(res.data?.subscription || null);
-      } else {
-        setError('The subscription service returned an unsuccessful response.');
-      }
-    }).catch((requestError) => {
-      if (active) setError(getApiErrorMessage(requestError, 'Failed to load subscription status.'));
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [refreshKey]);
-
-  if (error) {
-    return <div className="dashboard-card"><DashboardErrorBanner message={error} onRetry={onRefresh} /></div>;
-  }
-  if (!sub) return null;
-  const plan = sub.plan || {};
-  const capText = [
-    plan.yearlyCaseCap !== undefined && plan.yearlyCaseCap !== null ? `${plan.yearlyCaseCap}/yr` : '',
-    plan.dailyCourtesyCap !== undefined && plan.dailyCourtesyCap !== null ? `${plan.dailyCourtesyCap}/day` : ''
-  ].filter(Boolean).join(', ');
-  return (
-    <div className="dashboard-card" style={{ marginBottom: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ fontSize: '0.875rem' }}>
-          <strong>{plan.name || 'Trial'}</strong>
-          {' · '}<span>{sub.status}</span>
-          {sub.trialEndsAt && <span> · trial ends {new Date(sub.trialEndsAt).toLocaleDateString()}</span>}
-          {capText && <span style={{ color: 'var(--color-text-muted, #64748b)' }}> · caps: {capText}</span>}
-        </div>
-        <Link to="/support/subscription" style={{ fontSize: '0.825rem', fontWeight: '600' }}>Manage subscription</Link>
-      </div>
-    </div>
-  );
-};
-
 const BusinessOverview = ({ refreshKey, onRefresh }) => {
   const navigate = useNavigate();
   const [dailyState, setDailyState] = useState({ key: null, data: null, error: null });
   const [trendsState, setTrendsState] = useState({ key: null, data: null, error: null });
+
 
   useEffect(() => {
     let active = true;
@@ -580,7 +533,6 @@ const DashboardPage = () => {
       {statsError && <DashboardErrorBanner message={statsError} onRetry={handleRefresh} />}
 
       {role === 'Admin' && <OnboardingWidget refreshKey={refreshKey} onRefresh={handleRefresh} />}
-      {role === 'Admin' && <TrialWidget refreshKey={refreshKey} onRefresh={handleRefresh} />}
 
       <DashboardStats
         stats={stats}
