@@ -5,9 +5,37 @@ import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
-import { Plus, Edit2, Download, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Download, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
 import downloadFile from '../../utils/downloadFile';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, StatusBadge, ConfirmDialog } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, FileUploader, StatusBadge, ConfirmDialog } from '../../components/common';
+import '../../styles/Xray.css';
+
+/* Surfaces only the backend's user-facing `message` field (never stack traces),
+   with sensible fallbacks per failure type (same mapping as the other lab
+   screens). */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
+// The scan's extension comes from the API-provided fileUrl, so downloads
+// keep the uploaded file's real type (jpg/png/pdf) instead of a fixed name.
+const scanFileExt = (fileUrl) => (fileUrl?.includes('.') ? `.${fileUrl.split('.').pop()}` : '');
 
 const TodaysXrayCases = () => {
   const { user } = useAuth();
@@ -16,6 +44,11 @@ const TodaysXrayCases = () => {
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
+  // List/options load failures — surfaced as a banner (an empty table after a
+  // failed fetch must never read as "no cases today"); each fetch owns its
+  // error so one success never clears the other's failure.
+  const [listError, setListError] = useState(null);
+  const [optionsError, setOptionsError] = useState(null);
 
   // Form States
   const [formOpen, setFormOpen] = useState(false);
@@ -51,9 +84,11 @@ const TodaysXrayCases = () => {
       const res = await getXrayCases({ date: todayStr });
       if (res.success) {
         setCases(res.data);
+        setListError(null);
       }
     } catch (err) {
-      console.error('Failed to load today Xray cases', err);
+      setCases([]);
+      setListError(getApiErrorMessage(err, "Failed to load today's X-Ray cases."));
     } finally {
       setLoading(false);
     }
@@ -67,9 +102,17 @@ const TodaysXrayCases = () => {
       ]);
       if (patRes.success) setPatients(patRes.data.patients);
       if (docRes.success) setDoctors(docRes.data);
+      setOptionsError(null);
     } catch (err) {
-      console.error('Failed to load options', err);
+      setOptionsError(getApiErrorMessage(err, 'Failed to load patients or doctors.'));
     }
+  };
+
+  // Retry for the banners above — re-runs both page loads; their success
+  // paths clear the matching error state.
+  const refresh = () => {
+    fetchCases();
+    loadOptions();
   };
 
   useEffect(() => {
@@ -142,13 +185,28 @@ const TodaysXrayCases = () => {
     <div>
       <PageHeader
         title="Today's Digital X-Ray Cases"
-        subtitle="Manage Digital X-Ray records, findings reports, and scan attachments uploading"
+        subtitle="Record findings, attach scan images, and download X-Ray reports"
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
             <Plus size={16} /> Create X-Ray Case
           </Button>
         }
       />
+
+      {(listError || optionsError) && (
+        <div className="xray-banner xray-banner-error" role="alert">
+          <AlertTriangle size={16} />
+          <span>{listError || optionsError}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            onClick={refresh}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       <DataTable
         headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Download Scan', 'Actions']}
@@ -170,12 +228,12 @@ const TodaysXrayCases = () => {
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                  onClick={() => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}.jpg`)}
+                  onClick={() => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}${scanFileExt(c.fileUrl)}`)}
                 >
                   <Download size={14} /> Download Scan
                 </button>
               ) : (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No attachment</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>No attachment</span>
               )}
             </td>
             <td>
@@ -221,8 +279,10 @@ const TodaysXrayCases = () => {
         <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
           {errors.api && <div className="form-error">{errors.api}</div>}
           
+          <div className="xray-form-section-title">Case details</div>
+
           <Select
-            label="Patient Profile"
+            label="Patient"
             value={formData.patient}
             onChange={(e) => setFormData(prev => ({ ...prev, patient: e.target.value }))}
             options={patients.map(p => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
@@ -239,28 +299,6 @@ const TodaysXrayCases = () => {
             placeholder="Self Referral"
           />
 
-          <div className="form-group">
-            <label className="form-label">Clinical X-Ray Findings Details *</label>
-            <textarea
-              value={formData.findings}
-              onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
-              className="form-control"
-              rows={8}
-              placeholder="Record findings details..."
-              required
-            />
-            {errors.findings && <p className="form-error">{errors.findings}</p>}
-          </div>
-
-          <div style={{ marginTop: '0.5rem' }}>
-            <FileUploader
-              onChange={(file) => setFormData(prev => ({ ...prev, file }))}
-              value={formData.file}
-              label="Select X-Ray Scan image file"
-              accept=".jpg,.jpeg,.png,.pdf"
-            />
-          </div>
-
           <Select
             label="Case Status"
             value={formData.status}
@@ -271,6 +309,36 @@ const TodaysXrayCases = () => {
             ]}
             required
           />
+
+          <div className="xray-form-section-title">Report findings</div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="xray-findings">
+              <span>Clinical X-Ray Findings</span>
+              <span className="form-required-star" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              id="xray-findings"
+              value={formData.findings}
+              onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
+              className="form-control"
+              rows={8}
+              placeholder="Record findings details..."
+              required
+            />
+            {errors.findings && <p className="form-error">{errors.findings}</p>}
+          </div>
+
+          <div className="xray-form-section-title">Scan attachment</div>
+
+          <div style={{ marginTop: '0.5rem' }}>
+            <FileUploader
+              onChange={(file) => setFormData(prev => ({ ...prev, file }))}
+              value={formData.file}
+              label="Select X-Ray Scan image file"
+              accept=".jpg,.jpeg,.png,.pdf"
+            />
+          </div>
 
         </form>
       </Modal>

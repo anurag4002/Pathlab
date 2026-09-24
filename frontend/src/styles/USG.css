@@ -1,0 +1,71 @@
+/* USG reporting module — page-scoped styles shared by the three USG screens
+   (Today's Cases, Search, Report Templates): error banners, modal form
+   section titles and the template preview block. Follows the project pattern
+   of co-located page CSS (cf. NormalRanges.css / RateList.css).
+   All values use existing design tokens; no global styles are changed. */
+
+/* Error banner with a right-aligned retry (mirrors nr-banner / rl-banner). */
+.usg-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+}
+
+.usg-banner svg {
+  flex-shrink: 0;
+}
+
+.usg-banner-error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.usg-banner .btn {
+  margin-left: auto;
+}
+
+/* Section titles inside the case form modal (grouping only — no new fields). */
+.usg-form-section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Read-only preview of the selected API template's findings text, with an
+   explicit apply action — existing findings are never replaced silently. */
+.usg-template-preview {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  padding: var(--space-3);
+}
+
+.usg-template-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.usg-template-preview pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  white-space: pre-wrap;
+  color: var(--color-text-secondary);
+  max-height: 9rem;
+  overflow-y: auto;
+}

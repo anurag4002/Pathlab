@@ -56,7 +56,7 @@ const SearchReports = () => {
         emptyMessage="No laboratory reports matched your search filters."
         searchValue={search}
         onSearchChange={(e) => setSearch(e.target.value)}
-        searchPlaceholder="Type patient registration number (e.g. PPL-2026)..."
+        searchPlaceholder="Type a patient registration number..."
         renderRow={(report) => (
           <tr key={report._id}>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{report.registrationNumber}</td>

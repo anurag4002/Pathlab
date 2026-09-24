@@ -13,8 +13,6 @@ const PaymentSummarySection = ({
   setPaidAmount,
   paymentMethod,
   setPaymentMethod,
-  remarks,
-  setRemarks,
   totalAmount,
   dueAmount,
   errors,
@@ -124,14 +122,6 @@ const PaymentSummarySection = ({
         value={paymentMethod}
         onChange={(e) => setPaymentMethod(e.target.value)}
         options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
-      />
-
-      {/* Remarks */}
-      <Input
-        label="Remarks (Optional)"
-        value={remarks}
-        onChange={(e) => setRemarks(e.target.value)}
-        placeholder="Additional remarks..."
       />
 
       {/* Submit */}

@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { downloadBlob as saveBlob } from '../utils/downloadFile';
 
 // Public QR self-service (no login). apiClient base is /api.
 export const verifyReportToken = async (token) => (await apiClient.get(`/public/r/${token}`)).data;
@@ -6,14 +7,16 @@ export const verifyBillToken = async (token) => (await apiClient.get(`/public/r/
 
 export const downloadBlob = async (path, filename) => {
   const response = await apiClient.get(path, { responseType: 'blob' });
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
+  const contentType = response.headers?.['content-type'] || response.data?.type || 'application/octet-stream';
+  if (/application\/json|text\/html/i.test(contentType)) {
+    const error = new Error('The download service returned an unexpected file type.');
+    error.status = response.status;
+    throw error;
+  }
+  const blob = response.data instanceof Blob
+    ? response.data
+    : new Blob([response.data || ''], { type: contentType });
+  return saveBlob(blob, filename);
 };
 
 // Server-rendered PDFs + barcode (auth via apiClient; keep client light —
@@ -82,8 +85,13 @@ export const printBillPdf = (id, letterhead = true) =>
   printPdfPath(`/bills/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`);
 export const printReportPdf = (id, letterhead = true) =>
   printPdfPath(`/reports/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`);
-export const downloadReportPdf = (id, letterhead = true) =>
-  downloadBlob(`/reports/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`, `Report_${id}.pdf`);
+// Optional `filename` lets callers use the report's own registration number
+// (API-provided) instead of the Mongo id; default keeps other callers intact.
+export const downloadReportPdf = (id, letterhead = true, filename) =>
+  downloadBlob(
+    `/reports/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`,
+    filename || `Report_${id}.pdf`
+  );
 export const fetchBarcodeSvgUrl = async (billId) => {
   const response = await apiClient.get(`/bills/${billId}/barcode.svg`, { responseType: 'blob' });
   return window.URL.createObjectURL(new Blob([response.data], { type: 'image/svg+xml' }));

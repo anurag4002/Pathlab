@@ -7,12 +7,12 @@ import {
   X,
   Lock,
   ArrowLeft,
-  CheckCircle,
   AlertCircle,
   Clock,
   User,
   Calendar,
-  Building
+  Building,
+  ExternalLink
 } from 'lucide-react';
 import {
   requestOtp,
@@ -24,6 +24,36 @@ import {
 import formatDate from '../../utils/formatDate';
 import './PatientPortal.css';
 
+// The patient contract may expose the existing LabProfile.googleReviewLink
+// field. Do not call the staff-only profile/review endpoints from this portal.
+const getConfiguredGoogleReviewUrl = (response) => {
+  const value = [response?.googleReviewLink, response?.data?.googleReviewLink]
+    .find((candidate) => typeof candidate === 'string' && candidate.trim());
+  if (!value) return '';
+
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    const isGoogleHost = hostname === 'google.com' || hostname.endsWith('.google.com') || hostname === 'g.page' || hostname.endsWith('.g.page');
+    const destination = `${url.pathname} ${url.search}`.toLowerCase();
+    const hasReviewDestination = /review|writereview|placeid|maps/.test(destination);
+
+    if (url.protocol !== 'https:' || !isGoogleHost || url.username || url.password) return '';
+    if (!hasReviewDestination && hostname !== 'g.page' && !hostname.endsWith('.g.page')) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+};
+
+const isPatientReportReviewEligible = (report) => {
+  const status = String(report?.status || '').toLowerCase();
+  const type = String(report?.type || '').toLowerCase();
+  if (type === 'pathology') return status === 'completed' || status === 'signed';
+  if (type === 'usg' || type === 'digital x-ray') return status === 'completed';
+  return false;
+};
+
 const PatientReportPortal = () => {
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 3: Reports
   const [phone, setPhone] = useState('');
@@ -34,16 +64,7 @@ const PatientReportPortal = () => {
   const [fetchingReports, setFetchingReports] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [selectedReport, setSelectedReport] = useState(null);
-
-  useEffect(() => {
-    const token = sessionStorage.getItem('ppl_patient_token');
-    const savedPhone = sessionStorage.getItem('ppl_patient_phone');
-    if (token && savedPhone) {
-      setPhone(savedPhone);
-      setStep(3);
-      loadReports();
-    }
-  }, []);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState('');
 
   useEffect(() => {
     let timer;
@@ -58,10 +79,12 @@ const PatientReportPortal = () => {
   const loadReports = async () => {
     setFetchingReports(true);
     setError('');
+    setGoogleReviewUrl('');
     try {
       const res = await getPatientReports();
       if (res.success) {
-        setReports(res.data);
+        setReports(Array.isArray(res.data) ? res.data : []);
+        setGoogleReviewUrl(getConfiguredGoogleReviewUrl(res));
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load diagnostic reports.');
@@ -69,6 +92,19 @@ const PatientReportPortal = () => {
       setFetchingReports(false);
     }
   };
+
+  useEffect(() => {
+    const restorePatientSession = async () => {
+      const token = sessionStorage.getItem('ppl_patient_token');
+      const savedPhone = sessionStorage.getItem('ppl_patient_phone');
+      if (token && savedPhone) {
+        setPhone(savedPhone);
+        setStep(3);
+        await loadReports();
+      }
+    };
+    restorePatientSession();
+  }, []);
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
@@ -152,7 +188,10 @@ const PatientReportPortal = () => {
     setOtp(['', '', '', '', '', '']);
     setReports([]);
     setSelectedReport(null);
+    setGoogleReviewUrl('');
   };
+
+  const showGoogleReview = isPatientReportReviewEligible(selectedReport);
 
   return (
     <div className="patient-portal-container">
@@ -457,6 +496,32 @@ const PatientReportPortal = () => {
               )}
 
               <div className="patient-modal-footer">
+                {showGoogleReview && (
+                  <div className="patient-google-review" role="note">
+                    <div className="patient-google-review-copy">
+                      <strong>How was your experience?</strong>
+                      <span>Your feedback helps us improve.</span>
+                    </div>
+                    {googleReviewUrl ? (
+                      <a
+                        className="patient-google-review-link"
+                        href={googleReviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Review us on Google (opens in a new tab)"
+                      >
+                        <ExternalLink size={15} aria-hidden="true" />
+                        <span>Review us on Google</span>
+                        <small>Opens in a new tab</small>
+                      </a>
+                    ) : (
+                      <span className="patient-google-review-unavailable">
+                        Google review is currently unavailable.
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {selectedReport.hasFile && (
                   <button
                     type="button"

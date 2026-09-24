@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createBill, collectPayment, getBillById } from '../../../services/billService';
+import { createBill } from '../../../services/billService';
 import { createPatient } from '../../../services/patientService';
 import { PageHeader, Button } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
@@ -10,7 +10,30 @@ import PaymentSummarySection from './PaymentSummarySection';
 import { filterTestsByDepartment } from '../billingConstants';
 import { Select } from '../../../components/common';
 import { ArrowLeft, Plus } from 'lucide-react';
+import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
+
+/* Local API error mapper (same mapping as the other lab screens): surfaces
+   only the backend's user-facing `message` field, never stack traces. */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
 
 const EMPTY_PATIENT_FORM = {
   isExistingPatient: true,
@@ -39,6 +62,8 @@ const BillCreateForm = ({
   doctors = [],
   agents = [],
   tests = [],
+  packages = [],
+  panels = [],
   onBillCreated
 }) => {
   const navigate = useNavigate();
@@ -47,11 +72,11 @@ const BillCreateForm = ({
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
+  const [pickerType, setPickerType] = useState('Test');
   const [selectedItems, setSelectedItems] = useState([]);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [remarks, setRemarks] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -145,13 +170,26 @@ const BillCreateForm = ({
         navigate('/cases/bills');
       }
     } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to generate invoice' });
+      setErrors({ api: getApiErrorMessage(err, 'Failed to generate invoice') });
     } finally {
       setSubmitting(false);
     }
   };
 
   const departmentTests = filterTestsByDepartment(tests, activeDepartment);
+
+  // Picker source per active tab — every price comes from the existing
+  // catalog APIs (tests / packages / panels); nothing is priced in frontend
+  // constants, and all three types are accepted by the bill validator.
+  const pickerSource =
+    pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : departmentTests;
+  const pickerItems = Array.isArray(pickerSource) ? pickerSource : [];
+  const pickerEmptyText =
+    pickerType === 'Test'
+      ? `No tests mapped under ${activeDepartment}`
+      : pickerType === 'TestPackage'
+        ? 'No packages available.'
+        : 'No panels available.';
 
   return (
     <div>
@@ -281,28 +319,43 @@ const BillCreateForm = ({
             {/* Department Selector */}
             <DepartmentSelector activeDepartment={activeDepartment} onSelect={setActiveDepartment} />
 
-            {/* Test Picker */}
+            {/* Service picker — department-filtered tests plus packages and
+                panels, all from the existing catalog APIs with server rates. */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                Select Tests / Scans
+                Select services
               </label>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                <Button variant={pickerType === 'Test' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('Test')}>
+                  Tests
+                </Button>
+                <Button variant={pickerType === 'TestPackage' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPackage')}>
+                  Packages
+                </Button>
+                <Button variant={pickerType === 'TestPanel' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPanel')}>
+                  Panels
+                </Button>
+              </div>
               <div className="test-picker-list">
-                {departmentTests.length === 0 ? (
+                {pickerItems.length === 0 ? (
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-5)' }}>
-                    No tests mapped under {activeDepartment}
+                    {pickerEmptyText}
                   </p>
                 ) : (
-                  departmentTests.map((test) => (
+                  pickerItems.map((item) => (
                     <div
-                      key={test._id}
+                      key={item._id}
                       className="test-picker-item"
-                      onClick={() => handleAddItem(test, 'Test')}
+                      onClick={() => handleAddItem(item, pickerType)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(test, 'Test'); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(item, pickerType); }}
                     >
-                      <span>{test.name} ({test.code})</span>
-                      <strong style={{ color: 'var(--color-primary)' }}>{test.price}</strong>
+                      <span>
+                        {item.name}
+                        {item.code ? ` (${item.code})` : ''}
+                      </span>
+                      <strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(item.price)}</strong>
                     </div>
                   ))
                 )}
@@ -329,8 +382,6 @@ const BillCreateForm = ({
             setPaidAmount={setPaidAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
-            remarks={remarks}
-            setRemarks={setRemarks}
             totalAmount={totalAmount}
             dueAmount={dueAmount}
             errors={errors}

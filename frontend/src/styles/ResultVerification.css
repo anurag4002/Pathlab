@@ -1,0 +1,265 @@
+/* Lab Result Verification — page-scoped styles.
+   Follows the project pattern of co-located page CSS (cf. ResultEntry.css).
+   All values use existing design tokens; no global styles are changed. */
+
+.result-verification-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Feedback banners (error / success) */
+.rv-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+}
+
+.rv-banner svg {
+  flex-shrink: 0;
+}
+
+.rv-banner-error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.rv-banner-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+/* Retry button inside banners aligns to the right. */
+.rv-banner .btn {
+  margin-left: auto;
+}
+
+/* Review top bar */
+.rv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.rv-topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.rv-reg {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+/* Patient / case information cards */
+.rv-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.rv-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+/* The results DataTable lives inside a card — cancel its standalone
+   bottom margin so the action footer sits flush against the table. */
+.rv-card .data-table-container {
+  margin-bottom: 0;
+}
+
+.rv-card-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.rv-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.rv-section-head .rv-card-title {
+  margin-bottom: 0;
+}
+
+.rv-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.rv-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.rv-field dt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.rv-field dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+/* Table cell helpers */
+.rv-patient-name,
+.rv-test-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.rv-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-0-5);
+  overflow-wrap: anywhere;
+}
+
+.rv-reg,
+.rv-muted,
+.rv-range,
+.rv-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.rv-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+/* Backend-provided result flags (N/L/H/C) — display only. */
+.rv-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.rv-flag-normal {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.rv-flag-abnormal {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.rv-flag-none {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Verify / status footer inside the results card */
+.rv-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.rv-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Centered loading block */
+.rv-state-block {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-10) 0;
+}
+
+/* Keep this wide table inside the content column instead of forcing
+   page-level horizontal scroll: wrap headers and tighten cell padding. */
+.result-verification-page .data-table th {
+  white-space: normal;
+}
+
+.result-verification-page .data-table th,
+.result-verification-page .data-table td {
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+.rv-signature-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.rv-signature-preview {
+  max-height: 6rem;
+}
+
+.rv-signature-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .rv-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .rv-fields {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .rv-actions {
+    justify-content: stretch;
+  }
+
+  .rv-actions .btn {
+    flex: 1;
+  }
+}

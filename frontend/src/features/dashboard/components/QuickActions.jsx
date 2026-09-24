@@ -5,7 +5,9 @@ import {
   UserPlus,
   PlusCircle,
   Radio,
-  Upload,
+  FileEdit,
+  TrendingUp,
+  BarChart3,
   ChevronRight
 } from 'lucide-react';
 import { QUICK_ACTIONS } from '../../../constants/dashboardConstants';
@@ -17,7 +19,9 @@ const ICON_MAP = {
   UserPlus,
   PlusCircle,
   Radio,
-  Upload
+  FileEdit,
+  TrendingUp,
+  BarChart3
 };
 
 const QuickActions = () => {
@@ -36,18 +40,11 @@ const QuickActions = () => {
           {userActions.map((action) => {
             const Icon = ICON_MAP[action.icon] || FilePlus;
             return (
-              <div
+              <button
+                type="button"
                 key={action.label}
                 className="quick-action-item"
                 onClick={() => navigate(action.path)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    navigate(action.path);
-                  }
-                }}
               >
                 <div className="quick-action-item-left">
                   <div className="quick-action-icon-wrap" aria-hidden="true">
@@ -59,7 +56,7 @@ const QuickActions = () => {
                   </div>
                 </div>
                 <ChevronRight size={14} style={{ color: 'var(--color-text-muted)' }} />
-              </div>
+              </button>
             );
           })}
         </div>

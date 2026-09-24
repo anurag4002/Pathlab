@@ -1,0 +1,65 @@
+/* Unified Rate List — page-scoped styles.
+   Follows the project pattern of co-located page CSS (cf. NormalRanges.css).
+   All values use existing design tokens; no global styles are changed. */
+
+.rate-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Error banner with a right-aligned retry (mirrors nr-banner). */
+.rl-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+}
+
+.rl-banner svg {
+  flex-shrink: 0;
+}
+
+.rl-banner-error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.rl-banner .btn {
+  margin-left: auto;
+}
+
+/* Filter row above the table */
+.rl-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+.rl-filters .form-group {
+  margin-bottom: 0;
+}
+
+/* Keep this table inside the content column instead of forcing page-level
+   horizontal scroll: wrap headers and tighten cell padding (same rule as
+   Normal Range Management / Report Preview). */
+.rate-list-page .data-table th {
+  white-space: normal;
+}
+
+.rate-list-page .data-table th,
+.rate-list-page .data-table td {
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rl-filters {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,20 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getReports, uploadReport, deleteReport, createResultReport, saveReportResults, signReport, updateReportTat } from '../../services/reportService';
 import { getPatients } from '../../services/patientService';
 import { getBills } from '../../services/billService';
 import { getTests } from '../../services/testService';
-import { getSignatures } from '../../services/setupService';
-import { sendMessage } from '../../services/notifyService';
+import { getSignatures, getLabProfile } from '../../services/setupService';
+import { sendMessage, getTemplates, getCredits } from '../../services/notifyService';
 import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
-import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ConfirmDialog } from '../../components/common';
+import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, RefreshCw } from 'lucide-react';
+import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ConfirmDialog, StatusBadge } from '../../components/common';
+import { formatReportTat } from '../../utils/reportTat';
 
 const emptyRow = () => ({ test: '', value: '', unit: '' });
 
+/* Local API error mapper (same mapping as the other lab screens); the 402
+   case covers the delivery endpoint's credit/provider failures. Surfaces
+   only the backend's user-facing `message` field, never stack traces. */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 402) return 'Message not sent — check delivery credits and Lab Profile channel settings.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
 const TodaysReports = () => {
+  const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -44,8 +71,19 @@ const TodaysReports = () => {
   const [entryLoading, setEntryLoading] = useState(false);
   const [verifyUrl, setVerifyUrl] = useState('');
   const [sendOpen, setSendOpen] = useState(false);
-  const [sendForm, setSendForm] = useState({ channel: 'sms', phone: '' });
+  const [sendForm, setSendForm] = useState({ channel: 'sms', phone: '', templateKey: '' });
   const [sendLoading, setSendLoading] = useState(false);
+  const [sendError, setSendError] = useState(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  // Message templates + credit balance from the existing /notify APIs —
+  // templates: null = still loading, [] = loaded with nothing available.
+  const [templates, setTemplates] = useState(null);
+  const [templatesError, setTemplatesError] = useState(false);
+  const [credits, setCredits] = useState(null);
+  // Lab name for report message templates' {{lab}} variable — loaded from
+  // the Lab Profile API (never hardcoded); empty until it arrives or on failure.
+  const [labName, setLabName] = useState('');
+  const [labNameError, setLabNameError] = useState(false);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -76,9 +114,67 @@ const TodaysReports = () => {
     }
   };
 
+  // Lab name for report message templates' {{lab}} variable — server-owned
+  // data from the existing Lab Profile API (Phase 8 primitive). All state
+  // updates land after the await so the mount-effect call stays warning-free.
+  const loadLabProfile = async () => {
+    try {
+      const res = await getLabProfile();
+      const profile = res?.data?.profile || res?.data || null;
+      setLabName(profile?.labName || '');
+      setLabNameError(!profile?.labName);
+    } catch {
+      setLabName('');
+      setLabNameError(true);
+    }
+  };
+
+  // Secure report link — the server-issued verify URL from the existing QR
+  // endpoint (Phase 10), used as-is as the message's {{url}} variable.
+  const loadVerifyUrl = async (reportId) => {
+    setVerifyUrl('');
+    setVerifyLoading(true);
+    try {
+      const qr = await fetchReportQr(reportId);
+      setVerifyUrl(qr?.success ? qr?.data?.verifyUrl || '' : '');
+    } catch {
+      setVerifyUrl('');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Message templates from the existing /notify/templates API (the same data
+  // the Message Templates screen manages) — no template keys are hardcoded.
+  // All state updates land after the await so the mount-effect call is clean.
+  const loadTemplates = async () => {
+    try {
+      const r = await getTemplates();
+      setTemplates(r?.success ? r?.data?.templates || r?.data || [] : []);
+      setTemplatesError(!r?.success);
+    } catch {
+      setTemplates(null);
+      setTemplatesError(true);
+    }
+  };
+
+  // Existing message-credit balance (GET /notify/credits) — informational
+  // only; refreshed after a successful send (no polling).
+  const loadCredits = async () => {
+    try {
+      const r = await getCredits();
+      setCredits(r?.success && r?.data ? r.data.balance : null);
+    } catch {
+      setCredits(null);
+    }
+  };
+
   useEffect(() => {
     fetchReports();
     loadUploadOptions();
+    loadLabProfile();
+    loadTemplates();
+    loadCredits();
   }, []);
 
   const handleOpenUpload = () => {
@@ -157,17 +253,13 @@ const TodaysReports = () => {
     }
   };
 
-  const openEntry = async (report) => {
+  const openEntry = (report) => {
     setActiveReport(report);
     setRows(report.results?.length ? report.results.map((r) => ({ test: r.test?._id || r.test || '', value: r.value || '', unit: r.unit || '' })) : [emptyRow()]);
     setTat({ collected: report.tat?.collected ? String(report.tat.collected).slice(0, 10) : '', received: report.tat?.received ? String(report.tat.received).slice(0, 10) : '' });
     setSigId('');
-    setVerifyUrl('');
     setEntryOpen(true);
-    try {
-      const qr = await fetchReportQr(report._id);
-      if (qr?.success) setVerifyUrl(qr.data.verifyUrl);
-    } catch { /* ignore */ }
+    loadVerifyUrl(report._id);
   };
 
   const handleSaveResults = async () => {
@@ -207,20 +299,62 @@ const TodaysReports = () => {
     }
   };
 
+  // Opens the delivery modal for one specific report (row action or entry
+  // modal), so a send can only ever target the report it was opened for.
+  const openSend = (report) => {
+    if (!report) return;
+    setActiveReport(report);
+    setSendForm({ channel: 'sms', phone: report?.patient?.phone || '' });
+    setSendError(null);
+    setSendOpen(true);
+    loadVerifyUrl(report._id);
+    if (!labName) loadLabProfile();
+  };
+
+  // Values this screen can fill into a template's {{variables}} — all from
+  // the existing report / QR / Lab-Profile APIs, never hardcoded.
+  const availableVars = {
+    name: activeReport?.patient?.name || '',
+    regNo: activeReport?.registrationNumber || '',
+    url: verifyUrl,
+    lab: labName
+  };
+
+  // Active templates for the selected channel. A template is only offered
+  // when every placeholder it declares (variables + body) can be filled from
+  // availableVars, so no literal {{placeholder}} can leak into a send.
+  const channelTemplates = (templates || []).filter((t) => {
+    if (t.status !== 'Active' || t.channel !== sendForm.channel) return false;
+    const bodyVars = [...String(t.body || '').matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]);
+    const required = [...(t.variables || []), ...bodyVars];
+    return required.every((v) => Object.prototype.hasOwnProperty.call(availableVars, v));
+  });
+  const selectedTemplate =
+    channelTemplates.find((t) => t.key === sendForm.templateKey) || channelTemplates[0] || null;
+
   const handleSend = async () => {
-    if (!sendForm.phone) { alert('Enter phone/email'); return; }
+    if (sendLoading) return;
+    const to = sendForm.phone.trim();
+    if (!to) { setSendError('Enter the patient phone number.'); return; }
+    if (verifyLoading) return;
+    if (!verifyUrl) { setSendError('Secure report link unavailable — retry loading it.'); return; }
+    if (!labName) { setSendError('Lab profile not loaded — retry loading it.'); return; }
+    if (!selectedTemplate) { setSendError('No active template for this channel can be filled with this report’s data.'); return; }
+    setSendError(null);
     setSendLoading(true);
     try {
-      const templateKey = sendForm.channel === 'whatsapp' ? 'report-ready-wa' : 'report-ready';
+      // Channels are limited to what the backend can resolve for a patient:
+      // the Patient API exposes only `phone` (no email field), so the Email
+      // action stays visible but never functional.
       const res = await sendMessage({
         channel: sendForm.channel,
-        templateKey,
-        to: sendForm.phone,
-        vars: { name: activeReport.patient?.name || '', regNo: activeReport.registrationNumber || '', url: verifyUrl, lab: 'Pure Path Lab' }
+        templateKey: selectedTemplate.key,
+        to,
+        vars: availableVars
       });
-      if (res.success) { setSendOpen(false); alert('Message sent'); }
+      if (res.success) { setSendOpen(false); alert('Message sent'); loadCredits(); }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to send message');
+      setSendError(getApiErrorMessage(err, 'Failed to send message.'));
     } finally {
       setSendLoading(false);
     }
@@ -246,7 +380,7 @@ const TodaysReports = () => {
       />
 
       <DataTable
-        headers={['Patient Reg No', 'Patient Name', 'Bill Number', 'Test', 'Completed Date', 'Uploader', 'Actions']}
+        headers={['Patient Reg No', 'Patient Name', 'Bill Number', 'Test', 'Status', 'Completed Date', 'TAT', 'Uploader', 'Actions']}
         data={reports}
         loading={loading}
         emptyMessage="No laboratory reports recorded today."
@@ -256,10 +390,15 @@ const TodaysReports = () => {
             <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
             <td>{report.bill?.billNumber || 'N/A'}</td>
             <td>{report.test ? `${report.test.name} (${report.test.code})` : 'General Findings'}</td>
+            <td>{report.status ? <StatusBadge status={report.status} /> : '—'}</td>
             <td>{formatDate(report.reportDate)}</td>
+            <td>{formatReportTat(report)}</td>
             <td>{report.uploadedBy?.name || 'N/A'}</td>
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => navigate(`/lab/reports/${report._id}/preview`)}>
+                  <Eye size={14} /> Preview
+                </button>
                 <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openEntry(report)}>
                   <FileEdit size={14} /> Enter results
                 </button>
@@ -272,6 +411,9 @@ const TodaysReports = () => {
                   onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
                 >
                   <Download size={14} /> Download
+                </button>
+                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openSend(report)}>
+                  <Send size={14} /> Send
                 </button>
                 <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setDeleteTarget(report)}>
                   <Trash2 size={14} />
@@ -378,7 +520,7 @@ const TodaysReports = () => {
           <>
             <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
             <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, true)}><FileDown size={14} /> PDF</Button>
-            <Button variant="secondary" onClick={() => { setSendForm(f => ({ ...f, phone: activeReport?.patient?.phone || '' })); setSendOpen(true); }}><Send size={14} /> Send</Button>
+            <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
             <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
           </>
         }
@@ -438,7 +580,12 @@ const TodaysReports = () => {
         {verifyUrl && <p style={{ fontSize: '0.75rem', marginTop: '8px', wordBreak: 'break-all' }}><QrCode size={12} /> Verify: {verifyUrl}</p>}
       </Modal>
 
-      {/* Send modal */}
+      {/* Send modal — targets exactly the report it was opened for; contact
+          is prefilled from the patient record, templates come from the
+          /notify API (filtered by channel + fillable placeholders), and the
+          message variables come from server APIs (secure QR verify link +
+          Lab Profile name). Email is shown but never functional: the backend
+          Patient record has no email field and no report email template. */}
       <Modal
         isOpen={sendOpen}
         onClose={() => setSendOpen(false)}
@@ -446,20 +593,92 @@ const TodaysReports = () => {
         footer={
           <>
             <Button variant="secondary" onClick={() => setSendOpen(false)} disabled={sendLoading}>Cancel</Button>
-            <Button variant="primary" onClick={handleSend} loading={sendLoading}><Send size={14} /> Send</Button>
+            <Button
+              variant="primary"
+              onClick={handleSend}
+              loading={sendLoading}
+              disabled={!sendForm.phone.trim() || !verifyUrl || !labName || !selectedTemplate}
+            >
+              <Send size={14} /> {sendForm.channel === 'whatsapp' ? 'Send WhatsApp' : 'Send SMS'}
+            </Button>
           </>
         }
       >
+        <p style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>
+          {activeReport?.patient?.name || '—'} · {activeReport?.registrationNumber || '—'}
+        </p>
         <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div>
+            <span className="form-label" style={{ display: 'block' }}>Channel</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant={sendForm.channel === 'sms' ? 'primary' : 'secondary'} size="sm" onClick={() => setSendForm(p => ({ ...p, channel: 'sms' }))}>SMS</Button>
+              <Button variant={sendForm.channel === 'whatsapp' ? 'primary' : 'secondary'} size="sm" onClick={() => setSendForm(p => ({ ...p, channel: 'whatsapp' }))}>WhatsApp</Button>
+              <span title="Email is unavailable: the backend Patient record has no email field and no report email template exists.">
+                <Button variant="secondary" size="sm" disabled>Email</Button>
+              </span>
+            </div>
+          </div>
           <Select
-            label="Channel"
-            value={sendForm.channel}
-            onChange={(e) => setSendForm(p => ({ ...p, channel: e.target.value }))}
-            options={[{ value: 'sms', label: 'SMS' }, { value: 'whatsapp', label: 'WhatsApp' }, { value: 'email', label: 'Email' }]}
+            label="Message template"
+            value={selectedTemplate?.key || ''}
+            onChange={(e) => setSendForm(p => ({ ...p, templateKey: e.target.value }))}
+            options={channelTemplates.map((t) => ({ value: t.key, label: t.key }))}
+            placeholder={channelTemplates.length ? 'Select a template' : 'No template available'}
+            disabled={!channelTemplates.length}
             required
           />
-          <Input label="Phone / Email" value={sendForm.phone} onChange={(e) => setSendForm(p => ({ ...p, phone: e.target.value }))} placeholder="98XXXXXXXX / user@mail.com" required />
+          <Input label="Patient phone number" value={sendForm.phone} onChange={(e) => setSendForm(p => ({ ...p, phone: e.target.value }))} required />
         </div>
+        {templates !== null && !templatesError && channelTemplates.length === 0 && (
+          <div className="form-error" style={{ marginTop: '8px' }}>
+            No active template for this channel can be filled with this report’s data.
+          </div>
+        )}
+        {templates === null && !templatesError && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing message templates…
+          </p>
+        )}
+        {templatesError && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Message templates unavailable.</span>
+            <Button variant="secondary" size="sm" onClick={loadTemplates}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
+        {credits !== null && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Message credits: {credits}
+          </p>
+        )}
+        {sendError && <div className="form-error" style={{ marginTop: '8px' }}>{sendError}</div>}
+        {verifyLoading && !verifyUrl && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing secure report link…
+          </p>
+        )}
+        {!verifyLoading && !verifyUrl && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Secure report link unavailable.</span>
+            <Button variant="secondary" size="sm" onClick={() => activeReport && loadVerifyUrl(activeReport._id)}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
+        {!labName && !labNameError && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing lab profile…
+          </p>
+        )}
+        {!labName && labNameError && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Lab name unavailable from Lab Profile.</span>
+            <Button variant="secondary" size="sm" onClick={loadLabProfile}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation */}

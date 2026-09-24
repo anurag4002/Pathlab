@@ -33,16 +33,23 @@ import ModalityCases from '../pages/cases/ModalityCases';
 
 // Lab
 import TodaysReports from '../pages/lab/TodaysReports';
+import ReportPreview from '../pages/lab/ReportPreview';
+import ResultEntry from '../pages/lab/ResultEntry';
+import ResultVerification from '../pages/lab/ResultVerification';
 import SearchReports from '../pages/lab/SearchReports';
 import TestDatabase from '../pages/lab/TestDatabase';
+import NormalRanges from '../pages/lab/NormalRanges';
 import TestPackages from '../pages/lab/TestPackages';
 import TestPanels from '../pages/lab/TestPanels';
 import TestCategories from '../pages/lab/TestCategories';
 import Interpretations from '../pages/lab/Interpretations';
 import TestCounts from '../pages/lab/TestCounts';
+import TestAnalysis from '../pages/lab/TestAnalysis';
+import RateList from '../pages/lab/RateList';
 
 // Business
 import DailyBusiness from '../pages/business/DailyBusiness';
+import MonthlyBusiness from '../pages/business/MonthlyBusiness';
 import Expenses from '../pages/business/Expenses';
 import DueReports from '../pages/business/DueReports';
 import ReferralBusiness from '../pages/business/ReferralBusiness';
@@ -113,23 +120,36 @@ const AppRoutes = () => {
 
         {/* Lab */}
         <Route path="/lab/reports" element={<TodaysReports />} />
+        <Route path="/lab/reports/:id/preview" element={<ReportPreview />} />
+        <Route path="/lab/result-entry" element={<ResultEntry />} />
         <Route path="/lab/search" element={<SearchReports />} />
+        <Route element={<RoleRoute allowedRoles={['Admin']} />}>
+          <Route path="/lab/verification" element={<ResultVerification />} />
+        </Route>
         <Route path="/lab/tests" element={<TestDatabase />} />
+        <Route path="/lab/normal-ranges" element={<NormalRanges />} />
         <Route path="/lab/packages" element={<TestPackages />} />
         <Route path="/lab/panels" element={<TestPanels />} />
         <Route path="/lab/categories" element={<TestCategories />} />
         <Route path="/lab/interpretations" element={<Interpretations />} />
         <Route path="/lab/counts" element={<TestCounts />} />
+        <Route element={<RoleRoute allowedRoles={['Admin', 'Employee']} />}>
+          <Route path="/lab/analysis" element={<TestAnalysis />} />
+        </Route>
+        <Route path="/lab/rates" element={<RateList />} />
 
-        {/* Business */}
-        <Route path="/business/daily" element={<DailyBusiness />} />
-        <Route path="/business/expenses" element={<Expenses />} />
-        <Route path="/business/dues" element={<DueReports />} />
-        <Route path="/business/referrals" element={<ReferralBusiness />} />
-        <Route path="/business/cases" element={<CaseWiseReport />} />
-        <Route path="/business/analysis" element={<BusinessAnalysis />} />
-        <Route path="/business/export" element={<DataExport />} />
-        <Route path="/business/activities" element={<Activities />} />
+        {/* Business — Admin only, matching the sidebar's Business group roles */}
+        <Route element={<RoleRoute allowedRoles={['Admin']} />}>
+          <Route path="/business/daily" element={<DailyBusiness />} />
+          <Route path="/business/monthly" element={<MonthlyBusiness />} />
+          <Route path="/business/expenses" element={<Expenses />} />
+          <Route path="/business/dues" element={<DueReports />} />
+          <Route path="/business/referrals" element={<ReferralBusiness />} />
+          <Route path="/business/cases" element={<CaseWiseReport />} />
+          <Route path="/business/analysis" element={<BusinessAnalysis />} />
+          <Route path="/business/export" element={<DataExport />} />
+          <Route path="/business/activities" element={<Activities />} />
+        </Route>
 
         {/* USG */}
         <Route path="/usg/today" element={<TodaysUSGCases />} />

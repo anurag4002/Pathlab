@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { getBills } from '../../services/billService';
-import { getPatients } from '../../services/patientService';
-import { getExpenses } from '../../services/expenseService';
+import React, { useRef, useState } from 'react';
+import { Download, FileSpreadsheet, Server } from 'lucide-react';
 import { downloadServerCsv } from '../../services/exportService';
-import { FileSpreadsheet, Download, Server } from 'lucide-react';
+import useAuth from '../../hooks/useAuth';
+import { isAdmin } from '../../utils/permissions';
+import normalizePermissions from '../../components/common/PermissionMatrix/normalizePermissions';
 import { PageHeader, Button, Select, DatePicker } from '../../components/common';
 
 const DATASETS = [
@@ -14,157 +14,253 @@ const DATASETS = [
 ];
 const PRESETS = ['Today', 'Last 31d', 'Last 365d', 'Custom'];
 
-const toISODate = (d) => d.toISOString().split('T')[0];
-const presetRange = (preset, custom) => {
+const toDateInputValue = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getLocalDate = (date = new Date()) => toDateInputValue(date);
+
+const shiftDate = (date, days) => {
+  const shifted = new Date(date);
+  shifted.setDate(shifted.getDate() + days);
+  return shifted;
+};
+
+const getPresetRange = (preset, customRange) => {
   const today = new Date();
-  if (preset === 'Today') { const t = toISODate(today); return { startDate: t, endDate: t }; }
-  if (preset === 'Last 31d') { const s = new Date(today); s.setDate(s.getDate() - 30); return { startDate: toISODate(s), endDate: toISODate(today) }; }
-  if (preset === 'Last 365d') { const s = new Date(today); s.setDate(s.getDate() - 364); return { startDate: toISODate(s), endDate: toISODate(today) }; }
-  return custom;
+  if (preset === 'Today') {
+    const value = getLocalDate(today);
+    return { startDate: value, endDate: value };
+  }
+  if (preset === 'Last 31d') {
+    return {
+      startDate: getLocalDate(shiftDate(today, -30)),
+      endDate: getLocalDate(today)
+    };
+  }
+  if (preset === 'Last 365d') {
+    return {
+      startDate: getLocalDate(shiftDate(today, -364)),
+      endDate: getLocalDate(today)
+    };
+  }
+  return {
+    startDate: customRange.startDate,
+    endDate: customRange.endDate
+  };
+};
+
+const validateRange = ({ startDate, endDate }) => {
+  if (!startDate || !endDate) return 'Choose both a start date and an end date.';
+  if (startDate > endDate) return 'The end date must be on or after the start date.';
+  return '';
+};
+
+const getErrorMessage = (error, fallback) => {
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message;
+  const status = error?.status || error?.response?.status;
+  if (status === 400) return 'The export request is invalid.';
+  if (status === 401) return 'Your session has expired. Please log in again.';
+  if (status === 403) return 'You do not have permission to export this data.';
+  if (status === 404) return 'The requested export resource was not found.';
+  if (status === 409) return 'The export data changed elsewhere. Please try again.';
+  if (status === 413) return 'The export file is too large.';
+  if (status === 422) return 'The selected export range is invalid.';
+  if (status === 429) return 'The export request limit was reached. Please try again later.';
+  if (status >= 500) return 'The server could not complete the export.';
+  if (error?.code === 'ECONNABORTED') return 'The export request timed out. Please try again.';
+  if (error?.request) return 'Network error. Please check your connection and try again.';
+  return fallback;
+};
+
+const canUseFinanceExport = (user) => {
+  if (isAdmin(user)) return true;
+  if (!user) return false;
+
+  // The backend preserves its legacy allow behavior for an empty permission
+  // map and enforces the existing finance key once a matrix is explicit.
+  const permissions = normalizePermissions(user.permissions);
+  if (Object.keys(permissions).length === 0) return true;
+  return permissions.finance === true;
 };
 
 const DataExport = () => {
-  const [loadingType, setLoadingType] = useState('');
+  const { user } = useAuth();
+  const canExport = canUseFinanceExport(user);
   const [dataset, setDataset] = useState('bills');
   const [preset, setPreset] = useState('Last 31d');
-  const [customStart, setCustomStart] = useState(toISODate(new Date()));
-  const [customEnd, setCustomEnd] = useState(toISODate(new Date()));
-  const [serverLoading, setServerLoading] = useState(false);
+  const [customStart, setCustomStart] = useState(() => getLocalDate());
+  const [customEnd, setCustomEnd] = useState(() => getLocalDate());
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [exportNotice, setExportNotice] = useState('');
+  const exportInFlightRef = useRef(false);
 
-  const triggerCSVDownload = (headers, rows, filename) => {
-    const csvRows = [
-      headers.join(','),
-      ...rows.map(row => row.map(val => {
-        const str = String(val === null || val === undefined ? '' : val);
-        return `"${str.replace(/"/g, '""')}"`;
-      }).join(','))
-    ];
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${filename}_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const selectedRange = getPresetRange(preset, {
+    startDate: customStart,
+    endDate: customEnd
+  });
+  const rangeError = preset === 'Custom' ? validateRange(selectedRange) : '';
+
+  const clearFeedback = () => {
+    setExportError('');
+    setExportNotice('');
   };
 
-  const handleExportBills = async () => {
-    setLoadingType('bills');
+  const handleDatasetChange = (event) => {
+    setDataset(event.target.value);
+    clearFeedback();
+  };
+
+  const handlePresetChange = (event) => {
+    setPreset(event.target.value);
+    clearFeedback();
+  };
+
+  const handleCustomDateChange = (setter) => (event) => {
+    setter(event.target.value);
+    clearFeedback();
+  };
+
+  const handleExport = async (event) => {
+    event.preventDefault();
+    if (!canExport || exportInFlightRef.current) return;
+
+    const validationError = validateRange(selectedRange);
+    if (validationError) {
+      setExportError(validationError);
+      setExportNotice('');
+      return;
+    }
+
+    exportInFlightRef.current = true;
+    setExporting(true);
+    setExportError('');
+    setExportNotice('');
+
     try {
-      const res = await getBills({ limit: 500 });
-      if (res.success) {
-        const headers = ['Invoice Number', 'Patient Name', 'Gross Total', 'Paid Amount', 'Due Balance', 'Payment Status', 'Date'];
-        const rows = res.data.bills.map(b => [b.billNumber, b.patient?.name || 'Walk-in', b.totalAmount, b.paidAmount, b.dueAmount, b.paymentStatus, b.date]);
-        triggerCSVDownload(headers, rows, 'billing_ledger');
-      }
-    } catch (err) {
-      alert('Failed to export bills ledger');
+      const result = await downloadServerCsv(dataset, selectedRange);
+      setExportNotice(`CSV download started: ${result.filename}`);
+    } catch (error) {
+      setExportError(getErrorMessage(error, 'The export could not be started.'));
     } finally {
-      setLoadingType('');
+      exportInFlightRef.current = false;
+      setExporting(false);
     }
   };
-
-  const handleExportPatients = async () => {
-    setLoadingType('patients');
-    try {
-      const res = await getPatients({ limit: 500 });
-      if (res.success) {
-        const headers = ['Registration Code', 'Patient Name', 'Age', 'Gender', 'Phone', 'Address', 'Referral Doctor'];
-        const rows = res.data.patients.map(p => [p.registrationNumber, p.name, p.age, p.gender, p.phone, p.address || '', p.referringDoctor?.name || 'Self']);
-        triggerCSVDownload(headers, rows, 'patient_directory');
-      }
-    } catch (err) {
-      alert('Failed to export patient registry');
-    } finally {
-      setLoadingType('');
-    }
-  };
-
-  const handleExportExpenses = async () => {
-    setLoadingType('expenses');
-    try {
-      const res = await getExpenses();
-      if (res.success) {
-        const headers = ['Voucher Date', 'Category', 'Description', 'Payment Method', 'Amount'];
-        const rows = res.data.map(e => [e.date, e.category, e.description || '', e.paymentMethod, e.amount]);
-        triggerCSVDownload(headers, rows, 'expense_ledger');
-      }
-    } catch (err) {
-      alert('Failed to export expense vouchers');
-    } finally {
-      setLoadingType('');
-    }
-  };
-
-  const handleServerExport = async () => {
-    setServerLoading(true);
-    try {
-      const { startDate, endDate } = presetRange(preset, { startDate: customStart, endDate: customEnd });
-      await downloadServerCsv(dataset, { startDate, endDate });
-    } catch (err) {
-      alert(err.response?.data?.message || 'Server export failed');
-    } finally {
-      setServerLoading(false);
-    }
-  };
-
-  const cardStyle = { display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'space-between' };
 
   return (
-    <div>
+    <div className="data-export-page">
       <PageHeader
-        title="Clinical Data Export Center"
-        subtitle="Export ledger sheets, patient directories, and financial logs to standard CSV spreadsheets"
+        title="Data Export"
+        subtitle="Download API-backed operational, patient, billing, and business data as CSV files."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Invoices Billing Ledger</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export billing histories including patients tags, gross charges, discounts, and payments.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportBills} loading={loadingType === 'bills'}><Download size={16} /> Export Invoices (CSV)</Button>
+      {!canExport ? (
+        <div className="card" role="note" style={{ color: 'var(--color-text-muted)' }}>
+          Your current account does not have access to the finance export capability.
         </div>
-
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Patients Registry</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export patients directories with demographic files, contact lines, and reference markers.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportPatients} loading={loadingType === 'patients'}><Download size={16} /> Export Patients (CSV)</Button>
-        </div>
-
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><FileSpreadsheet size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Operating Expense Vouchers</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Export facilities bills, collection agents commissions, office rents, and supply costs.</p>
-          </div>
-          <Button variant="primary" onClick={handleExportExpenses} loading={loadingType === 'expenses'}><Download size={16} /> Export Expenses (CSV)</Button>
-        </div>
-
-        {/* Server-side export card */}
-        <div className="card" style={cardStyle}>
-          <div>
-            <div style={{ color: 'var(--primary-color)', marginBottom: '8px' }}><Server size={32} /></div>
-            <h4 style={{ fontWeight: '700', fontSize: '1rem', marginBottom: '4px' }}>Server Export (Date Window)</h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Generate CSV on the server with a dataset and date window.</p>
-          </div>
-          <Select name="dataset" label="Dataset" value={dataset} onChange={(e) => setDataset(e.target.value)} options={DATASETS} placeholder="" />
-          <Select name="preset" label="Window" value={preset} onChange={(e) => setPreset(e.target.value)}
-            options={PRESETS.map((p) => ({ value: p, label: p }))} placeholder="" />
-          {preset === 'Custom' && (
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <DatePicker label="From" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ flex: 1 }} />
-              <DatePicker label="To" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} style={{ flex: 1 }} />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-5)' }}>
+          <section className="card" aria-labelledby="server-export-heading">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
+              <Server size={28} color="var(--color-primary)" aria-hidden="true" />
+              <div>
+                <h2 id="server-export-heading" style={{ margin: 0, fontSize: 'var(--font-size-lg)' }}>Server CSV export</h2>
+                <p style={{ margin: '4px 0 0', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+                  The existing export service applies the selected date window and returns the server-generated file.
+                </p>
+              </div>
             </div>
-          )}
-          <Button variant="primary" onClick={handleServerExport} loading={serverLoading}><Download size={16} /> Export {dataset} (Server CSV)</Button>
+
+            <form onSubmit={handleExport} noValidate>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <Select
+                  name="export-dataset"
+                  label="Dataset"
+                  value={dataset}
+                  onChange={handleDatasetChange}
+                  options={DATASETS}
+                  placeholder=""
+                  disabled={exporting}
+                />
+                <Select
+                  name="export-window"
+                  label="Date window"
+                  value={preset}
+                  onChange={handlePresetChange}
+                  options={PRESETS.map((value) => ({ value, label: value }))}
+                  placeholder=""
+                  disabled={exporting}
+                />
+
+                {preset === 'Custom' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-3)' }}>
+                    <DatePicker
+                      name="export-start-date"
+                      label="From"
+                      value={customStart}
+                      onChange={handleCustomDateChange(setCustomStart)}
+                      error={rangeError || undefined}
+                      required
+                      disabled={exporting}
+                    />
+                    <DatePicker
+                      name="export-end-date"
+                      label="To"
+                      value={customEnd}
+                      onChange={handleCustomDateChange(setCustomEnd)}
+                      error={rangeError || undefined}
+                      required
+                      disabled={exporting}
+                    />
+                  </div>
+                )}
+
+                <div style={{ padding: 'var(--space-3)', background: 'var(--color-background)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
+                  Selected range: {selectedRange.startDate || '—'} to {selectedRange.endDate || '—'}
+                </div>
+
+                {exportError && (
+                  <div role="alert" style={{ color: 'var(--color-danger)', fontSize: 'var(--font-size-sm)' }}>
+                    {exportError}
+                  </div>
+                )}
+                {exportNotice && (
+                  <div role="status" style={{ color: 'var(--color-success)', fontSize: 'var(--font-size-sm)' }}>
+                    {exportNotice}
+                  </div>
+                )}
+
+                <Button type="submit" loading={exporting} disabled={exporting || Boolean(rangeError)}>
+                  <Download size={16} /> Export CSV
+                </Button>
+              </div>
+            </form>
+          </section>
+
+          <section className="card" aria-labelledby="export-capabilities-heading">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+              <FileSpreadsheet size={28} color="var(--color-primary)" aria-hidden="true" />
+              <h2 id="export-capabilities-heading" style={{ margin: 0, fontSize: 'var(--font-size-lg)' }}>Export capabilities</h2>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 'var(--space-5)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', lineHeight: 1.7 }}>
+              <li>Format: CSV only, generated by the existing backend export service.</li>
+              <li>Datasets: bills, patients, expenses, and transactions.</li>
+              <li>Filters: date range only; search, status, payment method, type, department, and page filters are not accepted by this endpoint.</li>
+              <li>The service returns up to 5,000 rows per request and does not provide a total-count or truncation flag.</li>
+              <li>Values and CSV serialization remain server-owned; the frontend does not recalculate or rewrite exported fields.</li>
+              <li>Date order is validated in the UI; the backend does not enforce a maximum date window.</li>
+              <li>A header-only CSV may be returned when no records match; no client-side records are generated.</li>
+              <li>Bulk users, activity/audit, test-analysis, report, and analytics exports are not exposed by the current export endpoint.</li>
+            </ul>
+          </section>
         </div>
-      </div>
+      )}
     </div>
   );
 };

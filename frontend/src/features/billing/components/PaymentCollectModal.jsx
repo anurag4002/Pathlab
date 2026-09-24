@@ -12,7 +12,8 @@ const PaymentCollectModal = ({
   paymentMethod,
   setPaymentMethod,
   onSubmit,
-  loading
+  loading,
+  error
 }) => {
   if (!bill) return null;
 
@@ -44,11 +45,14 @@ const PaymentCollectModal = ({
           label="Payment Amount Received"
           type="number"
           value={paymentAmount}
+          min={1}
+          max={bill.dueAmount}
           onChange={(e) =>
             setPaymentAmount(Math.max(0, Math.min(Number(e.target.value), bill.dueAmount)))
           }
           required
         />
+        {error && <div className="form-error">{error}</div>}
         <Select
           label="Payment Method"
           value={paymentMethod}

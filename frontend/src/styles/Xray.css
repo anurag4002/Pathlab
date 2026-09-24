@@ -1,0 +1,43 @@
+/* X-Ray reporting module — page-scoped styles shared by the three X-Ray
+   screens (Today's Cases, Search, Reports Archive): error banners and modal
+   form section titles. Follows the project pattern of co-located page CSS
+   (cf. USG.css / NormalRanges.css). All values use existing design tokens;
+   no global styles are changed. */
+
+/* Error banner with a right-aligned retry (mirrors usg-banner / rl-banner). */
+.xray-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+}
+
+.xray-banner svg {
+  flex-shrink: 0;
+}
+
+.xray-banner-error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.xray-banner .btn {
+  margin-left: auto;
+}
+
+/* Section titles inside the case form modal (grouping only — no new fields;
+   the X-Ray API supports patient / referringDoctor / findings / file /
+   status exclusively). */
+.xray-form-section-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

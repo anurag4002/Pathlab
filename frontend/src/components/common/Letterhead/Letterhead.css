@@ -1,0 +1,106 @@
+/* Lab letterhead — shared report header/footer (screen + print).
+   Uses existing design tokens only; no global styles are changed. */
+
+.lh-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Typed block: centered identity with a divider, like the backend PDF. */
+.lh-header-typed {
+  flex-direction: column;
+  text-align: center;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.lh-header-image {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.lh-letterhead-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 8rem;
+  object-fit: contain;
+  object-position: top center;
+}
+
+.lh-logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+
+.lh-name {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.lh-tagline {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-0-5);
+}
+
+.lh-contact {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+/* Footer: one compact contact line at the end of the printable report. */
+.lh-footer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Loading skeleton (screen only — .no-print). */
+.lh-skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.lh-skeleton-mark,
+.lh-skeleton-lines {
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-sm);
+}
+
+.lh-skeleton-mark {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.lh-skeleton-lines {
+  height: 2.25rem;
+  flex: 1;
+  max-width: 22rem;
+}
+
+/* Keep the header block intact across printed pages. */
+@media print {
+  .lh-header,
+  .lh-footer {
+    break-inside: avoid;
+  }
+}
