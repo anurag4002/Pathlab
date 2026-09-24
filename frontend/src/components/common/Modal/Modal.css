@@ -72,6 +72,18 @@
   flex-grow: 1;
 }
 
+/* Standard modal form: single scroll context (modal-body scrolls), uniform
+   field gaps, no nested scrollbars or content shift. */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modal-form .form-group {
+  margin-bottom: 0;
+}
+
 .modal-footer {
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-border);

@@ -242,7 +242,7 @@ const TestPackages = () => {
           </>
         }
       >
-        <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
+        <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
           
           <Input

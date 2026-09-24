@@ -17,7 +17,7 @@ import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { getReportStatusLabel, getReportStatusVariant } from '../../utils/reportStatus';
 import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Printer, Tag } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ConfirmDialog, EmptyState, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ConfirmDialog, EmptyState, StatusBadge, PatientPicker } from '../../components/common';
 import TatCountdown, { getTatInfo, loadTatSettings, isDoneStatus } from '../../components/lab/TatCountdown';
 import WorklistTabs, { DepartmentFilterChips } from '../../components/lab/WorklistTabs';
 // Phases 3/4/9/10/15 — verification + rejection (gated) + preview + QR + signatures.
@@ -244,8 +244,14 @@ const TodaysReports = () => {
   const pg = useClientPagination(visibleReports, 10);
   const pgPending = useClientPagination(pendingCases, 10);
 
+  // Picked patient objects for the upload + result-entry pickers (may come
+  // from server search beyond the preloaded list).
+  const [uploadPatient, setUploadPatient] = useState(null);
+  const [resultPatient, setResultPatient] = useState(null);
+
   const handleOpenUpload = () => {
     setFormData({ patient: '', bill: '', test: '', file: null });
+    setUploadPatient(null);
     setFormErrors({});
     setUploadOpen(true);
   };
@@ -310,6 +316,7 @@ const TodaysReports = () => {
       if (res.success) {
         setResultOpen(false);
         setResultForm({ patient: '', bill: '' });
+        setResultPatient(null);
         fetchReports();
         fetchPending();
         openEntry(res.data);
@@ -533,7 +540,7 @@ const TodaysReports = () => {
         subtitle="View diagnostic PDF findings completed today and upload clinical reports"
         action={
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="secondary" onClick={() => { setResultForm({ patient: '', bill: '' }); setResultOpen(true); }}>
+            <Button variant="secondary" onClick={() => { setResultForm({ patient: '', bill: '' }); setResultPatient(null); setResultOpen(true); }}>
               <FileEdit size={16} /> New result entry
             </Button>
             <Button variant="primary" onClick={handleOpenUpload}>
@@ -745,11 +752,10 @@ const TodaysReports = () => {
       >
         <form onSubmit={handleUploadSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
           {formErrors.api && <div className="form-error">{formErrors.api}</div>}
-          <Select
+          <PatientPicker
             label="Patient Profile"
-            value={formData.patient}
-            onChange={(e) => setFormData(prev => ({ ...prev, patient: e.target.value }))}
-            options={patients.map(p => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
+            value={uploadPatient || patients.find((p) => p._id === formData.patient) || null}
+            onSelect={(p) => { setUploadPatient(p); setFormData((prev) => ({ ...prev, patient: p ? p._id : '', bill: '' })); }}
             error={formErrors.patient}
             required
           />
@@ -794,11 +800,10 @@ const TodaysReports = () => {
         }
       >
         <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-          <Select
+          <PatientPicker
             label="Patient Profile"
-            value={resultForm.patient}
-            onChange={(e) => setResultForm(prev => ({ ...prev, patient: e.target.value, bill: '' }))}
-            options={patients.map(p => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
+            value={resultPatient || patients.find((p) => p._id === resultForm.patient) || null}
+            onSelect={(p) => { setResultPatient(p); setResultForm((prev) => ({ ...prev, patient: p ? p._id : '', bill: '' })); }}
             required
           />
           <Select

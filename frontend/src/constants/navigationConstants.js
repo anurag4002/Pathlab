@@ -35,6 +35,7 @@ export const SIDEBAR_NAV_ITEMS = [
     children: [
       { title: 'Bills', path: '/cases/bills' },
       { title: 'Patients', path: '/cases/patients' },
+      { title: 'Booking Inquiries', path: '/cases/inquiries' },
       { title: 'Transactions', path: '/cases/transactions' },
       { title: 'Referral Doctors', path: '/cases/doctors' },
       { title: 'Agents', path: '/cases/agents' },

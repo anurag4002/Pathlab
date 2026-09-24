@@ -27,6 +27,7 @@ import BillsPage from '../features/billing/pages/BillsPage';
 
 // Cases
 import Transactions from '../pages/cases/Transactions';
+import Inquiries from '../pages/cases/Inquiries';
 import ReferralDoctors from '../pages/cases/ReferralDoctors';
 import Agents from '../pages/cases/Agents';
 import ModalityCases from '../pages/cases/ModalityCases';
@@ -108,6 +109,7 @@ const AppRoutes = () => {
         <Route path="/cases/bills" element={<BillsPage />} />
         <Route path="/cases/bills/new" element={<BillsPage />} />
         <Route path="/cases/transactions" element={<Transactions />} />
+        <Route path="/cases/inquiries" element={<Inquiries />} />
         <Route path="/cases/doctors" element={<ReferralDoctors />} />
         <Route path="/cases/agents" element={<Agents />} />
         <Route element={<RoleRoute allowedRoles={['Admin', 'Employee']} />}>

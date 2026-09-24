@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getModalityCases, createModalityCase, updateModalityCase, deleteModalityCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, PatientPicker } from '../../components/common';
 import useAuth from '../../hooks/useAuth';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
@@ -20,6 +20,7 @@ const ModalityCases = () => {
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({ patient: '', procedure: '', findings: '', impression: '' });
+  const [pickedPatient, setPickedPatient] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -152,7 +153,7 @@ const ModalityCases = () => {
         footer={<><Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>Cancel</Button><Button variant="primary" onClick={handleCreate} loading={submitLoading}>Register Case</Button></>}
       >
         <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-          <Select label="Patient" value={form.patient} onChange={(e) => setForm(p => ({ ...p, patient: e.target.value }))} options={patients.map(p => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))} required />
+          <PatientPicker label="Patient" value={pickedPatient} onSelect={(p) => { setPickedPatient(p); setForm((prev) => ({ ...prev, patient: p ? p._id : '' })); }} required />
           <Input label="Procedure" value={form.procedure} onChange={(e) => setForm(p => ({ ...p, procedure: e.target.value }))} placeholder="e.g. CT Brain Plain" />
           <div className="form-group"><label className="form-label">Findings</label><textarea className="form-control" rows={4} value={form.findings} onChange={(e) => setForm(p => ({ ...p, findings: e.target.value }))} placeholder="Record findings…" /></div>
           <div className="form-group"><label className="form-label">Impression</label><textarea className="form-control" rows={3} value={form.impression} onChange={(e) => setForm(p => ({ ...p, impression: e.target.value }))} placeholder="Final impression…" /></div>

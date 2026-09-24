@@ -257,6 +257,13 @@
   color: #64748b;
 }
 
+.patient-timer-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
 .patient-link-btn {
   background: none;
   border: none;
@@ -646,4 +653,211 @@
     height: 42px;
     font-size: 1rem;
   }
+}
+
+/* Tabs (Reports / Book a Test / My Bookings) */
+.patient-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 12px;
+}
+
+.patient-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.patient-tab.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.patient-tab-count {
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+}
+
+.patient-tab.active .patient-tab-count {
+  background: #fff;
+  color: #2563eb;
+}
+
+.patient-alert-success {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.patient-new-hint {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.patient-text-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.patient-text-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.patient-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .patient-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.patient-btn-narrow {
+  width: auto;
+  margin-top: 12px;
+  padding-left: 18px;
+  padding-right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.patient-book-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.83rem;
+  margin: 0 0 12px 0;
+}
+
+.patient-book-controls {
+  margin-bottom: 12px;
+}
+
+.patient-book-group {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 14px 0 8px 0;
+}
+
+.patient-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 0.87rem;
+}
+
+.patient-select-row.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.patient-select-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.patient-select-name {
+  flex: 1;
+  color: #0f172a;
+}
+
+.patient-select-price {
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.patient-book-foot {
+  margin-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.patient-book-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.87rem;
+  color: #334155;
+}
+
+.patient-muted {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Dev-only OTP hint (backend sends devOtp only outside production). */
+.patient-dev-otp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px dashed #f59e0b;
+  color: #92400e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.patient-dev-otp-label {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.patient-dev-otp-code {
+  font-size: 1.25rem;
+  letter-spacing: 0.3em;
+  font-variant-numeric: tabular-nums;
 }

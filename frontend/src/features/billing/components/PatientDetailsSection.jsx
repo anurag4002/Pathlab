@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { Input, Select } from '../../../components/common';
+import { Input, Select, PatientPicker } from '../../../components/common';
 import { PATIENT_TITLES } from '../billingConstants';
 import '../Billing.css';
 
@@ -10,6 +10,7 @@ const PatientDetailsSection = ({
   setIsExistingPatient,
   patients = [],
   selectedPatientId,
+  selectedPatient = null,
   onPatientSelect,
   patientPhone,
   setPatientPhone,
@@ -73,13 +74,13 @@ const PatientDetailsSection = ({
       </div>
 
       {isExistingPatient ? (
-        <Select
+        <PatientPicker
           label="Search Registered Patients"
-          value={selectedPatientId}
-          onChange={onPatientSelect}
-          options={patients.map((p) => ({ value: p._id, label: `${p.name} (${p.phone})` }))}
+          value={selectedPatient || patients.find((p) => p._id === selectedPatientId) || null}
+          onSelect={onPatientSelect}
           error={errors?.patient}
-          placeholder="Choose patient profile..."
+          required
+          placeholder="Recently registered first — type name, phone or reg no…"
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

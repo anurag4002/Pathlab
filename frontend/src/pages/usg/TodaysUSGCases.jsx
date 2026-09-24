@@ -9,7 +9,7 @@ import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
 import { Plus, Edit2, Printer, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, ImageUploader } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, ImageUploader, PatientPicker } from '../../components/common';
 import CaseFilterBar from '../../components/usg/CaseFilterBar';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 
@@ -46,6 +46,7 @@ const TodaysUSGCases = () => {
   // Form States
   const [formOpen, setFormOpen] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
+  const [pickedPatient, setPickedPatient] = useState(null);
   const [formData, setFormData] = useState({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -182,6 +183,7 @@ const TodaysUSGCases = () => {
 
   const handleOpenCreate = () => {
     setEditingCase(null);
+    setPickedPatient(null);
     setFormData({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
     setCaseImageUrls([]);
     setErrors({});
@@ -190,6 +192,7 @@ const TodaysUSGCases = () => {
 
   const handleOpenEdit = (c) => {
     setEditingCase(c);
+    setPickedPatient(c.patient && typeof c.patient === 'object' ? c.patient : null);
     setFormData({
       patient: c.patient?._id || '',
       referringDoctor: c.referringDoctor?._id || '',
@@ -419,14 +422,13 @@ const TodaysUSGCases = () => {
           </>
         }
       >
-        <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr', maxHeight: '70vh', overflowY: 'auto', paddingRight: '8px' }}>
+        <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
 
-          <Select
+          <PatientPicker
             label="Patient Profile"
-            value={formData.patient}
-            onChange={(e) => setFormData(prev => ({ ...prev, patient: e.target.value }))}
-            options={patients.map(p => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
+            value={pickedPatient || patients.find((p) => p._id === formData.patient) || null}
+            onSelect={(p) => { setPickedPatient(p); setFormData((prev) => ({ ...prev, patient: p ? p._id : '' })); }}
             error={errors.patient}
             required
             disabled={!!editingCase}

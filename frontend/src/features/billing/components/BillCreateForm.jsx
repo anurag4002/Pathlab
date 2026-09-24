@@ -48,6 +48,9 @@ const BillCreateForm = ({
   const navigate = useNavigate();
 
   const [patientForm, setPatientForm] = useState(EMPTY_PATIENT_FORM);
+  // Full picked patient object (may come from server search beyond the
+  // preloaded first-100 list, so it can't be re-derived from `patients`).
+  const [pickedPatient, setPickedPatient] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
@@ -62,26 +65,27 @@ const BillCreateForm = ({
   const updatePatientForm = (field) => (val) =>
     setPatientForm((prev) => ({ ...prev, [field]: typeof val === 'function' ? val(prev[field]) : val }));
 
-  const handlePatientSelect = (e) => {
-    const id = e.target.value;
-    setPatientForm((prev) => ({ ...prev, selectedPatientId: id }));
-    const pat = patients.find((p) => p._id === id);
-    if (pat) {
-      const nameParts = pat.name.split(' ');
-      setPatientForm((prev) => ({
-        ...prev,
-        selectedPatientId: id,
-        patientPhone: pat.phone,
-        patientFirstName: nameParts[0] || '',
-        patientLastName: nameParts.slice(1).join(' ') || '',
-        patientGender: pat.gender || 'Male',
-        patientAgeYears: String(pat.age || ''),
-        patientAgeMonths: '',
-        patientAgeDays: '',
-        ...(pat.email ? { patientEmail: pat.email, showEmail: true } : {}),
-        ...(pat.address ? { patientAddress: pat.address, showAddress: true } : {})
-      }));
+  const handlePatientSelect = (pat) => {
+    if (!pat) {
+      setPickedPatient(null);
+      setPatientForm((prev) => ({ ...prev, selectedPatientId: '' }));
+      return;
     }
+    setPickedPatient(pat);
+    const nameParts = String(pat.name || '').split(' ');
+    setPatientForm((prev) => ({
+      ...prev,
+      selectedPatientId: pat._id,
+      patientPhone: pat.phone,
+      patientFirstName: nameParts[0] || '',
+      patientLastName: nameParts.slice(1).join(' ') || '',
+      patientGender: pat.gender || 'Male',
+      patientAgeYears: String(pat.age || ''),
+      patientAgeMonths: '',
+      patientAgeDays: '',
+      ...(pat.email ? { patientEmail: pat.email, showEmail: true } : {}),
+      ...(pat.address ? { patientAddress: pat.address, showAddress: true } : {})
+    }));
   };
 
   const handleAddItem = (item, type) => {
@@ -225,9 +229,10 @@ const BillCreateForm = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
           <PatientDetailsSection
             isExistingPatient={patientForm.isExistingPatient}
-            setIsExistingPatient={(v) => setPatientForm((p) => ({ ...p, isExistingPatient: v }))}
+            setIsExistingPatient={(v) => setPatientForm((p) => ({ ...p, isExistingPatient: typeof v === 'function' ? v(p.isExistingPatient) : v }))}
             patients={patients}
             selectedPatientId={patientForm.selectedPatientId}
+            selectedPatient={pickedPatient || patients.find((p) => p._id === patientForm.selectedPatientId) || null}
             onPatientSelect={handlePatientSelect}
             patientPhone={patientForm.patientPhone}
             setPatientPhone={(v) => setPatientForm((p) => ({ ...p, patientPhone: v }))}

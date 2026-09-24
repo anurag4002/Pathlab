@@ -1,10 +1,8 @@
 import React from 'react';
 import { PERMISSION_KEYS } from '../../../hooks/usePermission';
 
-// Phase 25 — permission matrix editor.
-// Backend stores User.permissions as a Map of Boolean; the old UI sent an
-// Array of keys (shape mismatch). This component works with an OBJECT map
-// { key: true } and converts legacy arrays on the way in.
+// Permission matrix editor. Works with an OBJECT map { key: true } and
+// converts legacy arrays on the way in.
 export const permsToMap = (perms) => {
   if (!perms) return {};
   if (Array.isArray(perms)) {
@@ -20,6 +18,16 @@ export const permsToMap = (perms) => {
     return m;
   }
   return { ...perms };
+};
+
+const PERM_META = {
+  billing: 'Create bills and collect payments',
+  reports: 'Lab results entry, verification and printing',
+  rates: 'Revise test catalog rates',
+  finance: 'Expenses, dues and business ledgers',
+  settings: 'Lab configuration, TAT and signatures',
+  patients: 'Patient registry and case history',
+  delivery: 'Messages, templates and notifications'
 };
 
 const PermissionMatrix = ({ value, onChange, disabledReason }) => {
@@ -42,18 +50,22 @@ const PermissionMatrix = ({ value, onChange, disabledReason }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+      <div className="perm-matrix-head" style={{ marginBottom: '12px' }}>
         <label className="form-label" style={{ margin: 0 }}><span>Permissions</span></label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="button" className="btn btn-secondary" style={{ padding: '2px 10px', fontSize: '0.75rem' }} onClick={() => setAll(true)}>All</button>
-          <button type="button" className="btn btn-secondary" style={{ padding: '2px 10px', fontSize: '0.75rem' }} onClick={() => setAll(false)}>None</button>
+        <div className="perm-matrix-actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAll(true)}>All</button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAll(false)}>None</button>
         </div>
       </div>
-      {disabledReason && <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{disabledReason}</p>}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+      {disabledReason && <p className="emp-form-hint" style={{ marginBottom: '12px' }}>{disabledReason}</p>}
+      <div className="perm-grid">
         {PERMISSION_KEYS.map((k) => (
-          <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.85rem', textTransform: 'capitalize' }}>
-            <input type="checkbox" checked={!!map[k]} onChange={() => toggle(k)} /> {k}
+          <label key={k} className={`perm-card ${map[k] ? 'on' : ''}`}>
+            <input type="checkbox" checked={!!map[k]} onChange={() => toggle(k)} />
+            <span>
+              <span className="perm-card-title">{k}</span>
+              <span className="perm-card-desc" style={{ display: 'block' }}>{PERM_META[k] || ''}</span>
+            </span>
           </label>
         ))}
       </div>

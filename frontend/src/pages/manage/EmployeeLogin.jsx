@@ -228,12 +228,12 @@ const EmployeeLogin = () => {
         )}
       />
 
-      {/* Form Modal — Phase 19 extended form + Phase 25 permission matrix.
-          Sessions panel omitted: session list/revoke endpoints do not exist. */}
+      {/* Form Modal — extended profile + permission matrix. */}
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editingEmployee ? 'Edit Account' : 'Register Operator'}
+        size="lg"
         footer={
           <>
             <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>

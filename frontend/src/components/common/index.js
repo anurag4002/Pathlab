@@ -15,3 +15,4 @@ export { default as AdvancedFilterBar, DURATION_OPTIONS } from './AdvancedFilter
 export { default as EmptyState } from './EmptyState/EmptyState';
 export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export { default as TestCombobox } from './TestCombobox/TestCombobox';
+export { default as PatientPicker } from './PatientPicker/PatientPicker';

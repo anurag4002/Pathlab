@@ -21,9 +21,15 @@ const sendOtp = async (phone, otp) => {
 
   try {
     const res = await sendTemplated('sms', 'otp', phone, { otp, fallbackText: `Your Pure Path Lab OTP is ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes.` });
+    if (!res.ok) {
+      // SMS not configured / send failed: print to the server console so the
+      // code is still retrievable and login is never a dead end.
+      console.log(`[Pure Path Lab] OTP for ${phone}: ${otp} (SMS not delivered: ${res.error || 'unknown error'})`);
+    }
     return res.ok;
   } catch (e) {
     console.error('SMS OTP send failed:', e.message);
+    console.log(`[Pure Path Lab] OTP for ${phone}: ${otp} (SMS threw: ${e.message})`);
     return false;
   }
 };
@@ -104,10 +110,16 @@ const requestOtp = async (phone) => {
 
   await sendOtp(cleanPhone, otp);
 
-  return {
+  const out = {
     success: true,
     expiresInMinutes: OTP_EXPIRY_MINUTES
   };
+  // Dev/testing aid: echo the code back so the UI can display it while no
+  // SMS provider is configured. NEVER in production (OTP would leak).
+  if (process.env.NODE_ENV !== 'production') {
+    out.devOtp = otp;
+  }
+  return out;
 };
 
 const verifyOtp = async (phone, inputOtp) => {

@@ -71,7 +71,9 @@ const seedData = {
     { name: 'Hormones', description: 'Endocrine and hormone profile tests' },
     { name: 'Kidney Function', description: 'Renal profile tests' },
     { name: 'Liver Function', description: 'Hepatic profile tests' },
-    { name: 'Immunology', description: 'Serology and immune system tests' }
+    { name: 'Immunology', description: 'Serology and immune system tests' },
+    { name: 'Lipid Profile', description: 'Cholesterol and triglyceride panels' },
+    { name: 'Urine Analysis', description: 'Urine routine and microscopy' }
   ],
   tests: [
     // Hematology
@@ -182,6 +184,76 @@ const seedData = {
       price: 250,
       description: 'Hormone managing thyroid glands',
       interpretation: 'High levels indicate hypothyroidism. Low levels indicate hyperthyroidism.'
+    },
+    // Liver Function
+    {
+      name: 'SGOT (AST)',
+      code: 'SGOT',
+      categoryName: 'Liver Function',
+      sampleType: 'Blood (Serum)',
+      unit: 'U/L',
+      referenceRange: '8 - 33',
+      price: 180,
+      description: 'Aspartate aminotransferase liver enzyme',
+      interpretation: 'Elevated SGOT suggests liver cell injury, hepatitis or alcohol-related change.'
+    },
+    {
+      name: 'SGPT (ALT)',
+      code: 'SGPT',
+      categoryName: 'Liver Function',
+      sampleType: 'Blood (Serum)',
+      unit: 'U/L',
+      referenceRange: '4 - 36',
+      price: 180,
+      description: 'Alanine aminotransferase liver enzyme',
+      interpretation: 'Elevated SGPT is a sensitive marker of liver injury.'
+    },
+    // Lipid Profile
+    {
+      name: 'Total Cholesterol',
+      code: 'CHOL',
+      categoryName: 'Lipid Profile',
+      sampleType: 'Blood (Serum)',
+      unit: 'mg/dL',
+      referenceRange: '125 - 200',
+      price: 200,
+      description: 'Total blood cholesterol level',
+      interpretation: 'Values above 200 mg/dL increase cardiovascular risk.'
+    },
+    {
+      name: 'HDL Cholesterol',
+      code: 'HDL',
+      categoryName: 'Lipid Profile',
+      sampleType: 'Blood (Serum)',
+      unit: 'mg/dL',
+      referenceRange: '40 - 80',
+      price: 220,
+      description: 'High-density lipoprotein (good cholesterol)',
+      interpretation: 'Higher HDL is protective against heart disease.'
+    },
+    // Biochemistry
+    {
+      name: 'HbA1c (Glycated Hemoglobin)',
+      code: 'HBA1C',
+      categoryName: 'Biochemistry',
+      sampleType: 'Blood (EDTA)',
+      unit: '%',
+      referenceRange: '4.0 - 5.6',
+      price: 300,
+      description: 'Three-month average blood sugar marker',
+      interpretation: 'HbA1c above 6.5% indicates diabetes mellitus.'
+    },
+    // Urine
+    {
+      name: 'Urine Routine Examination',
+      code: 'URINE',
+      categoryName: 'Urine Analysis',
+      sampleType: 'Urine (Spot)',
+      unit: '',
+      referenceRange: 'Normal limits',
+      price: 150,
+      description: 'Physical, chemical and microscopic urine analysis',
+      interpretation: 'Protein or glucose in urine warrants further evaluation.'
     }
   ],
   packages: [
@@ -205,6 +277,13 @@ const seedData = {
       gender: 'All',
       testCodes: ['B_UREA', 'S_CREAT'],
       description: 'Basic tests evaluating renal health status'
+    },
+    {
+      name: 'Full Body Checkup Essential',
+      price: 499,
+      gender: 'All',
+      testCodes: ['HB', 'BS_R', 'B_UREA', 'S_CREAT'],
+      description: 'Essential yearly health screening bundle'
     }
   ],
   patients: [
@@ -228,6 +307,73 @@ const seedData = {
       gender: 'Male',
       phone: '9988776657',
       address: 'Wz-23, Uttam Nagar, Delhi'
+    },
+    {
+      name: 'Priya Nair',
+      age: 27,
+      gender: 'Female',
+      phone: '9811012233',
+      uhid: 'UHID-1004',
+      address: 'A-44, Laxmi Nagar, Delhi'
+    },
+    {
+      name: 'Amit Verma',
+      age: 41,
+      gender: 'Male',
+      phone: '9811044556',
+      address: 'RZ-18, Palam Colony, Delhi'
+    },
+    {
+      name: 'Sunita Iyer',
+      age: 63,
+      gender: 'Female',
+      phone: '9899100112',
+      uhid: 'UHID-1006',
+      address: 'C-9, Safdarjung Enclave, Delhi'
+    },
+    {
+      name: 'Rajesh Kumar',
+      age: 48,
+      gender: 'Male',
+      phone: '9811077889',
+      address: 'Plot 7, Mundka Industrial Area, Delhi'
+    },
+    {
+      name: 'Kavita Singh',
+      age: 35,
+      gender: 'Female',
+      phone: '9899133445',
+      address: 'H.No. 212, Shahdara, Delhi'
+    },
+    {
+      name: 'Mohammed Farhan',
+      age: 31,
+      gender: 'Male',
+      phone: '9811166778',
+      uhid: 'UHID-1009',
+      address: 'Gali No. 4, Zakir Nagar, Delhi'
+    },
+    {
+      name: 'Ananya Das',
+      age: 24,
+      gender: 'Female',
+      phone: '9899177889',
+      address: 'FD-4, Munirka, Delhi'
+    },
+    {
+      name: 'Vikram Chauhan',
+      age: 52,
+      gender: 'Male',
+      phone: '9811199001',
+      address: 'Village Khera Kalan, Delhi'
+    },
+    {
+      name: 'Pooja Bansal',
+      age: 29,
+      gender: 'Female',
+      phone: '9899112233',
+      uhid: 'UHID-1012',
+      address: 'B-72, Vivek Vihar, Delhi'
     }
   ],
   expenses: [
@@ -249,6 +395,56 @@ const seedData = {
       description: 'Power charges for cooling chambers and equipment',
       paymentMethod: 'Cash'
     }
+  ],
+  panels: [
+    {
+      name: 'CBC Panel',
+      price: 399,
+      testCodes: ['HB', 'TLC', 'DLC', 'ESR'],
+      description: 'Complete blood count with ESR'
+    },
+    {
+      name: 'Kidney Mini Panel',
+      price: 249,
+      testCodes: ['B_UREA', 'S_CREAT'],
+      description: 'Urea + creatinine kidney screen'
+    }
+  ],
+  interpretations: [
+    {
+      testCode: 'HB',
+      resultCondition: 'Below 12.0 g/dL (adult)',
+      interpretationText: 'Low hemoglobin suggests iron deficiency anemia. Recommend serum ferritin and peripheral smear.',
+      normalAbnormalGuidance: 'Abnormal'
+    },
+    {
+      testCode: 'TSH',
+      resultCondition: 'Above 4.5 uIU/mL',
+      interpretationText: 'Raised TSH with normal T3/T4 suggests subclinical hypothyroidism. Correlate clinically.',
+      normalAbnormalGuidance: 'Abnormal'
+    },
+    {
+      testCode: 'S_CREAT',
+      resultCondition: 'Above 1.2 mg/dL',
+      interpretationText: 'Elevated creatinine indicates reduced glomerular filtration. Review hydration, medication and repeat.',
+      normalAbnormalGuidance: 'Abnormal'
+    }
+  ],
+  tickets: [
+    {
+      subject: 'Sample collection delayed in Shahdara beats',
+      message: 'Phlebo reached 40 minutes late for two home collections this morning. Please review roster.',
+      status: 'Open'
+    },
+    {
+      subject: 'Report header shows old phone number',
+      message: 'Printed reports carried the old landline in the header. Fixed after updating the lab profile.',
+      status: 'Closed'
+    }
+  ],
+  browsers: [
+    { code: 'FRONT-DESK-01', label: 'Front Desk PC', status: 'Active' },
+    { code: 'LAB-PC-02', label: 'Lab Reporting Room PC', status: 'Active' }
   ]
 };
 
