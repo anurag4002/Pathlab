@@ -5,11 +5,12 @@ const Activity = require('../models/Activity');
 
 const getUsers = async (req, res, next) => {
   try {
-    const { role, status, search } = req.query;
+    const { role, status, search, branch } = req.query;
     const query = {};
 
     if (role) query.role = role;
     if (status) query.status = status;
+    if (branch) query.branch = branch;
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -18,7 +19,7 @@ const getUsers = async (req, res, next) => {
       ];
     }
 
-    const users = await User.find(query).select('-password').sort({ createdAt: -1 });
+    const users = await User.find(query).select('-password').populate('branch', 'name code status').sort({ createdAt: -1 });
     return successResponse(res, 'Users fetched successfully', users);
   } catch (error) {
     next(error);
@@ -39,6 +40,18 @@ const createUser = async (req, res, next) => {
       return errorResponse(res, 'A user with this email already exists', 400);
     }
 
+    const Branch = require('../models/Branch');
+    let branchId = branch || req.body.branchId || null;
+    if (branchId) {
+      const b = await Branch.findById(branchId);
+      if (!b) return errorResponse(res, 'Invalid branch', 400);
+      branchId = b._id;
+    } else {
+      // Default staff to Main branch so isolation never leaves them branch-less
+      const main = await Branch.findOne({ code: 'MAIN' });
+      if (main) branchId = main._id;
+    }
+
     const newUser = await User.create({
       name,
       email,
@@ -52,7 +65,7 @@ const createUser = async (req, res, next) => {
       joiningDate: joiningDate ? new Date(joiningDate) : null,
       departments: Array.isArray(departments) ? departments : [],
       documents: Array.isArray(documents) ? documents : [],
-      branch: branch || 'Main'
+      branch: branchId
     });
 
     // Log Activity
@@ -63,7 +76,7 @@ const createUser = async (req, res, next) => {
       description: `Created user account for ${name} (${role}).`
     });
 
-    const userResponse = await User.findById(newUser._id).select('-password');
+    const userResponse = await User.findById(newUser._id).select('-password').populate('branch', 'name code status');
     return successResponse(res, 'User created successfully', userResponse, 201);
   } catch (error) {
     next(error);
@@ -97,7 +110,17 @@ const updateUser = async (req, res, next) => {
     if (req.body.joiningDate !== undefined) user.joiningDate = req.body.joiningDate ? new Date(req.body.joiningDate) : null;
     if (req.body.departments !== undefined) user.departments = Array.isArray(req.body.departments) ? req.body.departments : [];
     if (req.body.documents !== undefined) user.documents = Array.isArray(req.body.documents) ? req.body.documents : [];
-    if (req.body.branch !== undefined) user.branch = req.body.branch || 'Main';
+    if (req.body.branch !== undefined || req.body.branchId !== undefined) {
+      const Branch = require('../models/Branch');
+      const bid = req.body.branch !== undefined ? req.body.branch : req.body.branchId;
+      if (!bid) {
+        user.branch = null;
+      } else {
+        const b = await Branch.findById(bid);
+        if (!b) return errorResponse(res, 'Invalid branch', 400);
+        user.branch = b._id;
+      }
+    }
     if (req.body.permissions && typeof req.body.permissions === 'object') {
       // Accept both Map-object and legacy array of keys (array → {key:true})
       if (Array.isArray(req.body.permissions)) {
@@ -122,7 +145,7 @@ const updateUser = async (req, res, next) => {
       description: `Updated user account details for ${user.name}.`
     });
 
-    const userResponse = await User.findById(user._id).select('-password');
+    const userResponse = await User.findById(user._id).select('-password').populate('branch', 'name code status');
     return successResponse(res, 'User updated successfully', userResponse);
   } catch (error) {
     next(error);

@@ -96,6 +96,7 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin'],
     children: [
       { title: 'User Management', path: '/manage/employees' },
+      { title: 'Branches', path: '/manage/branches' },
       { title: 'Audit Log', path: '/settings/audit-log' },
       { title: 'Doctor Access', path: '/manage/doctors' },
       { title: 'Browser Security', path: '/manage/security' },

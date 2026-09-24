@@ -20,7 +20,7 @@ const durationToDates = (duration) => {
 };
 
 const createBill = async (billData, createdByUserId) => {
-  const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod, department, collectionCentre, caseType, uhid, dailyCaseNo, onlineReportRequested, discountPercent } = billData;
+  const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod, department, collectionCentre, caseType, uhid, dailyCaseNo, onlineReportRequested, discountPercent, branch } = billData;
 
   // Calculate totals
   let subtotal = 0;
@@ -51,6 +51,14 @@ const createBill = async (billData, createdByUserId) => {
     if (p) { if (!denormUhid && p.uhid) denormUhid = p.uhid; if (!denormDcn && p.registrationNumber) denormDcn = p.registrationNumber; }
   } catch (e) { /* non-fatal */ }
 
+  const Branch = require('../models/Branch');
+  let branchId = branch || null;
+  if (branchId) {
+    try {
+      const b = await Branch.findById(branchId).select('name');
+      if (b && !collectionCentre) billData._branchName = b.name;
+    } catch (e) { /* ignore */ }
+  }
   const bill = new Bill({
     billNumber,
     patient,
@@ -63,7 +71,8 @@ const createBill = async (billData, createdByUserId) => {
     paymentMethod: paymentMethod || 'Cash',
     paymentStatus,
     department: (department || 'LAB').toUpperCase(),
-    collectionCentre: collectionCentre || 'Main',
+    branch: branchId,
+    collectionCentre: collectionCentre || billData._branchName || 'Main',
     caseType: CASE_TYPES.includes(caseType) ? caseType : 'LabCase',
     uhid: denormUhid || '',
     dailyCaseNo: denormDcn || '',
@@ -94,6 +103,7 @@ const createBill = async (billData, createdByUserId) => {
     await Transaction.create({
       patient,
       bill: bill._id,
+      branch: branchId,
       amount: paidVal,
       paymentMethod: bill.paymentMethod,
       type: 'Income',
@@ -107,6 +117,7 @@ const createBill = async (billData, createdByUserId) => {
 const getBills = async (filters = {}) => {
   const query = {};
   const PatientModel = require('../models/Patient');
+  if (filters.branch) query.branch = filters.branch;
 
   if (!filters.includeVoided && filters.cancelled !== 'true' && filters.cancelled !== true) {
     // Exclude voided by default; explicit cancelled=true shows cancelled/voided
@@ -273,6 +284,7 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
   await Transaction.create({
     patient: bill.patient,
     bill: bill._id,
+    branch: bill.branch || null,
     amount: paidVal,
     paymentMethod: bill.paymentMethod,
     type: 'Income',
@@ -286,13 +298,14 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
 // type filter: 'in' -> Income, 'out' -> Expense+Refund (also accepts raw
 // Income/Refund/Expense). mode filter maps to paymentMethod.
 const getCashbook = async (filters = {}) => {
-  const { from, to, mode, type } = filters;
+  const { from, to, mode, type, branch } = filters;
   if (from && to && new Date(from) > new Date(to)) {
     const err = new Error('Invalid date range: from is after to');
     err.statusCode = 400;
     throw err;
   }
   const query = {};
+  if (branch) query.branch = branch;
   if (from || to) {
     query.date = {};
     if (from) query.date.$gte = new Date(from);
@@ -354,7 +367,7 @@ const getCashbook = async (filters = {}) => {
 
 // Manual cash in/out with no bill link (Admin/finance). type 'in'|'out'
 // maps to Income|Expense; mode maps to paymentMethod.
-const createManualCashEntry = async ({ amount, type, mode, note, date }, userId) => {
+const createManualCashEntry = async ({ amount, type, mode, note, date, branch }, userId) => {
   const val = Number(amount);
   if (isNaN(val) || val <= 0) {
     const err = new Error('Amount must be greater than 0');
@@ -375,6 +388,7 @@ const createManualCashEntry = async ({ amount, type, mode, note, date }, userId)
   const txn = await Transaction.create({
     patient: null,
     bill: null,
+    branch: branch || null,
     amount: val,
     paymentMethod: mode,
     type: type === 'in' ? 'Income' : 'Expense',
@@ -435,6 +449,7 @@ const refundBill = async (billId, { amount, method, reason }, userId) => {
   await Transaction.create({
     patient: bill.patient,
     bill: bill._id,
+    branch: bill.branch || null,
     amount: refundVal,
     paymentMethod: payMethod,
     type: 'Refund',

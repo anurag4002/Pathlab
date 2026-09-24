@@ -23,6 +23,7 @@ const getReports = async (filters = {}) => {
   const query = {};
   const Patient = require('../models/Patient');
   const Bill = require('../models/Bill');
+  if (filters.branch) query.branch = filters.branch;
 
   if (filters.patientId) query.patient = filters.patientId;
   if (filters.billId) query.bill = filters.billId;
@@ -96,7 +97,7 @@ const getReports = async (filters = {}) => {
 };
 
 const createReport = async (reportData, file, user) => {
-  const { patient, bill, test } = reportData;
+  const { patient, bill, test, branch } = reportData;
 
   const patientRecord = await Patient.findById(patient);
   if (!patientRecord) {
@@ -115,6 +116,7 @@ const createReport = async (reportData, file, user) => {
     patient,
     registrationNumber: patientRecord.registrationNumber,
     bill,
+    branch: branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null,
     test: test || null,
     fileUrl,
     uploadedBy: user._id,
@@ -141,15 +143,17 @@ const deleteReport = async (id) => {
 // ---- Result entry (Labsmart parity) ----
 
 // Register an empty result shell (status Registered, TAT started).
-const createResultReport = async ({ patient, bill }, user) => {
+const createResultReport = async ({ patient, bill, branch }, user) => {
   const patientRecord = await Patient.findById(patient);
   if (!patientRecord) throw Object.assign(new Error('Patient not found'), { statusCode: 404 });
   const billRecord = await Bill.findById(bill);
   if (!billRecord) throw Object.assign(new Error('Bill invoice not found'), { statusCode: 404 });
+  const effectiveBranch = branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null;
   const report = new Report({
     patient,
     registrationNumber: patientRecord.registrationNumber,
     bill,
+    branch: effectiveBranch,
     test: null,
     fileUrl: '',
     uploadedBy: user._id,

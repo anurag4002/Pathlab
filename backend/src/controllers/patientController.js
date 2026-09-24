@@ -9,6 +9,8 @@ const MESSAGES = require('../constants/messages');
 
 const getPatients = async (req, res, next) => {
   try {
+    const { getBranchFilter } = require('../middleware/branchMiddleware');
+    const branchScope = getBranchFilter(req);
     const filters = {
       search: req.query.search,
       uhid: req.query.uhid,
@@ -20,7 +22,8 @@ const getPatients = async (req, res, next) => {
       from: req.query.from || req.query.startDate,
       to: req.query.to || req.query.endDate,
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
+      ...branchScope
     };
     const data = await patientService.getAllPatients(filters);
     return successResponse(res, 'Patients list fetched successfully', data);
@@ -32,23 +35,26 @@ const getPatients = async (req, res, next) => {
 const getPatientDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
+    await patientService.assertPatientAccess(id, req);
     const patient = await patientService.getPatientById(id);
     if (!patient) {
       return errorResponse(res, MESSAGES.PATIENT.NOT_FOUND, 404);
     }
 
-    // Fetch related cases / history
-    const bills = await Bill.find({ patient: id })
+    // Fetch related cases / history (branch-scoped for staff, all for Admin)
+    const { getBranchFilter } = require('../middleware/branchMiddleware');
+    const branchScope = getBranchFilter(req);
+    const bills = await Bill.find({ patient: id, ...branchScope })
       .populate('referringDoctor', 'name')
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
 
-    const reports = await Report.find({ patient: id })
+    const reports = await Report.find({ patient: id, ...branchScope })
       .populate('test', 'name code')
       .populate('bill', 'billNumber')
       .sort({ createdAt: -1 });
 
-    const transactions = await Transaction.find({ patient: id })
+    const transactions = await Transaction.find({ patient: id, ...branchScope })
       .populate('bill', 'billNumber')
       .sort({ createdAt: -1 });
 
@@ -72,7 +78,9 @@ const createPatient = async (req, res, next) => {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
     }
 
-    const patient = await patientService.createPatient(req.body);
+    const { resolveBranchForCreate } = require('../middleware/branchMiddleware');
+    const branch = resolveBranchForCreate(req, req.body);
+    const patient = await patientService.createPatient({ ...req.body, branch });
 
     // Log Activity
     await Activity.create({
@@ -91,6 +99,7 @@ const createPatient = async (req, res, next) => {
 const updatePatient = async (req, res, next) => {
   try {
     const { id } = req.params;
+    await patientService.assertPatientAccess(id, req);
     const { errors, isValid } = validatePatient(req.body);
     if (!isValid) {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
@@ -118,6 +127,7 @@ const updatePatient = async (req, res, next) => {
 const deletePatient = async (req, res, next) => {
   try {
     const { id } = req.params;
+    await patientService.assertPatientAccess(id, req);
     const patient = await patientService.deletePatient(id);
     if (!patient) {
       return errorResponse(res, MESSAGES.PATIENT.NOT_FOUND, 404);

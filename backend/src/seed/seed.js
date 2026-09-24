@@ -76,8 +76,20 @@ const seedDB = async () => {
     await WebBrowser.deleteMany();
     console.log('Database collections cleared.');
 
+    // ---- Branches (multi-branch isolation root) ----
+    const Branch = require('../models/Branch');
+    await Branch.deleteMany();
+    const mainBranch = await Branch.create({
+      name: 'Main',
+      code: 'MAIN',
+      address: 'G-7, Vikas Marg, Laxmi Nagar, Delhi 110092',
+      phone: '9810012345',
+      status: 'Active'
+    });
+    console.log(`Seeded Main branch (${mainBranch._id}).`);
+
     // ---- Users / Doctors / Agents ----
-    const users = await User.create(seedData.users);
+    const users = await User.create(seedData.users.map((u) => ({ ...u, branch: mainBranch._id })));
     console.log(`Seeded ${users.length} users.`);
     const adminUser = users.find((u) => u.role === 'Admin');
     const staffUser = users.find((u) => u.role === 'Employee');
@@ -217,6 +229,7 @@ const seedDB = async () => {
       const joined = atDay(idx < baseJoin.length ? baseJoin[idx] : 160 + (idx % 40), 9, 30);
       return {
         ...p,
+        branch: mainBranch._id,
         registrationNumber: `PPL-${compact(joined)}-${String(idx + 1).padStart(4, '0')}`,
         referringDoctor: doctors[idx % doctors.length]._id,
         date: joined
@@ -254,6 +267,7 @@ const seedDB = async () => {
       const bill = new Bill({
         billNumber: `INV-${compact(d)}-${String(billSeq).padStart(5, '0')}`,
         patient: patients[i % patients.length]._id,
+        branch: mainBranch._id,
         referringDoctor: doctors[i % doctors.length]._id,
         agent: i % 2 === 0 ? agents[i % agents.length]._id : null,
         discount,
@@ -282,6 +296,7 @@ const seedDB = async () => {
         await Transaction.create({
           patient: bill.patient,
           bill: bill._id,
+          branch: mainBranch._id,
           amount: paid,
           paymentMethod: bill.paymentMethod,
           type: 'Income',
@@ -295,6 +310,7 @@ const seedDB = async () => {
       await Transaction.create({
         patient: bills[bIdx].patient,
         bill: bills[bIdx]._id,
+        branch: mainBranch._id,
         amount: amt,
         paymentMethod: 'Cash',
         type: 'Refund',
@@ -351,6 +367,7 @@ const seedDB = async () => {
       const pat = patients.find((p) => String(p._id) === String(bill.patient));
       const rep = await Report.create({
         patient: bill.patient,
+        branch: mainBranch._id,
         registrationNumber: pat.registrationNumber,
         bill: bill._id,
         test: testByCode[repCodes[0]]._id,
@@ -380,6 +397,7 @@ const seedDB = async () => {
     for (let i = 0; i < 20; i += 1) {
       await USGCase.create({
         patient: patients[(i * 7) % patients.length]._id,
+        branch: mainBranch._id,
         referringDoctor: doctors[i % doctors.length]._id,
         templateName: usgTemplates[i % usgTemplates.length],
         findings: usgTexts[i % usgTexts.length],
@@ -398,6 +416,7 @@ const seedDB = async () => {
     for (let i = 0; i < 15; i += 1) {
       await XrayCase.create({
         patient: patients[(i * 11) % patients.length]._id,
+        branch: mainBranch._id,
         referringDoctor: doctors[i % doctors.length]._id,
         findings: xrayTexts[i % xrayTexts.length],
         date: atDay((i * 2) % 30, 12, 0),
@@ -414,6 +433,7 @@ const seedDB = async () => {
       const code = testCodes[(i * 7) % testCodes.length];
       await Inquiry.create({
         patient: usePatient ? pat._id : null,
+        branch: mainBranch._id,
         name: usePatient ? pat.name : `${pick(firstM.concat(firstF))} ${pick(lasts)}`,
         phone: usePatient ? pat.phone : `98${String(11000000 + i * 9773).slice(0, 8)}`,
         items: [
@@ -447,6 +467,7 @@ const seedDB = async () => {
       const d = atDay((i * 7) % 95, 13, 0);
       await Expense.create({
         spentOn: d,
+        branch: mainBranch._id,
         name: `${cat} #${(i / expCats.length | 0) + 1}`,
         category: cat,
         amount: lo + Math.floor(rand() * (hi - lo)),

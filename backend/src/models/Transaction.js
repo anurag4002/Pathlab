@@ -28,6 +28,12 @@ const TransactionSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   receivedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

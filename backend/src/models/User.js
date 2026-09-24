@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema({
   joiningDate: { type: Date, default: null },
   departments: { type: [String], default: [] },
   documents: { type: [String], default: [] },
-  branch: { type: String, trim: true, default: 'Main' }
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null, index: true }
 }, {
   timestamps: true
 });

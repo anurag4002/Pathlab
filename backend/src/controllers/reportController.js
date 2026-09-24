@@ -12,9 +12,24 @@ const Signature = require('../models/Signature');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
+const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+
+const assertReportAccess = async (req, id) => {
+  const doc = await Report.findById(id).select('branch');
+  if (!doc) {
+    const err = new Error('Report not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  assertBranchAccess(req, doc.branch);
+  return doc;
+};
+
 const getReports = async (req, res, next) => {
   try {
+    const branchScope = getBranchFilter(req);
     const filters = {
+      ...branchScope,
       patientId: req.query.patientId,
       billId: req.query.billId,
       registrationNumber: req.query.registrationNumber || req.query.regNo,
@@ -52,7 +67,7 @@ const uploadReport = async (req, res, next) => {
     }
 
     const report = await reportService.createReport(
-      { patient, bill, test },
+      { patient, bill, test, branch: resolveBranchForCreate(req, req.body) },
       req.file,
       req.user
     );
@@ -74,6 +89,7 @@ const uploadReport = async (req, res, next) => {
 const downloadReport = async (req, res, next) => {
   try {
     const { id } = req.params;
+    await assertReportAccess(req, id);
     const report = await Report.findById(id);
     if (!report || !report.fileUrl) {
       return errorResponse(res, 'Report file not found', 404);
@@ -94,6 +110,7 @@ const downloadReport = async (req, res, next) => {
 const deleteReport = async (req, res, next) => {
   try {
     const { id } = req.params;
+    await assertReportAccess(req, id);
     await reportService.deleteReport(id);
 
     // Log Activity
@@ -138,7 +155,7 @@ async function createResultReport(req, res, next) {
   try {
     const { patient, bill } = req.body;
     if (!patient || !bill) return errorResponse(res, 'Patient ID and Bill ID are required', 400);
-    const report = await reportService.createResultReport({ patient, bill }, req.user);
+    const report = await reportService.createResultReport({ patient, bill, branch: resolveBranchForCreate(req, req.body) }, req.user);
     await Activity.create({
       user: req.user._id, action: 'Create Result Report', module: 'Lab',
       description: `Registered result entry for ${report.registrationNumber}.`
@@ -151,6 +168,7 @@ async function createResultReport(req, res, next) {
 
 async function saveResults(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const { results } = req.body;
     if (!Array.isArray(results) || results.length === 0) {
       return errorResponse(res, 'At least one result is required', 400);
@@ -168,6 +186,7 @@ async function saveResults(req, res, next) {
 
 async function signReport(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.signReport(req.params.id, req.body.signatureId, req.user);
     await Activity.create({
       user: req.user._id, action: 'Sign Report', module: 'Lab',
@@ -181,6 +200,7 @@ async function signReport(req, res, next) {
 
 async function updateTat(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.updateTat(req.params.id, req.body || {});
     return successResponse(res, 'TAT updated', report);
   } catch (error) {
@@ -190,8 +210,9 @@ async function updateTat(req, res, next) {
 
 // ---- Server-rendered PDF (letterhead toggle) + QR ----
 
-async function loadReportPdfContext(id) {
+async function loadReportPdfContext(id, req) {
   const report = await Report.findById(id).populate('patient').populate('bill');
+  if (req) assertBranchAccess(req, report ? report.branch : null);
   if (!report) {
     const err = new Error('Report not found');
     err.statusCode = 404;
@@ -223,7 +244,7 @@ async function loadReportPdfContext(id) {
 async function reportPdfDownload(req, res, next) {
   try {
     const letterhead = req.query.letterhead !== '0';
-    const ctx = await loadReportPdfContext(req.params.id);
+    const ctx = await loadReportPdfContext(req.params.id, req);
     const qrPng = await qrBuffer(reportVerifyUrl(ctx.token));
     const pdf = await reportPdf(ctx, { letterhead, qrPng });
     res.setHeader('Content-Type', 'application/pdf');
@@ -237,6 +258,7 @@ async function reportPdfDownload(req, res, next) {
 
 async function reportQr(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await Report.findById(req.params.id);
     if (!report) return errorResponse(res, 'Report not found', 404);
     const token = await reportService.ensureQrToken(report);
@@ -252,24 +274,20 @@ async function reportQr(req, res, next) {
 // GET /reports/pending-cases - Get lab bills pending result entry
 async function getPendingLabCases(req, res, next) {
   try {
+    const branchScope = getBranchFilter(req);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
     // Find LAB department bills that don't have a report, or have a report in Registered/Draft status
-    const billsWithReports = await Report.find({ status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed'] } }).distinct('bill');
-
-    const query = {
-      department: 'LAB',
-      isVoided: { $ne: true },
-      _id: { $nin: billsWithReports }
-    };
+    const billsWithReports = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed'] } }).distinct('bill');
 
     // Also include bills that have a report in Registered status (draft)
-    const draftReportBills = await Report.find({ status: 'Registered' }).distinct('bill');
-    
+    const draftReportBills = await Report.find({ ...branchScope, status: 'Registered' }).distinct('bill');
+
     // Combine: bills without reports OR bills with draft reports
     const finalQuery = {
+      ...branchScope,
       $or: [
         { _id: { $nin: billsWithReports }, department: 'LAB', isVoided: { $ne: true } },
         { _id: { $in: draftReportBills }, department: 'LAB', isVoided: { $ne: true } }
@@ -317,6 +335,7 @@ async function getPendingLabCases(req, res, next) {
 // GET /reports/:id/entry - Get report with full test details for result entry
 async function getReportForEntry(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await Report.findById(req.params.id)
       .populate('patient', 'name registrationNumber age gender phone address referringDoctor')
       .populate({
@@ -415,6 +434,7 @@ async function getReportForEntry(req, res, next) {
 // PUT /reports/:id/results/draft - Save results as draft (status stays Registered)
 async function saveResultsDraft(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const { results } = req.body;
     if (!Array.isArray(results) || results.length === 0) {
       return errorResponse(res, 'At least one result is required', 400);
@@ -433,6 +453,7 @@ async function saveResultsDraft(req, res, next) {
 // PUT /reports/:id/results/submit - Submit results (status becomes Reported)
 async function submitResults(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const { results } = req.body;
     if (!Array.isArray(results) || results.length === 0) {
       return errorResponse(res, 'At least one result is required', 400);
@@ -455,6 +476,7 @@ async function submitResults(req, res, next) {
 
 async function verifyReport(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.verifyReport(req.params.id, req.user);
     await Activity.create({
       user: req.user._id, action: 'Verify Report', module: 'Lab',
@@ -468,6 +490,7 @@ async function verifyReport(req, res, next) {
 
 async function rejectReport(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.rejectReport(req.params.id, req.body && req.body.reason, req.user);
     await Activity.create({
       user: req.user._id, action: 'Reject Report', module: 'Lab',
@@ -481,6 +504,7 @@ async function rejectReport(req, res, next) {
 
 async function resendReport(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.resendReport(req.params.id, req.user);
     await Activity.create({
       user: req.user._id, action: 'Resend Report', module: 'Lab',
@@ -494,6 +518,7 @@ async function resendReport(req, res, next) {
 
 async function addReportComment(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const report = await reportService.addComment(req.params.id, req.body && req.body.body, req.user);
     await Activity.create({
       user: req.user._id, action: 'Comment Report', module: 'Lab',
@@ -507,6 +532,7 @@ async function addReportComment(req, res, next) {
 
 async function getDeliveryStatus(req, res, next) {
   try {
+    await assertReportAccess(req, req.params.id);
     const { report, deliveryHistory } = await reportService.getDeliveryHistory(req.params.id);
     return successResponse(res, 'Delivery status loaded', { report, deliveryHistory });
   } catch (error) {

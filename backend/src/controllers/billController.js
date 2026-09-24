@@ -4,9 +4,13 @@ const { validateBill } = require('../validators/billValidator');
 const MESSAGES = require('../constants/messages');
 const Activity = require('../models/Activity');
 
+const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+
 const getBills = async (req, res, next) => {
   try {
+    const branchScope = getBranchFilter(req);
     const filters = {
+      ...branchScope,
       paymentStatus: req.query.paymentStatus,
       patientId: req.query.patientId,
       search: req.query.search,
@@ -43,6 +47,11 @@ const getBillById = async (req, res, next) => {
     if (!bill) {
       return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
     }
+    try {
+      assertBranchAccess(req, bill.branch);
+    } catch (e) {
+      return errorResponse(res, 'Access denied for this branch', 403);
+    }
     return successResponse(res, 'Bill loaded successfully', bill);
   } catch (error) {
     next(error);
@@ -56,7 +65,8 @@ const createBill = async (req, res, next) => {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
     }
 
-    const bill = await billService.createBill(req.body, req.user._id);
+    const branch = resolveBranchForCreate(req, req.body);
+    const bill = await billService.createBill({ ...req.body, branch }, req.user._id);
 
     // Log Activity
     await Activity.create({
@@ -75,6 +85,14 @@ const createBill = async (req, res, next) => {
 const collectPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
+    // Branch guard before mutating
+    const existing = await Bill.findById(id).select('branch');
+    if (!existing) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try {
+      assertBranchAccess(req, existing.branch);
+    } catch (e) {
+      return errorResponse(res, 'Access denied for this branch', 403);
+    }
     const { amount, paymentMethod } = req.body;
 
     if (!amount || Number(amount) <= 0) {
@@ -120,6 +138,8 @@ const { toSVG: barcodeSVG } = require('../services/code39Service');
 
 async function voidBill(req, res, next) {
   try {
+    // Admin-only route, but still respect explicit ?branch filter is not needed.
+    // Void is allowed on any branch since only Admin reaches here.
     const bill = await billService.voidBill(req.params.id, req.body.reason, req.user._id);
     await Activity.create({
       user: req.user._id,
@@ -138,6 +158,7 @@ async function billPdfDownload(req, res, next) {
     const letterhead = req.query.letterhead !== '0';
     const bill = await Bill.findById(req.params.id).populate('patient').populate('referringDoctor').populate('agent').populate('items');
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const token = await billService.ensureBillQrToken(bill);
     let profile = null;
     try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
@@ -159,6 +180,7 @@ async function billQr(req, res, next) {
   try {
     const bill = await Bill.findById(req.params.id);
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const token = await billService.ensureBillQrToken(bill);
     const dataUrl = await qrDataURL(billVerifyUrl(token));
     return successResponse(res, 'Bill QR generated', { qrToken: token, verifyUrl: billVerifyUrl(token), qrDataUrl: dataUrl });
@@ -169,8 +191,9 @@ async function billQr(req, res, next) {
 
 async function billBarcode(req, res, next) {
   try {
-    const bill = await Bill.findById(req.params.id).select('billNumber');
+    const bill = await Bill.findById(req.params.id).select('billNumber branch');
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     res.setHeader('Content-Type', 'image/svg+xml');
     return res.send(barcodeSVG(bill.billNumber));
   } catch (error) {
@@ -180,6 +203,9 @@ async function billBarcode(req, res, next) {
 
 async function refundBill(req, res, next) {
   try {
+    const existing = await Bill.findById(req.params.id).select('branch');
+    if (!existing) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const bill = await billService.refundBill(req.params.id, req.body || {}, req.user._id);
     return successResponse(res, 'Refund recorded', bill);
   } catch (error) {
@@ -189,6 +215,9 @@ async function refundBill(req, res, next) {
 
 async function updateBill(req, res, next) {
   try {
+    const existing = await Bill.findById(req.params.id).select('branch');
+    if (!existing) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
+    try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const bill = await billService.updateBill(req.params.id, req.body || {}, req.user);
     await Activity.create({
       user: req.user._id,
@@ -204,13 +233,15 @@ async function updateBill(req, res, next) {
 
 async function getCashbook(req, res, next) {
   try {
+    const branchScope = getBranchFilter(req);
     const data = await billService.getCashbook({
       from: req.query.from || req.query.startDate,
       to: req.query.to || req.query.endDate,
       mode: req.query.mode || req.query.paymentMethod,
       type: req.query.type,
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
+      ...branchScope
     });
     return successResponse(res, 'Cashbook loaded', data);
   } catch (error) {
@@ -220,7 +251,8 @@ async function getCashbook(req, res, next) {
 
 async function createManualCashEntry(req, res, next) {
   try {
-    const txn = await billService.createManualCashEntry(req.body || {}, req.user._id);
+    const branch = resolveBranchForCreate(req, req.body || {});
+    const txn = await billService.createManualCashEntry({ ...(req.body || {}), branch }, req.user._id);
     return successResponse(res, 'Manual cash entry recorded', txn, 201);
   } catch (error) {
     next(error);

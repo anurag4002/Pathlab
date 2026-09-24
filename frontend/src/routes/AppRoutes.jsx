@@ -73,6 +73,7 @@ import XrayReports from '../pages/xray/XrayReports';
 
 // Manage
 import EmployeeLogin from '../pages/manage/EmployeeLogin';
+import Branches from '../pages/manage/Branches';
 import DoctorAccess from '../pages/manage/DoctorAccess';
 import BrowserSecurity from '../pages/manage/BrowserSecurity';
 import RateRevision from '../pages/settings/RateRevision';
@@ -172,6 +173,7 @@ const AppRoutes = () => {
         {/* Manage — Admin Only */}
         <Route element={<RoleRoute allowedRoles={['Admin']} />}>
           <Route path="/manage/employees" element={<EmployeeLogin />} />
+          <Route path="/manage/branches" element={<Branches />} />
           <Route path="/manage/doctors" element={<DoctorAccess />} />
           <Route path="/manage/security" element={<BrowserSecurity />} />
           <Route path="/settings/rate-revision" element={<RateRevision />} />

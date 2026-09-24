@@ -47,6 +47,7 @@ const login = async (identifier, password, remember = false) => {
 
   const token = generateToken(user._id, remember);
 
+  await user.populate('branch', 'name code status');
   const userResponse = {
     _id: user._id,
     name: user.name,
@@ -54,6 +55,7 @@ const login = async (identifier, password, remember = false) => {
     phone: user.phone,
     role: user.role,
     status: user.status,
+    branch: user.branch || null,
     permissions: user.permissions || {}
   };
 
@@ -84,6 +86,7 @@ const googleAuth = async ({ email, name, googleId }) => {
   }
 
   const token = generateToken(user._id);
+  await user.populate('branch', 'name code status');
 
   const userResponse = {
     _id: user._id,
@@ -91,7 +94,8 @@ const googleAuth = async ({ email, name, googleId }) => {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    status: user.status
+    status: user.status,
+    branch: user.branch || null
   };
 
   return { user: userResponse, token };
@@ -117,6 +121,7 @@ const facebookAuth = async ({ email, name, facebookId }) => {
   }
 
   const token = generateToken(user._id);
+  await user.populate('branch', 'name code status');
 
   const userResponse = {
     _id: user._id,
@@ -124,7 +129,8 @@ const facebookAuth = async ({ email, name, facebookId }) => {
     email: user.email,
     phone: user.phone,
     role: user.role,
-    status: user.status
+    status: user.status,
+    branch: user.branch || null
   };
 
   return { user: userResponse, token };
@@ -204,14 +210,15 @@ const verifyEmailOtp = async (email, otp, remember = false) => {
   const check = await verifyOtpFor({ email: cleanEmail, inputOtp: otp, purpose: 'staff-login' });
   if (!check.success) throw Object.assign(new Error(check.message), { statusCode: 400 });
   const token = generateToken(user._id, remember);
+  await user.populate('branch', 'name code status');
   return {
-    user: { _id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, status: user.status, permissions: user.permissions || {} },
+    user: { _id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, status: user.status, branch: user.branch || null, permissions: user.permissions || {} },
     token
   };
 };
 
 const getUserById = async (id) => {
-  return await User.findById(id).select('-password');
+  return await User.findById(id).select('-password').populate('branch', 'name code status');
 };
 
 module.exports = {

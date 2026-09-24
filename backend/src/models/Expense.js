@@ -34,6 +34,7 @@ const ExpenseSchema = new mongoose.Schema({
     trim: true
   },
   notes: { type: String, trim: true, default: '' },
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null, index: true },
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   paymentMethod: {
     type: String,

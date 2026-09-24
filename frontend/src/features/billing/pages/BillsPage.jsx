@@ -21,6 +21,7 @@ import {
 } from '../../../components/common';
 import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/billConstants';
 const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
+import { BranchFilter } from '../../../components/common';
 import { DEPARTMENTS } from '../billingConstants';
 import BillCreateForm from '../components/BillCreateForm';
 import PaymentCollectModal from '../components/PaymentCollectModal';
@@ -127,6 +128,7 @@ const BillsPage = () => {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [filterVoided, setFilterVoided] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
   const [adv, setAdv] = useState({
     duration: 'Past 7 days',
     regNo: '',
@@ -180,6 +182,7 @@ const BillsPage = () => {
         startDate: filterFrom || undefined,
         endDate: filterTo || undefined,
         includeVoided: filterVoided || undefined,
+        branch: filterBranch || undefined,
         duration: adv.duration || undefined,
         regNo: adv.regNo || undefined,
         firstName: adv.firstName || undefined,
@@ -241,6 +244,7 @@ const BillsPage = () => {
     filterFrom,
     filterTo,
     filterVoided,
+    filterBranch,
     page,
     limit,
     isCreateView,
@@ -475,6 +479,7 @@ const BillsPage = () => {
           ]}
           style={{ maxWidth: '14rem' }}
         />
+        <BranchFilter value={filterBranch} onChange={(v) => { setFilterBranch(v); goToPage(1); fetchBillsList(); }} />
       </div>
 
       <AdvancedFilterBar

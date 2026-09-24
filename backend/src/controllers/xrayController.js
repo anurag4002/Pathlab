@@ -3,10 +3,12 @@ const Patient = require('../models/Patient');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
+const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+
 const getXrayCases = async (req, res, next) => {
   try {
     const { search, date, status } = req.query;
-    const query = {};
+    const query = { ...getBranchFilter(req) };
 
     if (status) query.status = status;
 
@@ -51,6 +53,7 @@ const createXrayCase = async (req, res, next) => {
 
     const newCase = await XrayCase.create({
       patient,
+      branch: resolveBranchForCreate(req, req.body),
       referringDoctor: referringDoctor || null,
       findings,
       fileUrl,
@@ -82,6 +85,7 @@ const updateXrayCase = async (req, res, next) => {
 
     const xrayCase = await XrayCase.findById(id);
     if (!xrayCase) return errorResponse(res, 'X-Ray Case not found', 404);
+    try { assertBranchAccess(req, xrayCase.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
 
     if (findings) xrayCase.findings = findings;
     if (referringDoctor) xrayCase.referringDoctor = referringDoctor;
@@ -119,6 +123,7 @@ const getXrayCaseById = async (req, res, next) => {
       .populate('patient')
       .populate('referringDoctor');
     if (!xrayCase) return errorResponse(res, 'X-Ray Case not found', 404);
+    try { assertBranchAccess(req, xrayCase.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     return successResponse(res, 'X-Ray case loaded successfully', xrayCase);
   } catch (error) {
     next(error);

@@ -10,9 +10,11 @@ const MODALITIES = ['CT', 'MRI', 'ECG', 'OPG', 'EEG', 'MAMMOGRAPHY', 'CARDIOLOGY
 
 // ---- Generic modality cases (CT/MRI/ECG/...) ----
 
+const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+
 const listCases = async (req, res, next) => {
   try {
-    const query = {};
+    const query = { ...getBranchFilter(req) };
     if (req.query.modality) query.modality = String(req.query.modality).toUpperCase();
     if (req.query.patientId) query.patient = req.query.patientId;
     if (req.query.search) query.procedure = { $regex: req.query.search, $options: 'i' };
@@ -41,6 +43,7 @@ const createCase = async (req, res, next) => {
     const doc = await ModalityCase.create({
       patient,
       bill: bill || null,
+      branch: resolveBranchForCreate(req, req.body),
       modality: String(modality).toUpperCase(),
       procedure: procedure || '',
       findings: findings || '',
@@ -62,6 +65,9 @@ const createCase = async (req, res, next) => {
 
 const updateCase = async (req, res, next) => {
   try {
+    const existing = await ModalityCase.findById(req.params.id).select('branch');
+    if (!existing) return errorResponse(res, 'Case not found', 404);
+    try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const allowed = ['procedure', 'findings', 'impression', 'templateId', 'outsourcedTo', 'status', 'reportFileUrl'];
     const patch = {};
     allowed.forEach((k) => { if (req.body[k] !== undefined) patch[k] = req.body[k]; });
@@ -75,6 +81,9 @@ const updateCase = async (req, res, next) => {
 
 const deleteCase = async (req, res, next) => {
   try {
+    const existing = await ModalityCase.findById(req.params.id).select('branch modality');
+    if (!existing) return errorResponse(res, 'Case not found', 404);
+    try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const doc = await ModalityCase.findByIdAndDelete(req.params.id);
     if (!doc) return errorResponse(res, 'Case not found', 404);
     await Activity.create({

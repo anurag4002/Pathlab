@@ -2,6 +2,7 @@ const Transaction = require('../models/Transaction');
 
 const getTransactions = async (filters = {}) => {
   const query = {};
+  if (filters.branch) query.branch = filters.branch;
 
   if (filters.type) {
     query.type = filters.type;

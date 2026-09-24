@@ -1,13 +1,25 @@
-import React from 'react';
-import { User, ShieldCheck, Briefcase, FileText } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { User, ShieldCheck, Briefcase, FileText, Building2 } from 'lucide-react';
 import { Input, Select } from '../../../components/common';
 import PermissionMatrix from './PermissionMatrix';
+import { getBranches, branchIdOf } from '../../../services/branchService';
 import './EmployeeForm.css';
 
 const DEPARTMENTS = ['LAB', 'USG', 'XRAY', 'ECG', 'CT SCAN', 'MRI', 'Front Desk', 'Billing', 'Collection'];
 
 const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) => {
   const set = (k, v) => setFormData((p) => ({ ...p, [k]: v }));
+  const [branches, setBranches] = useState([]);
+  useEffect(() => {
+    let active = true;
+    getBranches({ status: 'Active' })
+      .then((res) => {
+        if (!active) return;
+        setBranches(Array.isArray(res?.data) ? res.data : []);
+      })
+      .catch(() => { if (active) setBranches([]); });
+    return () => { active = false; };
+  }, []);
   const toggleDept = (d) => setFormData((p) => {
     const cur = p.departments || [];
     return { ...p, departments: cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d] };
@@ -56,6 +68,24 @@ const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) 
           />
           <Input label="Joining Date" name="joiningDate" type="date" value={formData.joiningDate || ''} onChange={(e) => set('joiningDate', e.target.value)} />
         </div>
+      </section>
+
+      <section className="emp-form-section" aria-label="Branch assignment">
+        <h4 className="emp-form-section-title"><Building2 size={15} /> Branch (single-branch access)</h4>
+        <div className="emp-form-grid">
+          <Select
+            label="Assigned Branch"
+            value={branchIdOf(formData.branch) || formData.branch || ''}
+            onChange={(e) => set('branch', e.target.value)}
+            options={[
+              { value: '', label: 'Main (default)' },
+              ...branches.map((b) => ({ value: b._id, label: `${b.name} (${b.code})` }))
+            ]}
+            required
+          />
+        </div>
+        {errors.branch && <p className="form-error">{errors.branch}</p>}
+        <p className="form-hint">Staff see only their own branch. Admins see all branches.</p>
       </section>
 
       <section className="emp-form-section" aria-label="Work profile">

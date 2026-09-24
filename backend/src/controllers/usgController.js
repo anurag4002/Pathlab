@@ -3,10 +3,12 @@ const Patient = require('../models/Patient');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
+const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+
 const getUSGCases = async (req, res, next) => {
   try {
     const { search, date, status } = req.query;
-    const query = {};
+    const query = { ...getBranchFilter(req) };
 
     if (status) query.status = status;
     
@@ -46,6 +48,7 @@ const createUSGCase = async (req, res, next) => {
 
     const newCase = await USGCase.create({
       patient,
+      branch: resolveBranchForCreate(req, req.body),
       referringDoctor: referringDoctor || null,
       templateName,
       findings,
@@ -97,6 +100,7 @@ const updateUSGCase = async (req, res, next) => {
 
     const usgCase = await USGCase.findById(id);
     if (!usgCase) return errorResponse(res, 'USG Case not found', 404);
+    try { assertBranchAccess(req, usgCase.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
 
     if (findings) usgCase.findings = findings;
     if (templateName) usgCase.templateName = templateName;
@@ -131,6 +135,7 @@ const getUSGCaseById = async (req, res, next) => {
       .populate('patient')
       .populate('referringDoctor');
     if (!usgCase) return errorResponse(res, 'USG Case not found', 404);
+    try { assertBranchAccess(req, usgCase.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     return successResponse(res, 'USG case loaded successfully', usgCase);
   } catch (error) {
     next(error);

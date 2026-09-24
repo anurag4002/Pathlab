@@ -3,6 +3,7 @@ const generateRegistrationNumber = require('../utils/generateRegistrationNumber'
 
 const getAllPatients = async (filters = {}) => {
   const query = {};
+  if (filters.branch) query.branch = filters.branch;
 
   // Labsmart §11 split filters: UHID / First / Last / Mobile / ID / From-To
   if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
@@ -81,6 +82,18 @@ const createPatient = async (patientData) => {
   return await patient.save();
 };
 
+const assertPatientAccess = async (patientId, req) => {
+  const { assertBranchAccess } = require('../middleware/branchMiddleware');
+  const doc = await Patient.findById(patientId).select('branch');
+  if (!doc) {
+    const err = new Error('Patient not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  assertBranchAccess(req, doc.branch);
+  return doc;
+};
+
 const updatePatient = async (id, patientData) => {
   return await Patient.findByIdAndUpdate(id, patientData, {
     new: true,
@@ -97,5 +110,6 @@ module.exports = {
   getPatientById,
   createPatient,
   updatePatient,
-  deletePatient
+  deletePatient,
+  assertPatientAccess
 };

@@ -3,13 +3,15 @@ const { successResponse, errorResponse } = require('../utils/response');
 
 // GET /api/inquiries?status=&search=&page=&limit= — staff queue of
 // self-service booking inquiries (Admin + Employee).
+const { getBranchFilter, assertBranchAccess } = require('../middleware/branchMiddleware');
+
 const listInquiries = async (req, res, next) => {
   try {
     const { status = '', search = '' } = req.query;
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
-    const query = {};
+    const query = { ...getBranchFilter(req) };
     if (status) query.status = status;
     if (String(search).trim()) {
       const s = String(search).trim();
@@ -44,6 +46,9 @@ const setInquiryStatus = async (req, res, next) => {
     if (!['New', 'Contacted', 'Confirmed', 'Cancelled'].includes(status)) {
       return errorResponse(res, 'Invalid status', 400);
     }
+    const existing = await Inquiry.findById(req.params.id).select('branch');
+    if (!existing) return errorResponse(res, 'Inquiry not found', 404);
+    try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
     const doc = await Inquiry.findByIdAndUpdate(req.params.id, { status }, { new: true });
     if (!doc) return errorResponse(res, 'Inquiry not found', 404);
     return successResponse(res, 'Inquiry updated', doc);

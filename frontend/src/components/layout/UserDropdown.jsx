@@ -51,7 +51,7 @@ const UserDropdown = () => {
         </div>
         <div className="user-meta">
           <span className="user-name">{user.name}</span>
-          <span className="user-role">{user.role}</span>
+          <span className="user-role">{user.role}{user?.branch?.name ? ` · ${user.branch.name}` : ''}</span>
         </div>
         <ChevronDown size={14} style={{ color: 'var(--color-text-muted)' }} />
       </button>

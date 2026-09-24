@@ -2,10 +2,19 @@ const app = require('./app');
 const connectDatabase = require('./config/database');
 const { PORT } = require('./config/environment');
 
-// Connect to MongoDB
-connectDatabase().catch(err => {
-  console.error('Initial database connection warning:', err.message);
-});
+// Connect to MongoDB + ensure Main branch + backfill legacy branch-less docs
+connectDatabase()
+  .then(async () => {
+    try {
+      const { backfillBranchRefs } = require('./utils/ensureBranch');
+      await backfillBranchRefs();
+    } catch (e) {
+      console.warn('Branch bootstrap skipped:', e.message);
+    }
+  })
+  .catch(err => {
+    console.error('Initial database connection warning:', err.message);
+  });
 
 // Start Server when executed directly locally (not in serverless)
 if (!process.env.VERCEL) {

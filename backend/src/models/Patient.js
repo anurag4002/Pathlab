@@ -39,6 +39,12 @@ const PatientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   referringDoctor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor',

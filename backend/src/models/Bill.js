@@ -77,6 +77,12 @@ const BillSchema = new mongoose.Schema({
     default: 'LabCase',
     index: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   collectionCentre: {
     type: String,
     trim: true,

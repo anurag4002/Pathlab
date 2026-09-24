@@ -62,6 +62,12 @@ const InquirySchema = new mongoose.Schema({
     default: 'New',
     index: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   source: {
     type: String,
     default: 'portal'

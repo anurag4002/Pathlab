@@ -25,31 +25,34 @@ function windowed(query, { startDate, endDate }, field = 'date') {
   return query;
 }
 
+const { getBranchFilter } = require('../middleware/branchMiddleware');
+
 const exportCsv = async (req, res, next) => {
   try {
     const { dataset } = req.params;
     const { startDate, endDate } = req.query;
+    const branchScope = getBranchFilter(req);
     let headers = [];
     let rows = [];
     let filename = `${dataset}.csv`;
 
     if (dataset === 'bills') {
-      const bills = await Bill.find(windowed({}, { startDate, endDate }))
+      const bills = await Bill.find(windowed({ ...branchScope }, { startDate, endDate }))
         .populate('patient', 'name registrationNumber phone')
         .sort({ date: -1 })
         .limit(5000);
       headers = ['Bill No', 'Date', 'Patient', 'Reg No', 'Department', 'Total', 'Paid', 'Due', 'Status', 'Method', 'Voided'];
       rows = bills.map((b) => [b.billNumber, b.date.toISOString(), b.patient ? b.patient.name : '', b.patient ? b.patient.registrationNumber : '', b.department, b.totalAmount, b.paidAmount, b.dueAmount, b.paymentStatus, b.paymentMethod, b.isVoided ? 'Yes' : 'No']);
     } else if (dataset === 'patients') {
-      const patients = await Patient.find(windowed({}, { startDate, endDate })).sort({ date: -1 }).limit(5000);
+      const patients = await Patient.find(windowed({ ...branchScope }, { startDate, endDate })).sort({ date: -1 }).limit(5000);
       headers = ['Reg No', 'Name', 'Age', 'Gender', 'Phone', 'Address', 'Date'];
       rows = patients.map((p) => [p.registrationNumber, p.name, p.age, p.gender, p.phone, p.address, p.date.toISOString()]);
     } else if (dataset === 'expenses') {
-      const expenses = await Expense.find(windowed({}, { startDate, endDate })).sort({ date: -1 }).limit(5000);
+      const expenses = await Expense.find(windowed({ ...branchScope }, { startDate, endDate })).sort({ date: -1 }).limit(5000);
       headers = ['Date', 'Category', 'Description', 'Method', 'Amount'];
       rows = expenses.map((e) => [e.date.toISOString(), e.category, e.description, e.paymentMethod, e.amount]);
     } else if (dataset === 'transactions') {
-      const txns = await Transaction.find(windowed({}, { startDate, endDate }))
+      const txns = await Transaction.find(windowed({ ...branchScope }, { startDate, endDate }))
         .populate('patient', 'name registrationNumber')
         .populate('receivedBy', 'name')
         .sort({ date: -1 })

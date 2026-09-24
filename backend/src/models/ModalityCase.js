@@ -24,6 +24,7 @@ const ModalityCaseSchema = new mongoose.Schema({
     signedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     signedAt: { type: Date, default: null }
   }],
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null, index: true },
   caseDate: { type: Date, default: Date.now, index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });

@@ -27,6 +27,7 @@ const EMPTY_FORM = {
   password: '',
   role: 'Employee',
   status: 'Active',
+  branch: '',
   permissions: {},
   designation: '',
   qualification: '',
@@ -168,6 +169,7 @@ const EmployeeLogin = () => {
       password: '',
       role: account.role,
       status: account.status,
+      branch: account.branch?._id || account.branch || '',
       permissions: permsToMap(account.permissions),
       designation: account.designation || '',
       qualification: account.qualification || '',
@@ -234,6 +236,7 @@ const EmployeeLogin = () => {
       phone: formData.phone.trim(),
       role: formData.role,
       status: formData.status,
+      branch: formData.branch || undefined,
       permissions: permsToMap(formData.permissions),
       designation: formData.designation?.trim() || undefined,
       qualification: formData.qualification?.trim() || undefined,
@@ -381,7 +384,7 @@ const EmployeeLogin = () => {
       </p>
 
       <DataTable
-        headers={['Name', 'Email', 'Phone', 'Role', 'Status', 'Created', 'Actions']}
+        headers={['Name', 'Email', 'Phone', 'Role', 'Branch', 'Status', 'Created', 'Actions']}
         data={pg.paged}
         loading={loading || searchPending}
         emptyMessage={hasFilters ? 'No user accounts match the current search or filters.' : 'No user accounts are available.'}
@@ -404,6 +407,7 @@ const EmployeeLogin = () => {
               <td>{account.email || '—'}</td>
               <td>{account.phone || '—'}</td>
               <td><StatusBadge status={account.role} /></td>
+              <td>{account.branch?.name || account.branch?.code || '—'}</td>
               <td><StatusBadge status={account.status} /></td>
               <td>{formatDate(account.createdAt)}</td>
               <td>

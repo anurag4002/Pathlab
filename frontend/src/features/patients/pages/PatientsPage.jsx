@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
-import { DataTable, PageHeader, Button, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../../components/common';
+import { DataTable, PageHeader, Button, ConfirmDialog, StatusBadge, AdvancedFilterBar, BranchFilter } from '../../../components/common';
 import { PATIENT_TABLE_HEADERS } from '../../../constants/patientConstants';
 import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
 import usePagination from '../../../hooks/usePagination';
@@ -36,6 +36,7 @@ const PatientsPage = () => {
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
   const [search, setSearch] = useState('');
+  const [branch, setBranch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
   const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
@@ -57,6 +58,7 @@ const PatientsPage = () => {
         patientId: adv.patientId || undefined,
         from: adv.from || undefined,
         to: adv.to || undefined,
+        branch: branch || undefined,
         page, limit
       });
       if (res.success) {
@@ -92,7 +94,7 @@ const PatientsPage = () => {
   useEffect(() => {
     fetchPatientsList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, page, limit, adv.uhid, adv.firstName, adv.lastName, adv.mobile, adv.patientId, adv.from, adv.to]);
+  }, [debouncedSearch, page, limit, branch, adv.uhid, adv.firstName, adv.lastName, adv.mobile, adv.patientId, adv.from, adv.to]);
 
   useEffect(() => {
     fetchDoctorsList();
@@ -176,11 +178,15 @@ const PatientsPage = () => {
         }
       />
 
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <BranchFilter value={branch} onChange={(v) => { setBranch(v); goToPage(1); }} />
+      </div>
+
       <AdvancedFilterBar
         values={adv}
         onChange={setAdvKey}
         onSearch={() => { goToPage(1); fetchPatientsList(); }}
-        onClear={() => { setAdv({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' }); setSearch(''); goToPage(1); }}
+        onClear={() => { setAdv({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' }); setSearch(''); setBranch(''); goToPage(1); }}
         fields={[
           { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
           { key: 'firstName', label: 'First name', type: 'text', placeholder: 'First name' },

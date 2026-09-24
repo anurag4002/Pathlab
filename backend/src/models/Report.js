@@ -37,6 +37,12 @@ const ReportSchema = new mongoose.Schema({
     default: '',
     index: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   cc: {
     type: String,
     trim: true,

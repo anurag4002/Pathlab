@@ -19,7 +19,7 @@ const protect = async (req, res, next) => {
         return errorResponse(res, 'Access denied. Administrator privileges required.', 403);
       }
 
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(decoded.id).select('-password').populate('branch', 'name code status');
       if (!req.user) {
         return errorResponse(res, MESSAGES.AUTH.USER_NOT_FOUND, 404);
       }

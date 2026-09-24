@@ -1,6 +1,8 @@
 const transactionService = require('../services/transactionService');
 const { successResponse } = require('../utils/response');
 
+const { getBranchFilter } = require('../middleware/branchMiddleware');
+
 const getTransactions = async (req, res, next) => {
   try {
     const filters = {
@@ -10,7 +12,8 @@ const getTransactions = async (req, res, next) => {
       endDate: req.query.endDate,
       search: req.query.search,
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
+      ...getBranchFilter(req)
     };
     const data = await transactionService.getTransactions(filters);
     return successResponse(res, 'Transactions list retrieved successfully', data);

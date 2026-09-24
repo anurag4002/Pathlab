@@ -29,6 +29,12 @@ const USGCaseSchema = new mongoose.Schema({
     default: Date.now,
     index: true
   },
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null,
+    index: true
+  },
   status: {
     type: String,
     enum: ['Pending', 'Completed'],

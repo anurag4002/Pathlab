@@ -70,6 +70,7 @@ const exportRoutes = require('./routes/exportRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const analysisRoutes = require('./routes/analysisRoutes');
 const inquiryRoutes = require('./routes/inquiryRoutes');
+const branchRoutes = require('./routes/branchRoutes');
 
 // All API routers are mounted ONLY under /api.
 // Do NOT add a bare mount (registerAllRoutes('')): it doubles the attack
@@ -102,6 +103,7 @@ app.use('/api/export', exportRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/branches', branchRoutes);
 
 // Health check endpoint
 app.get(['/api/health', '/health', '/'], (req, res) => {

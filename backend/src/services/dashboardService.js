@@ -8,17 +8,19 @@ const XrayCase = require('../models/XrayCase');
 const Activity = require('../models/Activity');
 const Doctor = require('../models/Doctor');
 
-const getDashboardStats = async () => {
+const getDashboardStats = async (branch) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
+  const bMatch = branch ? { branch } : {};
 
   // Today's Revenue (Transactions where type is Income and date is today)
   const revenueAgg = await Transaction.aggregate([
     {
       $match: {
         type: 'Income',
+        ...bMatch,
         date: { $gte: today, $lte: endOfToday }
       }
     },
@@ -32,15 +34,17 @@ const getDashboardStats = async () => {
   const todayRevenue = revenueAgg[0] ? revenueAgg[0].total : 0;
 
   // Total Patients
-  const totalPatients = await Patient.countDocuments();
+  const totalPatients = await Patient.countDocuments({ ...bMatch });
 
   // Today's Bills count
   const todayBills = await Bill.countDocuments({
+    ...bMatch,
     date: { $gte: today, $lte: endOfToday }
   });
 
   // Pending Payments (due amount sum on all bills)
   const pendingAgg = await Bill.aggregate([
+    { $match: { ...bMatch } },
     {
       $group: {
         _id: null,
@@ -54,13 +58,14 @@ const getDashboardStats = async () => {
   const totalTests = await Test.countDocuments({ status: 'Active' });
 
   // Total Cases (Bills count + USG cases + X-Ray cases)
-  const totalBills = await Bill.countDocuments();
-  const totalUSG = await USGCase.countDocuments();
-  const totalXray = await XrayCase.countDocuments();
+  const totalBills = await Bill.countDocuments({ ...bMatch });
+  const totalUSG = await USGCase.countDocuments({ ...bMatch });
+  const totalXray = await XrayCase.countDocuments({ ...bMatch });
   const totalCasesCount = totalBills + totalUSG + totalXray;
 
   // Payments summary
   const paymentSummaryAgg = await Bill.aggregate([
+    { $match: { ...bMatch } },
     {
       $group: {
         _id: null,
@@ -73,7 +78,7 @@ const getDashboardStats = async () => {
   const paymentSummary = paymentSummaryAgg[0] || { due: 0, cleared: 0, total: 0 };
 
   // Recent transactions
-  const recentTransactions = await Transaction.find()
+  const recentTransactions = await Transaction.find({ ...bMatch })
     .populate('patient', 'name registrationNumber')
     .populate('bill', 'billNumber')
     .sort({ date: -1 })
@@ -91,12 +96,14 @@ const getDashboardStats = async () => {
   };
 };
 
-const getDailyBusiness = async (startDate, endDate) => {
+const getDailyBusiness = async (startDate, endDate, branch) => {
   const start = new Date(startDate || new Date().setHours(0, 0, 0, 0));
   const end = new Date(endDate || new Date().setHours(23, 59, 59, 999));
+  const bMatch = branch ? { branch } : {};
 
   // Income summary for date range
   const transactions = await Transaction.find({
+    ...bMatch,
     date: { $gte: start, $lte: end }
   })
     .populate('patient', 'name registrationNumber')
@@ -106,6 +113,7 @@ const getDailyBusiness = async (startDate, endDate) => {
 
   // Expenses for date range
   const expenses = await Expense.find({
+    ...bMatch,
     date: { $gte: start, $lte: end }
   });
 
@@ -149,7 +157,7 @@ const getDailyBusiness = async (startDate, endDate) => {
 
   // Case-type split: bills grouped by department (LAB/USG/XRAY/CT/...).
   const billDepts = await Bill.aggregate([
-    { $match: { date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
+    { $match: { ...bMatch, date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
     { $group: { _id: '$department', count: { $sum: 1 }, billed: { $sum: '$totalAmount' }, collected: { $sum: '$paidAmount' }, due: { $sum: '$dueAmount' } } },
     { $sort: { billed: -1 } }
   ]);
@@ -190,8 +198,9 @@ const getDailyBusiness = async (startDate, endDate) => {
   };
 };
 
-const getReferralBusiness = async (startDate, endDate) => {
+const getReferralBusiness = async (startDate, endDate, branch) => {
   const query = {};
+  if (branch) query.branch = branch;
   if (startDate || endDate) {
     query.date = {};
     if (startDate) query.date.$gte = new Date(startDate);
@@ -257,7 +266,8 @@ const getActivities = async () => {
     .limit(100);
 };
 
-const getMonthlyTrends = async () => {
+const getMonthlyTrends = async (branch) => {
+  const bMatch = branch ? { branch } : {};
   const months = [];
   const now = new Date();
 
@@ -283,6 +293,7 @@ const getMonthlyTrends = async () => {
         {
           $match: {
             type: 'Income',
+            ...bMatch,
             date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
           }
         },
@@ -298,6 +309,7 @@ const getMonthlyTrends = async () => {
       const expenseAgg = await Expense.aggregate([
         {
           $match: {
+            ...bMatch,
             date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
           }
         },
