@@ -5,15 +5,55 @@ import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
+import assetSrc from '../../utils/assetSrc';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { Plus, Edit2, Printer, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, ImageUploader, PatientPicker } from '../../components/common';
+import { Plus, Edit2, Printer, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import {
+  DataTable,
+  PageHeader,
+  Button,
+  Modal,
+  Select,
+  StatusBadge,
+  ConfirmDialog,
+  ImageUploader,
+  PatientPicker,
+  Letterhead
+} from '../../components/common';
 import CaseFilterBar from '../../components/usg/CaseFilterBar';
 import InlineSignButton from '../../components/usg/InlineSignButton';
+import '../../styles/USG.css';
 
-const caseImages = (c) => c?.images || c?.imageUrls || [];
+/* Surfaces only the backend's user-facing `message` field (never stack traces),
+   with sensible fallbacks per failure type (same mapping as the other lab
+   screens). */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) return data.message;
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
+const caseImages = (c) => (
+  Array.isArray(c?.images)
+    ? c.images
+    : Array.isArray(c?.imageUrls)
+      ? c.imageUrls
+      : []
+);
 
 const TodaysUSGCases = () => {
   const { user } = useAuth();
@@ -23,10 +63,11 @@ const TodaysUSGCases = () => {
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Phase 24-backed branding (fallbacks = previous hardcoded strings)
-  const [labProfile, setLabProfile] = useState(null);
-  const [signatures, setSignatures] = useState([]);
+  // List/options load failures — surfaced as a banner (an empty table after a
+  // failed fetch must never read as "no cases today"); each fetch owns its
+  // error so one success never clears the other's failure.
+  const [listError, setListError] = useState(null);
+  const [optionsError, setOptionsError] = useState(null);
 
   // Phase 13 — filter bar (dept / assigned / status / search). Params are
   // sent server-side AND applied client-side until backend filtering lands.
@@ -58,6 +99,16 @@ const TodaysUSGCases = () => {
   // Print Case State
   const [printTarget, setPrintTarget] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
+  // Print-only metadata: lab letterhead profile (GET /setup/lab-profile) and
+  // signature masters (GET /setup/signatures) used to name the printed
+  // signatory. Loaded lazily on the first print open; both are optional —
+  // a failure degrades the printout, it never fabricates lab/doctor values.
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+  const [sigMasters, setSigMasters] = useState([]);
+  const [printMetaLoaded, setPrintMetaLoaded] = useState(false);
+  const [brokenSignature, setBrokenSignature] = useState('');
 
   // Admin delete
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -85,8 +136,7 @@ const TodaysUSGCases = () => {
       const params = {
         status: statusFilter || undefined,
         department: deptFilter || undefined,
-        assignedTo: assignedFilter || undefined,
-        search: debouncedSearch.trim() || undefined,
+        assignedTo: assignedFilter || undefined
       };
       // Today scope filters server-side; All-dates scope loads everything
       // and filters client-side (backend has no from/to support).
@@ -94,11 +144,16 @@ const TodaysUSGCases = () => {
         params.date = new Date().toISOString().split('T')[0];
       }
       const res = await getUSGCases(params);
-      if (res.success) {
-        setCases(Array.isArray(res.data) ? res.data : []);
+      if (!res?.success) {
+        setCases([]);
+        setListError(res?.message || "Failed to load today's USG cases.");
+        return;
       }
+      setCases(Array.isArray(res.data) ? res.data : []);
+      setListError(null);
     } catch (err) {
-      console.error('Failed to load USG cases', err);
+      setCases([]);
+      setListError(getApiErrorMessage(err, "Failed to load today's USG cases."));
     } finally {
       setLoading(false);
     }
@@ -106,25 +161,75 @@ const TodaysUSGCases = () => {
 
   const loadOptions = async () => {
     try {
-      const [patRes, docRes, tempRes, profRes, sigRes] = await Promise.all([
+      const [patRes, docRes, tempRes] = await Promise.all([
         getPatients({ limit: 100 }),
         getDoctors({ status: 'Active' }),
-        getUSGTemplates(),
-        getLabProfile().catch(() => null),
-        getSignatures().catch(() => null)
+        getUSGTemplates()
       ]);
-      if (patRes.success) setPatients(patRes.data.patients);
-      if (docRes.success) setDoctors(docRes.data);
-      if (tempRes.success) setTemplates(tempRes.data);
-      if (profRes?.success) setLabProfile(profRes.data?.profile || profRes.data);
-      if (sigRes?.success) setSignatures(Array.isArray(sigRes.data) ? sigRes.data : sigRes.data?.signatures || []);
+      if (!patRes?.success) throw new Error(patRes?.message || 'Failed to load patients.');
+      if (!docRes?.success) throw new Error(docRes?.message || 'Failed to load doctors.');
+      if (!tempRes?.success) throw new Error(tempRes?.message || 'Failed to load templates.');
+
+      setPatients(
+        Array.isArray(patRes.data?.patients)
+          ? patRes.data.patients
+          : Array.isArray(patRes.data)
+            ? patRes.data
+            : []
+      );
+      setDoctors(Array.isArray(docRes.data) ? docRes.data : []);
+      setTemplates(Array.isArray(tempRes.data) ? tempRes.data : []);
+      setOptionsError(null);
     } catch (err) {
-      console.error('Failed to load options', err);
+      setOptionsError(getApiErrorMessage(err, 'Failed to load patients, doctors or templates.'));
     }
   };
 
-  useEffect(() => {
+  // Retry for the banners above — re-runs both page loads; their success
+  // paths clear the matching error state.
+  const refresh = () => {
     fetchCases();
+    loadOptions();
+  };
+
+  // Print-only metadata (see state block). allSettled so the profile and the
+  // signature masters fail independently — same split as Report Preview, so
+  // header metadata can never block or corrupt the case list/form data.
+  const loadPrintMeta = async () => {
+    setProfileLoading(true);
+    setProfileError(null);
+    const [profileRes, sigRes] = await Promise.allSettled([
+      getLabProfile(),
+      getSignatures()
+    ]);
+
+    if (profileRes.status === 'fulfilled') {
+      setProfile(profileRes.value?.data?.profile || profileRes.value?.data || null);
+    } else {
+      setProfile(null);
+      setProfileError(
+        getApiErrorMessage(profileRes.reason, 'Failed to load the lab letterhead.')
+      );
+    }
+
+    if (sigRes.status === 'fulfilled') {
+      const payload = sigRes.value?.data;
+      if (Array.isArray(payload?.signatures)) {
+        setSigMasters(payload.signatures);
+      } else {
+        setSigMasters(Array.isArray(payload) ? payload : []);
+      }
+    } else {
+      // Signature masters only enrich the signatory block — the print keeps
+      // its generic fallback labels when they cannot be loaded.
+      setSigMasters([]);
+    }
+
+    setPrintMetaLoaded(true);
+    setProfileLoading(false);
+  };
+
+  useEffect(() => {
     loadOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -133,7 +238,7 @@ const TodaysUSGCases = () => {
     goToPage(1);
     fetchCases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, deptFilter, assignedFilter, debouncedSearch, dateScope]);
+  }, [statusFilter, deptFilter, assignedFilter, debouncedSearch, dateScope, fromDate, toDate]);
 
   // Client-side filter pass (works regardless of server support).
   const filteredCases = useMemo(() => {
@@ -206,14 +311,26 @@ const TodaysUSGCases = () => {
     setFormOpen(true);
   };
 
+  // Currently selected API template (GET /usg/templates) — drives the preview
+  // and the explicit apply below; this component never invents template text.
+  const selectedTemplate = templates.find(t => t.name === formData.templateName) || null;
+
   const handleTemplateChange = (e) => {
     const tempName = e.target.value;
-    const selectedTemp = templates.find(t => t.name === tempName);
+    const picked = templates.find(t => t.name === tempName);
     setFormData(prev => ({
       ...prev,
       templateName: tempName,
-      findings: selectedTemp ? selectedTemp.findings : ''
+      // Auto-load only into an empty editor — findings already on screen are
+      // never replaced silently (the preview below offers an explicit apply),
+      // and clearing the template no longer wipes the report text.
+      findings: picked && !prev.findings.trim() ? picked.findings : prev.findings
     }));
+  };
+
+  const applyTemplate = () => {
+    if (!selectedTemplate) return;
+    setFormData(prev => ({ ...prev, findings: selectedTemplate.findings }));
   };
 
   const validate = () => {
@@ -255,22 +372,31 @@ const TodaysUSGCases = () => {
 
   const handlePrint = (c) => {
     setPrintTarget(c);
+    setBrokenSignature('');
     setPrintOpen(true);
+    // Letterhead profile + signature masters load lazily on the first print
+    // open (print-only metadata — never blocks the list or the form).
+    if (!printMetaLoaded) loadPrintMeta();
   };
+
+  // Signatory block resolution for the print modal — the case's signatureUrl
+  // is matched against the signature masters (Phase 9) so the printed name /
+  // designation come from API data; no match keeps the existing generic
+  // fallback labels. Missing images are tracked by src so a fresh print of a
+  // different record retries the load (same pattern as Report Preview).
+  const signatureSrc = assetSrc(printTarget?.signatureUrl);
+  const sigMaster = signatureSrc
+    ? sigMasters.find((m) => m.imageUrl && assetSrc(m.imageUrl) === signatureSrc) || null
+    : null;
+  const showSignatureImg = !!signatureSrc && brokenSignature !== signatureSrc;
+  const printImages = printTarget && editingCase?._id === printTarget._id
+    ? caseImageUrls
+    : printImages;
 
   const handleSigned = (updated) => {
     if (!updated) return fetchCases();
     setCases((prev) => prev.map((c) => (c._id === updated._id ? { ...c, ...updated } : c)));
   };
-
-  // Lab-profile branding with fallbacks to the previous hardcoded strings.
-  const labName = labProfile?.labName || 'PURE PATH LAB';
-  const labTagline = labProfile?.tagline || 'Pathology & Diagnostic Center';
-  const labContact = [labProfile?.address, labProfile?.phone, labProfile?.email].filter(Boolean).join(' · ');
-  const logoSrc = labProfile?.logoUrl ? `/${String(labProfile.logoUrl).replace(/^\//, '')}` : '/logo.jpg';
-  const usgSignature = signatures.find((s) => (s.modalities || s.assignedDepartments || []).includes('USG')) || signatures[0];
-  const signatoryName = usgSignature?.name || printTarget?.signedBy?.name || 'Authorised Signatory';
-  const signatoryTitle = usgSignature?.title || 'Consultant Radiologist';
 
   return (
     <div>
@@ -284,6 +410,20 @@ const TodaysUSGCases = () => {
         }
       />
 
+      {(listError || optionsError) && (
+        <div className="usg-banner usg-banner-error" role="alert">
+          <AlertTriangle size={16} />
+          <span>{listError || optionsError}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            onClick={refresh}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }} role="tablist" aria-label="Date scope">
           {[
@@ -424,11 +564,15 @@ const TodaysUSGCases = () => {
       >
         <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
+          <div className="usg-form-section-title">Case details</div>
 
           <PatientPicker
             label="Patient Profile"
             value={pickedPatient || patients.find((p) => p._id === formData.patient) || null}
-            onSelect={(p) => { setPickedPatient(p); setFormData((prev) => ({ ...prev, patient: p ? p._id : '' })); }}
+            onSelect={(p) => {
+              setPickedPatient(p);
+              setFormData((prev) => ({ ...prev, patient: p ? p._id : '' }));
+            }}
             error={errors.patient}
             required
             disabled={!!editingCase}
@@ -443,16 +587,49 @@ const TodaysUSGCases = () => {
           />
 
           <Select
-            label="Choose USG Template"
+
+            label="Case Status"
+            value={formData.status}
+            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+            options={[
+              { value: 'Pending', label: 'Pending Signature' },
+              { value: 'Completed', label: 'Completed Report' }
+            ]}
+            required
+          />
+
+          <div className="usg-form-section-title">Report findings</div>
+
+          <Select
+            label="USG Report Template"
             value={formData.templateName}
             onChange={handleTemplateChange}
             options={templates.map(t => ({ value: t.name, label: t.name }))}
-            placeholder="Start with blank report findings"
+            placeholder="No template (custom findings)"
           />
 
+          {/* Selected template's API text, shown read-only until the user
+              explicitly applies it — the editor's current findings are never
+              swapped out behind the operator's back. */}
+          {selectedTemplate && selectedTemplate.findings !== formData.findings ? (
+            <div className="usg-template-preview">
+              <div className="usg-template-preview-head">
+                <span>Template: {selectedTemplate.name}</span>
+                <Button variant="secondary" size="sm" onClick={applyTemplate}>
+                  {formData.findings.trim() ? 'Replace findings' : 'Insert into findings'}
+                </Button>
+              </div>
+              <pre>{selectedTemplate.findings}</pre>
+            </div>
+          ) : null}
+
           <div className="form-group">
-            <label className="form-label">Clinical USG Findings Details *</label>
+            <label className="form-label" htmlFor="usg-findings">
+              <span>Clinical USG Findings</span>
+              <span className="form-required-star" aria-hidden="true">*</span>
+            </label>
             <textarea
+              id="usg-findings"
               value={formData.findings}
               onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
               className="form-control"
@@ -468,7 +645,7 @@ const TodaysUSGCases = () => {
               <label className="form-label">Case Images (upload runs in background — saving is never blocked)</label>
               <ImageUploader
                 key={uploaderKey}
-                uploadFn={(file, prog) => uploadUSGImage(editingCase._id, file, prog)}
+                uploadFn={(file, progress) => uploadUSGImage(editingCase._id, file, progress)}
                 initialUrls={caseImages(editingCase)}
                 onUploaded={setCaseImageUrls}
               />
@@ -478,17 +655,6 @@ const TodaysUSGCases = () => {
               Save the case first — images can be attached while editing.
             </p>
           )}
-
-          <Select
-            label="Case Status"
-            value={formData.status}
-            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-            options={[
-              { value: 'Pending', label: 'Pending Signature' },
-              { value: 'Completed', label: 'Completed Report' }
-            ]}
-            required
-          />
 
         </form>
       </Modal>
@@ -505,28 +671,41 @@ const TodaysUSGCases = () => {
           </>
         }
       >
+        {profileError && (
+          <div className="usg-banner usg-banner-error" role="alert">
+            <AlertTriangle size={16} />
+            <span>{profileError}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              onClick={() => loadPrintMeta()}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
         {printTarget && (
           <div className="printable-area" style={{ padding: '16px', color: '#000', fontSize: '0.9rem', lineHeight: '1.5' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <img
-                src={logoSrc}
-                alt="Logo"
-                style={{ width: '64px', height: '64px', borderRadius: '50%', marginBottom: '4px', objectFit: 'cover' }}
-              />
-              <h2 style={{ margin: 0, fontWeight: '700' }}>{labName}</h2>
-              <p style={{ margin: '2px 0' }}>{labTagline}</p>
-              {labContact && <p style={{ margin: '2px 0', fontSize: '0.75rem' }}>{labContact}</p>}
-              <p style={{ margin: '2px 0', fontWeight: '600' }}>ULTRASONOGRAPHY REPORT</p>
+            {/* Dynamic lab letterhead (existing Phase 8 component, API profile
+                data only) — replaces the previously hardcoded lab name/logo;
+                on failure Letterhead renders nothing (never a fake header). */}
+            <Letterhead part="header" profile={profile} loading={profileLoading} />
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <p style={{ margin: '2px 0', fontWeight: '700' }}>ULTRASONOGRAPHY REPORT</p>
               <div style={{ borderBottom: '2px solid #000', margin: '10px 0', width: '100%' }}></div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: '1.5rem' }}>
               <div>
-                <strong>Patient Name:</strong> {printTarget.patient?.name}<br />
-                <strong>Age / Gender:</strong> {printTarget.patient?.age} Yrs / {printTarget.patient?.gender}
+                <strong>Patient Name:</strong> {printTarget.patient?.name || '—'}<br />
+                <strong>Age / Gender:</strong>{' '}
+                {printTarget.patient?.age != null ? `${printTarget.patient.age} Yrs` : '—'} /{' '}
+                {printTarget.patient?.gender || '—'}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <strong>Reg Code:</strong> {printTarget.patient?.registrationNumber}<br />
+                <strong>Reg Code:</strong> {printTarget.patient?.registrationNumber || '—'}<br />
+                <strong>Referring Doctor:</strong> {printTarget.referringDoctor?.name || 'Self'}<br />
                 <strong>Date:</strong> {formatDate(printTarget.date).split(',')[0]}
               </div>
             </div>
@@ -538,11 +717,11 @@ const TodaysUSGCases = () => {
               {printTarget.findings}
             </div>
 
-            {caseImages(printTarget).length > 0 && (
+            {printImages.length > 0 && (
               <div style={{ marginTop: '1rem' }}>
                 <strong>ATTACHED IMAGES:</strong>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '8px' }}>
-                  {caseImages(printTarget).map((src, i) => (
+                  {printImages.map((src, i) => (
                     <img
                       key={i}
                       src={String(src).startsWith('/') || String(src).startsWith('http') ? src : `/${src}`}
@@ -556,18 +735,22 @@ const TodaysUSGCases = () => {
 
             <div style={{ borderTop: '1px solid #000', marginTop: '2rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
               <div style={{ textAlign: 'center', width: '200px' }}>
-                {(usgSignature?.imageUrl || printTarget.signatureUrl) && (
+                {showSignatureImg && (
                   <img
-                    src={usgSignature?.imageUrl ? `/${String(usgSignature.imageUrl).replace(/^\//, '')}` : `/${printTarget.signatureUrl}`}
-                    alt="Signature"
+                    src={signatureSrc}
+                    alt={sigMaster?.name ? `Signature of ${sigMaster.name}` : 'Signature'}
+                    onError={() => setBrokenSignature(signatureSrc)}
                     style={{ height: '40px', objectFit: 'contain' }}
                   />
                 )}
-                <div style={{ height: (usgSignature?.imageUrl || printTarget.signatureUrl) ? '4px' : '40px' }}></div>
-                <strong>{signatoryName}</strong><br />
-                <span>{signatoryTitle}</span>
+                <div style={{ height: showSignatureImg ? '4px' : '40px' }}></div>
+                <strong>{sigMaster?.name || 'Authorised Signatory'}</strong><br />
+                <span>{sigMaster?.title || 'Consultant Radiologist'}</span>
               </div>
             </div>
+
+            {/* Lab contact footer (Phase 8 letterhead component, API data). */}
+            <Letterhead part="footer" profile={profile} />
           </div>
         )}
       </Modal>

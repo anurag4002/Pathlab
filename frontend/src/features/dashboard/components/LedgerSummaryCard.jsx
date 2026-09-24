@@ -3,10 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../../../components/common';
 import formatCurrency from '../../../utils/formatCurrency';
+import useAuth from '../../../hooks/useAuth';
 import '../Dashboard.css';
 
-const LedgerSummaryCard = ({ paymentSummary }) => {
+const hasValue = (value) =>
+  value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
+
+const formatMoney = (value) => (hasValue(value) ? formatCurrency(value) : '—');
+
+const LedgerSummaryCard = ({ paymentSummary, loading = false }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+  const value = (field) => (loading ? '—' : formatMoney(paymentSummary?.[field]));
 
   return (
     <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -15,42 +24,61 @@ const LedgerSummaryCard = ({ paymentSummary }) => {
         <div className="ledger-summary-rows">
           <div className="ledger-summary-row">
             <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
-              Cleared Collections
+              Bill Payments · all-time
             </span>
             <strong style={{ fontSize: 'var(--font-size-lg)', color: 'var(--color-success)' }}>
-              {formatCurrency(paymentSummary?.cleared || 0)}
+              {value('cleared')}
             </strong>
           </div>
 
           <div className="ledger-summary-row">
             <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
-              Outstanding Balance
+              Bill Balance · all-time
             </span>
             <strong style={{ fontSize: 'var(--font-size-lg)', color: 'var(--color-danger)' }}>
-              {formatCurrency(paymentSummary?.due || 0)}
+              {value('due')}
             </strong>
           </div>
 
           <div className="ledger-summary-row total">
             <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
-              Gross Ledger Total
+              Bill Total · all-time
             </span>
             <strong style={{ fontSize: 'var(--font-size-xl)', color: 'var(--color-text)' }}>
-              {formatCurrency(paymentSummary?.total || 0)}
+              {value('total')}
             </strong>
           </div>
         </div>
       </div>
 
-      <Button
-        variant="secondary"
-        block
-        onClick={() => navigate('/business/daily')}
-        style={{ marginTop: 'var(--space-4)' }}
-      >
-        <span>View Detailed Ledger</span>
-        <ArrowRight size={14} />
-      </Button>
+      {isAdmin && (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-4)', flexWrap: 'wrap' }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/business/daily')}
+            icon={<ArrowRight size={14} />}
+          >
+            Daily Business
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/business/monthly')}
+            icon={<ArrowRight size={14} />}
+          >
+            Monthly Business
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/business/dues')}
+            icon={<ArrowRight size={14} />}
+          >
+            Due Reports
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

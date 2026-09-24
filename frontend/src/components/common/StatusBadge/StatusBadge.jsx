@@ -12,26 +12,30 @@ const getVariant = (status) => {
     case 'cleared':
     case 'cash':
     case 'upi':
+    case 'income':
       return 'success';
     case 'partial':
     case 'card':
     case 'inprogress':
     case 'doctor':
+    case 'draft':
     case 'registered':
     case 'collected':
       return 'warning';
+    case 'reported':
+    case 'received':
+      return 'info';
     case 'pending':
     case 'inactive':
     case 'due':
     case 'refund':
+    case 'expense':
     case 'cancelled':
     case 'rejected':
       return 'danger';
     case 'admin':
     case 'employee':
     case 'insurance':
-    case 'reported':
-    case 'received':
       return 'info';
     default:
       return 'neutral';

@@ -1,26 +1,51 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useClientPagination from '../../hooks/useClientPagination';
-import { getTodaysReports, getPendingLabCases, getReportForEntry, uploadReport, deleteReport, createResultReport, saveReportResults, signReport, updateReportTat, verifyReport, resendReport, getDeliveryStatus } from '../../services/reportService';
+import {
+  getTodaysReports,
+  getPendingLabCases,
+  getReportForEntry,
+  uploadReport,
+  deleteReport,
+  createResultReport,
+  saveReportResults,
+  signReport,
+  updateReportTat,
+  verifyReport,
+  resendReport
+} from '../../services/reportService';
 import { getPatients } from '../../services/patientService';
 import { getBills } from '../../services/billService';
 import { getTests } from '../../services/testService';
-import { getSignatures } from '../../services/setupService';
-import { getLabProfile } from '../../services/setupService';
-import { sendMessage } from '../../services/notifyService';
-import { getDeliveryHistory, getFailedDeliveries, getReportDeliveryStatus, recordDeliveryAttempt } from '../../services/deliveryHistoryService';
+import { getSignatures, getLabProfile } from '../../services/setupService';
+import { sendMessage, getTemplates, getCredits } from '../../services/notifyService';
+import {
+  getDeliveryHistory,
+  getFailedDeliveries,
+  getReportDeliveryStatus,
+  recordDeliveryAttempt
+} from '../../services/deliveryHistoryService';
 import DeliveryStatusBadge from '../../components/delivery/DeliveryStatusBadge';
 import ResendButton from '../../components/delivery/ResendButton';
 import { downloadReportPdf, printReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
-import { getReportStatusLabel, getReportStatusVariant } from '../../utils/reportStatus';
-import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Printer, Tag } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ConfirmDialog, EmptyState, StatusBadge, PatientPicker } from '../../components/common';
+import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Printer, Tag, RefreshCw } from 'lucide-react';
+import {
+  DataTable,
+  PageHeader,
+  Button,
+  Modal,
+  Select,
+  Input,
+  FileUploader,
+  ConfirmDialog,
+  EmptyState,
+  PatientPicker
+} from '../../components/common';
 import TatCountdown, { getTatInfo, loadTatSettings, isDoneStatus } from '../../components/lab/TatCountdown';
 import WorklistTabs, { DepartmentFilterChips } from '../../components/lab/WorklistTabs';
-// Phases 3/4/9/10/15 — verification + rejection (gated) + preview + QR + signatures.
 import SignaturePicker from '../../components/lab/SignaturePicker';
 import ReportPreviewModal from '../../components/lab/ReportPreviewModal';
 import RejectDialog from '../../components/lab/RejectDialog';
@@ -28,13 +53,27 @@ import CommentThread from '../../components/lab/CommentThread';
 import VerificationTimeline from '../../components/lab/VerificationTimeline';
 import LabelPrintSheet from '../../components/lab/LabelPrintSheet';
 
-// Verification workflow — backend LIVE (verify/reject/comments/resend + Verified/Rejected).
-
 const emptyRow = () => ({ test: '', value: '', unit: '' });
 
-// Department of a report: prefer the bill's department; otherwise infer
-// from the linked test name/code (bill.department is not populated on the
-// report list payload, so inference keeps the chips functional regardless).
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) return data.message;
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 402) return 'Message not sent — check delivery credits and Lab Profile channel settings.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
 const inferDepartment = (report) => {
   const explicit = report?.bill?.department;
   if (typeof explicit === 'string' && explicit.trim()) return explicit.trim().toUpperCase();
@@ -53,7 +92,7 @@ const matchesSearch = (report, q) => {
     report?.bill?.billNumber,
     report?.test?.name,
     report?.test?.code,
-    report?.status,
+    report?.status
   ].filter(Boolean).join(' ').toLowerCase();
   return hay.includes(query);
 };
@@ -99,25 +138,29 @@ const TodaysReports = () => {
   const [signing, setSigning] = useState(false);
   const [entryLoading, setEntryLoading] = useState(false);
   const [verifyUrl, setVerifyUrl] = useState('');
-  const [qrDataUrl, setQrDataUrl] = useState('');
   const [sendOpen, setSendOpen] = useState(false);
-  const [sendForm, setSendForm] = useState({ channel: 'sms', phone: '' });
+  const [sendForm, setSendForm] = useState({ channel: 'sms', phone: '', templateKey: '' });
   const [sendLoading, setSendLoading] = useState(false);
-  // Phase 7 — local failed-delivery list (until backend delivery-status exists).
+  const [sendError, setSendError] = useState(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  // Message templates + credit balance from the existing /notify APIs —
+  // templates: null = still loading, [] = loaded with nothing available.
+  const [templates, setTemplates] = useState(null);
+  const [templatesError, setTemplatesError] = useState(false);
+  const [credits, setCredits] = useState(null);
+  // Lab name for report message templates' {{lab}} variable — loaded from
+  // the Lab Profile API (never hardcoded); empty until it arrives or on failure.
+  const [labName, setLabName] = useState('');
+  const [labNameError, setLabNameError] = useState(false);
+  // Local failed-delivery cache; server delivery history remains authoritative.
   const [failedDeliveries, setFailedDeliveries] = useState([]);
-  // Phase 4+10 — in-app PDF preview (shared print layout + QR).
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
   const [previewQr, setPreviewQr] = useState({ qrDataUrl: '', verifyUrl: '' });
-  // Phase 9 — reject dialog (gated: confirm disabled until backend lands).
   const [rejectOpen, setRejectOpen] = useState(false);
-  // Phase 8+11 — label/sticker sheet (bill barcode first; case/sample gated inside).
   const [labelTarget, setLabelTarget] = useState(null);
   const [sendResult, setSendResult] = useState(null);
-  // Phase 7 — delivery status (localStorage-backed until
-  // GET /api/reports/:id/delivery-status exists on the backend).
-  const [labName, setLabName] = useState('Pathology Lab');
   const [deliveryHistory, setDeliveryHistory] = useState([]);
 
   const [sortOrder, setSortOrder] = useState('Recent');
@@ -187,21 +230,73 @@ const TodaysReports = () => {
     }
   };
 
+  // Lab name for report message templates' {{lab}} variable — server-owned
+  // data from the existing Lab Profile API (Phase 8 primitive). All state
+  // updates land after the await so the mount-effect call stays warning-free.
+  const loadLabProfile = async () => {
+    try {
+      const res = await getLabProfile();
+      const profile = res?.data?.profile || res?.data || null;
+      setLabName(profile?.labName || '');
+      setLabNameError(!profile?.labName);
+    } catch {
+      setLabName('');
+      setLabNameError(true);
+    }
+  };
+
+  // Secure report link — the server-issued verify URL from the existing QR
+  // endpoint (Phase 10), used as-is as the message's {{url}} variable.
+  const loadVerifyUrl = async (reportId) => {
+    setVerifyUrl('');
+    setVerifyLoading(true);
+    try {
+      const qr = await fetchReportQr(reportId);
+      setVerifyUrl(qr?.success ? qr?.data?.verifyUrl || '' : '');
+    } catch {
+      setVerifyUrl('');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Message templates from the existing /notify/templates API (the same data
+  // the Message Templates screen manages) — no template keys are hardcoded.
+  // All state updates land after the await so the mount-effect call is clean.
+  const loadTemplates = async () => {
+    try {
+      const r = await getTemplates();
+      setTemplates(r?.success ? r?.data?.templates || r?.data || [] : []);
+      setTemplatesError(!r?.success);
+    } catch {
+      setTemplates(null);
+      setTemplatesError(true);
+    }
+  };
+
+  // Existing message-credit balance (GET /notify/credits) — informational
+  // only; refreshed after a successful send (no polling).
+  const loadCredits = async () => {
+    try {
+      const r = await getCredits();
+      setCredits(r?.success && r?.data ? r.data.balance : null);
+    } catch {
+      setCredits(null);
+    }
+  };
+
   useEffect(() => {
     fetchReports();
     loadUploadOptions();
-    // Phase 7/24 — lab name for SMS vars comes from lab profile, never hardcoded.
-    getLabProfile()
-      .then((r) => {
-        const profile = r?.data?.profile || r?.data || {};
-        if (profile.labName) setLabName(profile.labName);
-      })
-      .catch(() => { /* keep fallback */ });
     setFailedDeliveries(getFailedDeliveries());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder, statusFilter]);
 
   useEffect(() => {
+    loadUploadOptions();
+    loadLabProfile();
+    loadTemplates();
+    loadCredits();
     fetchPending();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -356,25 +451,24 @@ const TodaysReports = () => {
     setRows(report.results?.length ? report.results.map((r) => ({ test: r.test?._id || r.test || '', value: r.value || '', unit: r.unit || '' })) : [emptyRow()]);
     setTat({ collected: report.tat?.collected ? String(report.tat.collected).slice(0, 10) : '', received: report.tat?.received ? String(report.tat.received).slice(0, 10) : '' });
     setSigId('');
-    setVerifyUrl('');
     setEntryOpen(true);
+    setVerifyUrl('');
+    loadVerifyUrl(report._id);
     // Enrich with the full entry payload (bill items -> tests with ranges).
     // Degrades gracefully: the shell report above is already usable.
     try {
       const entry = await getReportForEntry(report._id);
       const testEntries = entry?.data?.testEntries || [];
       if (testEntries.length) {
-        setRows(testEntries.map((t) => ({
-          test: t.testId || '',
-          value: t.existingValue || '',
-          unit: t.existingUnit || t.unit || '',
+        setRows(testEntries.map((testEntry) => ({
+          test: testEntry.testId || '',
+          value: testEntry.existingValue || '',
+          unit: testEntry.existingUnit || testEntry.unit || ''
         })));
       }
-    } catch { /* ignore — entry shell remains usable */ }
-    try {
-      const qr = await fetchReportQr(report._id);
-      if (qr?.success) setVerifyUrl(qr.data.verifyUrl);
-    } catch { /* ignore */ }
+    } catch {
+      // Keep the shell report usable when enrichment is unavailable.
+    }
   };
 
   const handleSaveResults = async () => {
@@ -422,6 +516,40 @@ const TodaysReports = () => {
     }
   };
 
+  // Opens the delivery modal for one specific report (row action or entry
+  // modal), so a send can only ever target the report it was opened for.
+  const openSend = (report) => {
+    if (!report) return;
+    setActiveReport(report);
+    setSendForm({ channel: 'sms', phone: report?.patient?.phone || '', templateKey: '' });
+    setSendError(null);
+    setSendResult(null);
+    setSendOpen(true);
+    loadVerifyUrl(report._id);
+    if (!labName) loadLabProfile();
+  };
+
+  // Values this screen can fill into a template's {{variables}} — all from
+  // the existing report / QR / Lab-Profile APIs, never hardcoded.
+  const availableVars = {
+    name: activeReport?.patient?.name || '',
+    regNo: activeReport?.registrationNumber || '',
+    url: verifyUrl,
+    lab: labName
+  };
+
+  // Active templates for the selected channel. A template is only offered
+  // when every placeholder it declares (variables + body) can be filled from
+  // availableVars, so no literal {{placeholder}} can leak into a send.
+  const channelTemplates = (templates || []).filter((t) => {
+    if (t.status !== 'Active' || t.channel !== sendForm.channel) return false;
+    const bodyVars = [...String(t.body || '').matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]);
+    const required = [...(t.variables || []), ...bodyVars];
+    return required.every((v) => Object.prototype.hasOwnProperty.call(availableVars, v));
+  });
+  const selectedTemplate =
+    channelTemplates.find((t) => t.key === sendForm.templateKey) || channelTemplates[0] || null;
+
   // Phase 4+10 — in-app PDF preview (shared print layout + QR), plus print
   // state: server PDF via GET /api/reports/:id/pdf with failure feedback
   // (previously an un-awaited fire-and-forget).
@@ -448,7 +576,6 @@ const TodaysReports = () => {
       const qr = await fetchReportQr(target._id);
       if (qr?.success) {
         setPreviewQr({ qrDataUrl: qr.data.qrDataUrl || '', verifyUrl: qr.data.verifyUrl || '' });
-        setQrDataUrl(qr.data.qrDataUrl || '');
         if (!verifyUrl) setVerifyUrl(qr.data.verifyUrl || '');
       } else {
         setPreviewQr({ qrDataUrl: '', verifyUrl: verifyUrl || '' });
@@ -456,6 +583,7 @@ const TodaysReports = () => {
     } catch (err) {
       // QR is enhancement-only: preview still renders with URL fallback text.
       setPreviewQr({ qrDataUrl: '', verifyUrl: verifyUrl || '' });
+      setPreviewError(getApiErrorMessage(err, 'Failed to prepare the report preview.'));
     } finally {
       setPreviewLoading(false);
     }
@@ -504,22 +632,48 @@ const TodaysReports = () => {
   };
 
   const handleSend = async () => {
-    if (!sendForm.phone) { alert('Enter phone/email'); return; }
-    const templateKey = sendForm.channel === 'whatsapp' ? 'report-ready-wa' : 'report-ready';
+    if (sendLoading) return;
+    const to = sendForm.phone.trim();
+    if (!to) {
+      setSendError('Enter the patient phone number.');
+      return;
+    }
+    if (verifyLoading) return;
+    if (!verifyUrl) {
+      setSendError('Secure report link unavailable — retry loading it.');
+      return;
+    }
+    if (!labName) {
+      setSendError('Lab profile not loaded — retry loading it.');
+      return;
+    }
+    if (!selectedTemplate) {
+      setSendError('No active template for this channel can be filled with this report’s data.');
+      return;
+    }
+    setSendError(null);
     await deliver({
       channel: sendForm.channel,
-      templateKey,
-      to: sendForm.phone,
-      vars: { name: activeReport.patient?.name || '', regNo: activeReport.registrationNumber || '', url: verifyUrl, lab: labName }
+      templateKey: selectedTemplate.key,
+      to,
+      reportId: activeReport?._id,
+      vars: availableVars
     });
   };
 
   const handleResend = async (entry) => {
+    if (!activeReport?._id) return;
     await deliver({
       channel: entry.channel,
-      templateKey: entry.channel === 'whatsapp' ? 'report-ready-wa' : 'report-ready',
+      templateKey: entry.templateKey || (entry.channel === 'whatsapp' ? 'report-ready-wa' : 'report-ready'),
       to: entry.to,
-      vars: { name: activeReport?.patient?.name || '', regNo: activeReport?.registrationNumber || entry.regNo || '', url: verifyUrl, lab: labName }
+      reportId: activeReport._id,
+      vars: {
+        name: activeReport.patient?.name || '',
+        regNo: activeReport.registrationNumber || entry.regNo || '',
+        url: verifyUrl,
+        lab: labName
+      }
     });
   };
 
@@ -687,13 +841,18 @@ const TodaysReports = () => {
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)} title="Download PDF">
                     <FileDown size={14} />
                   </button>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                    onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
-                    title="Download uploaded file"
-                  >
-                    <Download size={14} />
+                  {report.fileUrl && (
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                      onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
+                      title="Download uploaded file"
+                    >
+                      <Download size={14} />
+                    </button>
+                  )}
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openSend(report)} title="Send report notification">
+                    <Send size={14} />
                   </button>
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setLabelTarget(report)} title="Print barcode labels on the label printer (bill / case / sample)">
                     <Tag size={14} />
@@ -830,7 +989,7 @@ const TodaysReports = () => {
             <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
             <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
             <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, true)}><FileDown size={14} /> PDF</Button>
-            <Button variant="secondary" onClick={() => { setSendForm(f => ({ ...f, phone: activeReport?.patient?.phone || '' })); setSendOpen(true); }}><Send size={14} /> Send</Button>
+            <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
             <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
           </>
         }
@@ -957,7 +1116,12 @@ const TodaysReports = () => {
         </div>
       </Modal>
 
-      {/* Send modal */}
+      {/* Send modal — targets exactly the report it was opened for; contact
+          is prefilled from the patient record, templates come from the
+          /notify API (filtered by channel + fillable placeholders), and the
+          message variables come from server APIs (secure QR verify link +
+          Lab Profile name). Email is shown but never functional: the backend
+          Patient record has no email field and no report email template. */}
       <Modal
         isOpen={sendOpen}
         onClose={() => setSendOpen(false)}
@@ -965,25 +1129,97 @@ const TodaysReports = () => {
         footer={
           <>
             <Button variant="secondary" onClick={() => setSendOpen(false)} disabled={sendLoading}>Cancel</Button>
-            <Button variant="primary" onClick={handleSend} loading={sendLoading}><Send size={14} /> Send</Button>
+            <Button
+              variant="primary"
+              onClick={handleSend}
+              loading={sendLoading}
+              disabled={!sendForm.phone.trim() || !verifyUrl || !labName || !selectedTemplate}
+            >
+              <Send size={14} /> {sendForm.channel === 'whatsapp' ? 'Send WhatsApp' : 'Send SMS'}
+            </Button>
           </>
         }
       >
+        <p style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '8px' }}>
+          {activeReport?.patient?.name || '—'} · {activeReport?.registrationNumber || '—'}
+        </p>
         <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div>
+            <span className="form-label" style={{ display: 'block' }}>Channel</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant={sendForm.channel === 'sms' ? 'primary' : 'secondary'} size="sm" onClick={() => setSendForm(p => ({ ...p, channel: 'sms' }))}>SMS</Button>
+              <Button variant={sendForm.channel === 'whatsapp' ? 'primary' : 'secondary'} size="sm" onClick={() => setSendForm(p => ({ ...p, channel: 'whatsapp' }))}>WhatsApp</Button>
+              <span title="Email is unavailable: the backend Patient record has no email field and no report email template exists.">
+                <Button variant="secondary" size="sm" disabled>Email</Button>
+              </span>
+            </div>
+          </div>
           {sendResult && (
             <div style={{ fontSize: '0.82rem', color: sendResult.ok ? 'green' : 'var(--color-danger, #dc2626)' }} role="status">
               {sendResult.message}
             </div>
           )}
           <Select
-            label="Channel"
-            value={sendForm.channel}
-            onChange={(e) => setSendForm(p => ({ ...p, channel: e.target.value }))}
-            options={[{ value: 'sms', label: 'SMS' }, { value: 'whatsapp', label: 'WhatsApp' }, { value: 'email', label: 'Email' }]}
+            label="Message template"
+            value={selectedTemplate?.key || ''}
+            onChange={(e) => setSendForm(p => ({ ...p, templateKey: e.target.value }))}
+            options={channelTemplates.map((t) => ({ value: t.key, label: t.key }))}
+            placeholder={channelTemplates.length ? 'Select a template' : 'No template available'}
+            disabled={!channelTemplates.length}
             required
           />
-          <Input label="Phone / Email" value={sendForm.phone} onChange={(e) => setSendForm(p => ({ ...p, phone: e.target.value }))} placeholder="98XXXXXXXX / user@mail.com" required />
+          <Input label="Patient phone number" value={sendForm.phone} onChange={(e) => setSendForm(p => ({ ...p, phone: e.target.value }))} required />
         </div>
+        {templates !== null && !templatesError && channelTemplates.length === 0 && (
+          <div className="form-error" style={{ marginTop: '8px' }}>
+            No active template for this channel can be filled with this report’s data.
+          </div>
+        )}
+        {templates === null && !templatesError && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing message templates…
+          </p>
+        )}
+        {templatesError && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Message templates unavailable.</span>
+            <Button variant="secondary" size="sm" onClick={loadTemplates}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
+        {credits !== null && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Message credits: {credits}
+          </p>
+        )}
+        {sendError && <div className="form-error" style={{ marginTop: '8px' }}>{sendError}</div>}
+        {verifyLoading && !verifyUrl && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing secure report link…
+          </p>
+        )}
+        {!verifyLoading && !verifyUrl && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Secure report link unavailable.</span>
+            <Button variant="secondary" size="sm" onClick={() => activeReport && loadVerifyUrl(activeReport._id)}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
+        {!labName && !labNameError && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '8px' }}>
+            Preparing lab profile…
+          </p>
+        )}
+        {!labName && labNameError && (
+          <div className="form-error" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Lab name unavailable from Lab Profile.</span>
+            <Button variant="secondary" size="sm" onClick={loadLabProfile}>
+              <RefreshCw size={14} /> Retry
+            </Button>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation */}

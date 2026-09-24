@@ -12,7 +12,7 @@ export const VOID_REASONS = [
   'Other',
 ];
 
-const VoidReasonDialog = ({ isOpen, onClose, bill, onConfirm, loading }) => {
+const VoidReasonDialog = ({ isOpen, onClose, bill, onConfirm, loading, error: serverError = '' }) => {
   const [reason, setReason] = useState('');
   const [custom, setCustom] = useState('');
   const [error, setError] = useState('');
@@ -71,7 +71,7 @@ const VoidReasonDialog = ({ isOpen, onClose, bill, onConfirm, loading }) => {
           required
         />
       )}
-      {error && <p className="form-error">{error}</p>}
+      {(error || serverError) && <p className="form-error">{error || serverError}</p>}
     </Modal>
   );
 };

@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 import { getTransactions } from '../../services/transactionService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
-import { DataTable, PageHeader, Select, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Select, StatusBadge, Button } from '../../components/common';
 
 const Transactions = () => {
+  const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Load failure is surfaced as a banner so a failed fetch never reads as
+  // "no transactions found".
+  const [listError, setListError] = useState(null);
 
-  // Search & Filters
-  const [search, setSearch] = useState('');
+  // Search & Filters — the ledger can be opened pre-filtered from the bill
+  // details modal (?search=patient name), matching the backend's name search.
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const debouncedSearch = useDebounce(search, 500);
   const [filterType, setFilterType] = useState('');
   const [filterMethod, setFilterMethod] = useState('');
@@ -32,9 +39,18 @@ const Transactions = () => {
       if (res.success) {
         setTransactions(res.data.transactions);
         setPaginationInfo(res.data.pagination);
+        setListError(null);
       }
     } catch (err) {
-      console.error('Failed to load transaction ledger', err);
+      setTransactions([]);
+      setListError(
+        err?.response?.data?.message ||
+          (err?.response?.status === 403
+            ? 'You do not have permission to view financial transactions.'
+            : err?.request
+              ? 'Network error. Please check your connection and try again.'
+              : 'Failed to load transaction ledger.')
+      );
     } finally {
       setLoading(false);
     }
@@ -50,6 +66,33 @@ const Transactions = () => {
         title="Financial Transactions Audit"
         subtitle="Chronological audit trail of all receipts, partial collections, and refunds"
       />
+
+      {listError && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            padding: 'var(--space-3)',
+            backgroundColor: 'var(--color-danger-bg)',
+            color: 'var(--color-danger)',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: 'var(--space-4)'
+          }}
+        >
+          <span>{listError}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            onClick={() => fetchTransactions()}
+            style={{ marginLeft: 'auto' }}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Filter Row */}
       <div style={{ display: 'flex', gap: '16px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

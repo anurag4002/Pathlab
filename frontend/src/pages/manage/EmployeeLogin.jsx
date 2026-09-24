@@ -1,269 +1,474 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Plus, Edit2, Trash2, UserCheck, UserX, RefreshCw } from 'lucide-react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
-import useClientPagination from '../../hooks/useClientPagination';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { DataTable, PageHeader, Button, Modal, ConfirmDialog, StatusBadge } from '../../components/common';
+import useDebounce from '../../hooks/useDebounce';
+import useClientPagination from '../../hooks/useClientPagination';
+import { validateEmail } from '../../utils/validators';
+import formatDate from '../../utils/formatDate';
+import { DataTable, PageHeader, Button, Modal, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 import EmployeeForm from './components/EmployeeForm';
 import { permsToMap } from './components/PermissionMatrix';
+import '../../styles/UserManagement.css';
 
+const STAFF_ROLES = ['Employee', 'Admin'];
+const ROLE_OPTIONS = [
+  { value: 'Employee', label: 'Laboratory operator / employee' },
+  { value: 'Admin', label: 'Administrator' }
+];
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 const EMPTY_FORM = {
-  name: '', email: '', phone: '', password: '', role: 'Employee', status: 'Active',
-  permissions: {}, designation: '', qualification: '', joiningDate: '', departments: [], documents: '',
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  role: 'Employee',
+  status: 'Active',
+  permissions: {},
+  designation: '',
+  qualification: '',
+  joiningDate: '',
+  departments: [],
+  documents: ''
 };
+
+const getErrorMessage = (error, fallback) => {
+  if (error?.response) {
+    const message = error.response.data?.message;
+    if (typeof message === 'string' && message.trim()) return message;
+    const status = error.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to manage user accounts.';
+    if (status === 404) return 'The requested user account was not found.';
+    if (status === 409) return 'The user account changed elsewhere. Refresh and try again.';
+    if (status === 422) return 'The submitted user data is invalid.';
+    if (status >= 500) return 'The server could not complete the user request.';
+  }
+  if (error?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (error?.code === 'ERR_NETWORK' || error?.request) return 'Network error. Check your connection and try again.';
+  return error?.message || fallback;
+};
+
+const getFieldErrors = (source) => {
+  if (!source || typeof source !== 'object') return {};
+  return Object.entries(source).reduce((errors, [field, value]) => {
+    const message = Array.isArray(value) ? value[0] : value;
+    if (typeof message === 'string' && message.trim()) errors[field] = message;
+    return errors;
+  }, {});
+};
+
+const getResponseError = (response, fallback) => ({
+  message: response?.message || fallback,
+  fields: getFieldErrors(response?.errors)
+});
 
 const EmployeeLogin = () => {
   const { user: currentUser } = useAuth();
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const canManage = currentUser?.role === 'Admin';
 
-  // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
-  const [formData, setFormData] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
-  const [submitLoading, setSubmitLoading] = useState(false);
-
-  // Search
+  const [usersState, setUsersState] = useState({ key: null, data: [], error: '' });
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const debouncedSearch = useDebounce(search, 400);
+  const requestKey = JSON.stringify([debouncedSearch, roleFilter, statusFilter, refreshKey]);
 
-  // Delete State
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Client-side pagination (GET /api/users returns the full list).
-  const pg = useClientPagination(employees, 10);
-
-  const fetchEmployees = async () => {
-    setLoading(true);
-    try {
-      const [empRes, adminRes] = await Promise.all([
-        getUsers({ role: 'Employee', search }).catch(() => null),
-        getUsers({ role: 'Admin', search }).catch(() => null),
-      ]);
-      let list = [];
-      if (empRes?.success) list = list.concat(empRes.data);
-      if (adminRes?.success) list = list.concat(adminRes.data);
-      if (!empRes && !adminRes) {
-        const res = await getUsers({ search });
-        if (res.success) list = res.data.filter(u => u.role === 'Employee' || u.role === 'Admin');
-      }
-      setEmployees(Array.isArray(list) ? list : list?.users || []);
-    } catch (err) {
-      console.error('Failed to load employee list', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    fetchEmployees();
-  }, [search]);
+    let active = true;
+    const params = {};
+    const trimmedSearch = debouncedSearch.trim();
+    if (trimmedSearch) params.search = trimmedSearch;
+    if (roleFilter) params.role = roleFilter;
+    if (statusFilter) params.status = statusFilter;
 
-  const handleOpenCreate = () => {
-    setEditingEmployee(null);
-    setFormData(EMPTY_FORM);
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const handleOpenEdit = (emp) => {
-    setEditingEmployee(emp);
-    setFormData({
-      name: emp.name,
-      email: emp.email,
-      phone: emp.phone || '',
-      password: '', // blank password unless changing
-      role: emp.role,
-      status: emp.status,
-      // Phase 25 — backend stores permissions as a Map (object over the
-      // wire); legacy arrays are converted to { key: true } on the way in.
-      permissions: permsToMap(emp.permissions),
-      designation: emp.designation || '',
-      qualification: emp.qualification || '',
-      joiningDate: emp.joiningDate || emp.joinedOn?.split?.('T')?.[0] || '',
-      departments: emp.departments || (emp.department ? [emp.department] : []),
-      documents: emp.documents || '',
+    getUsers(params).then((response) => {
+      if (!active) return;
+      if (!response?.success) {
+        const responseError = getResponseError(response, 'The user service returned an unsuccessful response.');
+        setUsersState({ key: requestKey, data: [], error: responseError.message });
+        return;
+      }
+      const rawUsers = Array.isArray(response.data) ? response.data : response.data?.users;
+      if (!Array.isArray(rawUsers)) {
+        setUsersState({ key: requestKey, data: [], error: 'The user service returned an invalid user list.' });
+        return;
+      }
+      setUsersState({
+        key: requestKey,
+        data: rawUsers.filter((account) => STAFF_ROLES.includes(account.role)),
+        error: ''
+      });
+    }).catch((error) => {
+      if (active) setUsersState({ key: requestKey, data: [], error: getErrorMessage(error, 'Failed to load user accounts.') });
     });
-    setErrors({});
+
+    return () => { active = false; };
+  }, [debouncedSearch, roleFilter, statusFilter, refreshKey, requestKey]);
+
+  const users = useMemo(
+    () => (usersState.key === requestKey ? usersState.data : []),
+    [usersState.key, usersState.data, requestKey]
+  );
+  const pg = useClientPagination(users, 10);
+  const loading = usersState.key !== requestKey;
+  const listError = usersState.key === requestKey ? usersState.error : '';
+  const searchPending = search !== debouncedSearch;
+  const hasFilters = Boolean(search.trim() || roleFilter || statusFilter);
+
+  useEffect(() => {
+    pg.reset();
+    // Reset client pagination whenever the server-side query changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, roleFilter, statusFilter, refreshKey]);
+
+  const refreshUsers = () => setRefreshKey((value) => value + 1);
+
+  const clearFormState = () => {
+    setEditingUser(null);
+    setFormData(EMPTY_FORM);
+    setFormErrors({});
+    setFormError('');
+  };
+
+  const openCreate = () => {
+    if (!canManage) return;
+    clearFormState();
+    setActionError('');
+    setNotice('');
     setFormOpen(true);
   };
 
-  const validate = () => {
-    const errs = {};
-    if (!formData.name.trim()) errs.name = 'Name is required';
-    if (!formData.email.trim()) errs.email = 'Email is required';
-    if (!editingEmployee && !formData.password) errs.password = 'Password is required';
-    if (!(formData.departments || []).length) errs.departments = 'Pick at least one department';
-    if (formData.role === 'Admin' && editingEmployee?._id === currentUser?._id && formData.status !== 'Active') {
-      errs.status = 'You cannot deactivate your own admin account';
-    }
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+  const openEdit = (account) => {
+    if (!canManage || account._id === currentUser?._id) return;
+    setActionError('');
+    setNotice('');
+    setEditingUser(account);
+    setFormData({
+      name: account.name || '',
+      email: account.email || '',
+      phone: account.phone || '',
+      password: '',
+      role: account.role,
+      status: account.status,
+      permissions: permsToMap(account.permissions),
+      designation: account.designation || '',
+      qualification: account.qualification || '',
+      joiningDate: account.joiningDate || account.joinedOn?.split?.('T')?.[0] || '',
+      departments: Array.isArray(account.departments)
+        ? account.departments
+        : account.department ? [account.department] : [],
+      documents: Array.isArray(account.documents) ? account.documents.join(', ') : account.documents || ''
+    });
+    setFormErrors({});
+    setFormError('');
+    setFormOpen(true);
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const closeForm = () => {
+    if (submitLoading) return;
+    setFormOpen(false);
+    clearFormState();
+  };
+
+  const updateFormData = (update) => {
+    setFormData(update);
+    setFormErrors((current) => {
+      if (!Object.keys(current).length) return current;
+      return {};
+    });
+    setFormError('');
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const phone = formData.phone.trim();
+    const password = formData.password;
+
+    if (!name) errors.name = 'Name is required.';
+    if (!email) errors.email = 'Email is required.';
+    else if (!validateEmail(email)) errors.email = 'Enter a valid email address.';
+    if (!phone) errors.phone = 'Phone is required.';
+    if (!formData.role) errors.role = 'Role is required.';
+    if (!formData.status) errors.status = 'Status is required.';
+    if (!editingUser && (!password || password.length < 4)) errors.password = 'Password must be at least 4 characters.';
+    else if (editingUser && password && password.length < 4) errors.password = 'Password must be at least 4 characters.';
+    if (!(formData.departments || []).length) errors.departments = 'Pick at least one department.';
+    if (editingUser?._id === currentUser?._id && formData.status !== 'Active') errors.status = 'You cannot deactivate your own account.';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const submitForm = async (event) => {
+    event.preventDefault();
+    if (!canManage || submitLoading || !validateForm()) return;
 
     setSubmitLoading(true);
+    setFormError('');
+    setActionError('');
+    setNotice('');
+
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      role: formData.role,
+      status: formData.status,
+      permissions: permsToMap(formData.permissions),
+      designation: formData.designation?.trim() || undefined,
+      qualification: formData.qualification?.trim() || undefined,
+      joiningDate: formData.joiningDate || undefined,
+      departments: formData.departments,
+      documents: String(formData.documents || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+    };
+    if (formData.password.trim()) payload.password = formData.password;
+
     try {
-      let res;
-      // Phase 25 — send permissions as an OBJECT MAP { key: true } to match
-      // the backend Map. Never send the legacy array shape.
-      const permsMap = permsToMap(formData.permissions);
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role,
-        status: formData.status,
-        permissions: permsMap,
-        // Phase 19 — extended profile fields. Backend gap: User model +
-        // create/update whitelists do not persist these yet; they are sent
-        // for forward-compat and documented in the form note.
-        designation: formData.designation || undefined,
-        qualification: formData.qualification || undefined,
-        joiningDate: formData.joiningDate || undefined,
-        departments: formData.departments,
-        documents: formData.documents || undefined,
-      };
-      if (!formData.password) delete payload.password;
-      else payload.password = formData.password;
-
-      if (editingEmployee) {
-        res = await updateUser(editingEmployee._id, payload);
-      } else {
-        res = await createUser(payload);
+      const response = editingUser
+        ? await updateUser(editingUser._id, payload)
+        : await createUser(payload);
+      if (!response?.success) {
+        const responseError = getResponseError(response, 'The user account could not be saved.');
+        setFormErrors(responseError.fields);
+        setFormError(responseError.message);
+        return;
       }
-
-      if (res.success) {
-        setFormOpen(false);
-        fetchEmployees();
-      }
-    } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to save account details' });
+      setFormOpen(false);
+      clearFormState();
+      setNotice(response.message || 'User account saved.');
+      refreshUsers();
+    } catch (error) {
+      setFormErrors(getFieldErrors(error?.response?.data?.errors));
+      setFormError(getErrorMessage(error, 'Failed to save the user account.'));
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
+  const openDelete = (account) => {
+    if (!canManage || account._id === currentUser?._id) return;
+    setActionError('');
+    setNotice('');
+    setDeleteTarget(account);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteLoading) return;
     setDeleteLoading(true);
+    setActionError('');
     try {
-      const res = await deleteUser(deleteTarget._id);
-      if (res.success) {
+      const response = await deleteUser(deleteTarget._id);
+      if (!response?.success) {
         setDeleteTarget(null);
-        fetchEmployees();
+        setActionError(response?.message || 'The user account could not be deleted.');
+        return;
       }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete user');
+      setDeleteTarget(null);
+      setNotice(response.message || 'User account deleted.');
+      refreshUsers();
+    } catch (error) {
+      setDeleteTarget(null);
+      setActionError(getErrorMessage(error, 'Failed to delete the user account.'));
     } finally {
       setDeleteLoading(false);
     }
   };
 
+  const openStatusChange = (account) => {
+    if (!canManage || account._id === currentUser?._id) return;
+    setActionError('');
+    setNotice('');
+    setStatusTarget(account);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusTarget || statusLoading) return;
+    const nextStatus = statusTarget.status === 'Active' ? 'Inactive' : 'Active';
+    setStatusLoading(true);
+    setActionError('');
+    try {
+      const response = await updateUser(statusTarget._id, { status: nextStatus });
+      if (!response?.success) {
+        setStatusTarget(null);
+        setActionError(response?.message || 'The user status could not be updated.');
+        return;
+      }
+      setStatusTarget(null);
+      setNotice(response.message || `User status updated to ${nextStatus}.`);
+      refreshUsers();
+    } catch (error) {
+      setStatusTarget(null);
+      setActionError(getErrorMessage(error, 'Failed to update the user status.'));
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const nextStatusLabel = statusTarget
+    ? (statusTarget.status === 'Active' ? 'deactivate' : 'activate')
+    : 'update';
+
   return (
-    <div>
+    <div className="user-management-page">
       <PageHeader
-        title="Employee Logins & Access"
-        subtitle="Manage laboratory operator roles, passwords, and portal permissions"
-        action={
-          <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Register Employee
+        title="User Management"
+        subtitle="Manage laboratory operator and administrator accounts, work profiles, and API-backed permissions."
+        action={canManage ? (
+          <Button variant="primary" onClick={openCreate} icon={<Plus size={16} />}>
+            Create user
           </Button>
-        }
+        ) : null}
       />
 
+      {listError && (
+        <div className="user-management-alert user-management-alert-error" role="alert">
+          <span>{listError}</span>
+          <Button variant="secondary" size="sm" onClick={refreshUsers} disabled={loading}>Retry</Button>
+        </div>
+      )}
+      {actionError && <div className="user-management-alert user-management-alert-error" role="alert">{actionError}</div>}
+      {notice && <div className="user-management-alert user-management-alert-success" role="status">{notice}</div>}
+
+      <div className="user-management-filters" aria-label="User list filters">
+        <Select
+          label="Role"
+          name="role-filter"
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value)}
+          options={[{ value: '', label: 'All staff roles' }, ...ROLE_OPTIONS]}
+          placeholder=""
+          disabled={loading}
+        />
+        <Select
+          label="Status"
+          name="status-filter"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          options={[{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS]}
+          placeholder=""
+          disabled={loading}
+        />
+        <Button variant="secondary" onClick={refreshUsers} disabled={loading} icon={<RefreshCw size={14} />}>
+          Refresh
+        </Button>
+      </div>
+
+      <p className="user-management-helper">
+        Search and filters use the existing user API. Doctor accounts remain in Doctor Access.
+      </p>
+
       <DataTable
-        headers={['Name', 'Email', 'Role', 'Status', 'Actions']}
+        headers={['Name', 'Email', 'Phone', 'Role', 'Status', 'Created', 'Actions']}
         data={pg.paged}
-        loading={loading}
-        emptyMessage="No employee accounts matching query."
+        loading={loading || searchPending}
+        emptyMessage={hasFilters ? 'No user accounts match the current search or filters.' : 'No user accounts are available.'}
         searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search by name or email..."
+        onSearchChange={(event) => setSearch(event.target.value)}
+        searchPlaceholder="Search by name, email, or phone..."
         pagination={{
           total: pg.total,
           page: pg.page,
           limit: pg.limit,
           pages: pg.pages,
           onPageChange: pg.goToPage,
-          onLimitChange: pg.setLimit,
+          onLimitChange: pg.setLimit
         }}
-        renderRow={(emp) => (
-          <tr key={emp._id}>
-            <td style={{ fontWeight: '600' }}>{emp.name}</td>
-            <td>{emp.email}</td>
-            <td>
-              <StatusBadge status={emp.role} />
-            </td>
-            <td>
-              <StatusBadge status={emp.status} />
-            </td>
-            <td>
-              {emp._id !== currentUser?._id ? (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                    onClick={() => handleOpenEdit(emp)}
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                    onClick={() => setDeleteTarget(emp)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ) : (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active Session</span>
-              )}
-            </td>
-          </tr>
-        )}
+        renderRow={(account) => {
+          const isCurrentUser = account._id === currentUser?._id;
+          return (
+            <tr key={account._id}>
+              <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{account.name || '—'}</td>
+              <td>{account.email || '—'}</td>
+              <td>{account.phone || '—'}</td>
+              <td><StatusBadge status={account.role} /></td>
+              <td><StatusBadge status={account.status} /></td>
+              <td>{formatDate(account.createdAt)}</td>
+              <td>
+                {isCurrentUser ? (
+                  <span className="user-management-current">Current user</span>
+                ) : (
+                  <div className="user-management-actions">
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} disabled={!canManage}>
+                      <Edit2 size={14} />
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => openStatusChange(account)} aria-label={`${account.status === 'Active' ? 'Deactivate' : 'Activate'} ${account.name || 'user'}`} disabled={!canManage}>
+                      {account.status === 'Active' ? <UserX size={14} /> : <UserCheck size={14} />}
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => openDelete(account)} aria-label={`Delete ${account.name || 'user'}`} disabled={!canManage}>
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                )}
+              </td>
+            </tr>
+          );
+        }}
       />
 
-      {/* Form Modal — extended profile + permission matrix. */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingEmployee ? 'Edit Account' : 'Register Operator'}
+        onClose={closeForm}
+        title={editingUser ? 'Edit user account' : 'Create user account'}
         size="lg"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Account
-            </Button>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>Cancel</Button>
+            <Button variant="primary" onClick={submitForm} loading={submitLoading}>Save user</Button>
           </>
         }
       >
-        <form onSubmit={handleFormSubmit}>
+        <form onSubmit={submitForm} noValidate>
           <EmployeeForm
             formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-            editing={!!editingEmployee}
-            isSuperadmin={editingEmployee?.role === 'Admin' && Object.keys(permsToMap(editingEmployee?.permissions)).length === 0}
+            setFormData={updateFormData}
+            errors={{ ...formErrors, api: formError }}
+            editing={!!editingUser}
+            isSuperadmin={editingUser?.role === 'Admin' && Object.keys(permsToMap(editingUser?.permissions)).length === 0}
           />
         </form>
       </Modal>
 
-      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={!!statusTarget}
+        onClose={() => setStatusTarget(null)}
+        onConfirm={confirmStatusChange}
+        loading={statusLoading}
+        title={`${nextStatusLabel === 'deactivate' ? 'Deactivate' : 'Activate'} user?`}
+        message={`${nextStatusLabel === 'deactivate' ? 'Deactivate' : 'Activate'} ${statusTarget?.name || 'this user'}?`}
+        confirmText={nextStatusLabel === 'deactivate' ? 'Deactivate' : 'Activate'}
+        confirmVariant={nextStatusLabel === 'deactivate' ? 'danger' : 'primary'}
+      />
       <ConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={confirmDelete}
         loading={deleteLoading}
-        title="Remove Employee account?"
-        message={`Are you sure you want to permanently delete the login files for ${deleteTarget?.name}?`}
+        title="Delete user account?"
+        message={`Permanently delete ${deleteTarget?.name || 'this user'}? This cannot be undone.`}
+        confirmText="Delete user"
       />
     </div>
   );

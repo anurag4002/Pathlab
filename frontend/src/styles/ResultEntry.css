@@ -1,0 +1,201 @@
+/* Lab Result Entry — page-scoped styles.
+   Follows the project pattern of co-located page CSS (cf. PatientPortal.css).
+   All values use existing design tokens; no global styles are changed. */
+
+.result-entry-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Feedback banners (error / success) */
+.re-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--font-size-sm);
+}
+
+.re-banner svg {
+  flex-shrink: 0;
+}
+
+.re-banner-error {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+.re-banner-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+/* Entry top bar */
+.re-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.re-topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.re-reg {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+/* Patient / case information cards */
+.re-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.re-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+/* The results DataTable lives inside a card — cancel its standalone
+   bottom margin so the action footer sits flush against the table. */
+.re-card .data-table-container {
+  margin-bottom: 0;
+}
+
+/* Retry buttons inside banners align to the right. */
+.re-banner .btn {
+  margin-left: auto;
+}
+
+.re-card-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.re-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.re-section-head .re-card-title {
+  margin-bottom: 0;
+}
+
+.re-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.re-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.re-field dt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.re-field dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+/* Table cell helpers */
+.re-patient-name,
+.re-test-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.re-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-0-5);
+}
+
+.re-range,
+.re-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.re-result-cell {
+  min-width: 12rem;
+}
+
+.re-result-cell .form-group {
+  margin-bottom: 0;
+}
+
+.re-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0;
+}
+
+/* Footer actions */
+.re-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Centered loading block */
+.re-state-block {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-10) 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .re-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .re-actions {
+    justify-content: stretch;
+  }
+
+  .re-actions .btn {
+    flex: 1;
+  }
+
+  .re-result-cell {
+    min-width: 10rem;
+  }
+}

@@ -1,7 +1,6 @@
 import TodaysUSGCases from './TodaysUSGCases';
 
-// Merged: Today's Cases + Search Cases are now a single unified "USG Cases"
-// page (TodaysUSGCases) with date scope, search bar, filters and pagination.
-// This module is kept so old imports keep working; /usg/search redirects to
-// /usg/today in AppRoutes.
+// Today's Cases and Search Cases are now one unified USG Cases page.
+// This alias keeps older imports working; AppRoutes redirects /usg/search
+// to /usg/today.
 export default TodaysUSGCases;

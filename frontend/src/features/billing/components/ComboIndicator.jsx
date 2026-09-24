@@ -3,7 +3,7 @@ import React from 'react';
 // Phase 22 — combo indicator: shows which selected items came from a
 // package/panel bundle (package pricing applied over individual rates).
 const ComboIndicator = ({ items = [] }) => {
-  const combos = items.filter((i) => i.comboName || i.itemType === 'Package' || i.itemType === 'Panel');
+  const combos = items.filter((i) => i.comboName || i.itemType === 'TestPackage' || i.itemType === 'TestPanel');
   if (combos.length === 0) return null;
   const groups = combos.reduce((acc, i) => {
     const k = i.comboName || `${i.itemType}:${i.comboId || i.name}`;

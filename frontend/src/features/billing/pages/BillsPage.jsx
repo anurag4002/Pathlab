@@ -6,10 +6,21 @@ import { getDoctors } from '../../../services/doctorService';
 import { getAgents } from '../../../services/agentService';
 import { getTests } from '../../../services/testService';
 import { getPackages } from '../../../services/packageService';
+import { getPanels } from '../../../services/panelService';
 import { downloadBillPdf, fetchBillQr, printBillPdf } from '../../../services/publicService';
-import { DataTable, PageHeader, Button, StatusBadge, Select, AdvancedFilterBar, DURATION_OPTIONS } from '../../../components/common';
+import {
+  DataTable,
+  PageHeader,
+  Button,
+  StatusBadge,
+  Select,
+  Input,
+  Modal,
+  AdvancedFilterBar,
+  DURATION_OPTIONS
+} from '../../../components/common';
 import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/billConstants';
-export const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
+const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
 import { DEPARTMENTS } from '../billingConstants';
 import BillCreateForm from '../components/BillCreateForm';
 import PaymentCollectModal from '../components/PaymentCollectModal';
@@ -19,10 +30,72 @@ import { usePermissions } from '../../../hooks/usePermission';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
-import { Plus, Printer, CreditCard, Ban, QrCode, FileDown, Tag } from 'lucide-react';
+import { Plus, Printer, CreditCard, Ban, QrCode, FileDown, Eye, RefreshCw, Tag } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
+import '../Billing.css';
+
+/* Local API error mapper (same mapping as the other lab screens): surfaces
+   only the backend's user-facing `message` field, never stack traces. */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
+/* Load-failure banner with a right-aligned retry — matches the create
+   form's danger-bg error block. */
+const ErrorBanner = ({ message, onRetry }) => (
+  <div
+    role="alert"
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 'var(--space-3)',
+      padding: 'var(--space-3)',
+      backgroundColor: 'var(--color-danger-bg)',
+      color: 'var(--color-danger)',
+      borderRadius: 'var(--radius-sm)',
+      marginBottom: 'var(--space-4)'
+    }}
+  >
+    <span>{message}</span>
+    <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={onRetry} style={{ marginLeft: 'auto' }}>
+      Retry
+    </Button>
+  </div>
+);
+
+/* Section heading inside the bill-details modal — mirrors the Payment
+   Details card header used by the create form. */
+const DetailSection = ({ title }) => (
+  <div
+    style={{
+      fontWeight: 'var(--font-weight-bold)',
+      fontSize: 'var(--font-size-base)',
+      borderBottom: '1px solid var(--color-border)',
+      paddingBottom: 'var(--space-3)',
+      marginTop: 'var(--space-4)'
+    }}
+  >
+    {title}
+  </div>
+);
 
 const BillsPage = () => {
   const navigate = useNavigate();
@@ -39,6 +112,7 @@ const BillsPage = () => {
   const [agents, setAgents] = useState([]);
   const [tests, setTests] = useState([]);
   const [packages, setPackages] = useState([]);
+  const [panels, setPanels] = useState([]);
 
   // List view
   const [bills, setBills] = useState([]);
@@ -49,8 +123,34 @@ const BillsPage = () => {
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDept, setFilterDept] = useState('');
-  const [adv, setAdv] = useState({ duration: 'Past 7 days', regNo: '', firstName: '', referredBy: '', collectionCentre: '', agent: '', hasDue: false, cancelled: false, caseType: '', uhid: '', dailyCaseNo: '' });
-  const setAdvKey = (k, v) => { setAdv((p) => ({ ...p, [k]: v })); };
+  const [filterPatient, setFilterPatient] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterVoided, setFilterVoided] = useState('');
+  const [adv, setAdv] = useState({
+    duration: 'Past 7 days',
+    regNo: '',
+    firstName: '',
+    referredBy: '',
+    collectionCentre: '',
+    agent: '',
+    hasDue: false,
+    cancelled: false,
+    caseType: '',
+    uhid: '',
+    dailyCaseNo: ''
+  });
+  const setAdvKey = (key, value) => setAdv((previous) => ({ ...previous, [key]: value }));
+  // List/options load failures — surfaced as banners so a failed fetch never
+  // reads as "no bills found"; each fetch owns its error state.
+  const [listError, setListError] = useState(null);
+  const [optionsError, setOptionsError] = useState(null);
+
+  // Per-invoice details (GET /bills/:id — populated items + cashier).
+  const [detailsTarget, setDetailsTarget] = useState(null);
+  const [details, setDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
 
   // Modals
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -58,13 +158,14 @@ const BillsPage = () => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentSubmitLoading, setPaymentSubmitLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
 
   const [voidTarget, setVoidTarget] = useState(null);
   const [voidLoading, setVoidLoading] = useState(false);
+  const [voidError, setVoidError] = useState(null);
 
   // Phase 8 + 11 — label / sticker printing per bill.
   const [labelTarget, setLabelTarget] = useState(null);
-  const [payError, setPayError] = useState('');
   const { can } = usePermissions();
   const canBill = can('billing');
 
@@ -75,6 +176,10 @@ const BillsPage = () => {
         search: debouncedSearch || undefined,
         paymentStatus: filterStatus || undefined,
         department: filterDept || undefined,
+        patientId: filterPatient || undefined,
+        startDate: filterFrom || undefined,
+        endDate: filterTo || undefined,
+        includeVoided: filterVoided || undefined,
         duration: adv.duration || undefined,
         regNo: adv.regNo || undefined,
         firstName: adv.firstName || undefined,
@@ -86,14 +191,17 @@ const BillsPage = () => {
         caseType: adv.caseType || undefined,
         uhid: adv.uhid || undefined,
         dailyCaseNo: adv.dailyCaseNo || undefined,
-        page, limit
+        page,
+        limit
       });
       if (res.success) {
         setBills(res.data.bills);
         setPaginationInfo(res.data.pagination);
+        setListError(null);
       }
     } catch (err) {
-      console.error('Failed to load bills', err);
+      setBills([]);
+      setListError(getApiErrorMessage(err, 'Failed to load billing records.'));
     } finally {
       setLoading(false);
     }
@@ -101,20 +209,23 @@ const BillsPage = () => {
 
   const fetchFormOptions = async () => {
     try {
-      const [patRes, docRes, agentRes, testRes, pkgRes] = await Promise.all([
+      const [patRes, docRes, agentRes, testRes, pkgRes, panelRes] = await Promise.all([
         getPatients({ limit: 100 }),
         getDoctors({ status: 'Active' }),
         getAgents({ status: 'Active' }),
         getTests({ status: 'Active' }),
-        getPackages()
+        getPackages(),
+        getPanels()
       ]);
       if (patRes.success) setPatients(patRes.data.patients);
       if (docRes.success) setDoctors(docRes.data);
       if (agentRes.success) setAgents(agentRes.data);
       if (testRes.success) setTests(testRes.data);
-      if (pkgRes.success) setPackages(pkgRes.data);
+      if (pkgRes.success) setPackages(Array.isArray(pkgRes.data) ? pkgRes.data : []);
+      if (panelRes.success) setPanels(Array.isArray(panelRes.data) ? panelRes.data : []);
+      setOptionsError(null);
     } catch (err) {
-      console.error('Failed to fetch form options', err);
+      setOptionsError(getApiErrorMessage(err, 'Failed to load billing form options.'));
     }
   };
 
@@ -122,8 +233,25 @@ const BillsPage = () => {
     if (!isCreateView) {
       fetchBillsList();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filterStatus, filterDept, page, limit, isCreateView, adv.duration, adv.referredBy, adv.collectionCentre, adv.agent, adv.hasDue, adv.cancelled, adv.caseType]);
+  }, [
+    debouncedSearch,
+    filterStatus,
+    filterDept,
+    filterPatient,
+    filterFrom,
+    filterTo,
+    filterVoided,
+    page,
+    limit,
+    isCreateView,
+    adv.duration,
+    adv.referredBy,
+    adv.collectionCentre,
+    adv.agent,
+    adv.hasDue,
+    adv.cancelled,
+    adv.caseType
+  ]);
 
   useEffect(() => {
     fetchFormOptions();
@@ -146,34 +274,41 @@ const BillsPage = () => {
     setPaymentTargetBill(bill);
     setPaymentAmount(bill.dueAmount);
     setPaymentMethod('Cash');
-    setPayError('');
+    setPaymentError(null);
     setPaymentModalOpen(true);
   };
 
   const handlePaymentSubmit = async () => {
-    const amt = Number(paymentAmount);
-    if (!amt || amt <= 0) {
-      setPayError('Amount must be greater than 0.');
+    const amount = Number(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentError('Amount must be greater than 0.');
       return;
     }
-    if (amt > Number(paymentTargetBill.dueAmount)) {
-      setPayError(`Amount cannot exceed the due balance (${paymentTargetBill.dueAmount}).`);
+    if (!paymentTargetBill || amount > Number(paymentTargetBill.dueAmount)) {
+      setPaymentError(`Amount cannot exceed the due balance (${paymentTargetBill?.dueAmount || 0}).`);
       return;
     }
     if (!paymentMethod) {
-      setPayError('Payment mode is required.');
+      setPaymentError('Payment mode is required.');
       return;
     }
-    setPayError('');
+    setPaymentError(null);
     setPaymentSubmitLoading(true);
     try {
-      const res = await collectPayment(paymentTargetBill._id, { amount: paymentAmount, paymentMethod });
+      const res = await collectPayment(paymentTargetBill._id, { amount, paymentMethod });
       if (res.success) {
         setPaymentModalOpen(false);
+        // Reconcile from the server: the response carries the recomputed
+        // paid/due/status, and the list refresh re-reads the ledger.
+        alert(
+          res.data?.dueAmount !== undefined
+            ? `Payment recorded. Remaining due: ${formatCurrency(res.data.dueAmount)}`
+            : 'Payment recorded.'
+        );
         fetchBillsList();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Payment collection failed');
+      setPaymentError(getApiErrorMessage(err, 'Payment collection failed.'));
     } finally {
       setPaymentSubmitLoading(false);
     }
@@ -191,19 +326,50 @@ const BillsPage = () => {
   const handleVoidConfirm = async (reason) => {
     if (!voidTarget) return;
     if (!reason || !String(reason).trim()) return;
+    setVoidError(null);
     setVoidLoading(true);
     try {
       const res = await voidBill(voidTarget._id, String(reason).trim());
       if (res.success) {
         setVoidTarget(null);
+        setVoidError(null);
+        alert('Bill voided.');
         fetchBillsList();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to void bill');
+      setVoidError(getApiErrorMessage(err, 'Failed to void bill.'));
     } finally {
       setVoidLoading(false);
     }
   };
+
+  // Per-invoice details via the existing GET /bills/:id (populated patient,
+  // doctor, agent, item lines and cashier). Called from click handlers only.
+  const openDetails = async (bill) => {
+    if (!bill) return;
+    setDetailsTarget(bill);
+    setDetails(null);
+    setDetailsError(null);
+    setDetailsLoading(true);
+    try {
+      const res = await getBillById(bill._id);
+      if (res.success) setDetails(res.data);
+      else setDetailsError('Invoice details are unavailable.');
+    } catch (err) {
+      setDetailsError(getApiErrorMessage(err, 'Failed to load invoice details.'));
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  // Retry for the load-failure banners — re-runs both page loads; each
+  // success path clears its own error state.
+  const retryLoad = () => {
+    if (!isCreateView) fetchBillsList();
+    fetchFormOptions();
+  };
+
+  const detailPatientName = details?.patient?.name || detailsTarget?.patient?.name || '';
 
   const handleShowQr = async (bill) => {
     try {
@@ -216,14 +382,18 @@ const BillsPage = () => {
 
   if (isCreateView) {
     return (
-      <BillCreateForm
-        patients={patients}
-        doctors={doctors}
-        agents={agents}
-        tests={tests}
-        packages={packages}
-        onBillCreated={fetchBillsList}
-      />
+      <div>
+        {optionsError && <ErrorBanner message={optionsError} onRetry={retryLoad} />}
+        <BillCreateForm
+          patients={patients}
+          doctors={doctors}
+          agents={agents}
+          tests={tests}
+          packages={packages}
+          panels={panels}
+          onBillCreated={fetchBillsList}
+        />
+      </div>
     );
   }
 
@@ -257,6 +427,9 @@ const BillsPage = () => {
         Refunds and post-payment bill edits are currently disabled.
       </p>
 
+      {(listError || optionsError) && <ErrorBanner message={listError || optionsError} onRetry={retryLoad} />}
+
+
       <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
         <Select
           placeholder="All Payment Statuses"
@@ -271,6 +444,36 @@ const BillsPage = () => {
           onChange={(e) => { setFilterDept(e.target.value); goToPage(1); }}
           options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))}
           style={{ maxWidth: '15rem' }}
+        />
+        <Select
+          placeholder="All Patients"
+          value={filterPatient}
+          onChange={(e) => { setFilterPatient(e.target.value); goToPage(1); }}
+          options={patients.map((p) => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
+          style={{ maxWidth: '15rem' }}
+        />
+        <Input
+          label="From"
+          type="date"
+          value={filterFrom}
+          onChange={(e) => { setFilterFrom(e.target.value); goToPage(1); }}
+          style={{ maxWidth: '10rem' }}
+        />
+        <Input
+          label="To"
+          type="date"
+          value={filterTo}
+          onChange={(e) => { setFilterTo(e.target.value); goToPage(1); }}
+          style={{ maxWidth: '10rem' }}
+        />
+        <Select
+          value={filterVoided}
+          onChange={(e) => { setFilterVoided(e.target.value); goToPage(1); }}
+          options={[
+            { value: '', label: 'Exclude voided bills' },
+            { value: 'true', label: 'Include voided bills' }
+          ]}
+          style={{ maxWidth: '14rem' }}
         />
       </div>
 
@@ -328,10 +531,18 @@ const BillsPage = () => {
             >
               {formatCurrency(bill.dueAmount)}
             </td>
-            <td><StatusBadge status={bill.paymentStatus} /></td>
+            <td>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                <StatusBadge status={bill.paymentStatus} />
+                {bill.isVoided && <StatusBadge status="Voided" />}
+              </div>
+            </td>
             <td>{formatDate(bill.date)}</td>
             <td>
               <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                <Button variant="secondary" size="sm" onClick={() => openDetails(bill)} icon={<Eye size={14} />}>
+                  Details
+                </Button>
                 <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />}>
                   Print
                 </Button>
@@ -376,8 +587,150 @@ const BillsPage = () => {
         setPaymentMethod={setPaymentMethod}
         onSubmit={handlePaymentSubmit}
         loading={paymentSubmitLoading}
-        error={payError}
+        error={paymentError}
       />
+
+      {/* Bill details — every value below comes from GET /bills/:id. */}
+      <Modal
+        isOpen={!!detailsTarget}
+        onClose={() => setDetailsTarget(null)}
+        title={`Invoice ${detailsTarget?.billNumber || ''}`}
+        size="lg"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate(
+                  detailPatientName
+                    ? `/cases/transactions?search=${encodeURIComponent(detailPatientName)}`
+                    : '/cases/transactions'
+                )
+              }
+            >
+              Patient transactions
+            </Button>
+            <Button variant="primary" onClick={() => setDetailsTarget(null)}>
+              Close
+            </Button>
+          </>
+        }
+      >
+        {detailsLoading && (
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+            Loading invoice details…
+          </p>
+        )}
+        {!detailsLoading && detailsError && (
+          <div className="form-error" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <span>{detailsError}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => openDetails(detailsTarget)}
+              icon={<RefreshCw size={14} />}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+        {!detailsLoading && !detailsError && details && (
+          <div>
+            <DetailSection title="Bill details" />
+            <div className="payment-summary-row">
+              <span>Patient</span>
+              <strong>
+                {details.patient?.name || '—'}
+                {details.patient?.registrationNumber ? ` (${details.patient.registrationNumber})` : ''}
+              </strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Invoice date</span>
+              <strong>{formatDate(details.date)}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Department</span>
+              <strong>{details.department || '—'}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Referring doctor</span>
+              <strong>{details.referringDoctor?.name || 'Self / Walk-in'}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Collection agent</span>
+              <strong>{details.agent?.name || 'None'}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Billed by</span>
+              <strong>{details.createdBy?.name || '—'}</strong>
+            </div>
+            {details.isVoided && (
+              <div className="payment-summary-row">
+                <span>Voided</span>
+                <strong>{details.voidReason || 'No reason recorded'}</strong>
+              </div>
+            )}
+
+            <DetailSection title="Selected services" />
+            {details.items?.length ? (
+              <table className="bill-items-table">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>Item</th>
+                    <th style={{ textAlign: 'left' }}>Type</th>
+                    <th style={{ textAlign: 'right' }}>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.items.map((it) => (
+                    <tr key={it._id}>
+                      <td>{it.name}</td>
+                      <td style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>{it.itemType}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 'var(--font-weight-semibold)' }}>
+                        {formatCurrency(it.price)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                No service lines recorded on this invoice.
+              </p>
+            )}
+
+            <DetailSection title="Financial summary" />
+            <div className="payment-summary-row">
+              <span>Total</span>
+              <strong>{formatCurrency(details.totalAmount)}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Discount</span>
+              <strong>{formatCurrency(details.discount || 0)}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Paid</span>
+              <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(details.paidAmount)}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Due</span>
+              <strong style={{ color: details.dueAmount > 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
+                {formatCurrency(details.dueAmount)}
+              </strong>
+            </div>
+
+            <DetailSection title="Payment information" />
+            <div className="payment-summary-row">
+              <span>Payment method</span>
+              <strong>{details.paymentMethod || '—'}</strong>
+            </div>
+            <div className="payment-summary-row">
+              <span>Payment status</span>
+              <StatusBadge status={details.paymentStatus} />
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <LabelPrintSheet
         isOpen={!!labelTarget}
@@ -388,10 +741,11 @@ const BillsPage = () => {
 
       <VoidReasonDialog
         isOpen={!!voidTarget}
-        onClose={() => setVoidTarget(null)}
+        onClose={() => { setVoidTarget(null); setVoidError(null); }}
         bill={voidTarget}
         onConfirm={handleVoidConfirm}
         loading={voidLoading}
+        error={voidError}
       />
     </div>
   );

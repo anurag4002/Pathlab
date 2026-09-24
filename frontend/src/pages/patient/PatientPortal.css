@@ -596,9 +596,72 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-wrap: wrap;
   border-top: 1px solid #e2e8f0;
   padding-top: 1.25rem;
   margin-top: 0.5rem;
+}
+
+.patient-google-review {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background-color: #eff6ff;
+}
+
+.patient-google-review-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: #1e3a8a;
+  font-size: 0.8125rem;
+}
+
+.patient-google-review-copy span {
+  color: #475569;
+}
+
+.patient-google-review-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.8rem;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.patient-google-review-link:hover {
+  background-color: #1d4ed8;
+}
+
+.patient-google-review-link:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.patient-google-review-link small {
+  width: 100%;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.patient-google-review-unavailable {
+  color: #64748b;
+  font-size: 0.8125rem;
+  text-align: right;
 }
 
 .patient-close-btn {
@@ -638,6 +701,20 @@
 
   .report-summary-box {
     grid-template-columns: 1fr;
+  }
+
+  .patient-google-review {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .patient-google-review-link {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .patient-google-review-unavailable {
+    text-align: left;
   }
 
   .otp-digit-input {

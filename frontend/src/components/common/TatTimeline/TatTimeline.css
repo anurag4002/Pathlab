@@ -1,0 +1,104 @@
+/* Case status / TAT timeline — small shared card used by the lab result
+   screens. Follows the existing card styling (cf. ResultEntry.css) and uses
+   existing design tokens only; no global styles are changed. */
+
+.tat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.tat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.tat-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.tat-total {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.tat-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.tat-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tat-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.tat-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+}
+
+.tat-stage-done .tat-mark {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success);
+}
+
+.tat-stage-pending .tat-mark {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+.tat-stage-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.tat-stage-time {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+.tat-stage-pending .tat-stage-label,
+.tat-stage-pending .tat-stage-time {
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+  .tat-stage-time {
+    max-width: 50%;
+  }
+}

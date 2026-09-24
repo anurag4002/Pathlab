@@ -1,0 +1,75 @@
+/* User-level permission matrix — keys are supplied by the API, never invented here. */
+
+.permission-matrix {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.permission-matrix legend {
+  padding: 0 var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.permission-matrix-description {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.permission-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-2) var(--space-4);
+}
+
+.permission-matrix-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.permission-matrix-item input {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+}
+
+.permission-matrix-item span {
+  overflow-wrap: anywhere;
+}
+
+.permission-matrix-empty,
+.permission-matrix-warning {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+}
+
+.permission-matrix-warning {
+  margin: var(--space-3) 0 0;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+@media (max-width: 480px) {
+  .permission-matrix {
+    padding: var(--space-3);
+  }
+
+  .permission-matrix-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,240 +1,480 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getOnboarding, setOnboardingStep, getSignatures, createSignature, deleteSignature } from '../../services/setupService';
-import { PageHeader, Button, DataTable, Input } from '../../components/common';
+import { RefreshCw, Trash2, ArrowRight, Circle, Building2, FileImage, IndianRupee, Ruler, Users, MonitorCheck, MessageSquare, PenLine, Receipt, FileCheck2, MailCheck } from 'lucide-react';
 import useClientPagination from '../../hooks/useClientPagination';
 import {
-  Trash2, CheckCircle2, Circle, ArrowRight, PartyPopper, PenLine,
-  MailCheck, Building2, FileImage, IndianRupee, Ruler, Users,
-  MonitorCheck, MessageSquare, Receipt, FileCheck2, Upload,
-} from 'lucide-react';
-import './Onboarding.css';
+  getOnboarding,
+  setOnboardingStep,
+  getSignatures,
+  createSignature,
+  deleteSignature
+} from '../../services/setupService';
+import useAuth from '../../hooks/useAuth';
+import { isAdmin } from '../../utils/permissions';
+import formatDate from '../../utils/formatDate';
+import {
+  PageHeader,
+  Button,
+  DataTable,
+  Input,
+  FileUploader,
+  ConfirmDialog,
+  StatusBadge,
+  LoadingSpinner,
+  SignaturePreview
+} from '../../components/common';
+import '../../styles/SignatureManagement.css';
 
-// SaaS-style setup checklist. Step content (title/description/done) comes
-// from GET /api/setup/onboarding; links + icons are a client-side map since
-// the server leaves `link` empty.
+const EMPTY_SIGNATURE_FORM = {
+  name: '',
+  title: '',
+  modalities: '',
+  file: null
+};
+const ALLOWED_SIGNATURE_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+const MAX_SIGNATURE_BYTES = 10 * 1024 * 1024;
+
 const STEP_META = {
   'verify-email': { icon: MailCheck, link: '' },
   'centre-profile': { icon: Building2, link: '/setup/profile' },
-  'letterhead': { icon: FileImage, link: '/setup/profile' },
-  'rates': { icon: IndianRupee, link: '/lab/tests' },
-  'normals': { icon: Ruler, link: '/lab/tests' },
-  'users': { icon: Users, link: '/manage/employees' },
+  letterhead: { icon: FileImage, link: '/setup/profile' },
+  rates: { icon: IndianRupee, link: '/lab/tests' },
+  normals: { icon: Ruler, link: '/lab/tests' },
+  users: { icon: Users, link: '/manage/employees' },
   'browser-code': { icon: MonitorCheck, link: '/manage/security' },
   'sms-setup': { icon: MessageSquare, link: '/delivery/templates' },
-  'signature': { icon: PenLine, link: '#signatures' },
+  signature: { icon: PenLine, link: '#signatures' },
   'first-bill': { icon: Receipt, link: '/cases/bills/new' },
-  'first-report': { icon: FileCheck2, link: '/lab/reports' },
+  'first-report': { icon: FileCheck2, link: '/lab/reports' }
 };
 
-const sigPreviewSrc = (g) => {
-  const u = g?.url || g?.imageUrl || '';
-  if (!u) return '';
-  return /^https?:\/\//.test(u) || u.startsWith('/') ? u : `/${u}`;
+const getErrorMessage = (error, fallback) => {
+  if (error?.response) {
+    const message = error.response.data?.message;
+    if (typeof message === 'string' && message.trim()) return message;
+    const status = error.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to manage signatures.';
+    if (status === 404) return 'The requested signature was not found.';
+    if (status === 409) return 'The signature data changed elsewhere. Refresh and try again.';
+    if (status === 422) return 'The signature data is invalid.';
+    if (status >= 500) return 'The server could not complete the signature request.';
+  }
+  if (error?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (error?.code === 'ERR_NETWORK' || error?.request) return 'Network error. Check your connection and try again.';
+  return error?.message || fallback;
+};
+
+const getSignatureList = (response) => {
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data?.signatures)) return response.data.signatures;
+  return [];
+};
+
+const getModalitiesLabel = (modalities) => {
+  if (Array.isArray(modalities)) return modalities.filter(Boolean).join(', ') || '—';
+  return modalities || '—';
+};
+
+const validateSignatureFile = (file) => {
+  if (!file) return 'Choose a signature file.';
+  const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
+  if (!ALLOWED_SIGNATURE_EXTENSIONS.includes(extension)) {
+    return 'Only PDF, JPG, JPEG, and PNG files are supported.';
+  }
+  if (file.size > MAX_SIGNATURE_BYTES) return 'The signature file must be 10 MB or smaller.';
+  return '';
 };
 
 const Onboarding = () => {
-  const [data, setData] = useState({ percent: 0, steps: [] });
-  const [sigs, setSigs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const canManage = isAdmin(user);
+  const [onboarding, setOnboarding] = useState({ percent: null, steps: [] });
+  const [onboardingLoading, setOnboardingLoading] = useState(true);
+  const [onboardingError, setOnboardingError] = useState('');
   const [togglingKey, setTogglingKey] = useState('');
-  const [sigForm, setSigForm] = useState({ name: '', title: '', file: null });
-  const [sigLoading, setSigLoading] = useState(false);
-  const [sigError, setSigError] = useState('');
-  const pgSigs = useClientPagination(sigs, 5);
-  const load = async () => {
-    setLoading(true);
+  const [signatures, setSignatures] = useState([]);
+  const [signaturesLoading, setSignaturesLoading] = useState(true);
+  const [signaturesError, setSignaturesError] = useState('');
+  const signaturePagination = useClientPagination(signatures, 10);
+  const [signatureForm, setSignatureForm] = useState(EMPTY_SIGNATURE_FORM);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [uploadNotice, setUploadNotice] = useState('');
+  const [uploadVersion, setUploadVersion] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const uploadInFlightRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
+  const initialLoadStartedRef = useRef(false);
+  const onboardingLoadRequestRef = useRef(0);
+  const signatureLoadRequestRef = useRef(0);
+
+  const loadOnboarding = async () => {
+    const requestId = ++onboardingLoadRequestRef.current;
+    setOnboardingLoading(true);
     try {
-      const [o, s] = await Promise.all([getOnboarding().catch(() => null), getSignatures().catch(() => null)]);
-      if (o?.success) setData(o.data || { percent: 0, steps: [] });
-      if (s?.success) setSigs(s.data?.signatures || s.data || []);
-    } finally { setLoading(false); }
-  };
-  useEffect(() => { load(); }, []);
-  const toggle = async (key, done) => {
-    setTogglingKey(key);
-    try { await setOnboardingStep(key, !done); await load(); }
-    catch (e) { alert(e.response?.data?.message || 'Failed to update step'); }
-    finally { setTogglingKey(''); }
-  };
-  const uploadSig = async (e) => {
-    e.preventDefault();
-    setSigError('');
-    if (!sigForm.file) { setSigError('Choose a signature image file first.'); return; }
-    const fd = new FormData(); fd.append('file', sigForm.file); fd.append('name', sigForm.name); fd.append('title', sigForm.title);
-    setSigLoading(true);
-    try {
-      const r = await createSignature(fd);
-      if (r.success) { setSigForm({ name: '', title: '', file: null }); load(); }
+      const response = await getOnboarding();
+      if (requestId !== onboardingLoadRequestRef.current) return;
+      if (!response?.success) {
+        setOnboardingError(response?.message || 'The onboarding service returned an unsuccessful response.');
+        return;
+      }
+      setOnboarding(response.data || { percent: null, steps: [] });
+      setOnboardingError('');
+    } catch (error) {
+      if (requestId === onboardingLoadRequestRef.current) {
+        setOnboardingError(getErrorMessage(error, 'Failed to load onboarding progress.'));
+      }
+    } finally {
+      if (requestId === onboardingLoadRequestRef.current) setOnboardingLoading(false);
     }
-    catch (e) { setSigError(e.response?.data?.message || 'Upload failed'); }
-    finally { setSigLoading(false); }
   };
-  const del = async (id) => { if (!window.confirm('Delete signature?')) return; try { await deleteSignature(id); load(); } catch (e) { alert(e.response?.data?.message || 'Failed to delete'); } };
+
+  const loadSignatures = async () => {
+    const requestId = ++signatureLoadRequestRef.current;
+    setSignaturesLoading(true);
+    try {
+      const response = await getSignatures();
+      if (requestId !== signatureLoadRequestRef.current) return;
+      if (!response?.success) {
+        setSignaturesError(response?.message || 'The signature service returned an unsuccessful response.');
+        return;
+      }
+      setSignatures(getSignatureList(response));
+      setSignaturesError('');
+    } catch (error) {
+      if (requestId === signatureLoadRequestRef.current) {
+        setSignaturesError(getErrorMessage(error, 'Failed to load signatures.'));
+      }
+    } finally {
+      if (requestId === signatureLoadRequestRef.current) setSignaturesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (initialLoadStartedRef.current) return;
+    initialLoadStartedRef.current = true;
+    const loadInitialData = async () => {
+      await Promise.all([loadOnboarding(), loadSignatures()]);
+    };
+    loadInitialData();
+  }, []);
+
+  const toggleStep = async (key, done) => {
+    if (!canManage || togglingKey) return;
+    setTogglingKey(key);
+    setOnboardingError('');
+    try {
+      const response = await setOnboardingStep(key, done);
+      if (!response?.success) {
+        setOnboardingError(response?.message || 'The onboarding step could not be updated.');
+        return;
+      }
+      await loadOnboarding();
+    } catch (error) {
+      setOnboardingError(getErrorMessage(error, 'Failed to update the onboarding step.'));
+    } finally {
+      setTogglingKey('');
+    }
+  };
+
+  const updateSignatureField = (field, value) => {
+    setSignatureForm((current) => ({ ...current, [field]: value }));
+    setUploadError('');
+  };
+
+  const uploadSignature = async (event) => {
+    event.preventDefault();
+    if (!canManage || uploadLoading || uploadInFlightRef.current) return;
+
+    const fileError = validateSignatureFile(signatureForm.file);
+    if (fileError) {
+      setUploadError(fileError);
+      return;
+    }
+    if (!signatureForm.name.trim()) {
+      setUploadError('Signature name is required.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', signatureForm.file);
+    formData.append('name', signatureForm.name.trim());
+    if (signatureForm.title.trim()) formData.append('title', signatureForm.title.trim());
+    signatureForm.modalities
+      .split(',')
+      .map((modality) => modality.trim())
+      .filter(Boolean)
+      .forEach((modality) => formData.append('modalities', modality));
+
+    uploadInFlightRef.current = true;
+    setUploadLoading(true);
+    setUploadError('');
+    setUploadNotice('');
+    setActionError('');
+
+    try {
+      const response = await createSignature(formData);
+      if (!response?.success) {
+        setUploadError(response?.message || 'The signature could not be uploaded.');
+        return;
+      }
+      setSignatureForm(EMPTY_SIGNATURE_FORM);
+      setUploadVersion((version) => version + 1);
+      setUploadNotice(response.message || 'Signature uploaded.');
+      await loadSignatures();
+    } catch (error) {
+      setUploadError(getErrorMessage(error, 'Failed to upload the signature.'));
+    } finally {
+      uploadInFlightRef.current = false;
+      setUploadLoading(false);
+    }
+  };
+
+  const openDelete = (signature) => {
+    if (!canManage) return;
+    setActionError('');
+    setUploadNotice('');
+    setDeleteTarget(signature);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleteLoading || deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+    setDeleteLoading(true);
+    setActionError('');
+
+    try {
+      const response = await deleteSignature(deleteTarget._id);
+      if (!response?.success) {
+        setDeleteTarget(null);
+        setActionError(response?.message || 'The signature could not be deleted.');
+        return;
+      }
+      setDeleteTarget(null);
+      setUploadNotice(response.message || 'Signature deleted.');
+      await loadSignatures();
+    } catch (error) {
+      setDeleteTarget(null);
+      setActionError(getErrorMessage(error, 'Failed to delete the signature.'));
+    } finally {
+      deleteInFlightRef.current = false;
+      setDeleteLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    signaturePagination.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signatures]);
+
+  const percent = onboarding.percent ?? onboarding.completion;
+  const hasPercent = percent !== undefined && percent !== null && percent !== '' && Number.isFinite(Number(percent));
   const steps = useMemo(() => {
-    const raw = data.steps || data.checklist || [];
-    return raw.map((s, i) => {
-      const meta = STEP_META[s.key] || {};
+    const raw = Array.isArray(onboarding.steps)
+      ? onboarding.steps
+      : Array.isArray(onboarding.checklist) ? onboarding.checklist : [];
+    return raw.map((step, index) => {
+      const meta = STEP_META[step.key] || {};
       return {
-        key: s.key || `step-${i}`,
-        title: s.title || s.label || s.key,
-        description: s.description || '',
-        link: meta.link || s.link || '',
+        ...step,
+        key: step.key || `step-${index}`,
+        title: step.title || step.label || step.key,
+        description: step.description || '',
+        link: meta.link || step.link || '',
         Icon: meta.icon || Circle,
-        done: !!s.done,
+        done: !!step.done
       };
     });
-  }, [data]);
-  const pct = data.percent ?? data.completion ?? 0;
-  const doneCount = steps.filter((s) => s.done).length;
-  const nextStep = steps.find((s) => !s.done);
+  }, [onboarding]);
+  const doneCount = steps.filter((step) => step.done).length;
+  const nextStep = steps.find((step) => !step.done);
   const complete = steps.length > 0 && doneCount === steps.length;
 
-  const R = 40;
-  const CIRC = 2 * Math.PI * R;
-
   return (
-    <div className="onboarding-page">
+    <div className="signature-management-page">
       <PageHeader
-        title="Getting Started"
-        subtitle="Set up your lab step by step — profile, rates, staff, messaging and signatures"
+        title="Signature Management"
+        subtitle="Onboarding checklist and API-backed signature records."
+        action={canManage ? (
+          <Button variant="secondary" onClick={() => { loadOnboarding(); loadSignatures(); }} icon={<RefreshCw size={14} />}>
+            Refresh
+          </Button>
+        ) : null}
       />
 
-      <section className="onboarding-hero" aria-label="Setup progress">
-        <div className="onboarding-ring" aria-hidden="true">
-          <svg width="96" height="96" viewBox="0 0 96 96">
-            <circle className="onboarding-ring-track" cx="48" cy="48" r={R} fill="none" strokeWidth="10" />
-            <circle
-              className="onboarding-ring-fill"
-              cx="48" cy="48" r={R} fill="none" strokeWidth="10"
-              strokeDasharray={CIRC}
-              strokeDashoffset={CIRC - (CIRC * Math.min(100, pct)) / 100}
-            />
-          </svg>
-          <span className="onboarding-ring-label">{pct}%</span>
+      {onboardingError && (
+        <div className="signature-management-alert signature-management-alert-error" role="alert">
+          <span>{onboardingError}</span>
+          <Button variant="secondary" size="sm" onClick={loadOnboarding}>Retry</Button>
         </div>
-        <div className="onboarding-hero-text">
-          <h2 className="onboarding-hero-title">
-            {complete ? 'Setup complete — nice work!' : `${doneCount} of ${steps.length} steps complete`}
-          </h2>
-          <p className="onboarding-hero-sub">
-            {complete
-              ? 'Your lab is ready to bill, report and notify patients.'
-              : nextStep
-                ? `Up next: ${nextStep.title}. Each step takes a minute or two.`
-                : 'Loading your checklist…'}
-          </p>
-          {complete ? (
-            <span className="onboarding-hero-done"><PartyPopper size={16} /> All done</span>
-          ) : nextStep ? (
-            nextStep.link.startsWith('#') ? (
-              <a className="onboarding-hero-cta" href={nextStep.link}>
-                Continue setup <ArrowRight size={15} />
-              </a>
-            ) : nextStep.link ? (
-              <Link className="onboarding-hero-cta" to={nextStep.link}>
-                Continue setup <ArrowRight size={15} />
-              </Link>
-            ) : null
-          ) : null}
+      )}
+
+      <section className="signature-management-section" aria-labelledby="onboarding-progress-heading">
+        <div className="signature-management-section-heading">
+          <h2 id="onboarding-progress-heading">Onboarding progress</h2>
+          <p>Checklist data comes from the existing onboarding API.</p>
         </div>
+        {onboardingLoading ? (
+          <LoadingSpinner label="Loading onboarding progress..." />
+        ) : (
+          <>
+            <div className="signature-management-progress-label">
+              <strong>Progress</strong>
+              <span>{hasPercent ? `${percent}%` : '—'}</span>
+            </div>
+            <div className="signature-management-progress-track" aria-hidden="true">
+              <div style={{ width: hasPercent ? `${percent}%` : '0%' }} />
+            </div>
+            <p className="signature-management-helper">
+              {complete ? 'Setup complete — nice work!' : nextStep ? `Up next: ${nextStep.title}` : 'Loading your checklist…'}
+            </p>
+            <div className="signature-management-checklist">
+              {steps.length === 0 ? (
+                <p className="signature-management-helper">No onboarding steps were returned.</p>
+              ) : steps.map((step, index) => {
+                const Icon = step.Icon;
+                const isNext = nextStep?.key === step.key;
+                return (
+                  <div className="signature-management-check" key={step.key || index}>
+                    <Icon size={16} aria-hidden="true" />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={!!step.done}
+                        disabled={!canManage || !!togglingKey}
+                        onChange={() => toggleStep(step.key, !step.done)}
+                      />
+                      <span>{step.title}</span>
+                    </label>
+                    {step.description && <small>{step.description}</small>}
+                    {isNext && step.link && (
+                      step.link.startsWith('#') ? (
+                        <a href={step.link}>Open <ArrowRight size={12} /></a>
+                      ) : (
+                        <Link to={step.link}>Open <ArrowRight size={12} /></Link>
+                      )
+                    )}
+                    {togglingKey === step.key && <span role="status">Saving…</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </section>
 
-      <div className="onboarding-grid">
-        {loading && steps.length === 0
-          ? [0, 1, 2, 3].map((i) => (
-            <div key={i} className="onboarding-step" aria-hidden="true">
-              <div style={{ height: 40, width: 40, borderRadius: 8, background: 'var(--color-background)' }} />
-              <div style={{ height: 16, width: '70%', background: 'var(--color-background)', borderRadius: 4 }} />
-              <div style={{ height: 40, background: 'var(--color-background)', borderRadius: 4 }} />
-            </div>
-          ))
-          : steps.map((s) => {
-            const isNext = nextStep && nextStep.key === s.key && !s.done;
-            return (
-              <article
-                key={s.key}
-                className={`onboarding-step${s.done ? ' is-done' : ''}${isNext ? ' is-next' : ''}`}
-                aria-label={`${s.title} — ${s.done ? 'done' : isNext ? 'up next' : 'to do'}`}
-              >
-                <div className="onboarding-step-top">
-                  <span className="onboarding-step-icon"><s.Icon size={20} /></span>
-                  <span className={`onboarding-step-badge ${s.done ? 'done' : isNext ? 'next' : 'todo'}`}>
-                    {s.done ? 'Done' : isNext ? 'Up next' : 'To do'}
-                  </span>
-                </div>
-                <h3 className="onboarding-step-title">{s.title}</h3>
-                {s.description && <p className="onboarding-step-desc">{s.description}</p>}
-                <div className="onboarding-step-actions">
-                  {s.link && !s.link.startsWith('#') && (
-                    <Link to={s.link}>
-                      <Button variant={isNext ? 'primary' : 'secondary'} size="sm">
-                        Open <ArrowRight size={13} />
-                      </Button>
-                    </Link>
-                  )}
-                  {s.link && s.link.startsWith('#') && (
-                    <a href={s.link}>
-                      <Button variant={isNext ? 'primary' : 'secondary'} size="sm">
-                        Open <ArrowRight size={13} />
-                      </Button>
-                    </a>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    loading={togglingKey === s.key}
-                    onClick={() => toggle(s.key, s.done)}
-                    icon={s.done ? <CheckCircle2 size={14} /> : undefined}
-                  >
-                    {s.done ? 'Mark undone' : 'Mark done'}
-                  </Button>
-                </div>
-              </article>
-            );
-          })}
-      </div>
+      <section className="signature-management-section" aria-labelledby="signature-management-heading">
+        <div className="signature-management-section-heading">
+          <h2 id="signature-management-heading">Signature Management</h2>
+          <p>List, preview, upload, and remove signatures supported by the existing signature API.</p>
+        </div>
 
-      <section className="onboarding-card" id="signatures" aria-label="Signatures">
-        <h3 className="onboarding-card-title"><PenLine size={17} /> Authority Signatures</h3>
-        <form onSubmit={uploadSig} className="onboarding-sig-form">
-          <Input label="Name" placeholder="Dr. A. Sharma" value={sigForm.name} onChange={(e) => setSigForm((s) => ({ ...s, name: e.target.value }))} required />
-          <Input label="Title" placeholder="Consultant Pathologist" value={sigForm.title} onChange={(e) => setSigForm((s) => ({ ...s, title: e.target.value }))} />
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label"><span>Image</span></label>
-            <input type="file" accept="image/*" className="onboarding-file-input" onChange={(e) => setSigForm((s) => ({ ...s, file: e.target.files?.[0] || null }))} />
+        {signaturesError && (
+          <div className="signature-management-alert signature-management-alert-error" role="alert">
+            <span>{signaturesError}</span>
+            <Button variant="secondary" size="sm" onClick={loadSignatures}>Retry</Button>
           </div>
-          <Button type="submit" size="sm" loading={sigLoading} icon={<Upload size={14} />}>Upload</Button>
-        </form>
-        {sigError && <p className="form-error" role="alert">{sigError}</p>}
+        )}
+        {actionError && <div className="signature-management-alert signature-management-alert-error" role="alert">{actionError}</div>}
+        {uploadNotice && <div className="signature-management-alert signature-management-alert-success" role="status">{uploadNotice}</div>}
+
+        {canManage && (
+          <form className="signature-management-form" onSubmit={uploadSignature} noValidate>
+            {uploadError && <div className="signature-management-alert signature-management-alert-error" role="alert">{uploadError}</div>}
+            <div className="signature-management-form-grid">
+              <Input
+                label="Signature name"
+                name="signature-name"
+                value={signatureForm.name}
+                onChange={(event) => updateSignatureField('name', event.target.value)}
+                disabled={uploadLoading}
+                required
+              />
+              <Input
+                label="Title"
+                name="signature-title"
+                value={signatureForm.title}
+                onChange={(event) => updateSignatureField('title', event.target.value)}
+                disabled={uploadLoading}
+              />
+            </div>
+            <Input
+              label="Modalities (optional metadata)"
+              name="signature-modalities"
+              value={signatureForm.modalities}
+              onChange={(event) => updateSignatureField('modalities', event.target.value)}
+              disabled={uploadLoading}
+              helperText="Comma-separated values. The API stores this metadata but does not currently enforce modality assignment."
+            />
+            <FileUploader
+              key={`signature-upload-${uploadVersion}`}
+              label="Upload signature"
+              subtitle="PDF, JPG, JPEG, or PNG up to 10 MB"
+              accept=".pdf,.jpg,.jpeg,.png"
+              value={signatureForm.file}
+              disabled={uploadLoading}
+              onChange={(file) => updateSignatureField('file', file)}
+            />
+            <Button type="submit" loading={uploadLoading} disabled={uploadLoading}>Upload signature</Button>
+          </form>
+        )}
+
         <DataTable
-          headers={['Name', 'Title', 'Preview', 'Action']}
-          data={pgSigs.paged}
-          loading={loading}
-          emptyMessage="No signatures yet — upload your first one above."
+          headers={['Name', 'Title', 'Modalities', 'Status', 'Preview', 'Created', 'Updated', 'Actions']}
+          data={signaturePagination.paged}
+          loading={signaturesLoading}
+          emptyMessage="No signature records are available."
           pagination={{
-            total: pgSigs.total,
-            page: pgSigs.page,
-            limit: pgSigs.limit,
-            pages: pgSigs.pages,
-            onPageChange: pgSigs.goToPage,
-            onLimitChange: pgSigs.setLimit,
+            total: signaturePagination.total,
+            page: signaturePagination.page,
+            limit: signaturePagination.limit,
+            pages: signaturePagination.pages,
+            onPageChange: signaturePagination.goToPage,
+            onLimitChange: signaturePagination.setLimit
           }}
-          renderRow={(g, i) => (
-            <tr key={g._id || i}>
-              <td style={{ fontWeight: 600 }}>{g.name}</td>
-              <td>{g.title || '—'}</td>
-              <td>{sigPreviewSrc(g) ? <img src={sigPreviewSrc(g)} alt={`${g.name} signature`} className="onboarding-sig-preview" /> : '—'}</td>
+          renderRow={(signature) => (
+            <tr key={signature._id}>
+              <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{signature.name || '—'}</td>
+              <td>{signature.title || '—'}</td>
+              <td>{getModalitiesLabel(signature.modalities)}</td>
+              <td>{signature.status ? <StatusBadge status={signature.status} /> : '—'}</td>
+              <td><SignaturePreview url={signature.imageUrl} label={signature.name || 'Signature'} /></td>
+              <td>{formatDate(signature.createdAt)}</td>
+              <td>{formatDate(signature.updatedAt)}</td>
               <td>
-                <Button variant="danger" size="sm" onClick={() => del(g._id)} icon={<Trash2 size={13} />}>
-                  Delete
-                </Button>
+                {canManage ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => openDelete(signature)}
+                    aria-label={`Delete ${signature.name || 'signature'}`}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                ) : '—'}
               </td>
             </tr>
           )}
         />
+        <p className="signature-management-helper">
+          Signature records can be uploaded, previewed, activated/deactivated, and removed. Use Settings → Signatures for the full management view.
+        </p>
       </section>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        loading={deleteLoading}
+        title="Delete signature record?"
+        message={`Delete ${deleteTarget?.name || 'this signature'}? Historical reports may no longer be able to display its image.`}
+        confirmText="Delete signature"
+      />
     </div>
   );
 };
+
 export default Onboarding;

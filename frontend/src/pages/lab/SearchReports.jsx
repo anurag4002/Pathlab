@@ -145,7 +145,10 @@ const SearchReports = () => {
         loading={loading}
         emptyMessage="No laboratory reports matched your search filters."
         searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
+        onSearchChange={(e) => {
+          setSearch(e.target.value);
+          goToPage(1);
+        }}
         searchPlaceholder="Type registration no / name / phone (e.g. PPL-2026)..."
         stickyActions
         pagination={{

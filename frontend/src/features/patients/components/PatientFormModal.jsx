@@ -59,6 +59,9 @@ const PatientFormModal = ({
             {errors.api}
           </div>
         )}
+        {!isEditing && (
+          <p className="form-helper">Registration number is assigned by the server when the patient is created.</p>
+        )}
         <Input
           label="Patient Name"
           name="name"

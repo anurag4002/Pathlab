@@ -8,11 +8,48 @@ import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { Plus, Edit2, Download, Trash2, Printer } from 'lucide-react';
+import { Plus, Edit2, Download, Trash2, Printer, AlertTriangle, RefreshCw } from 'lucide-react';
 import downloadFile from '../../utils/downloadFile';
-import { DataTable, PageHeader, Button, Modal, Select, Input, FileUploader, ImageUploader, StatusBadge, ConfirmDialog, PatientPicker } from '../../components/common';
+import {
+  DataTable,
+  PageHeader,
+  Button,
+  Modal,
+  Select,
+  FileUploader,
+  ImageUploader,
+  StatusBadge,
+  ConfirmDialog,
+  PatientPicker
+} from '../../components/common';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import XrayImagePane from '../../components/xray/XrayImagePane';
+import '../../styles/Xray.css';
+
+/* Surfaces only the backend's user-facing `message` field (never stack traces),
+   with sensible fallbacks per failure type (same mapping as the other lab
+   screens). */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) return data.message;
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
+
+// The scan's extension comes from the API-provided fileUrl, so downloads
+// keep the uploaded file's real type (jpg/png/pdf) instead of a fixed name.
+const scanFileExt = (fileUrl) => (fileUrl?.includes('.') ? `.${fileUrl.split('.').pop()}` : '');
 
 const TodaysXrayCases = () => {
   const { user } = useAuth();
@@ -21,6 +58,11 @@ const TodaysXrayCases = () => {
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
+  // List/options load failures — surfaced as a banner (an empty table after a
+  // failed fetch must never read as "no cases today"); each fetch owns its
+  // error so one success never clears the other's failure.
+  const [listError, setListError] = useState(null);
+  const [optionsError, setOptionsError] = useState(null);
 
   // Phase 24-backed branding (fallbacks = previous hardcoded strings)
   const [labProfile, setLabProfile] = useState(null);
@@ -79,8 +121,7 @@ const TodaysXrayCases = () => {
     setLoading(true);
     try {
       const params = {
-        search: debouncedSearch.trim() || undefined,
-        status: statusFilter || undefined,
+        status: statusFilter || undefined
       };
       // Today scope filters server-side; All-dates scope loads everything
       // and filters client-side (backend has no from/to support).
@@ -88,11 +129,16 @@ const TodaysXrayCases = () => {
         params.date = new Date().toISOString().split('T')[0];
       }
       const res = await getXrayCases(params);
-      if (res.success) {
-        setCases(Array.isArray(res.data) ? res.data : []);
+      if (!res?.success) {
+        setCases([]);
+        setListError(res?.message || "Failed to load today's X-Ray cases.");
+        return;
       }
+      setCases(Array.isArray(res.data) ? res.data : []);
+      setListError(null);
     } catch (err) {
-      console.error('Failed to load X-Ray cases', err);
+      setCases([]);
+      setListError(getApiErrorMessage(err, "Failed to load today's X-Ray cases."));
     } finally {
       setLoading(false);
     }
@@ -106,17 +152,34 @@ const TodaysXrayCases = () => {
         getLabProfile().catch(() => null),
         getSignatures().catch(() => null)
       ]);
-      if (patRes.success) setPatients(patRes.data.patients);
-      if (docRes.success) setDoctors(docRes.data);
+      if (!patRes?.success) throw new Error(patRes?.message || 'Failed to load patients.');
+      if (!docRes?.success) throw new Error(docRes?.message || 'Failed to load doctors.');
+      setPatients(
+        Array.isArray(patRes.data?.patients)
+          ? patRes.data.patients
+          : Array.isArray(patRes.data)
+            ? patRes.data
+            : []
+      );
+      setDoctors(Array.isArray(docRes.data) ? docRes.data : []);
       if (profRes?.success) setLabProfile(profRes.data?.profile || profRes.data);
-      if (sigRes?.success) setSignatures(Array.isArray(sigRes.data) ? sigRes.data : sigRes.data?.signatures || []);
+      if (sigRes?.success) {
+        setSignatures(Array.isArray(sigRes.data) ? sigRes.data : sigRes.data?.signatures || []);
+      }
+      setOptionsError(null);
     } catch (err) {
-      console.error('Failed to load options', err);
+      setOptionsError(getApiErrorMessage(err, 'Failed to load patients or doctors.'));
     }
   };
 
-  useEffect(() => {
+  // Retry for the banners above — re-runs both page loads; their success
+  // paths clear the matching error state.
+  const refresh = () => {
     fetchCases();
+    loadOptions();
+  };
+
+  useEffect(() => {
     loadOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -125,7 +188,7 @@ const TodaysXrayCases = () => {
     goToPage(1);
     fetchCases();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, statusFilter, dateScope]);
+  }, [debouncedSearch, statusFilter, dateScope, fromDate, toDate]);
 
   // Client-side filter pass (works regardless of server support).
   const filteredCases = useMemo(() => {
@@ -268,6 +331,20 @@ const TodaysXrayCases = () => {
         }
       />
 
+      {(listError || optionsError) && (
+        <div className="xray-banner xray-banner-error" role="alert">
+          <AlertTriangle size={16} />
+          <span>{listError || optionsError}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            onClick={refresh}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }} role="tablist" aria-label="Date scope">
           {[
@@ -362,12 +439,12 @@ const TodaysXrayCases = () => {
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                  onClick={() => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}.jpg`)}
+                  onClick={() => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}${scanFileExt(c.fileUrl)}`)}
                 >
                   <Download size={14} /> Download Scan
                 </button>
               ) : (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No attachment</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>No attachment</span>
               )}
             </td>
             <td>
@@ -425,11 +502,15 @@ const TodaysXrayCases = () => {
       >
         <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
+          <div className="xray-form-section-title">Case details</div>
 
           <PatientPicker
             label="Patient Profile"
             value={pickedPatient || patients.find((p) => p._id === formData.patient) || null}
-            onSelect={(p) => { setPickedPatient(p); setFormData((prev) => ({ ...prev, patient: p ? p._id : '' })); }}
+            onSelect={(p) => {
+              setPickedPatient(p);
+              setFormData((prev) => ({ ...prev, patient: p ? p._id : '' }));
+            }}
             error={errors.patient}
             required
             disabled={!!editingCase}
@@ -443,9 +524,27 @@ const TodaysXrayCases = () => {
             placeholder="Self Referral"
           />
 
+
+          <Select
+            label="Case Status"
+            value={formData.status}
+            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+            options={[
+              { value: 'Pending', label: 'Pending Signature' },
+              { value: 'Completed', label: 'Completed Report' }
+            ]}
+            required
+          />
+
+          <div className="xray-form-section-title">Report findings</div>
+
           <div className="form-group">
-            <label className="form-label">Clinical X-Ray Findings Details *</label>
+            <label className="form-label" htmlFor="xray-findings">
+              <span>Clinical X-Ray Findings</span>
+              <span className="form-required-star" aria-hidden="true">*</span>
+            </label>
             <textarea
+              id="xray-findings"
               value={formData.findings}
               onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
               className="form-control"
@@ -455,6 +554,8 @@ const TodaysXrayCases = () => {
             />
             {errors.findings && <p className="form-error">{errors.findings}</p>}
           </div>
+
+          <div className="xray-form-section-title">Scan attachment</div>
 
           <div style={{ marginTop: '0.5rem' }}>
             <FileUploader
@@ -470,24 +571,13 @@ const TodaysXrayCases = () => {
               <label className="form-label">Additional scan images (uploads in background — saving is never blocked)</label>
               <ImageUploader
                 key={uploaderKey}
-                uploadFn={(file, prog) => uploadXrayImage(editingCase._id, file, prog)}
+                uploadFn={(file, progress) => uploadXrayImage(editingCase._id, file, progress)}
                 initialUrls={editingCase.images || editingCase.imageUrls || []}
                 onUploaded={setGalleryUrls}
                 compress
               />
             </div>
           )}
-
-          <Select
-            label="Case Status"
-            value={formData.status}
-            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-            options={[
-              { value: 'Pending', label: 'Pending Signature' },
-              { value: 'Completed', label: 'Completed Report' }
-            ]}
-            required
-          />
 
         </form>
       </Modal>

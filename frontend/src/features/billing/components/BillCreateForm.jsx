@@ -1,19 +1,39 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createBill, collectPayment, getBillById } from '../../../services/billService';
+import { createBill } from '../../../services/billService';
 import { createPatient } from '../../../services/patientService';
-import { PageHeader, Button } from '../../../components/common';
-import { TestCombobox } from '../../../components/common';
+import { PageHeader, Button, Select, TestCombobox } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
 import DepartmentSelector from './DepartmentSelector';
 import BillItemsTable from './BillItemsTable';
 import PaymentSummarySection from './PaymentSummarySection';
-import PackageSelector from './PackageSelector';
 import ComboIndicator from './ComboIndicator';
 import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
-import { Select } from '../../../components/common';
 import { ArrowLeft, Plus } from 'lucide-react';
+import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
+
+/* Local API error mapper (same mapping as the other lab screens): surfaces
+   only the backend's user-facing `message` field, never stack traces. */
+const getApiErrorMessage = (err, fallback) => {
+  if (err?.response) {
+    const data = err.response.data;
+    if (data && typeof data.message === 'string' && data.message.trim()) {
+      return data.message;
+    }
+    const status = err.response.status;
+    if (status === 401) return 'Your session has expired. Please log in again.';
+    if (status === 403) return 'You do not have permission to perform this action.';
+    if (status === 404) return 'The requested record was not found.';
+    if (status === 409) return 'The record was changed elsewhere. Please refresh and try again.';
+    if (status === 422) return 'The submitted data is invalid.';
+    if (status >= 500) return 'Server error. Please try again.';
+    return fallback;
+  }
+  if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
+  if (err?.request) return 'Network error. Please check your connection and try again.';
+  return err?.message || fallback;
+};
 
 const EMPTY_PATIENT_FORM = {
   isExistingPatient: true,
@@ -43,6 +63,7 @@ const BillCreateForm = ({
   agents = [],
   tests = [],
   packages = [],
+  panels = [],
   onBillCreated
 }) => {
   const navigate = useNavigate();
@@ -54,16 +75,13 @@ const BillCreateForm = ({
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
+  const [pickerType, setPickerType] = useState('Test');
   const [selectedItems, setSelectedItems] = useState([]);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
-  const [remarks, setRemarks] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-
-  const updatePatientForm = (field) => (val) =>
-    setPatientForm((prev) => ({ ...prev, [field]: typeof val === 'function' ? val(prev[field]) : val }));
 
   const handlePatientSelect = (pat) => {
     if (!pat) {
@@ -100,27 +118,34 @@ const BillCreateForm = ({
   // added as one priced line (package total replaces individual rates);
   // member test names are kept for the on-screen + printed breakdown.
   const handleSelectBundle = (bundle, kind) => {
-    const itemType = kind === 'panels' ? 'Panel' : 'Package';
-    const alreadyAdded = selectedItems.some(
-      (si) => si.itemId === bundle._id && si.itemType === itemType
-    );
-    if (alreadyAdded) return;
-    const members = bundle.includedTests || bundle.tests || [];
-    const memberNames = members.map((m) => (typeof m === 'string' ? m : (m.name || m.code || ''))).filter(Boolean);
-    setSelectedItems((prev) => [...prev, {
-      itemId: bundle._id,
-      itemType,
-      name: `${bundle.name} (bundle)`,
-      price: Number(bundle.price) || 0,
-      comboName: bundle.name,
-      comboId: bundle._id,
-      comboMembers: memberNames,
-    }]);
+    const itemId = bundle?._id;
+    if (!itemId) return;
+    const itemType = kind === 'panels' ? 'TestPanel' : 'TestPackage';
+    setSelectedItems((prev) => {
+      if (prev.some((item) => item.itemId === itemId && item.itemType === itemType)) return prev;
+      const members = Array.isArray(bundle.includedTests)
+        ? bundle.includedTests
+        : Array.isArray(bundle.tests)
+          ? bundle.tests
+          : [];
+      const memberNames = members
+        .map((member) => (typeof member === 'string' ? member : member?.name || member?.code || ''))
+        .filter(Boolean);
+      return [...prev, {
+        itemId,
+        itemType,
+        name: `${bundle.name} (bundle)`,
+        price: Number(bundle.price) || 0,
+        comboName: bundle.name,
+        comboId: itemId,
+        comboMembers: memberNames
+      }];
+    });
   };
 
   const selectedBundleIds = selectedItems
-    .filter((i) => i.itemType === 'Package' || i.itemType === 'Panel')
-    .map((i) => i.itemId);
+    .filter((item) => item.itemType === 'TestPackage' || item.itemType === 'TestPanel')
+    .map((item) => item.itemId);
 
   const subtotal = selectedItems.reduce((s, item) => s + item.price, 0);
   const discountAmount = Math.max(0, Math.min(subtotal, (subtotal * discountPercent) / 100));
@@ -186,13 +211,35 @@ const BillCreateForm = ({
         navigate('/cases/bills');
       }
     } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to generate invoice' });
+      setErrors({ api: getApiErrorMessage(err, 'Failed to generate invoice') });
     } finally {
       setSubmitting(false);
     }
   };
 
   const departmentTests = filterTestsByDepartment(tests, activeDepartment);
+
+  // Picker source per active tab — every price comes from the existing
+  // catalog APIs (tests / packages / panels); nothing is priced in frontend
+  // constants, and all three types are accepted by the bill validator.
+  const pickerSource =
+    pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : departmentTests;
+  const pickerItems = (Array.isArray(pickerSource) ? pickerSource : [])
+    .filter((item) => !item.status || item.status === 'Active');
+  const pickerEmptyText =
+    pickerType === 'Test'
+      ? `No tests mapped under ${activeDepartment}`
+      : pickerType === 'TestPackage'
+        ? 'No packages available.'
+        : 'No panels available.';
+
+  const handlePickerSelect = (item) => {
+    if (pickerType === 'Test') {
+      handleAddItem(item, 'Test');
+      return;
+    }
+    handleSelectBundle(item, pickerType === 'TestPanel' ? 'panels' : 'packages');
+  };
 
   return (
     <div>
@@ -323,45 +370,61 @@ const BillCreateForm = ({
             {/* Department Selector */}
             <DepartmentSelector activeDepartment={activeDepartment} onSelect={setActiveDepartment} />
 
-            {/* Package / Panel Picker (Phase 22 — wired to getPanels/getPackages) */}
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                Select Packages / Panels
-              </label>
-              <PackageSelector onSelect={handleSelectBundle} selectedIds={selectedBundleIds} />
-            </div>
+            {/* Smart test search complements the department-filtered picker below. */}
+            {pickerType === 'Test' && (
+              <div className="form-group" style={{ marginBottom: '12px' }}>
+                <TestCombobox
+                  label="Quick add test"
+                  placeholder="Type code / name / department / price…"
+                  onSelect={(test) => handleAddItem(test, 'Test')}
+                />
+              </div>
+            )}
 
-            {/* Test Picker — Phase 12 smart combobox + legacy clickable list */}
-            <div className="form-group" style={{ marginBottom: '12px' }}>
-              <TestCombobox
-                label="Quick add test"
-                placeholder="Type code / name / department / price…"
-                onSelect={(test) => handleAddItem(test, 'Test')}
-              />
-            </div>
+            {/* Service picker — department-filtered tests plus packages and
+                panels, all from the existing catalog APIs with server rates. */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                Select Tests / Scans
+                Select services
               </label>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                <Button variant={pickerType === 'Test' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('Test')}>
+                  Tests
+                </Button>
+                <Button variant={pickerType === 'TestPackage' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPackage')}>
+                  Packages
+                </Button>
+                <Button variant={pickerType === 'TestPanel' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPanel')}>
+                  Panels
+                </Button>
+              </div>
               <div className="test-picker-list">
-                {departmentTests.length === 0 ? (
+                {pickerItems.length === 0 ? (
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-5)' }}>
-                    No tests mapped under {activeDepartment}
+                    {pickerEmptyText}
                   </p>
                 ) : (
-                  departmentTests.map((test) => (
-                    <div
-                      key={test._id}
-                      className="test-picker-item"
-                      onClick={() => handleAddItem(test, 'Test')}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddItem(test, 'Test'); }}
-                    >
-                      <span>{test.name} ({test.code})</span>
-                      <strong style={{ color: 'var(--color-primary)' }}>{test.price}</strong>
-                    </div>
-                  ))
+                  pickerItems.map((item) => {
+                    const alreadyAdded = pickerType !== 'Test' && selectedBundleIds.includes(item._id);
+                    return (
+                      <div
+                        key={item._id}
+                        className="test-picker-item"
+                        onClick={() => !alreadyAdded && handlePickerSelect(item)}
+                        role="button"
+                        tabIndex={alreadyAdded ? -1 : 0}
+                        aria-disabled={alreadyAdded}
+                        onKeyDown={(e) => { if (!alreadyAdded && e.key === 'Enter') handlePickerSelect(item); }}
+                      >
+                        <span>
+                          {item.name}
+                          {item.code ? ` (${item.code})` : ''}
+                          {alreadyAdded ? ' — Added' : ''}
+                        </span>
+                        <strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(item.price)}</strong>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -391,8 +454,6 @@ const BillCreateForm = ({
             setPaidAmount={setPaidAmount}
             paymentMethod={paymentMethod}
             setPaymentMethod={setPaymentMethod}
-            remarks={remarks}
-            setRemarks={setRemarks}
             totalAmount={totalAmount}
             dueAmount={dueAmount}
             errors={errors}

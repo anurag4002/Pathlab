@@ -17,6 +17,7 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin'],
     children: [
       { title: 'Daily Business', path: '/business/daily' },
+      { title: 'Monthly Business', path: '/business/monthly' },
       { title: 'Cashbook', path: '/business/cashbook' },
       { title: 'Expenses', path: '/business/expenses' },
       { title: 'Due Reports', path: '/business/dues' },
@@ -48,14 +49,19 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
       { title: "Today's Reports", path: '/lab/reports' },
+      { title: 'Result Entry', path: '/lab/result-entry' },
+      { title: 'Result Verification', path: '/lab/verification', roles: ['Admin'] },
       { title: 'Search Reports', path: '/lab/search' },
       { title: 'Test Database', path: '/lab/tests', roles: ['Admin'] },
+      { title: 'Normal Ranges', path: '/lab/normal-ranges', roles: ['Admin'] },
       { title: 'Test Packages', path: '/lab/packages', roles: ['Admin'] },
       { title: 'Rate Revision', path: '/settings/rate-revision', roles: ['Admin'] },
       { title: 'Test Panels', path: '/lab/panels', roles: ['Admin'] },
       { title: 'Test Categories', path: '/lab/categories', roles: ['Admin'] },
       { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin'] },
-      { title: 'Test Counts', path: '/lab/counts' }
+      { title: 'Test Counts', path: '/lab/counts' },
+      { title: 'Test Analysis', path: '/lab/analysis', roles: ['Admin', 'Employee'] },
+      { title: 'Rate List', path: '/lab/rates', roles: ['Admin'] }
     ]
   },
   {
@@ -89,7 +95,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Settings',
     roles: ['Admin'],
     children: [
-      { title: 'Employee Login', path: '/manage/employees' },
+      { title: 'User Management', path: '/manage/employees' },
       { title: 'Audit Log', path: '/settings/audit-log' },
       { title: 'Doctor Access', path: '/manage/doctors' },
       { title: 'Browser Security', path: '/manage/security' },

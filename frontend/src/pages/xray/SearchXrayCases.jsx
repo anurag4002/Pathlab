@@ -1,7 +1,6 @@
 import TodaysXrayCases from './TodaysXrayCases';
 
-// Merged: Today's Cases + Search Cases are now a single unified "X-Ray Cases"
-// page (TodaysXrayCases) with date scope, search bar, filters and pagination.
-// This module is kept so old imports keep working; /xray/search redirects to
-// /xray/today in AppRoutes.
+// Today's Cases and Search Cases are now one unified X-Ray Cases page.
+// This alias keeps older imports working; AppRoutes redirects /xray/search
+// to /xray/today.
 export default TodaysXrayCases;
