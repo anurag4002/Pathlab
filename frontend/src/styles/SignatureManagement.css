@@ -54,24 +54,71 @@
 
 .signature-management-checklist {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-2) var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-3);
   margin-top: var(--space-4);
+  min-width: 0;
 }
 
 .signature-management-check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon label"
+    "icon desc"
+    "icon link";
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+  align-items: start;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.signature-management-check > svg {
+  grid-area: icon;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.signature-management-check label {
+  grid-area: label;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .signature-management-check input {
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
+  margin-top: 2px;
   accent-color: var(--color-primary);
+}
+
+.signature-management-check small {
+  grid-area: desc;
+  min-width: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.signature-management-check a,
+.signature-management-check span[role="status"] {
+  grid-area: link;
+  justify-self: start;
+  font-size: var(--font-size-xs);
 }
 
 .signature-management-form {

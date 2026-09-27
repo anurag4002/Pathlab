@@ -25,6 +25,8 @@
   border-bottom: 1px solid var(--color-border);
   overflow: hidden;
   white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .sidebar-logo-img {
@@ -41,6 +43,10 @@
   font-weight: var(--font-weight-extrabold);
   color: var(--color-text);
   letter-spacing: 0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 
 .sidebar-action-container {

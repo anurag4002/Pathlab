@@ -277,3 +277,112 @@
     padding: var(--space-5);
   }
 }
+
+/* Inline-action step bodies (every step completes on this page). */
+.onboarding-step-body {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.onboarding-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.onboarding-grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.onboarding-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.onboarding-mono {
+  font-family: monospace;
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.onboarding-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.onboarding-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+}
+
+.onboarding-inline-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.onboarding-inline-name {
+  flex: 1;
+  min-width: 8rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.onboarding-price {
+  width: 7rem;
+  flex-shrink: 0;
+}
+
+.onboarding-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.onboarding-alert-error {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+}
+
+.onboarding-alert-success {
+  color: var(--color-success-hover);
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}

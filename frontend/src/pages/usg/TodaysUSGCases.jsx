@@ -391,7 +391,7 @@ const TodaysUSGCases = () => {
   const showSignatureImg = !!signatureSrc && brokenSignature !== signatureSrc;
   const printImages = printTarget && editingCase?._id === printTarget._id
     ? caseImageUrls
-    : printImages;
+    : caseImages(printTarget);
 
   const handleSigned = (updated) => {
     if (!updated) return fetchCases();
