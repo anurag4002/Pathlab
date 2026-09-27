@@ -3,12 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { getReports } from '../../services/reportService';
 import { getTests } from '../../services/testService';
 import { getDoctors } from '../../services/doctorService';
-import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
+import { downloadReportPdf } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { Download, FileDown, QrCode, Printer } from 'lucide-react';
+import { Download, FileDown, Printer } from 'lucide-react';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
 
 const STATUS_OPTIONS = [
@@ -98,15 +98,6 @@ const SearchReports = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, adv.status, adv.test, adv.duration, adv.from, adv.to, adv.referredBy, adv.cc, page, limit]);
 
-  const handleQr = async (report) => {
-    try {
-      const res = await fetchReportQr(report._id);
-      if (res.success) window.open(res.data.verifyUrl, '_blank', 'noopener');
-    } catch {
-      alert('Failed to load report QR');
-    }
-  };
-
   return (
     <div>
       <PageHeader
@@ -172,9 +163,6 @@ const SearchReports = () => {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)}>
                   <FileDown size={14} /> PDF
-                </button>
-                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleQr(report)}>
-                  <QrCode size={14} /> QR
                 </button>
                 {report.fileUrl && (
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}>

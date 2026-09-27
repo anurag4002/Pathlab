@@ -140,7 +140,7 @@ const Inquiries = () => {
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-                {inq.patient?._id && (
+                {inq.patient?._id ? (
                   <button
                     type="button"
                     className="btn btn-secondary"
@@ -148,6 +148,16 @@ const Inquiries = () => {
                     onClick={() => navigate(`/cases/patients/${inq.patient._id}`)}
                   >
                     Patient
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                    title="Find the confirmed profile by phone"
+                    onClick={() => navigate(`/cases/patients?search=${encodeURIComponent(inq.phone || inq.name || '')}`)}
+                  >
+                    Find patient
                   </button>
                 )}
               </div>

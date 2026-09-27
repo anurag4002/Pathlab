@@ -230,6 +230,40 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* Compact the report so it fits one page: strip card chrome and collapse
+     the vertical rhythm that otherwise pushes the footer to page two. */
+  .printable-area .rp-report-head {
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .printable-area .rp-info-grid {
+    display: block;
+    margin-bottom: 10px;
+  }
+  .printable-area .rp-card {
+    border: none;
+    border-radius: 0;
+    padding: 0 0 8px;
+    margin-bottom: 8px;
+    break-inside: avoid;
+  }
+  .printable-area .rp-card-title {
+    margin-bottom: 6px;
+  }
+  .printable-area .rp-section-head {
+    margin-bottom: 6px;
+  }
+  .printable-area .rp-fields {
+    gap: 6px 12px;
+  }
+  .printable-area .rp-verify {
+    margin-top: 10px;
+    padding: 6px 8px;
+  }
+  .printable-area .rp-barcode {
+    margin-top: 6px;
+    padding: 0;
+  }
 }
 
 /* Sign-off / e-signature block — visually separated from patient/test data

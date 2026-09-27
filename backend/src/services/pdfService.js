@@ -91,7 +91,8 @@ function kvBlock(doc, pairs) {
   doc.fillColor('#111827').font('Helvetica');
 }
 
-// Header: letterhead image when enabled+present, else typed lab block.
+// Header: letterhead image when enabled+present, else logo-left typed block
+// (reference layout: logo at left, lab name/tagline/contact beside it).
 function drawHeader(doc, profile, letterhead, topMargin) {
   const p = profile || {};
   if (letterhead && p.letterheadUrl) {
@@ -104,6 +105,27 @@ function drawHeader(doc, profile, letterhead, topMargin) {
         return;
       } catch (e) { /* fall through to typed block */ }
     }
+  }
+  const logoAbs = p.logoUrl ? resolveUploadAbsolute(p.logoUrl) : null;
+  if (logoAbs) {
+    try {
+      const logoBox = 52;
+      const textX = MARGIN + logoBox + 10;
+      const textW = contentWidth(doc) - logoBox - 10;
+      doc.image(logoAbs, MARGIN, 28, { fit: [logoBox, logoBox] });
+      doc.fontSize(20).font('Helvetica-Bold').fillColor('#111827')
+        .text(p.labName || 'PURE PATH LAB', textX, 30, { align: 'left', width: textW });
+      doc.fontSize(10).font('Helvetica').fillColor('#4b5563')
+        .text(p.tagline || 'Pathology & Diagnostic Center', textX, undefined, { align: 'left', width: textW });
+      const contact = [p.phone && `Ph: ${p.phone}`, p.address].filter(Boolean).join(' | ');
+      if (contact) doc.fontSize(9).text(contact, textX, undefined, { align: 'left', width: textW });
+      doc.y = Math.max(doc.y, 30 + logoBox + 6);
+      doc.moveDown(0.25);
+      doc.strokeColor('#9ca3af').lineWidth(1)
+        .moveTo(MARGIN, doc.y).lineTo(doc.page.width - MARGIN, doc.y).stroke();
+      doc.moveDown(0.5);
+      return;
+    } catch (e) { /* fall through to centered block */ }
   }
   doc.fontSize(20).font('Helvetica-Bold').fillColor('#111827')
     .text(p.labName || 'PURE PATH LAB', MARGIN, 32, { align: 'center', width: contentWidth(doc) });

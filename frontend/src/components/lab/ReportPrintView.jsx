@@ -8,11 +8,19 @@ import QrBlock from './QrBlock';
 // component so preview markup and print output cannot diverge. Keep the
 // structure mirrored with backend pdfService.reportPdf (header → meta →
 // results table → TAT → signatures → QR → footer).
-const ReportPrintView = ({ report, qrDataUrl, verifyUrl, signatures = [] }) => {
+const ReportPrintView = ({ report, qrDataUrl, verifyUrl, signatures = [], profile = null }) => {
   if (!report) return null;
   const signed = isSignedStatus(report.status) && (report.signatures || []).length > 0;
   const patient = report.patient || {};
   const results = report.results || [];
+  // Lab identity comes from the profile API when provided (logo + names);
+  // otherwise the long-standing defaults keep old snapshots rendering.
+  const labName = profile?.labName || 'PURE PATH LAB';
+  const tagline = profile?.tagline || 'Pathology & Diagnostic Center';
+  const logoSrc = profile?.logoUrl
+    ? (String(profile.logoUrl).startsWith('/') || String(profile.logoUrl).startsWith('http')
+      ? profile.logoUrl : `/${profile.logoUrl}`)
+    : '';
 
   return (
     <div style={{ position: 'relative', fontSize: '0.85rem', color: '#111827', overflowWrap: 'break-word', minWidth: 0 }}>
@@ -28,9 +36,14 @@ const ReportPrintView = ({ report, qrDataUrl, verifyUrl, signatures = [] }) => {
         </div>
       )}
 
-      <div style={{ textAlign: 'center', marginBottom: 12 }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>PURE PATH LAB</div>
-        <div style={{ color: '#4b5563' }}>Pathology &amp; Diagnostic Center</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        {logoSrc ? (
+          <img src={logoSrc} alt={`${labName} logo`} style={{ width: 52, height: 52, objectFit: 'contain', flexShrink: 0 }} />
+        ) : null}
+        <div style={{ textAlign: 'left', minWidth: 0 }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{labName}</div>
+          <div style={{ color: '#4b5563' }}>{tagline}</div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gap: 4, marginBottom: 12 }}>

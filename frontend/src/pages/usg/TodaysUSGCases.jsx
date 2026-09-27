@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, uploadUSGImage } from '../../services/usgService';
 import { deleteUSGCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
@@ -22,7 +23,6 @@ import {
   PatientPicker,
   Letterhead
 } from '../../components/common';
-import CaseFilterBar from '../../components/usg/CaseFilterBar';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import '../../styles/USG.css';
 
@@ -58,6 +58,9 @@ const caseImages = (c) => (
 const TodaysUSGCases = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
+  // Modal state is mirrored to the URL (?case=new|<id>&print=<id>) so a
+  // reload mid-task restores the open pop-up instead of losing it.
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cases, setCases] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -267,6 +270,30 @@ const TodaysUSGCases = () => {
     });
   }, [cases, assignedFilter, statusFilter, searchFilter, dateScope, fromDate, toDate]);
 
+  // Restore an open pop-up from the URL after reload (?case=new|<id>, ?print=<id>).
+  // Runs once the case list is available so edit/print targets can resolve.
+  // A deep-linked id may sit outside today's scope, so widen to All first.
+  useEffect(() => {
+    const caseParam = searchParams.get('case');
+    const printParam = searchParams.get('print');
+    if (!caseParam && !printParam) return;
+    if ((caseParam && caseParam !== 'new') || printParam) {
+      if (dateScope === 'today') { setDateScope('all'); return; }
+    }
+    if (!cases.length) return;
+    if (caseParam === 'new' && !formOpen) {
+      handleOpenCreate();
+    } else if (caseParam && caseParam !== 'new' && !formOpen) {
+      const found = cases.find((c) => String(c._id) === String(caseParam));
+      if (found) handleOpenEdit(found);
+    }
+    if (printParam && !printOpen) {
+      const found = cases.find((c) => String(c._id) === String(printParam));
+      if (found) handlePrint(found);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, dateScope]);
+
   // Client-side pagination (backend returns the full list — no page/limit).
   const totalPages = Math.max(1, Math.ceil(filteredCases.length / limit));
   const safePage = Math.min(page, totalPages);
@@ -286,6 +313,24 @@ const TodaysUSGCases = () => {
     goToPage(1);
   };
 
+  const closeForm = () => {
+    setFormOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('case');
+      return next;
+    }, { replace: true });
+  };
+
+  const closePrint = () => {
+    setPrintOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('print');
+      return next;
+    }, { replace: true });
+  };
+
   const handleOpenCreate = () => {
     setEditingCase(null);
     setPickedPatient(null);
@@ -293,6 +338,7 @@ const TodaysUSGCases = () => {
     setCaseImageUrls([]);
     setErrors({});
     setFormOpen(true);
+    setSearchParams({ case: 'new' }, { replace: true });
   };
 
   const handleOpenEdit = (c) => {
@@ -309,6 +355,7 @@ const TodaysUSGCases = () => {
     setUploaderKey((k) => k + 1);
     setErrors({});
     setFormOpen(true);
+    if (c?._id) setSearchParams({ case: c._id }, { replace: true });
   };
 
   // Currently selected API template (GET /usg/templates) — drives the preview
@@ -360,7 +407,7 @@ const TodaysUSGCases = () => {
       }
 
       if (res.success) {
-        setFormOpen(false);
+        closeForm();
         fetchCases();
       }
     } catch (err) {
@@ -374,6 +421,13 @@ const TodaysUSGCases = () => {
     setPrintTarget(c);
     setBrokenSignature('');
     setPrintOpen(true);
+    if (c?._id) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('print', c._id);
+        return next;
+      }, { replace: true });
+    }
     // Letterhead profile + signature masters load lazily on the first print
     // open (print-only metadata — never blocks the list or the form).
     if (!printMetaLoaded) loadPrintMeta();
@@ -458,6 +512,34 @@ const TodaysUSGCases = () => {
           To
           <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); goToPage(1); }} className="select-control" />
         </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          Search
+          <input
+            type="text"
+            value={searchFilter}
+            onChange={(e) => { setSearchFilter(e.target.value); goToPage(1); }}
+            placeholder="Patient name / reg no…"
+            className="select-control"
+            style={{ minWidth: 180 }}
+          />
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          Assigned to
+          <select value={assignedFilter} onChange={(e) => { setAssignedFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 150 }}>
+            <option value="">Everyone</option>
+            {doctors.map((d) => (
+              <option key={d._id} value={d._id}>{d.name}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          Status
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 140 }}>
+            <option value="">All statuses</option>
+            <option value="Pending">Pending Signature</option>
+            <option value="Completed">Completed Report</option>
+          </select>
+        </label>
         {(deptFilter || assignedFilter || statusFilter || searchFilter || fromDate || toDate || dateScope !== 'today') && (
           <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }} onClick={resetFilters}>
             Clear filters
@@ -467,17 +549,6 @@ const TodaysUSGCases = () => {
           {filteredCases.length} case{filteredCases.length === 1 ? '' : 's'}
         </span>
       </div>
-
-      <CaseFilterBar
-        department={deptFilter}
-        onDepartmentChange={(v) => { setDeptFilter(v); goToPage(1); }}
-        departments={[{ value: 'USG', label: 'USG' }]}
-        assignedTo={assignedFilter}
-        onAssignedChange={(v) => { setAssignedFilter(v); goToPage(1); }}
-        assignees={doctors.map((d) => ({ value: d._id, label: d.name }))}
-        status={statusFilter}
-        onStatusChange={(v) => { setStatusFilter(v); goToPage(1); }}
-      />
 
       <DataTable
         headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Images', 'Status', 'Actions']}
@@ -549,11 +620,11 @@ const TodaysUSGCases = () => {
       {/* Case Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         title={editingCase ? 'Edit USG Case Findings' : 'Create USG Case File'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
@@ -662,11 +733,11 @@ const TodaysUSGCases = () => {
       {/* Print USG Findings Modal */}
       <Modal
         isOpen={printOpen}
-        onClose={() => setPrintOpen(false)}
+        onClose={closePrint}
         title="USG Report Print Preview"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setPrintOpen(false)}>Close</Button>
+            <Button variant="secondary" onClick={closePrint}>Close</Button>
             <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Print Report</Button>
           </>
         }

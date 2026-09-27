@@ -101,6 +101,10 @@ const PatientsPage = () => {
     if (searchParams.get('add') === 'true') {
       openCreate();
     }
+    // Deep-link from the enquiry queue ("Find patient" passes ?search=phone).
+    const q = searchParams.get('search');
+    if (q && q !== 'undefined' && q !== 'null') setSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openCreate = () => {

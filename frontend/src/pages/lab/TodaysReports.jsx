@@ -152,6 +152,7 @@ const TodaysReports = () => {
   // the Lab Profile API (never hardcoded); empty until it arrives or on failure.
   const [labName, setLabName] = useState('');
   const [labNameError, setLabNameError] = useState(false);
+  const [labProfile, setLabProfile] = useState(null);
   // Local failed-delivery cache; server delivery history remains authoritative.
   const [failedDeliveries, setFailedDeliveries] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -237,9 +238,11 @@ const TodaysReports = () => {
     try {
       const res = await getLabProfile();
       const profile = res?.data?.profile || res?.data || null;
+      setLabProfile(profile);
       setLabName(profile?.labName || '');
       setLabNameError(!profile?.labName);
     } catch {
+      setLabProfile(null);
       setLabName('');
       setLabNameError(true);
     }
@@ -479,8 +482,9 @@ const TodaysReports = () => {
       const res = await saveReportResults(activeReport._id, payload);
       if (res.success) {
         setActiveReport(res.data);
-        setRows(res.data.results.map((r) => ({ test: r.test || '', value: r.value || '', unit: r.unit || '' })));
+        setRows(res.data.results.map((r) => ({ test: r.test?._id || r.test || '', value: r.value || '', unit: r.unit || '' })));
         fetchReports();
+        fetchPending();
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save results');
@@ -508,7 +512,7 @@ const TodaysReports = () => {
     setSigning(true);
     try {
       const res = await signReport(activeReport._id, sigId);
-      if (res.success) { setActiveReport(res.data); fetchReports(); }
+      if (res.success) { setActiveReport(res.data); fetchReports(); fetchPending(); }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to sign report');
     } finally {
@@ -827,9 +831,13 @@ const TodaysReports = () => {
               <td>{report.uploadedBy?.name || 'N/A'}</td>
               <td style={{ minWidth: 150 }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
-                    <FileEdit size={14} /> Enter results
-                  </button>
+                  {['Signed', 'Verified', 'Completed'].includes(report.status) ? (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Submitted</span>
+                  ) : (
+                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
+                      <FileEdit size={14} /> {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
+                    </button>
+                  )}
                   {/* Phase 4 — in-app preview (shared print layout); PDF/Print
                       inside the modal use printReportPdf/downloadReportPdf. */}
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)} title="Preview">
@@ -990,7 +998,11 @@ const TodaysReports = () => {
             <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
             <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, true)}><FileDown size={14} /> PDF</Button>
             <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
-            <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
+            {['Signed', 'Verified', 'Completed'].includes(activeReport?.status) ? (
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
+            ) : (
+              <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
+            )}
           </>
         }
       >
@@ -1241,6 +1253,7 @@ const TodaysReports = () => {
         qrDataUrl={previewQr.qrDataUrl}
         verifyUrl={previewQr.verifyUrl || verifyUrl}
         signatures={signatures}
+        profile={labProfile}
         loading={previewLoading}
         error={previewError}
       />

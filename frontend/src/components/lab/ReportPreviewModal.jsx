@@ -15,6 +15,7 @@ const ReportPreviewModal = ({
   qrDataUrl,
   verifyUrl,
   signatures = [],
+  profile = null,
   loading = false,
   error = '',
 }) => {
@@ -50,7 +51,7 @@ const ReportPreviewModal = ({
       {loading && <p style={{ color: '#6b7280' }}>Loading preview…</p>}
       {error && <p style={{ color: 'var(--color-danger, #b91c1c)' }}>{error}</p>}
       {!loading && !error && (
-        <ReportPrintView report={report} qrDataUrl={qrDataUrl} verifyUrl={verifyUrl} signatures={signatures} />
+        <ReportPrintView report={report} qrDataUrl={qrDataUrl} verifyUrl={verifyUrl} signatures={signatures} profile={profile} />
       )}
     </Modal>
   );

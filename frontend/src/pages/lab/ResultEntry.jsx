@@ -316,6 +316,13 @@ const ResultEntry = () => {
           res?.message ||
           (mode === 'draft' ? 'Results saved as draft.' : 'Results submitted.')
       });
+      // A submitted case leaves the pending list — refetch in the background
+      // so Back shows it gone without a manual refresh.
+      if (mode !== 'draft') {
+        setListLoading(true);
+        setListError(null);
+        setReloadKey((key) => key + 1);
+      }
     } catch (err) {
       // Entered values are untouched — the user can correct and retry.
       setFeedback({
@@ -371,11 +378,16 @@ const ResultEntry = () => {
     setReloadKey((key) => key + 1);
   };
 
+  // Terminal report states — results are already in, so the row offers no
+  // data-entry action (prevents "Enter/Submit persisting after submission").
+  const isReportFinal = (status) =>
+    ['Reported', 'Signed', 'Verified', 'Completed'].includes(status);
   const renderCaseRow = (row) => {
     const patient = row?.bill?.patient;
     const demographics = [patient?.age, patient?.gender]
       .filter((value) => value != null && value !== '')
       .join(' / ');
+    const final = isReportFinal(row?.report?.status);
     return (
       <tr key={row?.bill?._id}>
         <td>{row?.bill?.billNumber || '—'}</td>
@@ -390,9 +402,13 @@ const ResultEntry = () => {
           <StatusBadge status={row?.report?.status} />
         </td>
         <td>
-          <Button size="sm" variant="secondary" onClick={() => openCase(row)}>
-            Enter Results
-          </Button>
+          {final ? (
+            <span className="re-sub">Submitted — no action</span>
+          ) : (
+            <Button size="sm" variant="secondary" onClick={() => openCase(row)}>
+              {row?.report?.status === 'Draft' ? 'Edit Draft' : 'Enter Results'}
+            </Button>
+          )}
         </td>
       </tr>
     );
@@ -428,7 +444,7 @@ const ResultEntry = () => {
                 : values[testEntry.testId] ?? ''
             }
             onChange={(event) => handleValueChange(testEntry.testId, event.target.value)}
-            disabled={isDerived || busy !== null}
+            disabled={isDerived || busy !== null || isReportFinal(entry?.report?.status)}
             helperText={
               isDerived
                 ? calcRow
@@ -653,6 +669,9 @@ const ResultEntry = () => {
                   emptyMessage="This case has no lab tests to report."
                   renderRow={renderTestRow}
                 />
+                {isReportFinal(entry?.report?.status) ? (
+                  <p className="re-sub" role="status">Results already submitted — no further action. Go back to pick another case.</p>
+                ) : (
                 <div className="re-actions">
                   <Button
                     variant="secondary"
@@ -671,6 +690,7 @@ const ResultEntry = () => {
                     Submit Result
                   </Button>
                 </div>
+                )}
               </section>
             </>
           ) : null}

@@ -279,11 +279,12 @@ async function getPendingLabCases(req, res, next) {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Find LAB department bills that don't have a report, or have a report in Registered/Draft status
-    const billsWithReports = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed'] } }).distinct('bill');
+    // Find LAB department bills that don't have a report, or have a report in Registered/Draft status.
+    // Verified/Rejected are terminal too — without them such bills leak back into pending.
+    const billsWithReports = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed', 'Verified', 'Rejected'] } }).distinct('bill');
 
-    // Also include bills that have a report in Registered status (draft)
-    const draftReportBills = await Report.find({ ...branchScope, status: 'Registered' }).distinct('bill');
+    // Also include bills that have a report still in data-entry (Registered/Draft)
+    const draftReportBills = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft'] } }).distinct('bill');
 
     // Combine: bills without reports OR bills with draft reports
     const finalQuery = {

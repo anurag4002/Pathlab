@@ -502,19 +502,20 @@ const SmsPanel = ({ markDone }) => {
 const SignaturesPanel = ({ markDone }) => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', title: '', file: null });
+  const [form, setForm] = useState({ name: '', title: '', modalities: '', file: null });
+  const [uploadVersion, setUploadVersion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [del, setDel] = useState(null);
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const r = await getSignatures();
       const arr = Array.isArray(r?.data) ? r.data : r?.data?.signatures || [];
       setList(arr);
     } catch (e) { setError(getErrorMessage(e, 'Failed to load signatures.')); }
-    finally { setLoading(false); }
+    finally { if (!quiet) setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
   const upload = async (e) => {
@@ -527,12 +528,18 @@ const SignaturesPanel = ({ markDone }) => {
       fd.append('file', form.file);
       fd.append('name', form.name.trim());
       if (form.title.trim()) fd.append('title', form.title.trim());
+      // Modalities drive department auto-select downstream — without them the
+      // new signature can never be picked automatically ("No signature set").
+      form.modalities.split(',').map((m) => m.trim()).filter(Boolean)
+        .forEach((m) => fd.append('modalities', m));
       const r = await createSignature(fd);
       if (!r?.success) throw new Error(r?.message || 'Upload failed.');
       setNotice('Signature uploaded.');
-      setForm({ name: '', title: '', file: null });
-      await load();
-      await markDone('signature');
+      setForm({ name: '', title: '', modalities: '', file: null });
+      setUploadVersion((v) => v + 1);
+      // Refresh list + mark step done concurrently instead of two sequential
+      // full-page reloads (the perceived "hang").
+      await Promise.all([load(true), markDone('signature')]);
     } catch (err) { setError(getErrorMessage(err, 'Upload failed.')); }
     finally { setSaving(false); }
   };
@@ -555,7 +562,8 @@ const SignaturesPanel = ({ markDone }) => {
           <Input label="Doctor / authority name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={saving} required />
           <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} disabled={saving} />
         </div>
-        <FileUploader label="Signature image" subtitle="PDF, JPG, JPEG, PNG up to 10 MB" accept=".pdf,.jpg,.jpeg,.png" value={form.file} disabled={saving} onChange={(f) => setForm({ ...form, file: f })} />
+        <Input label="Departments (comma-separated, e.g. LAB, USG)" value={form.modalities} onChange={(e) => setForm({ ...form, modalities: e.target.value })} disabled={saving} helperText="Used to auto-select this signature for matching departments." />
+        <FileUploader key={`ob-sig-${uploadVersion}`} label="Signature image" subtitle="PDF, JPG, JPEG, PNG up to 10 MB" accept=".pdf,.jpg,.jpeg,.png" value={form.file} disabled={saving} onChange={(f) => setForm({ ...form, file: f })} />
         <div className="onboarding-row"><Button type="submit" loading={saving} disabled={saving}>Upload signature</Button></div>
       </form>
       {list.slice(0, 5).map((s) => (

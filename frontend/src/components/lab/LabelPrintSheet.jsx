@@ -68,7 +68,7 @@ const LabelPrintSheet = ({
   caseId = '', caseLabel = '', sampleId = '',
 }) => {
   const [tab, setTab] = useState('bill'); // 'bill' | 'case' | 'sample'
-  const [copies, setCopies] = useState(2);
+  const [copies, setCopies] = useState(1);
   const [stock, setStock] = useState(STOCKS[0]);
   const [caseValue, setCaseValue] = useState('');
   const [sampleValue, setSampleValue] = useState('');
@@ -88,7 +88,7 @@ const LabelPrintSheet = ({
     shortTests ? `T: ${shortTests}` : '',
   ].filter(Boolean);
 
-  const copiesList = Array.from({ length: Math.max(1, Math.min(12, Number(copies) || 1)) });
+  const copiesList = Array.from({ length: Math.max(1, Math.min(4, Number(copies) || 1)) });
 
   const printCss = `
     @page { size: ${stock.w} ${stock.h}; margin: 0; }
@@ -137,7 +137,7 @@ const LabelPrintSheet = ({
           <label style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             Copies
             <select value={copies} onChange={(e) => setCopies(Number(e.target.value))} className="select-control" style={{ maxWidth: 90 }}>
-              {[1, 2, 3, 4, 6, 8].map((n) => <option key={n} value={n}>{n}</option>)}
+              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
           <Button variant="secondary" onClick={onClose}>Close</Button>

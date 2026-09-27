@@ -209,7 +209,8 @@ const saveResults = async (reportId, entries = [], user) => {
 
   report.results = rows;
   report.tat = report.tat || {};
-  if (!report.tat.received) report.tat.received = new Date();
+  // Same collected-before-received invariant as submitResults.
+  if (!report.tat.received && report.tat.collected) report.tat.received = new Date();
   report.tat.reported = new Date();
   report.status = 'Reported';
   await report.save();
@@ -231,10 +232,20 @@ const signReport = async (reportId, signatureId, user) => {
 const updateTat = async (reportId, { collected, received }) => {
   const report = await Report.findById(reportId);
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  // Enforce collected-before-received: receipt without collection is rejected,
+  // and a receipt earlier than the collection is rejected.
+  if (received && !collected && !report.tat?.collected) {
+    throw Object.assign(new Error('Collect the sample before marking it received'), { statusCode: 400 });
+  }
+  const nextCollected = collected ? new Date(collected) : (report.tat?.collected ? new Date(report.tat.collected) : null);
+  const nextReceived = received ? new Date(received) : (report.tat?.received ? new Date(report.tat.received) : null);
+  if (nextCollected && nextReceived && nextReceived < nextCollected) {
+    throw Object.assign(new Error('Received time cannot be earlier than collected time'), { statusCode: 400 });
+  }
   report.tat = report.tat || {};
   if (collected) report.tat.collected = new Date(collected);
   if (received) report.tat.received = new Date(received);
-  if (report.status === 'Registered' && (collected || received)) report.status = 'Received';
+  if (report.status === 'Registered' && (collected || report.tat.collected)) report.status = 'Received';
   await report.save();
   return report;
 };
@@ -289,7 +300,9 @@ const saveResultsDraft = async (reportId, entries = [], user) => {
 
   report.results = rows;
   report.tat = report.tat || {};
-  if (!report.tat.received) report.tat.received = new Date();
+  // Draft is data entry, not sample receipt — never stamp `received` here.
+  // `received` is set only by an explicit collection/receipt event (updateTat)
+  // or, on submit, when `collected` already exists.
   // Keep status as Registered for draft
   if (report.status === 'Registered') report.status = 'Draft';
   await report.save();
@@ -339,7 +352,9 @@ const submitResults = async (reportId, entries = [], user) => {
 
   report.results = rows;
   report.tat = report.tat || {};
-  if (!report.tat.received) report.tat.received = new Date();
+  // Only backfill `received` when the sample was actually collected —
+  // otherwise the timeline would show "received" for never-collected samples.
+  if (!report.tat.received && report.tat.collected) report.tat.received = new Date();
   report.tat.reported = new Date();
   report.status = 'Reported';
   await report.save();

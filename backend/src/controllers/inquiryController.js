@@ -15,9 +15,13 @@ const listInquiries = async (req, res, next) => {
     if (status) query.status = status;
     if (String(search).trim()) {
       const s = String(search).trim();
+      // Also match already-confirmed patients by registration number.
+      const Patient = require('../models/Patient');
+      const matched = await Patient.find({ registrationNumber: { $regex: s, $options: 'i' } }).select('_id').limit(20).lean().catch(() => []);
       query.$or = [
         { name: { $regex: s, $options: 'i' } },
-        { phone: { $regex: s, $options: 'i' } }
+        { phone: { $regex: s, $options: 'i' } },
+        ...(matched.length ? [{ patient: { $in: matched.map((p) => p._id) } }] : []),
       ];
     }
 

@@ -364,9 +364,13 @@ const createInquiry = async (req, res, next) => {
       patientRef = owned._id;
       if (!displayName) displayName = owned.name;
     }
-    if (!displayName) {
-      const first = await Patient.findOne({ phone }).select('name');
-      displayName = first ? first.name : '';
+    if (!displayName || !patientRef) {
+      const first = await Patient.findOne({ phone }).select('_id name');
+      if (first) {
+        if (!displayName) displayName = first.name;
+        // Link already-confirmed patients so staff see the profile in queue.
+        if (!patientRef) patientRef = first._id;
+      }
     }
     if (!displayName) {
       return errorResponse(res, 'Your name is required for the booking', 400);

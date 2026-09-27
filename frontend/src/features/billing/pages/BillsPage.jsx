@@ -130,7 +130,7 @@ const BillsPage = () => {
   const [filterVoided, setFilterVoided] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [adv, setAdv] = useState({
-    duration: 'Past 7 days',
+    duration: '',
     regNo: '',
     firstName: '',
     referredBy: '',
@@ -249,6 +249,10 @@ const BillsPage = () => {
     limit,
     isCreateView,
     adv.duration,
+    adv.regNo,
+    adv.firstName,
+    adv.uhid,
+    adv.dailyCaseNo,
     adv.referredBy,
     adv.collectionCentre,
     adv.agent,
@@ -269,6 +273,12 @@ const BillsPage = () => {
     const querySearch = sanitizeBillSearchParam(searchParams.get('search'));
     if (querySearch) {
       setSearch(querySearch);
+      // A deep-linked bill may sit outside the default date window — drop the
+      // duration/branch/status constraints so it loads without a filter change.
+      setAdv((prev) => ({ ...prev, duration: '' }));
+      setFilterStatus('');
+      setFilterDept('');
+      setFilterBranch('');
       goToPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

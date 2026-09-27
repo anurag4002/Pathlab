@@ -85,7 +85,7 @@ const Branches = () => {
       <PageHeader
         title="Branches"
         subtitle="Each staff member belongs to exactly one branch. Staff see only their own branch; Admins see all."
-        action={<Button variant="primary" onClick={openCreate} icon={<Plus size={16} />}>Add branch</Button>}
+        action={<><Button variant="secondary" size="sm" onClick={load} disabled={loading} icon={<RefreshCw size={14} />}>Refresh</Button><Button variant="primary" onClick={openCreate} icon={<Plus size={16} />}>Add branch</Button></>}
       />
       {error && <div className="user-management-alert user-management-alert-error" role="alert"><span>{error}</span><Button variant="secondary" size="sm" onClick={load} disabled={loading}>Retry</Button></div>}
       {notice && <div className="user-management-alert user-management-alert-success" role="status">{notice}</div>}
@@ -136,9 +136,6 @@ const Branches = () => {
         message={`Permanently delete ${del?.name || 'this branch'}? Branches with staff assigned cannot be deleted.`}
         confirmText="Delete branch"
       />
-      <div style={{ marginTop: 12 }}>
-        <Button variant="secondary" size="sm" onClick={load} disabled={loading} icon={<RefreshCw size={14} />}>Refresh</Button>
-      </div>
     </div>
   );
 };
