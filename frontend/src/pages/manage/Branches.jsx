@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { getBranches, createBranch, updateBranch, deleteBranch } from '../../services/branchService';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
@@ -7,6 +8,20 @@ import '../../styles/UserManagement.css';
 const EMPTY = { name: '', code: '', address: '', phone: '', email: '', status: 'Active' };
 
 const Branches = () => {
+  // Form + delete pop-ups stay React state but are mirrored to the URL
+  // (?branch=new|<id>, ?del=<id>) so reload / share keeps the view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mirrorModal = (key, isOpen, id) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (isOpen) next.set(key, id ? String(id) : 'open');
+        else next.delete(key);
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +48,20 @@ const Branches = () => {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Mirror open pop-ups to the URL; reopen them from a shared/reloaded URL.
+  useEffect(() => { mirrorModal('branch', open, editing?._id); }, [open, editing?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('del', !!del, del?._id); }, [del]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!branches.length) return;
+    const find = (id) => branches.find((b) => String(b._id) === String(id));
+    const bp = searchParams.get('branch');
+    if (bp === 'new' && !open) { setEditing(null); setForm(EMPTY); setOpen(true); }
+    else if (bp && bp !== 'new' && bp !== 'open' && !open) { const b = find(bp); if (b) openEdit(b); }
+    const dp = searchParams.get('del');
+    if (dp && dp !== 'open' && !del) { const b = find(dp); if (b) setDel(b); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branches]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setOpen(true); };
   const openEdit = (b) => {

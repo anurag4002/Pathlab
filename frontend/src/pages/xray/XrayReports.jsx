@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getXrayCases } from '../../services/xrayService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
@@ -30,6 +31,8 @@ const getApiErrorMessage = (err, fallback) => {
 const scanFileExt = (fileUrl) => (fileUrl?.includes('.') ? `.${fileUrl.split('.').pop()}` : '');
 
 const XrayReports = () => {
+  // Print pop-up stays React state but is mirrored to ?print=<id>.
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -97,6 +100,16 @@ const XrayReports = () => {
     loadBranding();
     return () => { active = false; };
   }, []);
+
+  // Reopen the print pop-up from a shared/reloaded URL once reports load.
+  useEffect(() => {
+    const printId = searchParams.get('print');
+    if (printId && !printOpen && reports.length) {
+      const found = reports.find((r) => String(r._id) === String(printId));
+      if (found) { setPrintTarget(found); setPrintOpen(true); }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports]);
 
   const labName = labProfile?.labName || 'PURE PATH LAB';
   const labTagline = labProfile?.tagline || 'Pathology & Diagnostic Center';
@@ -178,6 +191,7 @@ const XrayReports = () => {
                 onClick={() => {
                   setPrintTarget(report);
                   setPrintOpen(true);
+                  if (report?._id) setSearchParams({ print: report._id }, { replace: true });
                 }}
               >
                 <Printer size={14} /> Preview
@@ -189,11 +203,11 @@ const XrayReports = () => {
 
       <Modal
         isOpen={printOpen}
-        onClose={() => setPrintOpen(false)}
+        onClose={() => { setPrintOpen(false); setSearchParams({}, { replace: true }); }}
         title="X-Ray Report Print Preview"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setPrintOpen(false)}>Close</Button>
+            <Button variant="secondary" onClick={() => { setPrintOpen(false); setSearchParams({}, { replace: true }); }}>Close</Button>
             <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Print Report</Button>
           </>
         }

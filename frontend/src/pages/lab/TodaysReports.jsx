@@ -99,6 +99,20 @@ const matchesSearch = (report, q) => {
 
 const TodaysReports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  // Every pop-up stays React state for rendering but is mirrored to the URL
+  // (?upload, ?result, ?entry=<id>, ?send=<id>, ?preview=<id>, ?reject=<id>,
+  // ?label=<id>, ?del=<id>) so refresh / share reopens the same view.
+  const mirrorModal = (key, isOpen, id) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (isOpen) next.set(key, id ? String(id) : 'open');
+        else next.delete(key);
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -304,16 +318,45 @@ const TodaysReports = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pop-up ↔ URL mirror: React state renders; the query string preserves.
+  // Each open pop-up sets its param, each close clears it.
+  useEffect(() => { mirrorModal('upload', uploadOpen); }, [uploadOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('result', resultOpen); }, [resultOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('entry', entryOpen, activeReport?._id); }, [entryOpen, activeReport?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('send', sendOpen, activeReport?._id); }, [sendOpen, activeReport?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('preview', previewOpen, activeReport?._id); }, [previewOpen, activeReport?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('reject', rejectOpen, activeReport?._id); }, [rejectOpen, activeReport?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('del', !!deleteTarget, deleteTarget?._id); }, [deleteTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Dashboard quick action links here with ?upload=true — open the upload modal directly.
   useEffect(() => {
-    if (searchParams.get('upload') === 'true') {
+    if (searchParams.get('upload')) {
       setUploadOpen(true);
       setFormErrors({});
-      searchParams.delete('upload');
-      setSearchParams(searchParams, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reopen pop-ups from a shared/reloaded URL once the worklist is loaded.
+  useEffect(() => {
+    if (!reports.length) return;
+    const find = (id) => reports.find((r) => String(r._id) === String(id));
+    if (searchParams.get('result') && !resultOpen) setResultOpen(true);
+    const entryId = searchParams.get('entry');
+    if (entryId && entryId !== 'open' && !entryOpen) { const r = find(entryId); if (r) openEntry(r); }
+    const sendId = searchParams.get('send');
+    if (sendId && sendId !== 'open' && !sendOpen) { const r = find(sendId); if (r) openSend(r); }
+    const previewId = searchParams.get('preview');
+    if (previewId && previewId !== 'open' && !previewOpen) { const r = find(previewId); if (r) handleOpenPreview(r); }
+    const rejectId = searchParams.get('reject');
+    if (rejectId && rejectId !== 'open' && !rejectOpen) { const r = find(rejectId); if (r) { setActiveReport(r); setRejectOpen(true); } }
+    const labelId = searchParams.get('label');
+    if (labelId && labelId !== 'open' && !labelTarget) { const r = find(labelId); if (r) setLabelTarget(r); }
+    const delId = searchParams.get('del');
+    if (delId && delId !== 'open' && !deleteTarget) { const r = find(delId); if (r) setDeleteTarget(r); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reports]);
 
   const deptOptions = useMemo(() => {
     const set = new Set(reports.map(inferDepartment));

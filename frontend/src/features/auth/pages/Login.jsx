@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import useAuth from '../../../hooks/useAuth';
 import apiClient from '../../../services/apiClient';
@@ -23,8 +23,14 @@ const FacebookIcon = () => (
 );
 
 const Login = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, syncFromStorage, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where the user was headed before the auth bounce (ProtectedRoute sets
+  // this); defaults to the dashboard for direct visits to /login.
+  const from = location.state?.from && location.state.from !== '/login' && location.state.from !== '/admin/login'
+    ? location.state.from
+    : '/dashboard';
   const [mode, setMode] = useState('password'); // password | otp
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,7 +48,7 @@ const Login = () => {
   const [fpErr, setFpErr] = useState('');
   const [fpLoading, setFpLoading] = useState(false);
 
-  useEffect(() => { if (isAuthenticated) navigate('/dashboard', { replace: true }); }, [isAuthenticated, navigate]);
+  useEffect(() => { if (isAuthenticated) navigate(from, { replace: true }); }, [isAuthenticated, navigate, from]);
 
   const persistBrowser = (code) => { if (code?.trim()) localStorage.setItem('ppl_browser', code.trim()); };
   const opts = () => ({ remember, browserCode: browserCode.trim() });
@@ -54,7 +60,7 @@ const Login = () => {
     try {
       persistBrowser(browserCode);
       const res = await login(email.trim(), password, opts());
-      if (res.success) navigate('/dashboard', { replace: true });
+      if (res.success) navigate(from, { replace: true });
     } catch (err) {
       setError(!err.response ? 'Unable to reach backend (port 5001).' : err.response?.data?.message || 'Invalid email/phone or password');
     } finally { setLoading(false); }
@@ -76,7 +82,13 @@ const Login = () => {
     try {
       persistBrowser(browserCode);
       const r = await verifyEmailOtp(email.trim(), otp.trim(), opts());
-      if (r.success) { setInfo(r.message || 'Logged in.'); navigate('/dashboard', { replace: true }); }
+      if (r.success) {
+        // OTP writes storage directly — sync the context so the guard sees
+        // the session instead of bouncing straight back to login.
+        syncFromStorage();
+        setInfo(r.message || 'Logged in.');
+        navigate(from, { replace: true });
+      }
     } catch (err) { setError(err.response?.data?.message || 'Invalid OTP.'); }
     finally { setLoading(false); }
   };

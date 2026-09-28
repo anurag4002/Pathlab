@@ -57,7 +57,7 @@ const getGoogleAuthUrl = (req, res) => {
 
   const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
   const options = {
-    redirect_uri: GOOGLE_CALLBACK_URL || 'http://localhost:5173/admin/login',
+    redirect_uri: GOOGLE_CALLBACK_URL || 'http://localhost:3000/login',
     client_id: GOOGLE_CLIENT_ID,
     access_type: 'offline',
     response_type: 'code',
@@ -108,7 +108,7 @@ const getFacebookAuthUrl = (req, res) => {
   const rootUrl = 'https://www.facebook.com/v18.0/dialog/oauth';
   const options = {
     client_id: FACEBOOK_CLIENT_ID,
-    redirect_uri: FACEBOOK_CALLBACK_URL || 'http://localhost:5173/admin/login',
+    redirect_uri: FACEBOOK_CALLBACK_URL || 'http://localhost:3000/login',
     scope: 'email,public_profile'
   };
 

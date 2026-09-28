@@ -402,10 +402,6 @@ const PatientReportPortal = () => {
           <ArrowLeft size={16} />
           <span>Back to Pure Path Lab</span>
         </Link>
-        <Link to="/admin/login" className="patient-staff-link">
-          <Lock size={14} />
-          <span>Staff Login</span>
-        </Link>
       </div>
 
       <div className="patient-portal-header">

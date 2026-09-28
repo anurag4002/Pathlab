@@ -101,7 +101,21 @@ const DetailSection = ({ title }) => (
 const BillsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Pop-ups stay React state for rendering but are mirrored to the URL
+  // (?pay=<id>, ?void=<id>, ?details=<id>, ?label=<id>) so refresh / share
+  // reopens the same view instead of losing it.
+  const mirrorModal = (key, isOpen, id) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (isOpen) next.set(key, id ? String(id) : 'open');
+        else next.delete(key);
+        return next;
+      },
+      { replace: true }
+    );
+  };
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
 
@@ -356,6 +370,25 @@ const BillsPage = () => {
       setVoidLoading(false);
     }
   };
+
+  // Pop-up ↔ URL mirror + restore (runs once the ledger is loaded).
+  useEffect(() => { mirrorModal('pay', paymentModalOpen, paymentTargetBill?._id); }, [paymentModalOpen, paymentTargetBill?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('void', !!voidTarget, voidTarget?._id); }, [voidTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('details', !!detailsTarget, detailsTarget?._id); }, [detailsTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isCreateView || !bills.length) return;
+    const find = (id) => bills.find((b) => String(b._id) === String(id));
+    const payId = searchParams.get('pay');
+    if (payId && payId !== 'open' && !paymentModalOpen) { const b = find(payId); if (b) handleOpenPayment(b); }
+    const voidId = searchParams.get('void');
+    if (voidId && voidId !== 'open' && !voidTarget) { const b = find(voidId); if (b) setVoidTarget(b); }
+    const detailsId = searchParams.get('details');
+    if (detailsId && detailsId !== 'open' && !detailsTarget) { const b = find(detailsId); if (b) openDetails(b); }
+    const labelId = searchParams.get('label');
+    if (labelId && labelId !== 'open' && !labelTarget) { const b = find(labelId); if (b) setLabelTarget(b); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bills, isCreateView]);
 
   // Per-invoice details via the existing GET /bills/:id (populated patient,
   // doctor, agent, item lines and cashier). Called from click handlers only.

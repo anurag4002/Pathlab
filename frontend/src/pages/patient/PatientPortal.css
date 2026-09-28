@@ -15,7 +15,7 @@
   max-width: 760px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 1.5rem;
 }
 
@@ -31,25 +31,6 @@
 
 .patient-back-link:hover {
   color: #2563eb;
-}
-
-.patient-staff-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8125rem;
-  color: #64748b;
-  text-decoration: none;
-  font-weight: 500;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-}
-
-.patient-staff-link:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
 }
 
 .patient-portal-header {

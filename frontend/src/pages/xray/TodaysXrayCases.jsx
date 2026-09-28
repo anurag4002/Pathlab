@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getXrayCases, createXrayCase, updateXrayCase, uploadXrayImage } from '../../services/xrayService';
 import { deleteXrayCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
@@ -54,6 +55,9 @@ const scanFileExt = (fileUrl) => (fileUrl?.includes('.') ? `.${fileUrl.split('.'
 const TodaysXrayCases = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
+  // Pop-ups stay React state but are mirrored to the URL (?case, ?print) so
+  // reload / share reopens the same view (same pattern as USG cases).
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cases, setCases] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -235,6 +239,24 @@ const TodaysXrayCases = () => {
     goToPage(1);
   };
 
+  const closeForm = () => {
+    setFormOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('case');
+      return next;
+    }, { replace: true });
+  };
+
+  const closePrint = () => {
+    setPrintOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('print');
+      return next;
+    }, { replace: true });
+  };
+
   const handleOpenCreate = () => {
     setEditingCase(null);
     setPickedPatient(null);
@@ -242,6 +264,7 @@ const TodaysXrayCases = () => {
     setGalleryUrls([]);
     setErrors({});
     setFormOpen(true);
+    setSearchParams({ case: 'new' }, { replace: true });
   };
 
   const handleOpenEdit = (c) => {
@@ -258,6 +281,7 @@ const TodaysXrayCases = () => {
     setUploaderKey((k) => k + 1);
     setErrors({});
     setFormOpen(true);
+    if (c?._id) setSearchParams({ case: c._id }, { replace: true });
   };
 
   const validate = () => {
@@ -291,7 +315,7 @@ const TodaysXrayCases = () => {
       }
 
       if (res.success) {
-        setFormOpen(false);
+        closeForm();
         fetchCases();
       }
     } catch (err) {
@@ -304,7 +328,36 @@ const TodaysXrayCases = () => {
   const handlePrint = (c) => {
     setPrintTarget(c);
     setPrintOpen(true);
+    if (c?._id) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('print', c._id);
+        return next;
+      }, { replace: true });
+    }
   };
+
+  // Restore an open pop-up from the URL after reload (?case=new|<id>, ?print=<id>).
+  useEffect(() => {
+    const caseParam = searchParams.get('case');
+    const printParam = searchParams.get('print');
+    if (!caseParam && !printParam) return;
+    if ((caseParam && caseParam !== 'new') || printParam) {
+      if (dateScope === 'today') { setDateScope('all'); return; }
+    }
+    if (!cases.length) return;
+    if (caseParam === 'new' && !formOpen) {
+      handleOpenCreate();
+    } else if (caseParam && caseParam !== 'new' && !formOpen) {
+      const found = cases.find((c) => String(c._id) === String(caseParam));
+      if (found) handleOpenEdit(found);
+    }
+    if (printParam && !printOpen) {
+      const found = cases.find((c) => String(c._id) === String(printParam));
+      if (found) handlePrint(found);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, dateScope]);
 
   const handleSigned = (updated) => {
     if (!updated) return fetchCases();
@@ -487,11 +540,11 @@ const TodaysXrayCases = () => {
       {/* Case Form Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         title={editingCase ? 'Edit X-Ray Case Findings' : 'Create X-Ray Case Entry'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
@@ -585,11 +638,11 @@ const TodaysXrayCases = () => {
       {/* Print X-Ray Findings Modal (aligned with USG preview) */}
       <Modal
         isOpen={printOpen}
-        onClose={() => setPrintOpen(false)}
+        onClose={closePrint}
         title="X-Ray Report Print Preview"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setPrintOpen(false)}>Close</Button>
+            <Button variant="secondary" onClick={closePrint}>Close</Button>
             <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Print Report</Button>
           </>
         }

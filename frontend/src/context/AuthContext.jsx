@@ -35,6 +35,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Re-read token/user written directly to storage (e.g. OTP verify writes
+  // localStorage without going through loginUser) so the context reflects
+  // the session immediately instead of bouncing back to /login.
+  const syncFromStorage = () => {
+    try {
+      const storedToken = localStorage.getItem('ppl_token');
+      const storedUser = localStorage.getItem('ppl_user');
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        return true;
+      }
+    } catch {
+      /* corrupted storage — treat as logged out */
+    }
+    return false;
+  };
+
   const logoutUser = async () => {
     setLoading(true);
     try {
@@ -61,6 +79,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         login: loginUser,
         loginUser,
+        syncFromStorage,
         logout: logoutUser,
         isAuthenticated: !!token,
         hasRole

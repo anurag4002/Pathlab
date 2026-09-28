@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FileText,
-  Lock,
   ArrowRight,
   Microscope,
   Activity,
@@ -79,10 +78,6 @@ const LandingPage = () => {
               <FileText size={15} />
               <span>View Your Report</span>
             </Link>
-            <Link to="/admin/login" className="landing-btn-primary">
-              <Lock size={14} />
-              <span>Admin Login</span>
-            </Link>
 
             {/* Mobile Hamburger Button */}
             <button
@@ -116,10 +111,6 @@ const LandingPage = () => {
                 <FileText size={16} />
                 <span>View Your Report</span>
               </Link>
-              <Link to="/admin/login" className="landing-btn-primary mobile-action-btn" onClick={() => setMobileMenuOpen(false)}>
-                <Lock size={15} />
-                <span>Staff Sign In</span>
-              </Link>
             </div>
           </div>
         )}
@@ -146,10 +137,6 @@ const LandingPage = () => {
                 <FileText size={18} />
                 <span>View Your Report</span>
                 <ArrowRight size={16} />
-              </Link>
-              <Link to="/admin/login" className="hero-secondary-cta">
-                <Lock size={16} />
-                <span>Admin Login</span>
               </Link>
             </div>
           </div>
@@ -298,8 +285,6 @@ const LandingPage = () => {
             <p>© {new Date().getFullYear()} {LAB_PROFILE.name}. All diagnostic rights reserved.</p>
             <div className="landing-footer-links">
               <Link to="/patient/report">Patient Report Portal</Link>
-              <span>•</span>
-              <Link to="/admin/login">Staff Login</Link>
             </div>
           </div>
         </div>
