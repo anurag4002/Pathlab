@@ -70,6 +70,9 @@ const LandingPage = () => {
             <button type="button" onClick={() => scrollToSection('contact')} className="nav-link-btn">
               Contact
             </button>
+               <Link to="/admin" className="nav-link-btn">
+              Admin
+            </Link>
           </nav>
 
           {/* Header Action Buttons */}
@@ -138,6 +141,11 @@ const LandingPage = () => {
                 <span>View Your Report</span>
                 <ArrowRight size={16} />
               </Link>
+                <Link to="/admin" className="hero-secondary-cta" onClick={() => setMobileMenuOpen(false)}>
+                <ShieldCheck size={18} />
+                <span>Admin Panel</span>
+              </Link>
+
             </div>
           </div>
         </div>
