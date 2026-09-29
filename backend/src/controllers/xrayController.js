@@ -4,6 +4,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 
 const getXrayCases = async (req, res, next) => {
   try {
@@ -46,6 +47,7 @@ const createXrayCase = async (req, res, next) => {
       return errorResponse(res, 'Patient and findings text are required', 400);
     }
 
+    persistRequestFiles(req, 'xray');
     let fileUrl = '';
     if (req.file) {
       fileUrl = `uploads/xray/${req.file.filename}`;
@@ -92,8 +94,15 @@ const updateXrayCase = async (req, res, next) => {
     if (status) xrayCase.status = status;
 
     if (req.file) {
-      // If we uploaded a new file, save it
+      const storageService = require('../services/storageService');
+      // Persist the new buffer first, then remove the replaced file so a
+      // failed write never orphans the old record without a file.
+      persistRequestFiles(req, 'xray');
+      const oldUrl = xrayCase.fileUrl;
       xrayCase.fileUrl = `uploads/xray/${req.file.filename}`;
+      if (oldUrl && oldUrl !== xrayCase.fileUrl) {
+        await storageService.deleteFile(oldUrl);
+      }
     }
 
     await xrayCase.save();

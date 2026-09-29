@@ -1,50 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-const { UPLOAD_DIR } = require('../config/environment');
 const setupController = require('../controllers/setupController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const { uploadLimiter } = require('../middleware/rateLimitMiddleware');
+// Shared hardened upload layer (multer 2.x, memoryStorage + secure limits).
+// `upload` enforces the pdf/jpg/png filter (10MB); `logoUpload` enforces the
+// image-only 2MB cap. Both buffer in memory and are persisted to disk by the
+// controllers via persistRequestFiles() — safe on Vercel serverless (/tmp).
 const upload = require('../middleware/uploadMiddleware');
+const { logoUpload } = require('../middleware/uploadMiddleware');
 
 const imageUpload = upload; // pdf/jpg/png filter already enforced (10MB)
-
-// Logo-only upload: images only (jpg/jpeg/png), 2MB cap. Accepts the `logo`
-// field (new) and `file` (legacy form key used by the current client).
-const logoStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    try {
-      const baseDir = process.env.VERCEL
-        ? '/tmp/uploads'
-        : path.resolve(__dirname, '../../', UPLOAD_DIR);
-      const fullPath = path.join(baseDir, 'letterheads');
-      if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
-      cb(null, fullPath);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const logoUpload = multer({
-  storage: logoStorage,
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    if (['.jpg', '.jpeg', '.png'].includes(ext) && String(file.mimetype || '').startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPG, JPEG, and PNG images are allowed for the logo.'), false);
-    }
-  },
-  limits: { fileSize: 2 * 1024 * 1024 } // 2MB cap
-});
+// Logo-only upload accepts the `logo` field (new) and `file` (legacy form
+// key used by the current client).
 
 // Lab profile (centre setup) — Admin only.
 router.get('/lab-profile', protect, setupController.getProfile);

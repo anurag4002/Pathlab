@@ -4,6 +4,7 @@ const OnboardingProgress = require('../models/OnboardingProgress');
 const Signature = require('../models/Signature');
 const WebBrowser = require('../models/WebBrowser');
 const storageService = require('../services/storageService');
+const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { ONBOARDING_STEPS } = require('../constants/onboarding');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
@@ -48,6 +49,9 @@ const updateProfile = async (req, res, next) => {
 // base64/data-URI `logoUrl` string in the JSON body (no file needed).
 const uploadLogoFile = async (req, res, next) => {
   try {
+    // logoUpload uses memoryStorage — flush validated buffer(s) to
+    // letterheads/ before reading `.filename`.
+    persistRequestFiles(req, 'letterheads');
     const file = req.file || req.files?.logo?.[0] || req.files?.file?.[0];
     let profile = await LabProfile.findOne();
     if (!profile) profile = new LabProfile({});
@@ -71,6 +75,7 @@ const uploadLogoFile = async (req, res, next) => {
 
 const uploadAsset = (field) => async (req, res, next) => {
   try {
+    persistRequestFiles(req, 'letterheads');
     if (!req.file) return errorResponse(res, 'Please upload a file', 400);
     let profile = await LabProfile.findOne();
     if (!profile) profile = new LabProfile({});
@@ -137,6 +142,7 @@ const createSignature = async (req, res, next) => {
     const { name, title, modalities } = req.body;
     if (!name) return errorResponse(res, 'Signature name is required', 400);
     if (!req.file) return errorResponse(res, 'Signature image is required', 400);
+    persistRequestFiles(req, 'signatures');
     const doc = await Signature.create({
       name,
       title: title || '',
@@ -219,11 +225,13 @@ const updateSignature = async (req, res, next) => {
     }
 
     if (req.file) {
+      // Validate BEFORE persisting so rejected buffers are just dropped
+      // (no orphan file on disk, nothing to clean up).
       const ext = String(req.file.originalname || '').split('.').pop().toLowerCase();
       if (!['jpg', 'jpeg', 'png'].includes(ext) || !String(req.file.mimetype || '').startsWith('image/')) {
-        await storageService.deleteFile(`uploads/signatures/${req.file.filename}`);
         return errorResponse(res, 'Signature image must be a JPG or PNG image', 400);
       }
+      persistRequestFiles(req, 'signatures');
       if (doc.imageUrl) await storageService.deleteFile(doc.imageUrl);
       doc.imageUrl = `uploads/signatures/${req.file.filename}`;
     } else if (body.imageUrl !== undefined && String(body.imageUrl).trim()) {

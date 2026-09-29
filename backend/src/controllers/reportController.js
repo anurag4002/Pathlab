@@ -13,6 +13,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 
 const assertReportAccess = async (req, id) => {
   const doc = await Report.findById(id).select('branch');
@@ -57,6 +58,10 @@ const getReports = async (req, res, next) => {
 
 const uploadReport = async (req, res, next) => {
   try {
+    // memoryStorage (multer 2.x): persist the validated buffer to disk
+    // (/tmp/uploads on Vercel, backend/<UPLOAD_DIR> locally) so that
+    // `req.file.filename` + storageService keep working unchanged.
+    persistRequestFiles(req, 'reports');
     if (!req.file) {
       return errorResponse(res, 'Please upload a file', 400);
     }
