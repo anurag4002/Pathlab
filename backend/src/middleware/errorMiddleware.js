@@ -12,6 +12,13 @@ const MULTER_ERROR_MESSAGES = {
 };
 
 const errorHandler = (err, req, res, next) => {
+  // CORS rejections are client-config errors, not server crashes.
+  // Return 403 with a clear message instead of a 500 "Unhandled Server Error".
+  if (err && err.message && err.message.startsWith('Not allowed by CORS')) {
+    console.warn(`CORS blocked origin: ${req.headers.origin} for ${req.method} ${req.originalUrl}`);
+    return errorResponse(res, err.message, err.statusCode || 403);
+  }
+
   console.error('Unhandled Server Error: ', err);
 
   // Multer 2.x upload failures are client errors (400), never 500s.

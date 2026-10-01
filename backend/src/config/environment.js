@@ -1,8 +1,34 @@
 const dotenv = require('dotenv');
+const fs = require('fs');
 const path = require('path');
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
-dotenv.config({ path: path.join(__dirname, '../../../.env') });
+// Load env from files with clear precedence (first hit wins for each key,
+// real process env — e.g. Vercel dashboard — always wins over files):
+//   1. backend/.env  (most specific, local backend dev)
+//   2. repo-root /.env (shared fallback — "put it in / and it pulls up")
+//   3. cwd/.env + cwd/backend/.env (covers `npm run dev` from root vs backend)
+function loadEnvFiles() {
+  const candidates = [
+    path.join(__dirname, '../../.env'),
+    path.join(__dirname, '../../../.env'),
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), 'backend/.env'),
+  ];
+  const seen = new Set();
+  for (const p of candidates) {
+    const resolved = path.resolve(p);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    if (!fs.existsSync(resolved)) continue;
+    const result = dotenv.config({ path: resolved });
+    if (!result.error) {
+      // stderr only — stdout must stay clean JSON for health checks / tests.
+      console.error(`[env] loaded ${resolved}`);
+    }
+  }
+}
+
+loadEnvFiles();
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const isProduction = NODE_ENV === 'production';
@@ -35,6 +61,35 @@ if (!JWT_SECRET) {
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+// Absolute public base used inside QR codes (backend serves /r/:token).
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || CLIENT_URL || '').replace(/\/$/, '');
+
+// Build the CORS allowlist.
+// - If CORS_ORIGIN is explicitly set, honour it exactly (operator intent).
+// - Otherwise fall back to every known frontend URL so a single-domain
+//   Vercel deploy (frontend `/` + API `/api` on the same host) works when
+//   the operator only sets CLIENT_URL. Comparison in cors.js is
+//   origin-only (no path), so `https://app.vercel.app`,
+//   `https://app.vercel.app/` and `https://app.vercel.app/api` match.
+function buildCorsOrigin() {
+  if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN.trim()) {
+    return process.env.CORS_ORIGIN.trim();
+  }
+  const candidates = [
+    CLIENT_URL || '',
+    PUBLIC_BASE_URL || '',
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : '',
+  ];
+  const merged = candidates
+    .flatMap((s) => String(s || '').split(','))
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [...new Set(merged)].join(',') || CLIENT_URL;
+}
+
 module.exports = {
   PORT: process.env.PORT || 5001,
   MONGO_URI,
@@ -43,10 +98,10 @@ module.exports = {
   CLIENT_URL,
   // Comma-separated allowlist, e.g. "https://app.example.com,https://admin.example.com".
   // Defaults to CLIENT_URL. Use "*" only for local development, never in production.
-  CORS_ORIGIN: process.env.CORS_ORIGIN || CLIENT_URL,
+  CORS_ORIGIN: buildCorsOrigin(),
   CORS_CREDENTIALS: process.env.CORS_CREDENTIALS !== 'false',
   // Absolute public base used inside QR codes (backend serves /r/:token).
-  PUBLIC_BASE_URL: (process.env.PUBLIC_BASE_URL || CLIENT_URL || '').replace(/\/$/, ''),
+  PUBLIC_BASE_URL,
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'src/uploads',
   NODE_ENV,
   OTP_EXPIRY_MINUTES: parseInt(process.env.OTP_EXPIRY_MINUTES, 10) || 5,
