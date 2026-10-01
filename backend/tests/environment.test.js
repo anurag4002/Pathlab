@@ -55,7 +55,10 @@ describe('environment CORS wiring', () => {
     const { err, stdout } = await loadEnv({
       NODE_ENV: 'development', MONGO_URI: '', JWT_SECRET: '',
       CLIENT_URL: 'https://lab.example.com',
-      CORS_ORIGIN: ''
+      CORS_ORIGIN: '',
+      PUBLIC_BASE_URL: '',
+      VERCEL_URL: '',
+      VERCEL_PROJECT_PRODUCTION_URL: ''
     });
     assert.equal(err, null);
     const cfg = JSON.parse(stdout.trim());
@@ -67,7 +70,10 @@ describe('environment CORS wiring', () => {
     const { err, stdout } = await loadEnv({
       NODE_ENV: 'development', MONGO_URI: '', JWT_SECRET: '',
       CORS_ORIGIN: 'https://a.example.com,https://b.example.com',
-      CORS_CREDENTIALS: 'false'
+      CORS_CREDENTIALS: 'false',
+      PUBLIC_BASE_URL: '',
+      VERCEL_URL: '',
+      VERCEL_PROJECT_PRODUCTION_URL: ''
     });
     assert.equal(err, null);
     const cfg = JSON.parse(stdout.trim());
