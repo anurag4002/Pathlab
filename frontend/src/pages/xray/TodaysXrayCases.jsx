@@ -132,7 +132,11 @@ const TodaysXrayCases = () => {
       // Today scope filters server-side; All-dates scope loads everything
       // and filters client-side (backend has no from/to support).
       if (dateScope === 'today' && !debouncedSearch.trim() && !fromDate && !toDate) {
-        params.date = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        params.date = `${yyyy}-${mm}-${dd}`;
       }
       const res = await getXrayCases(params);
       if (!res?.success) {
@@ -319,6 +323,8 @@ const TodaysXrayCases = () => {
       if (res.success) {
         closeForm();
         fetchCases();
+      } else {
+        setErrors({ api: res?.message || 'Failed to save X-Ray case details' });
       }
     } catch (err) {
       setErrors({ api: err.response?.data?.message || 'Failed to save X-Ray case details' });
@@ -610,15 +616,16 @@ const TodaysXrayCases = () => {
             {errors.findings && <p className="form-error">{errors.findings}</p>}
           </div>
 
-          <div className="xray-form-section-title">Scan attachment</div>
+          <div className="xray-form-section-title">Scan attachment (optional)</div>
 
           <div style={{ marginTop: '0.5rem' }}>
             <FileUploader
               onChange={(file) => setFormData(prev => ({ ...prev, file }))}
               value={formData.file}
-              label="Select X-Ray Scan image file"
+              label="Select X-Ray Scan image file (optional — leave empty to save findings only)"
               accept=".jpg,.jpeg,.png,.pdf"
             />
+            <p className="form-hint" data-testid="xray-upload-optional">Image upload is optional. Click Save Case without attaching a file.</p>
           </div>
 
           {editingCase && (

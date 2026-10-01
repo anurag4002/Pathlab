@@ -1031,6 +1031,7 @@ const LabProfile = () => {
                     type="submit"
                     loading={saving}
                     disabled={!isDirty || isBusy}
+                    data-testid="lab-profile-save"
                   >
                     Save changes
                   </Button>

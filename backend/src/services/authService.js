@@ -25,12 +25,15 @@ const checkBrowserAllowed = async (browserCode) => {
 
 const login = async (identifier, password, remember = false) => {
   const cleanIdentifier = identifier.trim();
-  const user = await User.findOne({
-    $or: [
-      { email: cleanIdentifier.toLowerCase() },
-      { phone: cleanIdentifier.replace(/\D/g, '').slice(-10) }
-    ]
-  });
+  const emailKey = cleanIdentifier.toLowerCase();
+  const phoneKey = cleanIdentifier.replace(/\D/g, '').slice(-10);
+  const query = { $or: [{ email: emailKey }] };
+  // Only match by phone when the identifier actually looks like a phone number.
+  // Digits extracted from an email (often '') must not collide with empty phones.
+  if (phoneKey.length >= 10) {
+    query.$or.push({ phone: phoneKey });
+  }
+  const user = await User.findOne(query);
 
   if (!user) {
     return null;
@@ -42,7 +45,7 @@ const login = async (identifier, password, remember = false) => {
   }
 
   if (user.status === 'Inactive') {
-    throw new Error('User account is inactive. Please contact your administrator.');
+    throw Object.assign(new Error('User account is inactive. Please contact your administrator.'), { statusCode: 403 });
   }
 
   const token = generateToken(user._id, remember);
@@ -82,7 +85,7 @@ const googleAuth = async ({ email, name, googleId }) => {
   }
 
   if (user.status === 'Inactive') {
-    throw new Error('User account is inactive. Please contact your administrator.');
+    throw Object.assign(new Error('User account is inactive. Please contact your administrator.'), { statusCode: 403 });
   }
 
   const token = generateToken(user._id);
@@ -117,7 +120,7 @@ const facebookAuth = async ({ email, name, facebookId }) => {
   }
 
   if (user.status === 'Inactive') {
-    throw new Error('User account is inactive. Please contact your administrator.');
+    throw Object.assign(new Error('User account is inactive. Please contact your administrator.'), { statusCode: 403 });
   }
 
   const token = generateToken(user._id);
@@ -197,7 +200,7 @@ const requestEmailOtp = async (email) => {
   if (!user) {
     return { success: true, message: 'If an account exists with this email, an OTP has been sent.' };
   }
-  if (user.status === 'Inactive') throw new Error('User account is inactive. Please contact your administrator.');
+  if (user.status === 'Inactive') throw Object.assign(new Error('User account is inactive. Please contact your administrator.'), { statusCode: 403 });
   await requestOtpFor({ email: user.email, channel: 'email', purpose: 'staff-login' });
   return { success: true, message: 'OTP sent to your email.' };
 };
@@ -206,7 +209,7 @@ const verifyEmailOtp = async (email, otp, remember = false) => {
   const cleanEmail = String(email || '').toLowerCase().trim();
   const user = await User.findOne({ email: cleanEmail });
   if (!user) throw Object.assign(new Error('Invalid login request'), { statusCode: 400 });
-  if (user.status === 'Inactive') throw new Error('User account is inactive. Please contact your administrator.');
+  if (user.status === 'Inactive') throw Object.assign(new Error('User account is inactive. Please contact your administrator.'), { statusCode: 403 });
   const check = await verifyOtpFor({ email: cleanEmail, inputOtp: otp, purpose: 'staff-login' });
   if (!check.success) throw Object.assign(new Error(check.message), { statusCode: 400 });
   const token = generateToken(user._id, remember);

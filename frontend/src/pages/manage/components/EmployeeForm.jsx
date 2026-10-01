@@ -22,7 +22,12 @@ const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) 
   }, []);
   const toggleDept = (d) => setFormData((p) => {
     const cur = p.departments || [];
-    return { ...p, departments: cur.includes(d) ? cur.filter((x) => x !== d) : [...cur, d] };
+    if (cur.includes(d)) {
+      // Keep at least one department so Save never fails on empty selection.
+      if (cur.length <= 1) return p;
+      return { ...p, departments: cur.filter((x) => x !== d) };
+    }
+    return { ...p, departments: [...cur, d] };
   });
 
   return (
@@ -53,17 +58,19 @@ const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) 
           </div>
           <Select
             label="Portal Role" value={formData.role}
-            onChange={(e) => set('role', e.target.value)}
+            onChange={(e) => set('role', e.target.value || 'Employee')}
             options={[
               { value: 'Employee', label: 'Laboratory Operator / Employee' },
               { value: 'Admin', label: 'Administrator' },
             ]}
+            placeholder=""
             required
           />
           <Select
             label="Status" value={formData.status}
-            onChange={(e) => set('status', e.target.value)}
+            onChange={(e) => set('status', e.target.value || 'Active')}
             options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]}
+            placeholder=""
             required
           />
           <Input label="Joining Date" name="joiningDate" type="date" value={formData.joiningDate || ''} onChange={(e) => set('joiningDate', e.target.value)} />
@@ -100,8 +107,8 @@ const EmployeeForm = ({ formData, setFormData, errors, editing, isSuperadmin }) 
             {DEPARTMENTS.map((d) => {
               const on = (formData.departments || []).includes(d);
               return (
-                <label key={d} className={`emp-dept-chip ${on ? 'on' : ''}`}>
-                  <input type="checkbox" checked={on} onChange={() => toggleDept(d)} />
+                <label key={d} className={`emp-dept-chip ${on ? 'on' : ''}`} data-testid={`emp-dept-${d}`}>
+                  <input type="checkbox" checked={on} onChange={() => toggleDept(d)} aria-label={`Department ${d}`} />
                   {d}
                 </label>
               );

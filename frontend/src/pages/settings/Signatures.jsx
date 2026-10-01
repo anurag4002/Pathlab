@@ -174,8 +174,10 @@ const Signatures = () => {
                     size="sm"
                     loading={updatingId === String(sig._id)}
                     onClick={() => handleStatusToggle(sig)}
+                    data-testid={isSignatureActive(sig) ? 'signature-deactivate' : 'signature-activate'}
+                    aria-label={`${isSignatureActive(sig) ? 'Deactivate' : 'Activate'} ${sig.name || 'signature'}`}
                   >
-                    <RefreshCw size={14} /> {isSignatureActive(sig) ? 'Deactivate' : 'Activate'}
+                      <RefreshCw size={14} /> {isSignatureActive(sig) ? 'Deactivate' : 'Activate'}
                   </Button>
                   <Button variant="danger" size="sm" onClick={() => setDeleteTarget(sig)}>
                     <Trash2 size={14} />

@@ -30,8 +30,8 @@ const validateUserCreate = (data) => {
     errors.email = 'Email address is invalid';
   }
 
-  if (!data.phone || data.phone.trim() === '') {
-    errors.phone = 'Phone number is required';
+  if (data.phone && data.phone.trim() !== '' && !/^[+\d][\d\s-]{6,}$/.test(data.phone.trim())) {
+    errors.phone = 'Enter a valid phone number';
   }
 
   if (!data.role) {

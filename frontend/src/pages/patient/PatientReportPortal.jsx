@@ -91,6 +91,7 @@ const PatientReportPortal = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [selectedReport, setSelectedReport] = useState(null);
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
+  const [pdfNotice, setPdfNotice] = useState('');
 
   // Booking
   const [catalog, setCatalog] = useState({ tests: [], packages: [] });
@@ -366,7 +367,9 @@ const PatientReportPortal = () => {
     try {
       const fileName = `${report.type}_Report_${report.registrationNumber}.pdf`;
       await downloadPatientReport(report.id, fileName);
+      setPdfNotice(`Report PDF download started for ${report.registrationNumber || 'report'}.`);
     } catch {
+      setPdfNotice('');
       alert('Report download failed. Please contact Pure Path Lab support.');
     }
   };
@@ -480,7 +483,21 @@ const PatientReportPortal = () => {
           {devOtp && (
             <div className="patient-dev-otp" role="status">
               <span className="patient-dev-otp-label">DEV MODE — your test OTP:</span>
-              <strong className="patient-dev-otp-code">{devOtp}</strong>
+              <strong className="patient-dev-otp-code" data-testid="dev-otp-code">{devOtp}</strong>
+              <button
+                type="button"
+                className="patient-btn patient-btn-secondary"
+                data-testid="use-dev-otp"
+                aria-label="Use test OTP"
+                onClick={() => {
+                  const digits = String(devOtp).replace(/\D/g, '').slice(0, 6).split('');
+                  while (digits.length < 6) digits.push('');
+                  setOtp(digits);
+                  setError('');
+                }}
+              >
+                Use test OTP
+              </button>
             </div>
           )}
 
@@ -715,16 +732,15 @@ const PatientReportPortal = () => {
                         <Eye size={15} />
                         <span>View Report</span>
                       </button>
-                      {report.hasFile && (
-                        <button
-                          type="button"
-                          className="patient-download-btn"
-                          onClick={() => handleDownload(report)}
-                        >
-                          <Download size={15} />
-                          <span>Download PDF</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="patient-download-btn"
+                        data-testid="report-pdf-download"
+                        onClick={() => handleDownload(report)}
+                      >
+                        <Download size={15} />
+                        <span>Download PDF</span>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1020,15 +1036,17 @@ const PatientReportPortal = () => {
                   </div>
                 )}
 
-                {selectedReport.hasFile && (
-                  <button
+                <button
                     type="button"
                     className="patient-download-btn modal-download-btn"
+                    data-testid="report-pdf-download"
                     onClick={() => handleDownload(selectedReport)}
                   >
                     <Download size={16} />
                     <span>Download Official Signed PDF</span>
                   </button>
+                {pdfNotice && (
+                  <p role="status" data-testid="report-pdf-started">{pdfNotice}</p>
                 )}
                 <button
                   type="button"

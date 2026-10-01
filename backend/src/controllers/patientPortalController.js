@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 const path = require('path');
 const Patient = require('../models/Patient');
 const Report = require('../models/Report');
@@ -7,9 +8,14 @@ const XrayCase = require('../models/XrayCase');
 const Test = require('../models/Test');
 const TestPackage = require('../models/TestPackage');
 const Inquiry = require('../models/Inquiry');
+const LabProfile = require('../models/LabProfile');
+const Signature = require('../models/Signature');
 const generateRegistrationNumber = require('../utils/generateRegistrationNumber');
 const otpService = require('../services/otpService');
 const storageService = require('../services/storageService');
+const { reportPdf } = require('../services/pdfService');
+const { qrBuffer, reportVerifyUrl } = require('../services/qrService');
+const reportService = require('../services/reportService');
 const { successResponse, errorResponse } = require('../utils/response');
 const { JWT_SECRET } = require('../config/environment');
 const MESSAGES = require('../constants/messages');
@@ -248,35 +254,57 @@ const downloadPatientReport = async (req, res, next) => {
     const patients = await Patient.find({ phone }).select('_id');
     const patientIds = patients.map(p => p._id.toString());
 
-    let relativeFilePath = null;
-    let filename = null;
-
-    // Check in Laboratory Reports
+    // Laboratory report: prefer uploaded file, else render structured PDF.
     const labReport = await Report.findById(id);
-    if (labReport && patientIds.includes(labReport.patient.toString())) {
+    if (labReport && patientIds.includes(String(labReport.patient))) {
       if (labReport.fileUrl) {
-        relativeFilePath = labReport.fileUrl;
-        filename = `Report_${labReport.registrationNumber}_${id}.pdf`;
-      }
-    }
-
-    // Check in X-Ray Reports if not found in Lab
-    if (!relativeFilePath) {
-      const xray = await XrayCase.findById(id);
-      if (xray && patientIds.includes(xray.patient.toString())) {
-        if (xray.fileUrl) {
-          relativeFilePath = xray.fileUrl;
-          filename = `XRay_${id}${path.extname(xray.fileUrl)}`;
+        const absolutePath = storageService.getFilePath(labReport.fileUrl);
+        if (absolutePath) {
+          return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}.pdf`);
         }
       }
+
+      const full = await Report.findById(id)
+        .populate('patient')
+        .populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
+      const testIds = (full.results || []).map((r) => r.test).filter(Boolean);
+      const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
+      const testMap = {};
+      tests.forEach((t) => { testMap[String(t._id)] = t; });
+      let profile = null;
+      try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
+      const sigIds = (full.signatures || []).map((s) => s.signature).filter(Boolean);
+      const sigDocs = sigIds.length ? await Signature.find({ _id: { $in: sigIds } }) : [];
+      const sigById = {};
+      sigDocs.forEach((s) => { sigById[String(s._id)] = s; });
+      const signaturePngs = (full.signatures || []).map((s) => {
+        const d = sigById[String(s.signature)];
+        if (!d || !d.imageUrl) return null;
+        const abs = storageService.getFilePath(d.imageUrl);
+        if (!abs) return null;
+        try { return { png: fs.readFileSync(abs), name: d.name, title: d.title }; } catch (e) { return null; }
+      }).filter(Boolean);
+      const token = await reportService.ensureQrToken(full);
+      const qrPng = await qrBuffer(reportVerifyUrl(token));
+      const pdf = await reportPdf(
+        { report: full, patient: full.patient, bill: full.bill, testMap, profile },
+        { qrPng, signaturePngs }
+      );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Report_${full.registrationNumber}.pdf"`);
+      return res.send(pdf);
     }
 
-    const absolutePath = storageService.getFilePath(relativeFilePath);
-    if (!absolutePath) {
-      return errorResponse(res, MESSAGES.PATIENT_PORTAL.REPORT_NOT_FOUND, 404);
+    // X-Ray: uploaded file only
+    const xray = await XrayCase.findById(id);
+    if (xray && patientIds.includes(String(xray.patient)) && xray.fileUrl) {
+      const absolutePath = storageService.getFilePath(xray.fileUrl);
+      if (absolutePath) {
+        return res.download(absolutePath, `XRay_${id}${path.extname(xray.fileUrl)}`);
+      }
     }
 
-    return res.download(absolutePath, filename);
+    return errorResponse(res, MESSAGES.PATIENT_PORTAL.REPORT_NOT_FOUND, 404);
   } catch (error) {
     next(error);
   }

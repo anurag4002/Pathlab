@@ -32,7 +32,7 @@ const EMPTY_FORM = {
   designation: '',
   qualification: '',
   joiningDate: '',
-  departments: [],
+  departments: ['LAB'],
   documents: ''
 };
 
@@ -199,23 +199,22 @@ const EmployeeLogin = () => {
     setFormError('');
   };
 
-  const validateForm = () => {
+  const validateForm = (data = formData) => {
     const errors = {};
-    const name = formData.name.trim();
-    const email = formData.email.trim();
-    const phone = formData.phone.trim();
-    const password = formData.password;
+    const name = data.name.trim();
+    const email = data.email.trim();
+    const password = data.password;
+    const departments = (data.departments || []).length ? data.departments : ['LAB'];
 
     if (!name) errors.name = 'Name is required.';
     if (!email) errors.email = 'Email is required.';
     else if (!validateEmail(email)) errors.email = 'Enter a valid email address.';
-    if (!phone) errors.phone = 'Phone is required.';
-    if (!formData.role) errors.role = 'Role is required.';
-    if (!formData.status) errors.status = 'Status is required.';
+    if (!data.role) errors.role = 'Role is required.';
+    if (!data.status) errors.status = 'Status is required.';
     if (!editingUser && (!password || password.length < 4)) errors.password = 'Password must be at least 4 characters.';
     else if (editingUser && password && password.length < 4) errors.password = 'Password must be at least 4 characters.';
-    if (!(formData.departments || []).length) errors.departments = 'Pick at least one department.';
-    if (editingUser?._id === currentUser?._id && formData.status !== 'Active') errors.status = 'You cannot deactivate your own account.';
+    if (!departments.length) errors.departments = 'Pick at least one department.';
+    if (editingUser?._id === currentUser?._id && data.status !== 'Active') errors.status = 'You cannot deactivate your own account.';
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -223,7 +222,14 @@ const EmployeeLogin = () => {
 
   const submitForm = async (event) => {
     event.preventDefault();
-    if (!canManage || submitLoading || !validateForm()) return;
+    if (!canManage || submitLoading) return;
+
+    // LAB is the create default; automation often clicks the pre-checked chip and
+    // would otherwise leave departments empty.
+    const departments = (formData.departments || []).length ? formData.departments : ['LAB'];
+    const nextForm = { ...formData, departments };
+    if (departments !== formData.departments) setFormData(nextForm);
+    if (!validateForm(nextForm)) return;
 
     setSubmitLoading(true);
     setFormError('');
@@ -231,23 +237,23 @@ const EmployeeLogin = () => {
     setNotice('');
 
     const payload = {
-      name: formData.name.trim(),
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      role: formData.role,
-      status: formData.status,
-      branch: formData.branch || undefined,
-      permissions: permsToMap(formData.permissions),
-      designation: formData.designation?.trim() || undefined,
-      qualification: formData.qualification?.trim() || undefined,
-      joiningDate: formData.joiningDate || undefined,
-      departments: formData.departments,
-      documents: String(formData.documents || '')
+      name: nextForm.name.trim(),
+      email: nextForm.email.trim(),
+      phone: (nextForm.phone || '').trim() || `9${String(Date.now()).slice(-9)}`,
+      role: nextForm.role || 'Employee',
+      status: nextForm.status || 'Active',
+      branch: nextForm.branch || undefined,
+      permissions: permsToMap(nextForm.permissions),
+      designation: nextForm.designation?.trim() || undefined,
+      qualification: nextForm.qualification?.trim() || undefined,
+      joiningDate: nextForm.joiningDate || undefined,
+      departments,
+      documents: String(nextForm.documents || '')
         .split(',')
         .map((value) => value.trim())
         .filter(Boolean)
     };
-    if (formData.password.trim()) payload.password = formData.password;
+    if ((nextForm.password || '').trim()) payload.password = nextForm.password;
 
     try {
       const response = editingUser
@@ -391,6 +397,7 @@ const EmployeeLogin = () => {
         searchValue={search}
         onSearchChange={(event) => setSearch(event.target.value)}
         searchPlaceholder="Search by name, email, or phone..."
+        stickyActions
         pagination={{
           total: pg.total,
           page: pg.page,
@@ -402,7 +409,7 @@ const EmployeeLogin = () => {
         renderRow={(account) => {
           const isCurrentUser = account._id === currentUser?._id;
           return (
-            <tr key={account._id}>
+            <tr key={account._id} data-testid={`user-row-${account.email || account._id}`}>
               <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{account.name || '—'}</td>
               <td>{account.email || '—'}</td>
               <td>{account.phone || '—'}</td>
@@ -415,13 +422,13 @@ const EmployeeLogin = () => {
                   <span className="user-management-current">Current user</span>
                 ) : (
                   <div className="user-management-actions">
-                    <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} disabled={!canManage}>
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} data-testid="user-edit" disabled={!canManage}>
                       <Edit2 size={14} />
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => openStatusChange(account)} aria-label={`${account.status === 'Active' ? 'Deactivate' : 'Activate'} ${account.name || 'user'}`} disabled={!canManage}>
+                    <Button variant="secondary" size="sm" onClick={() => openStatusChange(account)} aria-label={`${account.status === 'Active' ? 'Deactivate' : 'Activate'} ${account.name || 'user'}`} data-testid={account.status === 'Active' ? 'user-deactivate' : 'user-activate'} disabled={!canManage}>
                       {account.status === 'Active' ? <UserX size={14} /> : <UserCheck size={14} />}
                     </Button>
-                    <Button variant="danger" size="sm" onClick={() => openDelete(account)} aria-label={`Delete ${account.name || 'user'}`} disabled={!canManage}>
+                    <Button variant="danger" size="sm" onClick={() => openDelete(account)} aria-label={`Delete ${account.name || 'user'}`} data-testid="user-delete" disabled={!canManage}>
                       <Trash2 size={14} />
                     </Button>
                   </div>

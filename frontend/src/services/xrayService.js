@@ -1,7 +1,10 @@
 import apiClient from './apiClient';
 
 export const getXrayCases = async (params = {}) => {
-  const response = await apiClient.get('/xray', { params });
+  const response = await apiClient.get('/xray', {
+    params: { ...params, _t: Date.now() },
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+  });
   return response.data;
 };
 

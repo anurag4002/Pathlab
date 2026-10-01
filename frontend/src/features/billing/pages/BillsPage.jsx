@@ -161,6 +161,7 @@ const BillsPage = () => {
   // reads as "no bills found"; each fetch owns its error state.
   const [listError, setListError] = useState(null);
   const [optionsError, setOptionsError] = useState(null);
+  const [pdfNotice, setPdfNotice] = useState('');
 
   // Per-invoice details (GET /bills/:id — populated items + cashier).
   const [detailsTarget, setDetailsTarget] = useState(null);
@@ -351,6 +352,17 @@ const BillsPage = () => {
     }
   };
 
+  const handleDownloadPdf = async (bill) => {
+    setPdfNotice('');
+    try {
+      await downloadBillPdf(bill._id);
+      setPdfNotice(`Invoice PDF download started for ${bill.billNumber || 'bill'}.`);
+    } catch {
+      setPdfNotice('');
+      alert('Failed to download bill PDF');
+    }
+  };
+
   const handleVoidConfirm = async (reason) => {
     if (!voidTarget) return;
     if (!reason || !String(reason).trim()) return;
@@ -475,6 +487,11 @@ const BillsPage = () => {
       </p>
 
       {(listError || optionsError) && <ErrorBanner message={listError || optionsError} onRetry={retryLoad} />}
+      {pdfNotice && (
+        <p role="status" data-testid="bill-pdf-started" style={{ fontSize: '0.875rem', color: 'var(--color-success, #166534)', marginBottom: '12px' }}>
+          {pdfNotice}
+        </p>
+      )}
 
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
@@ -588,28 +605,28 @@ const BillsPage = () => {
             <td>{formatDate(bill.date)}</td>
             <td>
               <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                <Button variant="secondary" size="sm" onClick={() => openDetails(bill)} icon={<Eye size={14} />}>
+                <Button variant="secondary" size="sm" onClick={() => openDetails(bill)} icon={<Eye size={14} />} data-testid="bill-details" aria-label={`Details ${bill.billNumber}`}>
                   Details
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />}>
+                <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />} data-testid="bill-print" aria-label={`Print ${bill.billNumber}`}>
                   Print
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => downloadBillPdf(bill._id)} icon={<FileDown size={14} />}>
+                    <Button variant="secondary" size="sm" onClick={() => handleDownloadPdf(bill)} icon={<FileDown size={14} />} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`}>
                   PDF
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />}>
+                <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />} data-testid="bill-qr" aria-label={`QR ${bill.billNumber}`}>
                   QR
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />}>
+                <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />} data-testid="bill-labels" aria-label={`Labels ${bill.billNumber}`}>
                   Labels
                 </Button>
                 {bill.dueAmount > 0 && (
-                  <Button variant="primary" size="sm" onClick={() => handleOpenPayment(bill)} icon={<CreditCard size={14} />}>
+                  <Button variant="primary" size="sm" onClick={() => handleOpenPayment(bill)} icon={<CreditCard size={14} />} data-testid="bill-pay" aria-label={`Pay ${bill.billNumber}`}>
                     Pay
                   </Button>
                 )}
                 {isAdmin && !bill.isVoided && (
-                  <Button variant="danger" size="sm" onClick={() => setVoidTarget(bill)} icon={<Ban size={14} />}>
+                  <Button variant="danger" size="sm" onClick={() => setVoidTarget(bill)} icon={<Ban size={14} />} data-testid="bill-void" aria-label={`Void ${bill.billNumber}`}>
                     Void
                   </Button>
                 )}

@@ -39,7 +39,7 @@ const Select = ({
           aria-describedby={error ? `${selectId}-error` : undefined}
           {...props}
         >
-          {placeholder && <option value="">{placeholder}</option>}
+          {placeholder ? <option value="">{placeholder}</option> : null}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}

@@ -1,0 +1,1023 @@
+[
+  {
+    "id": "TC001",
+    "title": "Log in as Admin and reach the dashboard",
+    "description": "Admin can sign in with seeded credentials and land on the dashboard.",
+    "category": "Auth",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill email with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill password with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Click Sign In"
+      },
+      {
+        "type": "assertion",
+        "description": "URL contains /dashboard and dashboard content is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Create a new patient record",
+    "description": "Staff creates a patient with name, age, gender, phone and sees them in the list.",
+    "category": "Patients",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /cases/patients"
+      },
+      {
+        "type": "action",
+        "description": "Click Add Patient"
+      },
+      {
+        "type": "action",
+        "description": "Fill Patient Name, Age, Gender, Phone with unique values"
+      },
+      {
+        "type": "action",
+        "description": "Click Register Patient"
+      },
+      {
+        "type": "assertion",
+        "description": "New patient name appears in the patients table"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Create a LAB bill with tests",
+    "description": "Create invoice for a patient with at least one test.",
+    "category": "Billing",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /cases/bills/new"
+      },
+      {
+        "type": "action",
+        "description": "Select a registered patient from the patient picker"
+      },
+      {
+        "type": "action",
+        "description": "Add at least one lab test"
+      },
+      {
+        "type": "action",
+        "description": "Click Create Invoice"
+      },
+      {
+        "type": "assertion",
+        "description": "New bill appears in the bills list with the patient name"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Collect payment using Pay button",
+    "description": "Collect payment by clicking the Pay button (data-testid bill-pay), not table cells.",
+    "category": "Billing",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin. Open /cases/bills/new and create a LAB bill for any patient with at least one test, leave it unpaid (do not collect payment yet)."
+      },
+      {
+        "type": "action",
+        "description": "Open /cases/bills and find an invoice with due amount > 0. Click Pay button data-testid=bill-pay"
+      },
+      {
+        "type": "action",
+        "description": "Enter payment amount and mode, confirm payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Payment succeeds and due becomes zero or Paid status shows"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Download bill invoice PDF",
+    "description": "Download invoice via PDF button data-testid bill-pdf.",
+    "category": "Billing",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open /cases/bills"
+      },
+      {
+        "type": "action",
+        "description": "Click PDF button data-testid=bill-pdf on any bill row"
+      },
+      {
+        "type": "assertion",
+        "description": "Visible status text data-testid=bill-pdf-started appears saying Invoice PDF download started — do NOT require observing browser download dialog"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Full report flow: enter results submit Reported",
+    "description": "From pending case enter results, save draft, submit to Reported.",
+    "category": "Lab Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /lab/result-entry"
+      },
+      {
+        "type": "action",
+        "description": "Open a pending lab case or create result report for a billed case"
+      },
+      {
+        "type": "action",
+        "description": "Enter result values for tests"
+      },
+      {
+        "type": "action",
+        "description": "Save draft then submit results"
+      },
+      {
+        "type": "assertion",
+        "description": "Report status shows Reported or equivalent success confirmation"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Sign a reported lab report",
+    "description": "Admin signs a Reported report to Signed status.",
+    "category": "Lab Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin. If no Reported report exists, open a pending/registered lab report, enter results, submit to Reported status first"
+      },
+      {
+        "type": "action",
+        "description": "Open Result Verification / reports queue and find a report with status Reported"
+      },
+      {
+        "type": "action",
+        "description": "Open the report and complete Sign"
+      },
+      {
+        "type": "assertion",
+        "description": "Report status becomes Signed or Sign control confirms success"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Verify a signed lab report",
+    "description": "Admin verifies signed/reported report to Verified.",
+    "category": "Lab Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Open /lab/reports"
+      },
+      {
+        "type": "action",
+        "description": "Verify a Signed or Reported report"
+      },
+      {
+        "type": "assertion",
+        "description": "Report status becomes Verified"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Preview and download staff report PDF",
+    "description": "Open report preview and download PDF from staff workspace.",
+    "category": "Lab Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Open /lab/reports and open a completed report preview"
+      },
+      {
+        "type": "action",
+        "description": "Download or print the report PDF"
+      },
+      {
+        "type": "assertion",
+        "description": "PDF loads without rate-limit or error banner"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Open real public report QR link and download PDF",
+    "description": "Obtain real qrToken from UI QR, open /r/{token} logged out, download PDF. Never use /r/demo.",
+    "category": "Public Verify",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open a completed report, click QR and copy the real verify URL containing /r/"
+      },
+      {
+        "type": "action",
+        "description": "Open that exact URL in a fresh session without staff login"
+      },
+      {
+        "type": "assertion",
+        "description": "Public page shows report details, not Link not valid"
+      },
+      {
+        "type": "action",
+        "description": "Click Download if available"
+      },
+      {
+        "type": "assertion",
+        "description": "PDF download succeeds"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Open real public bill QR link",
+    "description": "Use bill-qr button to get real /r/bill/{token}; never use test-token.",
+    "category": "Public Verify",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /cases/bills, click QR (data-testid=bill-qr) and copy verify URL"
+      },
+      {
+        "type": "action",
+        "description": "Open that /r/bill/{token} URL logged out"
+      },
+      {
+        "type": "assertion",
+        "description": "Bill details are shown, not Link not valid"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Patient portal OTP view reports and download PDF",
+    "description": "Patient requests OTP, verifies, views My Reports, downloads PDF.",
+    "category": "Patient Portal",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open patient portal, request OTP, click data-testid=use-dev-otp, Verify"
+      },
+      {
+        "type": "action",
+        "description": "Open any report (View Report)"
+      },
+      {
+        "type": "action",
+        "description": "Click Download PDF / Download Official Signed PDF (data-testid=report-pdf-download). Do NOT look for bill-pdf-started"
+      },
+      {
+        "type": "assertion",
+        "description": "data-testid=report-pdf-started appears OR download button click succeeds without error alert"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Create a new Employee user",
+    "description": "Admin creates employee at /manage/employees with email and password.",
+    "category": "Users",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open /manage/employees"
+      },
+      {
+        "type": "action",
+        "description": "Click Create user. Fill Full Name, unique Email, Password. Do not toggle LAB. Click Save user once"
+      },
+      {
+        "type": "assertion",
+        "description": "Success banner User created successfully OR new email appears in user list. Do NOT require re-checking LAB chip after modal closes"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Login as newly created Employee",
+    "description": "New employee can login and reach dashboard; Admin routes blocked.",
+    "category": "Users",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a NEW unique employee if needed at /manage/employees with email employee.loginok@purepathlab.in password EmpPass123! (LAB preselected — do not toggle). If email already exists, skip create."
+      },
+      {
+        "type": "action",
+        "description": "Logout. On login page stay on Password tab — NEVER click Login with Email OTP. Sign in as employee.loginok@purepathlab.in / EmpPass123!"
+      },
+      {
+        "type": "assertion",
+        "description": "Employee reaches /dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /business/daily"
+      },
+      {
+        "type": "assertion",
+        "description": "Access denied or redirected away from business analytics"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Deactivate employee and confirm login fails",
+    "description": "Admin sets employee Inactive; login fails.",
+    "category": "Users",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /manage/employees"
+      },
+      {
+        "type": "action",
+        "description": "Find employee row and click data-testid=user-deactivate (sticky Actions column). Confirm Deactivate in dialog"
+      },
+      {
+        "type": "action",
+        "description": "Logout and attempt password login as that employee"
+      },
+      {
+        "type": "assertion",
+        "description": "Login fails or account inactive message shown"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Create or edit a delivery notification template",
+    "description": "Admin saves an SMS/email template at /delivery/templates.",
+    "category": "Templates",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /delivery/templates"
+      },
+      {
+        "type": "action",
+        "description": "Create or edit a template with key, channel, and body"
+      },
+      {
+        "type": "action",
+        "description": "Save the template"
+      },
+      {
+        "type": "assertion",
+        "description": "Template row is visible in the list after save"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Edit lab profile branding and preview document PDF",
+    "description": "Update lab profile and open document preview.",
+    "category": "Setup",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open Lab Profile / document format settings"
+      },
+      {
+        "type": "action",
+        "description": "Make a small branding or format change so Save is enabled"
+      },
+      {
+        "type": "action",
+        "description": "Click Save changes (data-testid=lab-profile-save) and/or Preview selected format as PDF"
+      },
+      {
+        "type": "assertion",
+        "description": "Notice Lab profile saved appears OR PDF preview iframe is visible. Do NOT look for bill-pdf-started"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Activate an existing signature",
+    "description": "Admin activates an existing inactive signature at /settings/signatures without uploading.",
+    "category": "Setup",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open /settings/signatures"
+      },
+      {
+        "type": "action",
+        "description": "If page shows Empty state, the run already seeded an Inactive signature — Refresh once. Click data-testid=signature-activate on an Inactive row. Never open Add signature and never upload an image"
+      },
+      {
+        "type": "assertion",
+        "description": "At least one signature shows Active status or Activate control becomes Deactivate"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Review USG report templates list",
+    "description": "Admin opens /usg/templates and sees template list.",
+    "category": "Templates",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /usg/templates"
+      },
+      {
+        "type": "assertion",
+        "description": "Templates page loads with a table or empty state without error"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Create a USG case",
+    "description": "Create a new USG case on /usg/today.",
+    "category": "USG",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /usg/today"
+      },
+      {
+        "type": "action",
+        "description": "Create a new USG case with required fields; use a template if picker is available"
+      },
+      {
+        "type": "assertion",
+        "description": "New USG case appears in the cases list"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Create an X-Ray case without requiring image upload",
+    "description": "Create X-Ray case with findings only; image upload is optional and must be skipped.",
+    "category": "XRay",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open /xray/today"
+      },
+      {
+        "type": "action",
+        "description": "If list shows No records found, switch date filter to All if available, otherwise continue"
+      },
+      {
+        "type": "action",
+        "description": "Click Create X-Ray Case"
+      },
+      {
+        "type": "action",
+        "description": "Select any existing patient, enter findings text Autotest findings. Do NOT attach a scan file."
+      },
+      {
+        "type": "action",
+        "description": "Click Save Case once and wait for modal to close"
+      },
+      {
+        "type": "assertion",
+        "description": "New case appears in the list OR findings text Autotest findings is visible after refresh"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Create a lab test in the catalog",
+    "description": "Admin creates a test at /lab/tests.",
+    "category": "Catalog",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /lab/tests"
+      },
+      {
+        "type": "action",
+        "description": "Create a new test with required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "New test appears in the catalog"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "Create a new branch",
+    "description": "Admin creates a branch at /manage/branches.",
+    "category": "Branches",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /manage/branches"
+      },
+      {
+        "type": "action",
+        "description": "Create a branch with a unique name"
+      },
+      {
+        "type": "assertion",
+        "description": "Branch appears in the list"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Review daily business for a date range",
+    "description": "Admin opens daily business and filters by date.",
+    "category": "Business",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /business/daily"
+      },
+      {
+        "type": "action",
+        "description": "Apply a date range filter if available"
+      },
+      {
+        "type": "assertion",
+        "description": "Daily business page loads data or empty state without rate-limit error"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Export a business CSV dataset",
+    "description": "Admin exports CSV from /business/export.",
+    "category": "Business",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /business/export"
+      },
+      {
+        "type": "action",
+        "description": "Select a dataset and export CSV"
+      },
+      {
+        "type": "assertion",
+        "description": "Export completes without rate-limit error"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Dashboard loads with quick actions",
+    "description": "Dashboard shows stats/quick actions after login.",
+    "category": "Dashboard",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin and open /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Dashboard content and at least one quick action link are visible"
+      },
+      {
+        "type": "action",
+        "description": "Click a quick action"
+      },
+      {
+        "type": "assertion",
+        "description": "Navigation reaches the target page"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Search existing patient",
+    "description": "Search patients list finds an existing patient.",
+    "category": "Patients",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /cases/patients"
+      },
+      {
+        "type": "action",
+        "description": "Search by patient name or phone"
+      },
+      {
+        "type": "assertion",
+        "description": "Matching patient row is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "View today lab reports queue",
+    "description": "Todays reports page loads.",
+    "category": "Lab Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /lab/reports"
+      },
+      {
+        "type": "assertion",
+        "description": "Reports list or empty state is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC029",
+    "title": "Invalid login shows error",
+    "description": "Wrong password stays on login with error.",
+    "category": "Auth",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and wrong password"
+      },
+      {
+        "type": "action",
+        "description": "Click Sign In"
+      },
+      {
+        "type": "assertion",
+        "description": "Still on login page with an error message"
+      }
+    ]
+  },
+  {
+    "id": "TC030",
+    "title": "Invalid public token shows Link not valid",
+    "description": "Opening /r/not-a-real-token shows invalid link message.",
+    "category": "Public Verify",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /r/not-a-real-token"
+      },
+      {
+        "type": "assertion",
+        "description": "Page shows Link not valid or Invalid or expired verification link"
+      }
+    ]
+  },
+  {
+    "id": "TC031",
+    "title": "Update an existing patient",
+    "description": "Edit patient demographics and save.",
+    "category": "Patients",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open a patient, edit a field, save"
+      },
+      {
+        "type": "assertion",
+        "description": "Updated value is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC032",
+    "title": "Update an existing lab test",
+    "description": "Edit a catalog test and save.",
+    "category": "Catalog",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /lab/tests, edit a test, save"
+      },
+      {
+        "type": "assertion",
+        "description": "Updated test is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC033",
+    "title": "Review packages panels and rates",
+    "description": "Open packages, panels, and rate list pages.",
+    "category": "Catalog",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin"
+      },
+      {
+        "type": "action",
+        "description": "Open /lab/packages, /lab/panels, /lab/rates"
+      },
+      {
+        "type": "assertion",
+        "description": "Each page loads without error"
+      }
+    ]
+  },
+  {
+    "id": "TC034",
+    "title": "Update an existing USG case",
+    "description": "Edit a USG case and save.",
+    "category": "USG",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /usg/today, update a case"
+      },
+      {
+        "type": "assertion",
+        "description": "Updated case is saved"
+      }
+    ]
+  },
+  {
+    "id": "TC035",
+    "title": "View X-Ray reports list",
+    "description": "Open /xray/reports.",
+    "category": "XRay",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /xray/reports"
+      },
+      {
+        "type": "assertion",
+        "description": "Page loads with list or empty state"
+      }
+    ]
+  },
+  {
+    "id": "TC036",
+    "title": "Review monthly business and expenses",
+    "description": "Open monthly business and expenses pages.",
+    "category": "Business",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /business/monthly and /business/expenses"
+      },
+      {
+        "type": "assertion",
+        "description": "Both pages load without rate-limit error"
+      }
+    ]
+  },
+  {
+    "id": "TC037",
+    "title": "Update an existing branch",
+    "description": "Edit branch and save.",
+    "category": "Branches",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /manage/branches, edit a branch"
+      },
+      {
+        "type": "assertion",
+        "description": "Updated branch is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC038",
+    "title": "Delete a branch",
+    "description": "Delete a non-critical branch if allowed.",
+    "category": "Branches",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, delete a test branch if UI allows"
+      },
+      {
+        "type": "assertion",
+        "description": "Branch is removed or delete is confirmed"
+      }
+    ]
+  },
+  {
+    "id": "TC039",
+    "title": "Adjust lab document format options",
+    "description": "Change document format toggles on lab profile.",
+    "category": "Setup",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /setup/profile, toggle a document option, save"
+      },
+      {
+        "type": "assertion",
+        "description": "Save succeeds"
+      }
+    ]
+  },
+  {
+    "id": "TC040",
+    "title": "Open USG case using a template when available",
+    "description": "Create/open USG case selecting a template.",
+    "category": "USG",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /usg/today, create/open case with template if available"
+      },
+      {
+        "type": "assertion",
+        "description": "Case form shows template content or case is saved"
+      }
+    ]
+  },
+  {
+    "id": "TC041",
+    "title": "Open landing page Admin login entry",
+    "description": "From / click Admin Panel to /login.",
+    "category": "Public Landing",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Click Admin Panel or login entry"
+      },
+      {
+        "type": "assertion",
+        "description": "Login page is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC042",
+    "title": "Open patient portal from landing",
+    "description": "From landing open patient report portal.",
+    "category": "Public Landing",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to / and open patient portal link"
+      },
+      {
+        "type": "assertion",
+        "description": "Patient report portal OTP form is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC043",
+    "title": "Reject invalid patient OTP",
+    "description": "Wrong OTP shows error.",
+    "category": "Patient Portal",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open /patient/report, request OTP, enter wrong OTP"
+      },
+      {
+        "type": "assertion",
+        "description": "Error is shown and reports are not unlocked"
+      }
+    ]
+  },
+  {
+    "id": "TC044",
+    "title": "View today USG cases list",
+    "description": "USG today page loads.",
+    "category": "USG",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /usg/today"
+      },
+      {
+        "type": "assertion",
+        "description": "Cases list or empty state visible"
+      }
+    ]
+  },
+  {
+    "id": "TC045",
+    "title": "View today X-Ray cases list",
+    "description": "X-Ray today page loads.",
+    "category": "XRay",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as Admin, open /xray/today"
+      },
+      {
+        "type": "assertion",
+        "description": "Cases list or empty state visible"
+      }
+    ]
+  }
+]

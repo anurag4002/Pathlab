@@ -259,7 +259,9 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
   }
 
   if (bill.dueAmount <= 0) {
-    throw new Error('This invoice is already fully paid');
+    const err = new Error('This invoice is already fully paid');
+    err.statusCode = 400;
+    throw err;
   }
 
   const newPaidAmount = bill.paidAmount + paidVal;
