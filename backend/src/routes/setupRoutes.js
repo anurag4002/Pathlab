@@ -19,8 +19,10 @@ const imageUpload = upload; // pdf/jpg/png filter already enforced (10MB)
 router.get('/lab-profile', protect, setupController.getProfile);
 router.put('/lab-profile', protect, authorize('Admin'), setupController.updateProfile);
 router.patch('/lab-profile', protect, authorize('Admin'), setupController.updateProfile);
+router.post('/lab-profile/document-preview', protect, authorize('Admin'), require('../controllers/documentFormatController').preview);
 router.post('/lab-profile/logo', protect, authorize('Admin'), uploadLimiter, logoUpload.fields([{ name: 'logo', maxCount: 1 }, { name: 'file', maxCount: 1 }]), setupController.uploadLogoFile);
 router.post('/lab-profile/letterhead', protect, authorize('Admin'), uploadLimiter, imageUpload.single('file'), setupController.uploadLetterhead);
+router.post('/lab-profile/footer', protect, authorize('Admin'), uploadLimiter, imageUpload.single('file'), setupController.uploadFooter);
 
 // Onboarding checklist — any staff can read, Admin writes.
 router.get('/onboarding', protect, setupController.getOnboarding);

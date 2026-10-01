@@ -14,7 +14,7 @@ import { getReports, getReportForEntry } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
 import { getUsers } from '../../services/authService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
-import { downloadReportPdf, fetchBarcodeSvgUrl, fetchReportQr } from '../../services/publicService';
+import { downloadReportPdf, printReportPdf, fetchBarcodeSvgUrl, fetchReportQr } from '../../services/publicService';
 import useAuth from '../../hooks/useAuth';
 import assetSrc from '../../utils/assetSrc';
 import downloadFile from '../../utils/downloadFile';
@@ -353,7 +353,7 @@ const ReportPreview = () => {
     try {
       const regNo = entry?.report?.registrationNumber;
       const filename = regNo ? `Report_${regNo}.pdf` : undefined;
-      await downloadReportPdf(id, true, filename);
+      await downloadReportPdf(id, undefined, filename);
     } catch (err) {
       setPdfError(getApiErrorMessage(err, 'Failed to generate the PDF report.'));
     } finally {
@@ -512,7 +512,7 @@ const ReportPreview = () => {
               variant="secondary"
               size="sm"
               icon={<Printer size={16} />}
-              onClick={() => window.print()}
+              onClick={async () => { try { await printReportPdf(id); } catch (err) { setPdfError(getApiErrorMessage(err, 'Failed to print the report.')); } }}
             >
               Print
             </Button>

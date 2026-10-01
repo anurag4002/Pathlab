@@ -21,8 +21,35 @@ export const downloadBlob = async (path, filename) => {
 
 // Server-rendered PDFs + barcode (auth via apiClient; keep client light —
 // no jsPDF/html2canvas anywhere).
-export const downloadBillPdf = (id, letterhead = true) =>
-  downloadBlob(`/bills/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`, `Bill_${id}.pdf`);
+//
+// Every helper accepts either the legacy boolean
+// (`downloadReportPdf(id, true)`) or an options object
+// (`downloadReportPdf(id, { barcode: false })`). Options map 1:1 to the
+// LabProfile print toggles (?letterhead=&footer=&barcode=&qr=&tat=
+// &referred=&dept=&flags=&interpretation=&endline=&signatures=
+// &watermark=&pageno=, 1/0). Omitted flags fall back to the stored profile.
+const PDF_OPTION_KEYS = [
+  'letterhead', 'footer', 'barcode', 'qr', 'tat', 'referred', 'dept',
+  'flags', 'interpretation', 'endline', 'signatures', 'watermark', 'pageno'
+];
+
+export const buildPdfQuery = (letterhead, opts = {}) => {
+  if (letterhead && typeof letterhead === 'object') {
+    opts = letterhead;
+    letterhead = undefined;
+  }
+  const params = new URLSearchParams();
+  if (letterhead !== undefined) params.set('letterhead', letterhead ? '1' : '0');
+  PDF_OPTION_KEYS.forEach((key) => {
+    if (opts[key] === undefined || (key === 'letterhead' && letterhead !== undefined)) return;
+    params.set(key, opts[key] ? '1' : '0');
+  });
+  const query = params.toString();
+  return query ? `?${query}` : '';
+};
+
+export const downloadBillPdf = (id, letterhead, opts = {}) =>
+  downloadBlob(`/bills/${id}/pdf${buildPdfQuery(letterhead, opts)}`, `Bill_${id}.pdf`);
 // Direct silent print of a server PDF (no new tab): fetch with auth, load
 // into an off-screen (but real-sized — a 0px frame renders blank) iframe,
 // wait for the viewer, then print the PDF itself.
@@ -81,17 +108,22 @@ export const printPdfPath = (path) =>
     }
   });
 
-export const printBillPdf = (id, letterhead = true) =>
-  printPdfPath(`/bills/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`);
-export const printReportPdf = (id, letterhead = true) =>
-  printPdfPath(`/reports/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`);
+export const printBillPdf = (id, letterhead, opts = {}) =>
+  printPdfPath(`/bills/${id}/pdf${buildPdfQuery(letterhead, opts)}`);
+export const printReportPdf = (id, letterhead, opts = {}) =>
+  printPdfPath(`/reports/${id}/pdf${buildPdfQuery(letterhead, opts)}`);
 // Optional `filename` lets callers use the report's own registration number
 // (API-provided) instead of the Mongo id; default keeps other callers intact.
-export const downloadReportPdf = (id, letterhead = true, filename) =>
-  downloadBlob(
-    `/reports/${id}/pdf?letterhead=${letterhead ? '1' : '0'}`,
+export const downloadReportPdf = (id, letterhead, filename, opts = {}) => {
+  if (filename && typeof filename === 'object') {
+    opts = filename;
+    filename = undefined;
+  }
+  return downloadBlob(
+    `/reports/${id}/pdf${buildPdfQuery(letterhead, opts)}`,
     filename || `Report_${id}.pdf`
   );
+};
 export const fetchBarcodeSvgUrl = async (billId) => {
   const response = await apiClient.get(`/bills/${billId}/barcode.svg`, { responseType: 'blob' });
   return window.URL.createObjectURL(new Blob([response.data], { type: 'image/svg+xml' }));

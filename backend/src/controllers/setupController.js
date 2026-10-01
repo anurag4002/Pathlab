@@ -8,12 +8,13 @@ const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { ONBOARDING_STEPS } = require('../constants/onboarding');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
+const { formatSettings, validateFormatSettings } = require('../services/documentTemplateService');
 
 const getProfile = async (req, res, next) => {
   try {
     let profile = await LabProfile.findOne();
     if (!profile) profile = await LabProfile.create({});
-    return successResponse(res, 'Lab profile loaded', profile);
+    return successResponse(res, 'Lab profile loaded', { ...profile.toObject(), ...formatSettings(profile) });
   } catch (error) {
     next(error);
   }
@@ -21,7 +22,7 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const allowed = ['labName', 'tagline', 'phone', 'address', 'email', 'logoUrl', 'letterheadUrl', 'letterheadTopMargin', 'showLetterheadByDefault', 'smsEnabled', 'whatsappEnabled', 'emailEnabled', 'smsSenderId', 'googleReviewLink', 'caseStartNumber', 'website', 'disclaimer', 'invoiceFooter', 'registrationPrefix', 'registrationNumber', 'dateFormat', 'barcodeFormat'];
+    const allowed = ['labName', 'tagline', 'phone', 'address', 'email', 'logoUrl', 'letterheadUrl', 'letterheadTopMargin', 'showLetterheadByDefault', 'showFooterByDefault', 'footerUrl', 'showBarcode', 'showQR', 'showTatDates', 'showReferredBy', 'showDepartmentHeading', 'showFlagColumn', 'showInterpretation', 'showEndOfReport', 'showSignatures', 'showWatermark', 'showPageNumber', 'smsEnabled', 'whatsappEnabled', 'emailEnabled', 'smsSenderId', 'googleReviewLink', 'caseStartNumber', 'website', 'disclaimer', 'invoiceFooter', 'registrationPrefix', 'registrationNumber', 'dateFormat', 'barcodeFormat'];
     // Friendly-key mapping for forward-compat (form uses `name`, server uses `labName`).
     const aliases = { name: 'labName', centreName: 'labName', centerName: 'labName' };
     const body = { ...req.body };
@@ -31,6 +32,9 @@ const updateProfile = async (req, res, next) => {
     const patch = {};
     allowed.forEach((k) => { if (body[k] !== undefined) patch[k] = body[k]; });
     let profile = await LabProfile.findOne();
+    const formatPatch = {};
+    for (const key of ['documentFormats', 'reportFormatId', 'billFormatId']) if (body[key] !== undefined) formatPatch[key] = body[key];
+    if (Object.keys(formatPatch).length) Object.assign(patch, validateFormatSettings(formatPatch, profile || {}));
     if (!profile) profile = new LabProfile(patch);
     else Object.assign(profile, patch);
     await profile.save();
@@ -81,6 +85,7 @@ const uploadAsset = (field) => async (req, res, next) => {
     if (!profile) profile = new LabProfile({});
     const fileUrl = `uploads/letterheads/${req.file.filename}`;
     if (field === 'logo') profile.logoUrl = fileUrl;
+    else if (field === 'footer') profile.footerUrl = fileUrl;
     else profile.letterheadUrl = fileUrl;
     await profile.save();
     await Activity.create({
@@ -305,6 +310,7 @@ module.exports = {
   uploadLogo: uploadAsset('logo'),
   uploadLogoFile,
   uploadLetterhead: uploadAsset('letterhead'),
+  uploadFooter: uploadAsset('footer'),
   getOnboarding,
   setOnboardingStep,
   listSignatures,

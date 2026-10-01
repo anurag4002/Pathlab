@@ -15,3 +15,9 @@ yarn-debug.log*
 yarn-error.log*
 .vercel
 .vscode/*
+
+# Generated document rendering and UI QA artifacts.
+/tmp/pdfs/
+/sample-reference.png
+/sample-background.png
+/output/document-format-editor.png

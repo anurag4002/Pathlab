@@ -1,0 +1,18 @@
+{
+  "id": "reference",
+  "name": "Pure Path reference",
+  "pageMargin": 18,
+  "headerHeight": 124,
+  "footerHeight": 88,
+  "fontSize": 9,
+  "rowPadding": 3,
+  "fontFamily": "Helvetica",
+  "accentColor": "#111111",
+  "tableStyle": "outlined",
+  "flagPlacement": "before-value",
+  "patientLayout": "columns",
+  "useReferenceBranding": true,
+  "reportTitle": "",
+  "billTitle": "BILL / INVOICE",
+  "endOfReportText": "~~~ End of report ~~~"
+}

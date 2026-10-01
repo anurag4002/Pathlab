@@ -1,3 +1,4 @@
+import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, uploadUSGImage } from '../../services/usgService';
@@ -5,6 +6,7 @@ import { deleteUSGCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
+import { printPdfPath } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
 import assetSrc from '../../utils/assetSrc';
 import useAuth from '../../hooks/useAuth';
@@ -738,7 +740,7 @@ const TodaysUSGCases = () => {
         footer={
           <>
             <Button variant="secondary" onClick={closePrint}>Close</Button>
-            <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Print Report</Button>
+            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/usg/${printTarget._id}/pdf`).catch(() => alert('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
           </>
         }
       >
@@ -756,74 +758,7 @@ const TodaysUSGCases = () => {
             </Button>
           </div>
         )}
-        {printTarget && (
-          <div className="printable-area" style={{ padding: '16px', color: '#000', fontSize: '0.9rem', lineHeight: '1.5' }}>
-            {/* Dynamic lab letterhead (existing Phase 8 component, API profile
-                data only) — replaces the previously hardcoded lab name/logo;
-                on failure Letterhead renders nothing (never a fake header). */}
-            <Letterhead part="header" profile={profile} loading={profileLoading} />
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-              <p style={{ margin: '2px 0', fontWeight: '700' }}>ULTRASONOGRAPHY REPORT</p>
-              <div style={{ borderBottom: '2px solid #000', margin: '10px 0', width: '100%' }}></div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: '1.5rem' }}>
-              <div>
-                <strong>Patient Name:</strong> {printTarget.patient?.name || '—'}<br />
-                <strong>Age / Gender:</strong>{' '}
-                {printTarget.patient?.age != null ? `${printTarget.patient.age} Yrs` : '—'} /{' '}
-                {printTarget.patient?.gender || '—'}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <strong>Reg Code:</strong> {printTarget.patient?.registrationNumber || '—'}<br />
-                <strong>Referring Doctor:</strong> {printTarget.referringDoctor?.name || 'Self'}<br />
-                <strong>Date:</strong> {formatDate(printTarget.date).split(',')[0]}
-              </div>
-            </div>
-
-            <div style={{ borderBottom: '1px solid #000', marginBottom: '1rem' }}></div>
-
-            <div style={{ minHeight: '300px', whiteSpace: 'pre-wrap', fontFamily: 'sans-serif' }}>
-              <strong>FINDINGS:</strong><br /><br />
-              {printTarget.findings}
-            </div>
-
-            {printImages.length > 0 && (
-              <div style={{ marginTop: '1rem' }}>
-                <strong>ATTACHED IMAGES:</strong>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginTop: '8px' }}>
-                  {printImages.map((src, i) => (
-                    <img
-                      key={i}
-                      src={String(src).startsWith('/') || String(src).startsWith('http') ? src : `/${src}`}
-                      alt={`USG image ${i + 1}`}
-                      style={{ width: '100%', maxHeight: 260, objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: 6, background: '#000' }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{ borderTop: '1px solid #000', marginTop: '2rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ textAlign: 'center', width: '200px' }}>
-                {showSignatureImg && (
-                  <img
-                    src={signatureSrc}
-                    alt={sigMaster?.name ? `Signature of ${sigMaster.name}` : 'Signature'}
-                    onError={() => setBrokenSignature(signatureSrc)}
-                    style={{ height: '40px', objectFit: 'contain' }}
-                  />
-                )}
-                <div style={{ height: showSignatureImg ? '4px' : '40px' }}></div>
-                <strong>{sigMaster?.name || 'Authorised Signatory'}</strong><br />
-                <span>{sigMaster?.title || 'Consultant Radiologist'}</span>
-              </div>
-            </div>
-
-            {/* Lab contact footer (Phase 8 letterhead component, API data). */}
-            <Letterhead part="footer" profile={profile} />
-          </div>
-        )}
+        {printTarget?._id && <ServerPdfPreview path={`/usg/${printTarget._id}/pdf`} />}
       </Modal>
 
       <ConfirmDialog

@@ -202,6 +202,338 @@
   color: var(--color-info);
 }
 
+/* Live letterhead preview — A4-style sheet showing exactly how the
+   uploaded letterhead, lab details and signatures look on a report. */
+.lab-profile-preview-card {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+
+.lab-profile-preview-card .lab-profile-section-heading {
+  margin-bottom: var(--space-3);
+}
+
+.lab-profile-preview-sheet {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow: var(--shadow-sm);
+  max-width: 44rem;
+}
+
+.lab-profile-preview-letterhead {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 7rem;
+  object-fit: contain;
+  object-position: top center;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.lab-profile-preview-pdf-notice,
+.lab-profile-preview-off-note,
+.lab-profile-preview-no-sig {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-info-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.lab-profile-preview-typed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 0.75rem;
+}
+
+.lab-profile-preview-logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.lab-profile-preview-identity {
+  min-width: 0;
+}
+
+.lab-profile-preview-name {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold);
+  color: #111827;
+  overflow-wrap: anywhere;
+}
+
+.lab-profile-preview-tagline {
+  font-size: var(--font-size-sm);
+  color: #4b5563;
+}
+
+.lab-profile-preview-contact {
+  font-size: var(--font-size-xs);
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+.lab-profile-preview-title {
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+}
+
+.lab-profile-preview-title span {
+  font-weight: var(--font-weight-normal);
+  color: #6b7280;
+}
+
+.lab-profile-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: var(--font-size-xs);
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.lab-profile-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+  margin-bottom: 0.75rem;
+}
+
+.lab-profile-preview-table th,
+.lab-profile-preview-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+
+.lab-profile-preview-table thead th {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.lab-profile-preview-signatures {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.lab-profile-preview-signature img {
+  display: block;
+  height: 2.5rem;
+  width: auto;
+  max-width: 9rem;
+  object-fit: contain;
+}
+
+.lab-profile-preview-sig-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: #111827;
+}
+
+.lab-profile-preview-sig-role {
+  font-size: var(--font-size-xs);
+  color: #4b5563;
+}
+
+.lab-profile-preview-disclaimer {
+  font-size: var(--font-size-xs);
+  color: #4b5563;
+  margin-top: 0.5rem;
+}
+
+.lab-profile-preview-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+/* Reference-format patient band: patient | barcode+TAT | QR. */
+.lab-profile-preview-band {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid #9ca3af;
+  border-bottom: 1px solid #9ca3af;
+  margin-bottom: 0.75rem;
+  font-size: var(--font-size-xs);
+  color: #1f2937;
+}
+
+.lab-profile-preview-patient-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: #111827;
+}
+
+.lab-profile-preview-mid {
+  border-left: 1px solid #9ca3af;
+  border-right: 1px solid #9ca3af;
+  padding: 0 0.75rem;
+}
+
+.lab-profile-preview-barcode {
+  height: 2rem;
+  margin-bottom: 0.15rem;
+  background: repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 4px, #111827 4px 7px, transparent 7px 9px, #111827 9px 10px, transparent 10px 14px);
+  position: relative;
+}
+
+.lab-profile-preview-barcode span {
+  position: absolute;
+  right: 0;
+  top: -0.1rem;
+  background: #fff;
+  padding-left: 0.25rem;
+  font-size: var(--font-size-xs);
+}
+
+.lab-profile-preview-tat {
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.lab-profile-preview-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.lab-profile-preview-qr span {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 2px solid #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 6px, #11182722 6px 8px),
+    repeating-linear-gradient(90deg, transparent 0 6px, #11182722 6px 8px);
+}
+
+.lab-profile-preview-qr em {
+  font-style: normal;
+  font-size: 0.65rem;
+  color: #4b5563;
+}
+
+.lab-profile-preview-dept {
+  text-align: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.lab-profile-preview-dept div {
+  font-size: var(--font-size-sm);
+}
+
+.lab-profile-preview-table-wrap {
+  position: relative;
+}
+
+.lab-profile-preview-watermark {
+  position: absolute;
+  inset: 1rem 0;
+  width: 70%;
+  height: calc(100% - 2rem);
+  margin: 0 15%;
+  object-fit: contain;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.lab-profile-preview-table tr.abnormal td {
+  font-weight: var(--font-weight-bold);
+  color: #b91c1c;
+}
+
+.lab-profile-preview-interp {
+  background: #eff6ff;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+  font-size: var(--font-size-xs);
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.lab-profile-preview-interp p {
+  margin: 0.25rem 0 0;
+}
+
+.lab-profile-preview-endline {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: #111827;
+  margin: 0.5rem 0;
+}
+
+.lab-profile-preview-strip {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 6rem;
+  object-fit: contain;
+  margin-top: 0.75rem;
+}
+
+.lab-profile-preview-bottomrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: var(--font-size-xs);
+  color: #6b7280;
+}
+
+.lab-profile-print-toggles {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .lab-profile-preview-band {
+    grid-template-columns: 1fr;
+  }
+  .lab-profile-preview-mid {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid #9ca3af;
+    border-bottom: 1px solid #9ca3af;
+    padding: 0.5rem 0;
+  }
+}
+
 .lab-profile-toggle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));

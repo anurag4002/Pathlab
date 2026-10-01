@@ -10,8 +10,28 @@ const LabProfileSchema = new mongoose.Schema({
   logoUrl: { type: String, default: '' },
   letterheadUrl: { type: String, default: '' },
   letterheadTopMargin: { type: Number, default: 90 },
-  // Bill/report print defaults
+  // Footer strip image (bottom marketing/sign-off band on PDFs).
+  footerUrl: { type: String, default: '' },
+  documentFormats: { type: [mongoose.Schema.Types.Mixed], default: () => [{ ...require('../services/documentTemplateService').REFERENCE_FORMAT }] },
+  reportFormatId: { type: String, default: 'reference' },
+  billFormatId: { type: String, default: 'reference' },
+  // Bill/report print defaults — each maps to one block of the lab's
+  // reference report format (patient band, barcode/QR, TAT dates,
+  // department headings, flag column, interpretation box, end-of-report
+  // line, signatures, watermark, footer strip, page number).
   showLetterheadByDefault: { type: Boolean, default: true },
+  showFooterByDefault: { type: Boolean, default: true },
+  showBarcode: { type: Boolean, default: true },
+  showQR: { type: Boolean, default: true },
+  showTatDates: { type: Boolean, default: true },
+  showReferredBy: { type: Boolean, default: true },
+  showDepartmentHeading: { type: Boolean, default: true },
+  showFlagColumn: { type: Boolean, default: true },
+  showInterpretation: { type: Boolean, default: true },
+  showEndOfReport: { type: Boolean, default: true },
+  showSignatures: { type: Boolean, default: true },
+  showWatermark: { type: Boolean, default: true },
+  showPageNumber: { type: Boolean, default: true },
   // Delivery opt-ins + sender ids
   smsEnabled: { type: Boolean, default: false },
   whatsappEnabled: { type: Boolean, default: false },

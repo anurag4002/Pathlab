@@ -345,7 +345,7 @@ const BillsPage = () => {
   // Print sends the server PDF straight to the print dialog (no new tab).
   const handleOpenPrint = async (bill) => {
     try {
-      await printBillPdf(bill._id, true);
+      await printBillPdf(bill._id);
     } catch {
       alert('Failed to print bill');
     }
@@ -594,7 +594,7 @@ const BillsPage = () => {
                 <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />}>
                   Print
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => downloadBillPdf(bill._id, true)} icon={<FileDown size={14} />}>
+                <Button variant="secondary" size="sm" onClick={() => downloadBillPdf(bill._id)} icon={<FileDown size={14} />}>
                   PDF
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />}>

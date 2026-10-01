@@ -8,6 +8,7 @@ const upload = require('../middleware/uploadMiddleware');
 router.use(protect);
 
 router.get('/', xrayController.getXrayCases);
+router.get('/:id/pdf', require('../controllers/narrativePdfController').forModel(require('../models/XrayCase'), 'X-RAY'));
 router.get('/:id', xrayController.getXrayCaseById);
 router.post('/', uploadLimiter, upload.single('file'), xrayController.createXrayCase);
 router.put('/:id', uploadLimiter, upload.single('file'), xrayController.updateXrayCase);

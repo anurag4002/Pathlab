@@ -7,7 +7,14 @@
   "functions": {
     "api/index.js": {
       "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": [
+        "backend/src/assets/document-formats/**",
+        "backend/node_modules/pdfkit/**",
+        "backend/node_modules/fontkit/**",
+        "backend/node_modules/png-js/**",
+        "backend/node_modules/brotli/**"
+      ]
     }
   },
   "headers": [

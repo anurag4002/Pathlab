@@ -605,7 +605,7 @@ const TodaysReports = () => {
     if (!id || printingId) return;
     setPrintingId(id);
     try {
-      await printReportPdf(id, true);
+      await printReportPdf(id);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to print report — the server PDF could not be loaded.');
     } finally {
@@ -889,7 +889,7 @@ const TodaysReports = () => {
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handlePrintPdf(report._id)} disabled={printingId === report._id} title={printingId === report._id ? 'Printing…' : 'Print the server-rendered PDF'}>
                     <Printer size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)} title="Download PDF">
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)} title="Download PDF">
                     <FileDown size={14} />
                   </button>
                   {report.fileUrl && (
@@ -1039,7 +1039,7 @@ const TodaysReports = () => {
             <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
             <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
             <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
-            <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, true)}><FileDown size={14} /> PDF</Button>
+            <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id)}><FileDown size={14} /> PDF</Button>
             <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
             {['Signed', 'Verified', 'Completed'].includes(activeReport?.status) ? (
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>

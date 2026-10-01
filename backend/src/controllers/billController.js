@@ -155,7 +155,10 @@ async function voidBill(req, res, next) {
 
 async function billPdfDownload(req, res, next) {
   try {
-    const letterhead = req.query.letterhead !== '0';
+    const { reportOptionsFromQuery } = require('../services/pdfService');
+    const options = reportOptionsFromQuery(req.query);
+    // Back-compat: legacy ?letterhead=0 links keep working (?letterhead is
+    // part of the shared option set, so no special-casing needed).
     const bill = await Bill.findById(req.params.id).populate('patient').populate('referringDoctor').populate('agent').populate('items');
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
     try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
@@ -165,10 +168,10 @@ async function billPdfDownload(req, res, next) {
     const qrPng = await qrBuffer(billVerifyUrl(token));
     const pdf = await billPdf(
       { bill, patient: bill.patient, doctor: bill.referringDoctor, agent: bill.agent, items: bill.items, profile },
-      { letterhead, qrPng }
+      { ...options, qrPng }
     );
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('X-Bill-PDF', 'v2-table-engine');
+    res.setHeader('X-Bill-PDF', 'v3-saved-template');
     res.setHeader('Content-Disposition', `attachment; filename="Bill_${bill.billNumber}.pdf"`);
     return res.send(pdf);
   } catch (error) {

@@ -161,7 +161,7 @@ const SearchReports = () => {
             <td>{report.status}</td>
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, true)}>
+                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)}>
                   <FileDown size={14} /> PDF
                 </button>
                 {report.fileUrl && (

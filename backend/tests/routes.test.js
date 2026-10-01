@@ -14,7 +14,7 @@ const EXPECTED_MOUNTS = [
   'auth', 'users', 'patients', 'doctors', 'agents', 'bills', 'tests',
   'reports', 'expenses', 'transactions', 'usg', 'xray', 'dashboard', 'patient',
   'public', 'setup', 'settings', 'audit-log', 'notify', 'support', 'modality', 'doctor', 'export',
-  'jobs', 'analysis'
+  'jobs', 'analysis', 'inquiries', 'branches'
 ];
 
 function routerMountRegexps() {

@@ -51,9 +51,9 @@ const downloadPublicReport = async (req, res, next) => {
       const abs = storageService.getFilePath(report.fileUrl);
       if (abs) return res.download(abs, `Report_${report.registrationNumber}.pdf`);
     }
-    const full = await Report.findById(report._id).populate('patient').populate('bill');
+    const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
     const testIds = (full.results || []).map((r) => r.test).filter(Boolean);
-    const tests = await Test.find({ _id: { $in: testIds } });
+    const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
     const testMap = {};
     tests.forEach((t) => { testMap[String(t._id)] = t; });
     let profile = null;
@@ -71,7 +71,7 @@ const downloadPublicReport = async (req, res, next) => {
       try { return { png: fs.readFileSync(abs), name: d.name, title: d.title }; } catch (e) { return null; }
     }).filter(Boolean);
     const qrPng = await qrBuffer(reportVerifyUrl(full.qrToken));
-    const pdf = await reportPdf({ report: full, patient: full.patient, bill: full.bill, testMap, profile }, { letterhead: true, qrPng, signaturePngs });
+    const pdf = await reportPdf({ report: full, patient: full.patient, bill: full.bill, testMap, profile }, { qrPng, signaturePngs });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Report_${full.registrationNumber}.pdf"`);
     return res.send(pdf);
@@ -109,7 +109,7 @@ const downloadPublicBill = async (req, res, next) => {
     const qrPng = await qrBuffer(billVerifyUrl(full.qrToken));
     const pdf = await billPdf(
       { bill: full, patient: full.patient, doctor: full.referringDoctor, agent: full.agent, items: full.items, profile },
-      { letterhead: true, qrPng }
+      { qrPng }
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Bill_${full.billNumber}.pdf"`);

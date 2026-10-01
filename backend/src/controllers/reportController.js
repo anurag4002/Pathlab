@@ -216,7 +216,7 @@ async function updateTat(req, res, next) {
 // ---- Server-rendered PDF (letterhead toggle) + QR ----
 
 async function loadReportPdfContext(id, req) {
-  const report = await Report.findById(id).populate('patient').populate('bill');
+  const report = await Report.findById(id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
   if (req) assertBranchAccess(req, report ? report.branch : null);
   if (!report) {
     const err = new Error('Report not found');
@@ -225,7 +225,7 @@ async function loadReportPdfContext(id, req) {
   }
   const token = await reportService.ensureQrToken(report);
   const testIds = (report.results || []).map((r) => r.test).filter(Boolean);
-  const tests = await Test.find({ _id: { $in: testIds } });
+  const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
   const testMap = {};
   tests.forEach((t) => { testMap[String(t._id)] = t; });
   let profile = null;
@@ -248,12 +248,18 @@ async function loadReportPdfContext(id, req) {
 
 async function reportPdfDownload(req, res, next) {
   try {
-    const letterhead = req.query.letterhead !== '0';
+    const { reportOptionsFromQuery } = require('../services/pdfService');
+    // Per-request flags (?barcode=0&qr=0…) override the stored LabProfile
+    // print options; absent flags fall back to the profile defaults.
+    const options = reportOptionsFromQuery(req.query);
     const ctx = await loadReportPdfContext(req.params.id, req);
-    const qrPng = await qrBuffer(reportVerifyUrl(ctx.token));
-    const pdf = await reportPdf(ctx, { letterhead, qrPng });
+    const qrOff = options.qr !== undefined && ['0', 'false', false].includes(
+      typeof options.qr === 'string' ? options.qr.toLowerCase() : options.qr
+    );
+    const qrPng = qrOff ? null : await qrBuffer(reportVerifyUrl(ctx.token));
+    const pdf = await reportPdf(ctx, { ...options, qrPng });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('X-Report-PDF', 'v2-table-engine');
+    res.setHeader('X-Report-PDF', 'v3-saved-template');
     res.setHeader('Content-Disposition', `attachment; filename="Report_${ctx.report.registrationNumber}.pdf"`);
     return res.send(pdf);
   } catch (error) {

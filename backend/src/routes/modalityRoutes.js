@@ -7,6 +7,7 @@ const { authorize } = require('../middleware/roleMiddleware');
 router.use(protect);
 
 router.get('/', modalityController.listCases);
+router.get('/:id/pdf', require('../controllers/narrativePdfController').forModel(require('../models/ModalityCase'), 'REPORT'));
 router.post('/', modalityController.createCase);
 router.put('/:id', modalityController.updateCase);
 router.delete('/:id', authorize('Admin'), modalityController.deleteCase);

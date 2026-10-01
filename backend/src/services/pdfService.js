@@ -1,12 +1,97 @@
 // Server-side PDF generation (pdfkit). The client stays light: it only
 // downloads the finished PDF via GET .../pdf?letterhead=1|0 — no jsPDF,
 // no html2canvas, no heavy browser rendering.
-const PDFDocument = require('pdfkit');
+//
+// NOTE (Vercel): pdfkit's standard-font .cjs files are dynamically required
+// and missed by Vercel's file tracer, which crashed EVERY route at cold
+// start (top-level require). pdfkit is lazy-loaded here so the app boots
+// without it; only actual PDF downloads throw (503) if the bundle is absent.
 const path = require('path');
 const fs = require('fs');
 const { encode: encode39 } = require('./code39Service');
 
+let _PDFDocument = null;
+function getPDFDocument() {
+  if (_PDFDocument) return _PDFDocument;
+  try {
+    _PDFDocument = require('pdfkit');
+    return _PDFDocument;
+  } catch (e) {
+    const err = new Error(`PDF generation unavailable (pdfkit bundle missing): ${e.message}`);
+    err.statusCode = 503;
+    err.cause = e;
+    throw err;
+  }
+}
+
 const MARGIN = 36;
+
+// Print-option defaults — mirror the LabProfile schema defaults so PDFs
+// render the full reference lab format even when the stored profile
+// predates these fields. Explicit per-request flags win, then the stored
+// profile, then these defaults.
+const REPORT_OPTION_DEFAULTS = {
+  letterhead: true,
+  footer: true,
+  barcode: true,
+  qr: true,
+  tat: true,
+  referred: true,
+  dept: true,
+  flags: true,
+  interpretation: true,
+  endline: true,
+  signatures: true,
+  watermark: true,
+  pageno: true
+};
+
+//opt: { letterhead, footer, barcode, qr, tat, referred, dept, flags,
+//  interpretation, endline, signatures, watermark, pageno } — each
+//  true/false/'1'/'0'/undefined (undefined = fall back to profile).
+function resolveReportOptions(opt = {}, profile = {}) {
+  const PROFILE_KEYS = {
+    letterhead: ['showLetterheadByDefault'],
+    footer: ['showFooterByDefault'],
+    barcode: ['showBarcode'],
+    qr: ['showQR'],
+    tat: ['showTatDates'],
+    referred: ['showReferredBy'],
+    dept: ['showDepartmentHeading'],
+    flags: ['showFlagColumn'],
+    interpretation: ['showInterpretation'],
+    endline: ['showEndOfReport'],
+    signatures: ['showSignatures'],
+    watermark: ['showWatermark'],
+    pageno: ['showPageNumber']
+  };
+  const out = {};
+  for (const key of Object.keys(REPORT_OPTION_DEFAULTS)) {
+    const v = opt[key];
+    if (v !== undefined && v !== null && v !== '') {
+      out[key] = !(v === false || v === '0' || v === 'false');
+      continue;
+    }
+    let fromProfile;
+    for (const pk of PROFILE_KEYS[key]) {
+      if (profile[pk] !== undefined && profile[pk] !== null) { fromProfile = profile[pk]; break; }
+    }
+    out[key] = fromProfile !== undefined ? !!fromProfile : REPORT_OPTION_DEFAULTS[key];
+  }
+  return out;
+}
+
+// Builds the same options object from Express query params (?barcode=0 …).
+// Absent params stay undefined so the stored profile decides.
+function reportOptionsFromQuery(query = {}) {
+  const out = {};
+  for (const key of Object.keys(REPORT_OPTION_DEFAULTS)) {
+    if (query[key] !== undefined) out[key] = query[key];
+  }
+  // Legacy single-flag callers (?letterhead=0) keep working.
+  if (query.letterhead !== undefined && out.letterhead === undefined) out.letterhead = query.letterhead;
+  return out;
+}
 
 function backendDir() {
   return path.join(__dirname, '..', '..');
@@ -139,11 +224,29 @@ function drawHeader(doc, profile, letterhead, topMargin) {
   doc.moveDown(0.5);
 }
 
-function drawFooter(doc, left) {
+function drawFooter(doc, left, pageLabel) {
   const bottom = doc.page.height - 30;
+  const W = contentWidth(doc);
   doc.fontSize(8).fillColor('#6b7280')
     .text(left || 'Computer generated document.',
-      MARGIN, bottom, { align: 'center', width: contentWidth(doc) });
+      MARGIN, bottom, { align: 'center', width: W });
+  if (pageLabel) {
+    doc.fontSize(8).fillColor('#6b7280')
+      .text(pageLabel, MARGIN, bottom, { align: 'right', width: W });
+  }
+}
+
+// Stamps "Page X of N" on every buffered page. Must run before doc.end().
+function stampPageNumbers(doc, left) {
+  let range;
+  try { range = doc.bufferedPageRange(); } catch (e) { return; }
+  for (let i = range.start; i < range.start + range.count; i++) {
+    try {
+      doc.switchToPage(i);
+      drawFooter(doc, i === range.start + range.count - 1 ? left : '', `Page ${i - range.start + 1} of ${range.count}`);
+    } catch (e) { /* stamp best-effort */ }
+  }
+  try { doc.switchToPage(range.start + range.count - 1); } catch (e) { /* noop */ }
 }
 
 function metaLines(doc, lines) {
@@ -159,180 +262,183 @@ function metaLines(doc, lines) {
   doc.fillColor('#111827').font('Helvetica');
 }
 
-// Code39 barcode drawn with rects (no image dep). Returns height used.
-function drawBarcode(doc, text, maxWidth) {
-  const { bars, width } = encode39(text);
-  const unit = Math.min(1.6, maxWidth / width);
-  ensureSpace(doc, 60);
-  const y = doc.y;
-  const x = MARGIN;
+// Code39 barcode drawn with rects (no image dep) at an explicit position.
+// Returns the y just below the drawn barcode.
+function drawBarcodeAt(doc, text, x, y, maxWidth) {
+  const { bars, width } = encode39(String(text || ''));
+  const unit = Math.min(1.6, maxWidth / Math.max(width, 1));
   doc.save().fillColor('#000000');
   bars.forEach((b) => doc.rect(x + b.x * unit, y, Math.max(b.w * unit - 0.15, 0.4), 34).fill());
   doc.restore();
   doc.fontSize(9).font('Courier').fillColor('#111827')
-    .text(text, x, y + 38, { width: maxWidth, align: 'left' });
-  doc.y = y + 54;
+    .text(String(text || ''), x, y + 38, { width: maxWidth, align: 'left' });
   doc.font('Helvetica');
+  return y + 54;
+}
+
+// Legacy flow-layout barcode (bills). Returns height used.
+function drawBarcode(doc, text, maxWidth) {
+  ensureSpace(doc, 60);
+  const bottom = drawBarcodeAt(doc, text, MARGIN, doc.y, maxWidth);
+  doc.y = bottom;
   return doc.y;
+}
+
+// Three-column patient band mirroring the reference lab format:
+// left = patient identity, middle = barcode + reg no + TAT dates,
+// right = QR ("Scan to download"). Missing blocks collapse gracefully.
+function drawPatientBand(doc, { patient, bill, report, referredName, token }, { barcode, qrPng, qr, tat }) {
+  const p = patient || {};
+  const W = contentWidth(doc);
+  const qrW = qr && qrPng ? 100 : 0;
+  const gap = 10;
+  const midW = Math.min(230, W * 0.38);
+  const leftW = W - midW - qrW - gap * 2;
+  const y0 = doc.y;
+
+  // Rule above the band.
+  doc.strokeColor('#9ca3af').lineWidth(1)
+    .moveTo(MARGIN, y0).lineTo(MARGIN + W, y0).stroke();
+  let y = y0 + 6;
+
+  // Left: patient identity.
+  const demoBits = [
+    p.age === undefined || p.age === null || p.age === '' ? '' : `${p.age} YRS`,
+    p.gender
+  ].filter(Boolean).join(' / ');
+  doc.fontSize(13).font('Helvetica-Bold').fillColor('#111827')
+    .text(p.name || 'Walk-in Patient', MARGIN, y, { width: leftW });
+  y = doc.y + 2;
+  doc.fontSize(10).font('Helvetica').fillColor('#1f2937');
+  const leftLines = [
+    demoBits ? `Age / Sex     : ${demoBits}` : null,
+    referredName ? `Referred by   : ${referredName}` : null,
+    `Reg. no.       : ${report?.registrationNumber || p.registrationNumber || '—'}`
+  ].filter(Boolean);
+  leftLines.forEach((line) => {
+    doc.text(line, MARGIN, y, { width: leftW });
+    y = doc.y + 1;
+  });
+  const leftBottom = y;
+
+  // Middle: barcode + reg no + TAT dates.
+  let midBottom = y0 + 6;
+  const midX = MARGIN + leftW + gap;
+  if (barcode && (report?.registrationNumber || bill?.billNumber)) {
+    midBottom = drawBarcodeAt(doc, report?.registrationNumber || bill?.billNumber, midX, midBottom, midW);
+  }
+  if (tat && report?.tat) {
+    const f = (d) => (d ? new Date(d).toLocaleString() : '-');
+    doc.fontSize(9).font('Helvetica').fillColor('#1f2937');
+    [
+      `Registered on : ${f(report.tat.registered)}`,
+      `Collected on  : ${f(report.tat.collected)}`,
+      `Received on   : ${f(report.tat.received)}`,
+      `Reported on   : ${f(report.tat.reported)}`
+    ].forEach((line) => {
+      doc.text(line, midX, midBottom, { width: midW });
+      midBottom = doc.y + 1;
+    });
+  } else if (bill) {
+    doc.fontSize(9).font('Helvetica').fillColor('#1f2937')
+      .text(`Bill No: ${bill.billNumber || '—'}`, midX, midBottom, { width: midW });
+    midBottom = doc.y + 1;
+  }
+
+  // Right: QR.
+  let qrBottom = y0 + 6;
+  if (qr && qrPng) {
+    try {
+      const qrX = MARGIN + W - qrW;
+      doc.fontSize(7).fillColor('#4b5563').font('Helvetica')
+        .text('Scan to download', qrX, qrBottom, { width: qrW, align: 'center' });
+      doc.image(qrPng, qrX, doc.y + 2, { width: qrW });
+      qrBottom = doc.y + qrW + 6;
+    } catch (e) { /* QR optional */ }
+  }
+
+  const bandBottom = Math.max(leftBottom, midBottom, qrBottom);
+
+  // Vertical dividers + rule below the band.
+  doc.strokeColor('#9ca3af').lineWidth(1);
+  doc.moveTo(midX - gap / 2, y0).lineTo(midX - gap / 2, bandBottom).stroke();
+  if (qrW) {
+    const qrX = MARGIN + W - qrW;
+    doc.moveTo(qrX - gap / 2, y0).lineTo(qrX - gap / 2, bandBottom).stroke();
+  }
+  doc.moveTo(MARGIN, bandBottom + 4).lineTo(MARGIN + W, bandBottom + 4).stroke();
+  doc.y = bandBottom + 10;
+  doc.fillColor('#111827').font('Helvetica');
+}
+
+// Faded logo watermark behind the results table (reference format).
+function drawWatermark(doc, profile) {
+  if (!profile?.logoUrl) return;
+  const abs = resolveUploadAbsolute(profile.logoUrl);
+  if (!abs) return;
+  try {
+    const W = contentWidth(doc);
+    const size = Math.min(320, W * 0.7);
+    doc.save();
+    doc.opacity(0.07);
+    doc.image(abs, MARGIN + (W - size) / 2, doc.y + 30, { width: size });
+    doc.restore();
+  } catch (e) { try { doc.restore(); } catch (_) { /* noop */ } }
+}
+
+// Footer strip image (bottom marketing/sign-off band). Drawn in-flow.
+function drawFooterStrip(doc, profile) {
+  if (!profile?.footerUrl) return;
+  const abs = resolveUploadAbsolute(profile.footerUrl);
+  if (!abs) return;
+  try {
+    ensureSpace(doc, 70);
+    const W = contentWidth(doc);
+    doc.image(abs, MARGIN, doc.y, { width: W });
+    doc.moveDown(5);
+  } catch (e) { /* footer strip optional */ }
 }
 
 const inr = (n) => `Rs. ${Number(n || 0).toFixed(2)}`;
 
-function billPdf({ bill, patient, doctor, agent, items, profile }, { letterhead = true, qrPng = null } = {}) {
-  const doc = new PDFDocument({ margin: MARGIN, size: 'A4' });
-  const done = collectBuffer(doc);
-  drawHeader(doc, profile, letterhead, profile && profile.letterheadTopMargin);
-
-  doc.fontSize(14).font('Helvetica-Bold').fillColor('#111827')
-    .text('BILL / INVOICE', MARGIN, doc.y, { align: 'center', width: contentWidth(doc) });
-  doc.moveDown(0.6);
-
-  // Patient may be missing (deleted record) — never crash the PDF.
-  const bp = patient || {};
-  const bDemo = [bp.gender, (bp.age === undefined || bp.age === null || bp.age === '') ? '' : `${bp.age}y`].filter(Boolean).join(', ');
-  metaLines(doc, [
-    ['Bill No: ', bill.billNumber],
-    ['Date: ', bill.date ? new Date(bill.date).toLocaleString() : '—'],
-    ['Patient: ', bDemo ? `${bp.name || 'Walk-in Patient'} (${bDemo})` : (bp.name || 'Walk-in Patient')],
-    ['Reg No: ', bp.registrationNumber || '—'],
-    ['Phone: ', bp.phone || '—'],
-    ...(doctor ? [['Referred By: ', doctor.name]] : []),
-    ...(bill.department ? [['Department: ', bill.department]] : [])
-  ]);
-
-  const W = contentWidth(doc);
-  tableRow(doc, [
-    { text: '#', width: 36, align: 'center' },
-    { text: 'Particulars', width: W - 36 - 110 },
-    { text: 'Amount (Rs.)', width: 110, align: 'right' }
-  ], { header: true });
-  (items || []).forEach((it, i) => {
-    tableRow(doc, [
-      { text: String(i + 1), width: 36, align: 'center' },
-      { text: it.name || it.itemId || 'Test', width: W - 36 - 110 },
-      { text: Number(it.price || 0).toFixed(2), width: 110, align: 'right' }
-    ]);
-  });
-
-  doc.moveDown(0.4);
-  const sub = Number(bill.totalAmount || 0) + Number(bill.discount || 0);
-  kvBlock(doc, [
-    ['Gross Subtotal:', inr(sub), false],
-    ['Discount:', inr(bill.discount), false],
-    ['Net Payable:', inr(bill.totalAmount), true],
-    [`Paid (${bill.paymentMethod || 'Cash'}):`, inr(bill.paidAmount), false],
-    ['Balance Due:', inr(bill.dueAmount), true]
-  ]);
-  doc.moveDown(0.6);
-
-  // Barcode (left) + QR (right) on the same band.
-  ensureSpace(doc, 110);
-  const bandY = doc.y;
-  drawBarcode(doc, bill.billNumber, 230);
-  const afterBarcodeY = doc.y;
-  if (qrPng) {
-    try {
-      doc.image(qrPng, MARGIN + W - 110, bandY, { width: 100 });
-      doc.fontSize(8).fillColor('#4b5563')
-        .text('Scan to verify bill', MARGIN + W - 110, bandY + 104, { width: 100, align: 'center' });
-      doc.y = Math.max(afterBarcodeY, bandY + 118);
-    } catch (e) { doc.y = afterBarcodeY; }
-  }
-  doc.fillColor('#111827');
-  drawFooter(doc, `Bill ${bill.billNumber} • Verify via QR • ${profile ? profile.phone || '' : ''}`);
-  doc.end();
-  return done;
+function billPdf(context, options = {}) {
+  return require('./formattedPdfService').documentPdf(context, options, 'bill');
 }
 
-function reportPdf({ report, patient, bill, testMap, profile }, { letterhead = true, qrPng = null, signaturePngs = [] } = {}) {
-  const doc = new PDFDocument({ margin: MARGIN, size: 'A4' });
-  const done = collectBuffer(doc);
-  drawHeader(doc, profile, letterhead, profile && profile.letterheadTopMargin);
-
-  doc.fontSize(14).font('Helvetica-Bold').fillColor('#111827')
-    .text('LABORATORY REPORT', MARGIN, doc.y, { align: 'center', width: contentWidth(doc) });
-  doc.moveDown(0.6);
-
-  // Patient may be missing (walk-in / deleted record) — never crash the PDF.
-  const p = patient || {};
-  const demoBits = [p.gender, (p.age === undefined || p.age === null || p.age === '') ? '' : `${p.age}y`].filter(Boolean).join(', ');
-  metaLines(doc, [
-    ['Patient: ', demoBits ? `${p.name || 'Walk-in Patient'} (${demoBits})` : (p.name || 'Walk-in Patient')],
-    ['Reg No: ', report.registrationNumber || (p.registrationNumber || '—')],
-    ...(bill ? [['Bill No: ', bill.billNumber]] : []),
-    ['Report Date: ', report.reportDate ? new Date(report.reportDate).toLocaleString() : '—'],
-    ...((report.tat && report.tat.collected) ? [['Sample Collected: ', new Date(report.tat.collected).toLocaleString()]] : [])
-  ]);
-
+// Interpretation box (light-blue band like the reference format).
+function drawInterpretationBox(doc, title, body) {
   const W = contentWidth(doc);
-  const wTest = 190, wResult = 80, wUnit = 90, wFlag = 45;
-  const wRange = W - wTest - wResult - wUnit - wFlag;
-  tableRow(doc, [
-    { text: 'Test', width: wTest },
-    { text: 'Result', width: wResult, align: 'right' },
-    { text: 'Unit', width: wUnit },
-    { text: 'Ref. Range', width: wRange },
-    { text: 'Flag', width: wFlag, align: 'center' }
-  ], { header: true });
-
-  (report.results || []).forEach((r) => {
-    const t = (testMap && (testMap[String(r.test)] || testMap[r.testName])) || {};
-    const range = (t.normalLow !== null && t.normalLow !== undefined && t.normalHigh !== null && t.normalHigh !== undefined)
-      ? `${t.normalLow} - ${t.normalHigh}` : (t.referenceRange || '-');
-    const abnormal = r.flag === 'H' || r.flag === 'L' || r.flag === 'C';
-    tableRow(doc, [
-      { text: `${r.testName || ''}${r.derived ? ' *' : ''}`, width: wTest, bold: abnormal, color: abnormal ? '#b91c1c' : '#111827' },
-      { text: String(r.value ?? ''), width: wResult, align: 'right', bold: abnormal, color: abnormal ? '#b91c1c' : '#111827' },
-      { text: r.unit || t.unit || '-', width: wUnit, color: '#374151' },
-      { text: range, width: wRange, color: '#374151' },
-      { text: r.flag && r.flag !== 'N' ? `[${r.flag}]` : '', width: wFlag, align: 'center', bold: abnormal, color: abnormal ? '#b91c1c' : '#111827' }
-    ]);
-  });
-
-  doc.fontSize(8).fillColor('#6b7280');
-  ensureSpace(doc, 14);
-  doc.text('* Derived (auto-calculated). H = High, L = Low, C = Critical.', MARGIN, doc.y, { width: W });
-  doc.moveDown(0.8);
-
-  // TAT block — two compact lines.
-  if (report.tat) {
-    const f = (d) => (d ? new Date(d).toLocaleString() : '-');
-    doc.fontSize(9).fillColor('#4b5563');
-    ensureSpace(doc, 28);
-    doc.text(`Registered: ${f(report.tat.registered)}      Collected: ${f(report.tat.collected)}`, MARGIN, doc.y, { width: W });
-    doc.moveDown(0.2);
-    doc.text(`Received: ${f(report.tat.received)}      Reported: ${f(report.tat.reported)}`, { width: W });
-    doc.moveDown(0.6);
+  doc.fontSize(10);
+  const titleH = title ? doc.heightOfString(title, { width: W - 16 }) + 6 : 0;
+  const bodyH = doc.heightOfString(String(body || ''), { width: W - 16 }) + 8;
+  const h = titleH + bodyH + 8;
+  ensureSpace(doc, Math.min(h, 200));
+  const y = doc.y;
+  doc.save().fillColor('#eff6ff').rect(MARGIN, y, W, h).fill().restore();
+  let ty = y + 5;
+  if (title) {
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#111827')
+      .text(title, MARGIN + 8, ty, { width: W - 16 });
+    ty = doc.y + 2;
   }
-
-  // E-signatures, each in its own band.
-  (signaturePngs || []).forEach((s) => {
-    if (!s || !s.png) return;
-    try {
-      ensureSpace(doc, 90);
-      const y = doc.y;
-      doc.image(s.png, MARGIN, y, { width: 130 });
-      doc.fontSize(9).fillColor('#111827')
-        .text(`${s.name || ''}${s.title ? ` (${s.title})` : ''}`, MARGIN, y + 58, { width: 260 });
-      doc.text('Authorised Signatory', MARGIN, doc.y + 2, { width: 260 });
-      doc.y = Math.max(doc.y + 8, y + 88);
-    } catch (e) { /* skip broken signature image */ }
-  });
-
-  if (qrPng) {
-    try {
-      ensureSpace(doc, 120);
-      const y = doc.y;
-      doc.image(qrPng, MARGIN + W - 110, y, { width: 100 });
-      doc.fontSize(8).fillColor('#4b5563')
-        .text('Scan to verify report', MARGIN + W - 110, y + 104, { width: 100, align: 'center' });
-      doc.y = Math.max(doc.y, y + 118);
-    } catch (e) { /* QR optional */ }
-  }
-  doc.fillColor('#111827');
-  drawFooter(doc, `Report ${report.registrationNumber} • H/L/C flags explained above • Verify via QR`);
-  doc.end();
-  return done;
+  doc.fontSize(9).font('Helvetica').fillColor('#1f2937')
+    .text(String(body || ''), MARGIN + 8, ty, { width: W - 16 });
+  doc.y = y + h + 6;
+  doc.fillColor('#111827').font('Helvetica');
 }
 
-module.exports = { billPdf, reportPdf, resolveUploadAbsolute, drawBarcode };
+function categoryNameOf(t) {
+  if (!t) return '';
+  if (t.category && typeof t.category === 'object' && t.category.name) return String(t.category.name);
+  if (typeof t.categoryName === 'string' && t.categoryName) return t.categoryName;
+  return '';
+}
+
+function reportPdf(context, options = {}) {
+  return require('./formattedPdfService').documentPdf(context, options, 'report');
+}
+
+module.exports = {
+  billPdf, reportPdf, resolveUploadAbsolute, drawBarcode, getPDFDocument,
+  resolveReportOptions, reportOptionsFromQuery, REPORT_OPTION_DEFAULTS
+};

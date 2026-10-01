@@ -3,7 +3,9 @@ import {
   getLabProfile,
   updateLabProfile,
   uploadLogo,
-  uploadLetterhead
+  uploadLetterhead,
+  uploadFooter,
+  getSignatures
 } from '../../services/setupService';
 import {
   PageHeader,
@@ -17,11 +19,13 @@ import { isAdmin } from '../../utils/permissions';
 import useAuth from '../../hooks/useAuth';
 import { validateEmail, validatePhone, validateNumber } from '../../utils/validators';
 import assetSrc from '../../utils/assetSrc';
+import DocumentFormatEditor from '../../components/lab/DocumentFormatEditor';
 import '../../styles/LabProfile.css';
 
 // Fields accepted by the current lab-profile API. Logo and letterhead URLs
 // are changed only through their upload endpoints.
 const EDITABLE_FIELDS = [
+  'documentFormats', 'reportFormatId', 'billFormatId',
   'labName',
   'tagline',
   'phone',
@@ -29,6 +33,18 @@ const EDITABLE_FIELDS = [
   'email',
   'letterheadTopMargin',
   'showLetterheadByDefault',
+  'showFooterByDefault',
+  'showBarcode',
+  'showQR',
+  'showTatDates',
+  'showReferredBy',
+  'showDepartmentHeading',
+  'showFlagColumn',
+  'showInterpretation',
+  'showEndOfReport',
+  'showSignatures',
+  'showWatermark',
+  'showPageNumber',
   'smsEnabled',
   'whatsappEnabled',
   'emailEnabled',
@@ -45,7 +61,25 @@ const EDITABLE_FIELDS = [
 ];
 
 const NUMERIC_FIELDS = new Set(['letterheadTopMargin', 'caseStartNumber']);
-const ALLOWED_ASSET_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+// One toggle per block of the reference lab report format. Stored on the
+// LabProfile and honored by the server PDFs (?flag=0 overrides per download).
+const PRINT_TOGGLES = [
+  { key: 'showLetterheadByDefault', label: 'Letterhead header', helper: 'Top letterhead image on reports and bills.' },
+  { key: 'showFooterByDefault', label: 'Footer strip', helper: 'Bottom marketing/sign-off band image.' },
+  { key: 'showBarcode', label: 'Barcode + reg no.', helper: 'Registration barcode in the patient band.' },
+  { key: 'showQR', label: 'QR code', helper: 'Scan-to-download QR in the patient band.' },
+  { key: 'showTatDates', label: 'TAT dates', helper: 'Registered / collected / received / reported dates.' },
+  { key: 'showReferredBy', label: 'Referred-by line', helper: 'Referring doctor under the patient name.' },
+  { key: 'showDepartmentHeading', label: 'Department headings', helper: 'BIOCHEMISTRY-style headings over result tables.' },
+  { key: 'showFlagColumn', label: 'H/L flag column', helper: 'High/low flags with bold abnormal values.' },
+  { key: 'showInterpretation', label: 'Interpretation box', helper: 'Test interpretation notes below the table.' },
+  { key: 'showEndOfReport', label: 'End-of-report line', helper: '~~~ End of report ~~~ marker.' },
+  { key: 'showSignatures', label: 'Signatures', helper: 'Technician + doctor sign-off on the PDF.' },
+  { key: 'showWatermark', label: 'Watermark logo', helper: 'Faded lab logo behind the results.' },
+  { key: 'showPageNumber', label: 'Page numbers', helper: 'Page X of Y on every page.' }
+];
+const ALLOWED_ASSET_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
 const MAX_ASSET_BYTES = 10 * 1024 * 1024;
 
 const getProfileData = (response) => {
@@ -81,7 +115,7 @@ const getFormValues = (profile) => EDITABLE_FIELDS.reduce((values, field) => {
 }, {});
 
 const comparableValue = (value) => (
-  value === undefined || value === null ? '' : String(value)
+  value === undefined || value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
 );
 
 const isImageAsset = (url) => /\.(?:jpg|jpeg|png|gif|webp)(?:$|\?)/i.test(url);
@@ -92,11 +126,13 @@ const validateAssetFile = (file, kind) => {
   const allowed = kind === 'logo' ? ['.jpg', '.jpeg', '.png'] : ALLOWED_ASSET_EXTENSIONS;
   const maxBytes = kind === 'logo' ? 2 * 1024 * 1024 : MAX_ASSET_BYTES;
   if (!allowed.includes(extension)) {
-    return kind === 'logo' ? 'Logo files must be JPG, JPEG, or PNG.' : 'Only PDF, JPG, JPEG, and PNG files are supported.';
+    return kind === 'logo' ? 'Logo files must be JPG, JPEG, or PNG.' : 'Use a JPG, JPEG, or PNG image for the header or footer.';
   }
   if (file.size > maxBytes) return kind === 'logo' ? 'The logo must be 2 MB or smaller.' : 'The file must be 10 MB or smaller.';
   return '';
 };
+
+const assetKindLabel = (kind) => (kind === 'logo' ? 'logo' : kind === 'footer' ? 'footer strip' : 'letterhead');
 
 const ProfileAlert = ({ message, type = 'error', onRetry }) => (
   <div
@@ -130,7 +166,7 @@ const ToggleField = ({ id, label, checked, onChange, disabled, helperText }) => 
 
 const AssetPreview = ({ kind, url, broken, onError }) => {
   const src = assetSrc(url);
-  const label = kind === 'logo' ? 'logo' : 'letterhead';
+  const label = assetKindLabel(kind);
 
   if (!src) {
     return <div className="lab-profile-asset-empty">No {label} uploaded.</div>;
@@ -177,10 +213,12 @@ const AssetManager = ({
   onError,
   onFileChange
 }) => {
-  const inputLabel = kind === 'logo' ? 'Upload logo' : 'Upload letterhead';
+  const inputLabel = kind === 'logo' ? 'Upload logo' : kind === 'footer' ? 'Upload footer strip' : 'Upload letterhead';
   const description = kind === 'logo'
     ? 'Current logo asset returned by the lab profile API.'
-    : 'Current letterhead asset returned by the lab profile API.';
+    : kind === 'footer'
+      ? 'Bottom band printed on reports and bills (sign-off + marketing strip).'
+      : 'Current letterhead asset returned by the lab profile API.';
 
   return (
     <div className="lab-profile-asset-card">
@@ -194,8 +232,8 @@ const AssetManager = ({
         <FileUploader
           key={`${kind}-${version}`}
           label={inputLabel}
-          subtitle="PDF, JPG, JPEG, or PNG up to 10 MB"
-          accept=".pdf,.jpg,.jpeg,.png"
+          subtitle={kind === 'logo' ? 'JPG, JPEG or PNG up to 2 MB' : 'JPG, JPEG or PNG up to 10 MB'}
+          accept=".jpg,.jpeg,.png"
           value={file}
           disabled={loading}
           onChange={(selectedFile) => onFileChange(kind, selectedFile)}
@@ -203,6 +241,144 @@ const AssetManager = ({
         />
       )}
       {disabled && !loading && <p className="lab-profile-helper">Use Edit profile to replace this asset.</p>}
+    </div>
+  );
+};
+
+const isPdfAsset = (url) => /\.pdf(?:$|\?)/i.test(url || '');
+const isImageFile = (file) => file?.type?.startsWith('image/') || /\.(?:jpg|jpeg|png|gif|webp)$/i.test(file?.name || '');
+
+// Live A4-style preview mirroring the reference lab report: letterhead,
+// patient band (barcode + TAT + QR), department headings, flag column,
+// interpretation box, end-of-report line, signatures, footer strip and page
+// number. Updates in real time as toggles, text or files change — before
+// the upload even finishes.
+const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl, localFooterUrl, signatures }) => {
+  const opt = (key) => {
+    const v = form?.[key] ?? profile?.[key];
+    return v === undefined || v === null ? true : !!v;
+  };
+  const letterheadOn = opt('showLetterheadByDefault');
+  const footerOn = opt('showFooterByDefault');
+  const serverLetterhead = assetSrc(profile?.letterheadUrl);
+  const serverLogo = assetSrc(profile?.logoUrl);
+  const serverFooter = assetSrc(profile?.footerUrl);
+  const letterheadSrc = localLetterheadUrl || serverLetterhead;
+  const logoSrc = localLogoUrl || serverLogo;
+  const footerSrc = localFooterUrl || serverFooter;
+  const showLetterheadImage = letterheadOn && !!letterheadSrc && !isPdfAsset(letterheadSrc);
+  const showPdfNotice = letterheadOn && !!letterheadSrc && isPdfAsset(letterheadSrc);
+
+  const labName = form?.labName ?? profile?.labName ?? '';
+  const tagline = form?.tagline ?? profile?.tagline ?? '';
+  const phone = form?.phone ?? profile?.phone ?? '';
+  const address = form?.address ?? profile?.address ?? '';
+  const email = form?.email ?? profile?.email ?? '';
+  const contact = [address, phone ? `Ph: ${phone}` : '', email].filter(Boolean).join(' | ');
+  const footerLine = [labName, address, phone, email].filter(Boolean).join(' | ');
+  const disclaimer = form?.disclaimer ?? profile?.disclaimer ?? '';
+  const invoiceFooter = form?.invoiceFooter ?? profile?.invoiceFooter ?? '';
+  const previewSigs = opt('showSignatures') ? (signatures || []).filter((s) => s?.imageUrl).slice(0, 2) : [];
+
+  return (
+    <div className="lab-profile-preview-card" aria-label="Live letterhead preview">
+      <div className="lab-profile-section-heading">
+        <h3>Live preview</h3>
+        <p>Branding sketch that updates as you type or pick a file. Use the PDF preview above to check the saved format's exact layout.</p>
+      </div>
+      <div className="lab-profile-preview-sheet" aria-hidden="false">
+        {showLetterheadImage ? (
+          <img className="lab-profile-preview-letterhead" src={letterheadSrc} alt="Letterhead preview" />
+        ) : showPdfNotice ? (
+          <div className="lab-profile-preview-pdf-notice">PDF artwork cannot be rendered as a header image. Upload a PNG or JPG header to include it in generated reports.</div>
+        ) : (
+          <header className="lab-profile-preview-typed">
+            {logoSrc && <img className="lab-profile-preview-logo" src={logoSrc} alt="Logo preview" />}
+            <div className="lab-profile-preview-identity">
+              <div className="lab-profile-preview-name">{labName || 'Your Lab Name'}</div>
+              {tagline && <div className="lab-profile-preview-tagline">{tagline}</div>}
+              {contact && <div className="lab-profile-preview-contact">{contact}</div>}
+            </div>
+          </header>
+        )}
+        {!letterheadOn && (
+          <p className="lab-profile-preview-off-note">Letterhead off — reports will use the typed header above.</p>
+        )}
+        <div className="lab-profile-preview-band">
+          <div className="lab-profile-preview-patient">
+            <div className="lab-profile-preview-patient-name">Sample Patient</div>
+            <div>Age / Sex : 32 YRS / M</div>
+            {opt('showReferredBy') && <div>Referred by : Sample Doctor</div>}
+            <div>Reg. no. : 5830</div>
+          </div>
+          <div className="lab-profile-preview-mid">
+            {opt('showBarcode') && (
+              <div className="lab-profile-preview-barcode" aria-hidden="true"><span>5830</span></div>
+            )}
+            {opt('showTatDates') && (
+              <div className="lab-profile-preview-tat">
+                <div>Registered on : Today</div>
+                <div>Collected on : Today</div>
+                <div>Received on : Today</div>
+                <div>Reported on : Today</div>
+              </div>
+            )}
+          </div>
+          {opt('showQR') && (
+            <div className="lab-profile-preview-qr"><span>QR</span><em>Scan to download</em></div>
+          )}
+        </div>
+        {opt('showDepartmentHeading') && (
+          <div className="lab-profile-preview-dept">BIOCHEMISTRY<div>KIDNEY FUNCTION TEST (KFT)</div></div>
+        )}
+        <div className="lab-profile-preview-table-wrap">
+          {opt('showWatermark') && logoSrc && (
+            <img className="lab-profile-preview-watermark" src={logoSrc} alt="" aria-hidden="true" />
+          )}
+          <table className="lab-profile-preview-table">
+            <thead>
+              <tr><th>Test</th><th>Value</th><th>Unit</th><th>Reference</th>{opt('showFlagColumn') && <th>Flag</th>}</tr>
+            </thead>
+            <tbody>
+              <tr><td>Random Blood Sugar</td><td>76.30</td><td>mg/dl</td><td>70 - 140</td>{opt('showFlagColumn') && <td></td>}</tr>
+              <tr className="abnormal"><td>Serum Urea</td><td>86.20</td><td>mg/dl</td><td>19 - 45</td>{opt('showFlagColumn') && <td>H</td>}</tr>
+              <tr><td>Serum Sodium</td><td>137.0</td><td>mmol/L</td><td>136 - 146</td>{opt('showFlagColumn') && <td></td>}</tr>
+            </tbody>
+          </table>
+        </div>
+        {opt('showInterpretation') && (
+          <div className="lab-profile-preview-interp">
+            <strong>Creatinine — Interpretation</strong>
+            <p>Sample note: endogenous production is proportional to muscle mass. Author test interpretations in the Test Database to print them here.</p>
+          </div>
+        )}
+        {opt('showEndOfReport') && (
+          <div className="lab-profile-preview-endline">~~~ End of report ~~~</div>
+        )}
+        {opt('showSignatures') && (previewSigs.length > 0 ? (
+          <div className="lab-profile-preview-signatures">
+            {previewSigs.map((s) => (
+              <div className="lab-profile-preview-signature" key={s._id || s.name}>
+                <img src={assetSrc(s.imageUrl)} alt={`${s.name || 'Signature'} preview`} />
+                <div className="lab-profile-preview-sig-name">{s.name}{s.title ? ` (${s.title})` : ''}</div>
+                <div className="lab-profile-preview-sig-role">Authorised Signatory</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="lab-profile-preview-no-sig">No signatures on file — upload one under Setup → Signatures to see it here.</p>
+        ))}
+        {(disclaimer || invoiceFooter) && (
+          <p className="lab-profile-preview-disclaimer">{disclaimer || invoiceFooter}</p>
+        )}
+        {footerOn && footerSrc && !isPdfAsset(footerSrc) && (
+          <img className="lab-profile-preview-strip" src={footerSrc} alt="Footer strip preview" />
+        )}
+        <div className="lab-profile-preview-bottomrow">
+          {footerLine && <span>{footerLine}</span>}
+          {opt('showPageNumber') && <span>Page 1 of 1</span>}
+        </div>
+      </div>
     </div>
   );
 };
@@ -221,11 +397,65 @@ const LabProfile = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [selectedLogo, setSelectedLogo] = useState(null);
   const [selectedLetterhead, setSelectedLetterhead] = useState(null);
+  const [selectedFooter, setSelectedFooter] = useState(null);
   const [uploading, setUploading] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [assetVersion, setAssetVersion] = useState(0);
   const [brokenLogo, setBrokenLogo] = useState('');
   const [brokenLetterhead, setBrokenLetterhead] = useState('');
+  const [brokenFooter, setBrokenFooter] = useState('');
+  const [signatures, setSignatures] = useState([]);
+  const [localLetterheadUrl, setLocalLetterheadUrl] = useState('');
+  const [localLogoUrl, setLocalLogoUrl] = useState('');
+  const [localFooterUrl, setLocalFooterUrl] = useState('');
+
+  // Instant local preview the moment a file is picked (revoked on change).
+  useEffect(() => {
+    let url = '';
+    if (selectedLetterhead && isImageFile(selectedLetterhead)) {
+      url = URL.createObjectURL(selectedLetterhead);
+      setLocalLetterheadUrl(url);
+    } else {
+      setLocalLetterheadUrl('');
+    }
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [selectedLetterhead]);
+
+  useEffect(() => {
+    let url = '';
+    if (selectedLogo && isImageFile(selectedLogo)) {
+      url = URL.createObjectURL(selectedLogo);
+      setLocalLogoUrl(url);
+    } else {
+      setLocalLogoUrl('');
+    }
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [selectedLogo]);
+
+  useEffect(() => {
+    let url = '';
+    if (selectedFooter && isImageFile(selectedFooter)) {
+      url = URL.createObjectURL(selectedFooter);
+      setLocalFooterUrl(url);
+    } else {
+      setLocalFooterUrl('');
+    }
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [selectedFooter]);
+
+  // Signatures for the live preview (read-only; failures just hide the row).
+  useEffect(() => {
+    let active = true;
+    getSignatures()
+      .then((response) => {
+        if (!active) return;
+        const payload = response?.data;
+        const arr = Array.isArray(payload) ? payload : payload?.signatures || [];
+        setSignatures(Array.isArray(arr) ? arr : []);
+      })
+      .catch(() => { if (active) setSignatures([]); });
+    return () => { active = false; };
+  }, []);
 
   const loadProfile = useCallback(async ({ showLoading = true, preserveEditing = false } = {}) => {
     if (showLoading) setLoading(true);
@@ -245,7 +475,7 @@ const LabProfile = () => {
       }
 
       setProfile(nextProfile);
-      setForm(getFormValues(nextProfile));
+      if (!preserveEditing) setForm(getFormValues(nextProfile));
       if (!preserveEditing) setIsEditing(false);
     } catch (error) {
       setLoadError(getErrorMessage(error, 'Failed to load the lab profile.'));
@@ -269,7 +499,7 @@ const LabProfile = () => {
 
   const profileHasValues = useMemo(() => {
     if (!profile) return false;
-    return [...EDITABLE_FIELDS, 'logoUrl', 'letterheadUrl'].some((field) => (
+    return [...EDITABLE_FIELDS, 'logoUrl', 'letterheadUrl', 'footerUrl'].some((field) => (
       profile[field] !== undefined && profile[field] !== null && profile[field] !== ''
     ));
   }, [profile]);
@@ -329,6 +559,7 @@ const LabProfile = () => {
   const resetAssetSelections = () => {
     setSelectedLogo(null);
     setSelectedLetterhead(null);
+    setSelectedFooter(null);
     setAssetVersion((version) => version + 1);
   };
 
@@ -397,7 +628,7 @@ const LabProfile = () => {
     setNotice('');
 
     try {
-      const service = kind === 'logo' ? uploadLogo : uploadLetterhead;
+      const service = kind === 'logo' ? uploadLogo : kind === 'footer' ? uploadFooter : uploadLetterhead;
       const response = await service(file);
       if (!response?.success) {
         throw new Error(response?.message || `The ${kind} could not be uploaded.`);
@@ -407,9 +638,9 @@ const LabProfile = () => {
       if (!nextProfile) throw new Error('The upload response did not contain the updated lab profile.');
 
       setProfile(nextProfile);
-      setForm(getFormValues(nextProfile));
       if (kind === 'logo') setSelectedLogo(null);
       if (kind === 'letterhead') setSelectedLetterhead(null);
+      if (kind === 'footer') setSelectedFooter(null);
       setAssetVersion((version) => version + 1);
       setNotice(response.message || `Lab ${kind} uploaded.`);
       await loadProfile({ showLoading: false, preserveEditing: true });
@@ -430,6 +661,7 @@ const LabProfile = () => {
 
     if (kind === 'logo') setSelectedLogo(file);
     if (kind === 'letterhead') setSelectedLetterhead(file);
+    if (kind === 'footer') setSelectedFooter(file);
     uploadAsset(kind, file);
   };
 
@@ -681,31 +913,24 @@ const LabProfile = () => {
               </div>
             </section>
 
+            <DocumentFormatEditor form={form} profile={profile} disabled={fieldDisabled} canPreview={canEdit && !isBusy} onChange={updateField} />
             <section className="lab-profile-section" aria-labelledby="lab-profile-report-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-report-heading">Report and letterhead</h2>
-                <p>API-backed assets and print settings already supported by the application.</p>
+                <p>Choose which sections to include in generated reports and bills. Use the format editor above to set header height and page spacing.</p>
               </div>
-              <div className="lab-profile-grid lab-profile-grid-settings">
-                <Input
-                  id="letterheadTopMargin"
-                  name="letterheadTopMargin"
-                  label="Letterhead top margin"
-                  type="number"
-                  value={form.letterheadTopMargin ?? ''}
-                  onChange={(event) => updateField('letterheadTopMargin', event.target.value)}
-                  error={fieldErrors.letterheadTopMargin}
-                  disabled={fieldDisabled}
-                  helperText="Stored PDF position value; units and bounds are defined by the backend."
-                />
-                <ToggleField
-                  id="showLetterheadByDefault"
-                  label="Letterhead by default"
-                  checked={form.showLetterheadByDefault}
-                  onChange={(value) => updateField('showLetterheadByDefault', value)}
-                  disabled={fieldDisabled}
-                  helperText="Stored profile preference. Existing print/PDF callers may still choose their own letterhead option."
-                />
+              <div className="lab-profile-toggle-grid lab-profile-print-toggles">
+                {PRINT_TOGGLES.map((toggle) => (
+                  <ToggleField
+                    key={toggle.key}
+                    id={toggle.key}
+                    label={toggle.label}
+                    checked={form[toggle.key] ?? profile?.[toggle.key] ?? true}
+                    onChange={(value) => updateField(toggle.key, value)}
+                    disabled={fieldDisabled}
+                    helperText={toggle.helper}
+                  />
+                ))}
               </div>
               <div className="lab-profile-assets">
                 <AssetManager
@@ -734,7 +959,28 @@ const LabProfile = () => {
                   onError={setBrokenLetterhead}
                   onFileChange={handleAssetChange}
                 />
+                <AssetManager
+                  kind="footer"
+                  label="Footer strip"
+                  url={profile.footerUrl}
+                  file={selectedFooter}
+                  version={assetVersion}
+                  disabled={!isEditing || !canEdit || isBusy}
+                  loading={uploading === 'footer'}
+                  error={uploadError?.kind === 'footer' ? uploadError.message : ''}
+                  broken={brokenFooter === assetSrc(profile.footerUrl) && !!assetSrc(profile.footerUrl)}
+                  onError={setBrokenFooter}
+                  onFileChange={handleAssetChange}
+                />
               </div>
+              <LetterheadLivePreview
+                profile={profile}
+                form={form}
+                localLetterheadUrl={localLetterheadUrl}
+                localLogoUrl={localLogoUrl}
+                localFooterUrl={localFooterUrl}
+                signatures={signatures}
+              />
             </section>
 
             <section className="lab-profile-section" aria-labelledby="lab-profile-notification-heading">

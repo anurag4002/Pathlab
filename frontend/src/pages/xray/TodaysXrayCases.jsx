@@ -1,3 +1,4 @@
+import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getXrayCases, createXrayCase, updateXrayCase, uploadXrayImage } from '../../services/xrayService';
@@ -5,6 +6,7 @@ import { deleteXrayCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
+import { printPdfPath } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
@@ -643,61 +645,11 @@ const TodaysXrayCases = () => {
         footer={
           <>
             <Button variant="secondary" onClick={closePrint}>Close</Button>
-            <Button variant="primary" onClick={() => window.print()}><Printer size={16} /> Print Report</Button>
+            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/xray/${printTarget._id}/pdf`).catch(() => alert('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
           </>
         }
       >
-        {printTarget && (
-          <div className="printable-area" style={{ padding: '16px', color: '#000', fontSize: '0.9rem', lineHeight: '1.5' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <img
-                src={logoSrc}
-                alt="Logo"
-                style={{ width: '64px', height: '64px', borderRadius: '50%', marginBottom: '4px', objectFit: 'cover' }}
-              />
-              <h2 style={{ margin: 0, fontWeight: '700' }}>{labName}</h2>
-              <p style={{ margin: '2px 0' }}>{labTagline}</p>
-              {labContact && <p style={{ margin: '2px 0', fontSize: '0.75rem' }}>{labContact}</p>}
-              <p style={{ margin: '2px 0', fontWeight: '600' }}>DIGITAL X-RAY REPORT</p>
-              <div style={{ borderBottom: '2px solid #000', margin: '10px 0', width: '100%' }}></div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginBottom: '1.5rem' }}>
-              <div>
-                <strong>Patient Name:</strong> {printTarget.patient?.name}<br />
-                <strong>Age / Gender:</strong> {printTarget.patient?.age} Yrs / {printTarget.patient?.gender}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <strong>Reg Code:</strong> {printTarget.patient?.registrationNumber}<br />
-                <strong>Date:</strong> {formatDate(printTarget.date).split(',')[0]}
-              </div>
-            </div>
-
-            <div style={{ borderBottom: '1px solid #000', marginBottom: '1rem' }}></div>
-
-            <div style={{ minHeight: '200px', whiteSpace: 'pre-wrap', fontFamily: 'sans-serif' }}>
-              <strong>FINDINGS:</strong><br /><br />
-              {printTarget.findings}
-            </div>
-
-            <XrayImagePane images={printTarget._id === editingCase?._id ? galleryUrls : (printTarget.images || printTarget.imageUrls || [])} fileUrl={printTarget.fileUrl} />
-
-            <div style={{ borderTop: '1px solid #000', marginTop: '2rem', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ textAlign: 'center', width: '200px' }}>
-                {(xraySignature?.imageUrl || printTarget.signatureUrl) && (
-                  <img
-                    src={xraySignature?.imageUrl ? `/${String(xraySignature.imageUrl).replace(/^\//, '')}` : `/${printTarget.signatureUrl}`}
-                    alt="Signature"
-                    style={{ height: '40px', objectFit: 'contain' }}
-                  />
-                )}
-                <div style={{ height: (xraySignature?.imageUrl || printTarget.signatureUrl) ? '4px' : '40px' }}></div>
-                <strong>{signatoryName}</strong><br />
-                <span>{signatoryTitle}</span>
-              </div>
-            </div>
-          </div>
-        )}
+        {printTarget?._id && <ServerPdfPreview path={`/xray/${printTarget._id}/pdf`} />}
       </Modal>
 
       <ConfirmDialog
