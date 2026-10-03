@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill } from '../../../services/billService';
 import { createPatient } from '../../../services/patientService';
 import { PageHeader, Button, Select, TestCombobox } from '../../../components/common';
@@ -67,8 +67,17 @@ const BillCreateForm = ({
   onBillCreated
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Prefill from a confirmed booking inquiry (Inquiries → "Confirm & Bill").
+  // Shape: location.state.booking = { inquiryId, name, phone, patientId, items, note }.
+  const bookingPrefill = location.state?.booking || null;
 
   const [patientForm, setPatientForm] = useState(EMPTY_PATIENT_FORM);
+  const [bookingBanner, setBookingBanner] = useState('');
+  const [unmatchedBookingItems, setUnmatchedBookingItems] = useState([]);
+  // Discount mode: 'percent' (0–100%) or 'amount' (flat ₹). The %/₹ badge
+  // in DiscountRow toggles between them; both values are preserved.
+  const [discountMode, setDiscountMode] = useState('percent');
   // Full picked patient object (may come from server search beyond the
   // preloaded first-100 list, so it can't be re-derived from `patients`).
   const [pickedPatient, setPickedPatient] = useState(null);
@@ -78,6 +87,7 @@ const BillCreateForm = ({
   const [pickerType, setPickerType] = useState('Test');
   const [selectedItems, setSelectedItems] = useState([]);
   const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountValue, setDiscountValue] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [errors, setErrors] = useState({});
@@ -147,10 +157,95 @@ const BillCreateForm = ({
     .filter((item) => item.itemType === 'TestPackage' || item.itemType === 'TestPanel')
     .map((item) => item.itemId);
 
-  const subtotal = selectedItems.reduce((s, item) => s + item.price, 0);
-  const discountAmount = Math.max(0, Math.min(subtotal, (subtotal * discountPercent) / 100));
+  const subtotal = selectedItems.reduce((s, item) => s + Number(item.price || 0), 0);
+  // Discount supports two modes toggled by the %/₹ badge: percent (0–100%)
+  // or flat amount (₹, clamped to subtotal).
+  const discountAmount = discountMode === 'amount'
+    ? Math.max(0, Math.min(subtotal, Number(discountValue) || 0))
+    : Math.max(0, Math.min(subtotal, (subtotal * (Number(discountPercent) || 0)) / 100));
   const totalAmount = Math.max(0, subtotal - discountAmount);
   const dueAmount = Math.max(0, totalAmount - paidAmount);
+
+  // Prefill patient + items from a confirmed booking inquiry. Catalog-aware:
+  // refIds are used directly; otherwise names are matched against the loaded
+  // tests/packages/panels so every prefilled line carries a real catalog ID
+  // (BillItem.itemId is a required ObjectId). Unmatched names are reported
+  // so staff can pick them manually instead of failing at submit.
+  useEffect(() => {
+    if (!bookingPrefill) return;
+    const b = bookingPrefill;
+    if (b.patientId) {
+      setPatientForm((prev) => ({
+        ...prev,
+        isExistingPatient: true,
+        selectedPatientId: b.patientId,
+        patientPhone: b.phone || prev.patientPhone
+      }));
+    } else {
+      const parts = String(b.name || '').trim().split(/\s+/);
+      setPatientForm((prev) => ({
+        ...prev,
+        isExistingPatient: false,
+        patientFirstName: parts[0] || '',
+        patientLastName: parts.slice(1).join(' ') || '',
+        patientPhone: b.phone || ''
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!bookingPrefill?.items?.length) return;
+    if (!tests.length && !packages.length && !panels.length) return;
+    const norm = (s) => String(s || '').trim().toLowerCase();
+    const findById = (id, list) => (list || []).find((t) => String(t._id) === String(id));
+    const findByName = (name, list) => (list || []).find((t) => norm(t.name) === norm(name));
+    const resolved = [];
+    const unmatched = [];
+    for (const it of bookingPrefill.items) {
+      const kind = it.kind;
+      let match = null;
+      let itemType = 'Test';
+      if (kind === 'Test') {
+        match = (it.refId && findById(it.refId, tests)) || findByName(it.name, tests);
+        itemType = 'Test';
+      } else if (kind === 'Package') {
+        match = (it.refId && findById(it.refId, packages)) || findByName(it.name, packages);
+        itemType = 'TestPackage';
+      } else {
+        match = (it.refId && findById(it.refId, tests))
+          || findByName(it.name, tests)
+          || findByName(it.name, packages)
+          || findByName(it.name, panels);
+        itemType = match && panels.includes(match) ? 'TestPanel'
+          : match && packages.includes(match) ? 'TestPackage' : 'Test';
+      }
+      if (match) {
+        resolved.push({ itemId: match._id, itemType, name: match.name, price: Number(match.price) || 0 });
+      } else if (it.refId && /^[a-fA-F0-9]{24}$/.test(String(it.refId))) {
+        // Valid ObjectId but not in the loaded catalog slice — keep it; the
+        // server stores the line with the inquiry's name/price.
+        resolved.push({
+          itemId: it.refId,
+          itemType: kind === 'Package' ? 'TestPackage' : 'Test',
+          name: it.name, price: Number(it.price) || 0
+        });
+      } else {
+        unmatched.push(it.name);
+      }
+    }
+    if (resolved.length) {
+      setSelectedItems((prev) => {
+        if (prev.length) return prev; // don't clobber user picks on re-renders
+        return resolved;
+      });
+      setBookingBanner(
+        `Prefilled from confirmed booking${bookingPrefill.name ? ` — ${bookingPrefill.name}` : ''} (${resolved.length} item${resolved.length === 1 ? '' : 's'}). Verify before invoicing.`
+      );
+    }
+    if (unmatched.length) setUnmatchedBookingItems(unmatched);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tests, packages, panels]);
 
   const validate = () => {
     const errs = {};
@@ -163,7 +258,11 @@ const BillCreateForm = ({
       if (!patientForm.patientAgeYears) errs.age = 'Age is required';
     }
     if (selectedItems.length === 0) errs.items = 'Please select at least one test or package';
-    if (discountPercent < 0 || discountPercent > 100) errs.discount = 'Discount must be between 0 and 100%.';
+    if (discountMode === 'percent') {
+      if (discountPercent < 0 || discountPercent > 100) errs.discount = 'Discount must be between 0 and 100%.';
+    } else if ((Number(discountValue) || 0) < 0) {
+      errs.discount = 'Discount amount cannot be negative.';
+    }
     if (discountAmount > subtotal) errs.discount = 'Discount cannot exceed the subtotal.';
     if (paidAmount < 0 || paidAmount > totalAmount) errs.paidAmount = 'Paid amount cannot exceed total';
     setErrors(errs);
@@ -203,7 +302,7 @@ const BillCreateForm = ({
         caseType: DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
         collectionCentre: 'Main',
         onlineReportRequested: patientForm.onlineReportRequested,
-        discountPercent: discountPercent > 0
+        discountPercent: discountMode === 'percent' && discountPercent > 0
       });
 
       if (res.success) {
@@ -256,6 +355,37 @@ const BillCreateForm = ({
         title="Create Bill Invoice"
         subtitle="Record diagnostic orders and invoice payments"
       />
+
+      {bookingBanner && (
+        <div
+          role="status"
+          style={{
+            padding: 'var(--space-3)',
+            backgroundColor: 'var(--color-success-bg, #ecfdf5)',
+            color: 'var(--color-success, #166534)',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: 'var(--space-4)',
+            fontSize: 'var(--font-size-sm)'
+          }}
+        >
+          {bookingBanner}
+        </div>
+      )}
+      {unmatchedBookingItems.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            padding: 'var(--space-3)',
+            backgroundColor: 'var(--color-warning-bg, #fef9c3)',
+            color: 'inherit',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: 'var(--space-4)',
+            fontSize: 'var(--font-size-sm)'
+          }}
+        >
+          Could not auto-match from the booking: {unmatchedBookingItems.join(', ')}. Please add them manually from the picker.
+        </div>
+      )}
 
       {errors.api && (
         <div
@@ -448,8 +578,12 @@ const BillCreateForm = ({
 
           <PaymentSummarySection
             subtotal={subtotal}
+            discountMode={discountMode}
+            setDiscountMode={setDiscountMode}
             discountPercent={discountPercent}
             setDiscountPercent={setDiscountPercent}
+            discountValue={discountValue}
+            setDiscountValue={setDiscountValue}
             paidAmount={paidAmount}
             setPaidAmount={setPaidAmount}
             paymentMethod={paymentMethod}

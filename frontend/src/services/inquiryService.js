@@ -6,3 +6,6 @@ export const getInquiries = async (params = {}) =>
 
 export const setInquiryStatus = async (id, status) =>
   (await apiClient.patch(`/inquiries/${id}`, { status })).data;
+
+export const updateInquiry = async (id, payload) =>
+  (await apiClient.put(`/inquiries/${id}`, payload)).data;

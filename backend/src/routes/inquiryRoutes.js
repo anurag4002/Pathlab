@@ -8,6 +8,7 @@ router.use(protect);
 router.use(authorize('Admin', 'Employee'));
 
 router.get('/', inquiryController.listInquiries);
+router.put('/:id', inquiryController.updateInquiry);
 router.patch('/:id', inquiryController.setInquiryStatus);
 
 module.exports = router;

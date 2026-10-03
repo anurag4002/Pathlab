@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getInquiries, setInquiryStatus } from '../../services/inquiryService';
-import { DataTable, PageHeader, StatusBadge, Select } from '../../components/common';
+import { getInquiries, setInquiryStatus, updateInquiry } from '../../services/inquiryService';
+import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button } from '../../components/common';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatCurrency from '../../utils/formatCurrency';
@@ -19,6 +19,8 @@ const NEXT_STATUS = ['New', 'Contacted', 'Confirmed', 'Cancelled'];
 
 // Staff queue for patient-portal booking inquiries. Inquiries carry no bill
 // and no payment — staff confirm by phone and bill at the counter.
+// Confirming moves the person's details + items into the billing form
+// (/cases/bills/new) automatically; the Edit option allows corrections first.
 const Inquiries = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -29,6 +31,16 @@ const Inquiries = () => {
   const { page, limit, goToPage, setLimit } = usePagination(1, 10);
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [updatingId, setUpdatingId] = useState('');
+
+  // Edit-booking modal state (modification requests).
+  const [editTarget, setEditTarget] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPreferred, setEditPreferred] = useState('');
+  const [editNote, setEditNote] = useState('');
+  const [editItems, setEditItems] = useState([]);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const fetchList = async () => {
     setLoading(true);
@@ -65,6 +77,109 @@ const Inquiries = () => {
       alert(err.response?.data?.message || 'Failed to update inquiry');
     } finally {
       setUpdatingId('');
+    }
+  };
+
+  // Confirm a booking and move the person's details into billing automatically.
+  const confirmAndBill = async (inq) => {
+    setUpdatingId(inq._id);
+    try {
+      if (inq.status !== 'Confirmed') {
+        const res = await setInquiryStatus(inq._id, 'Confirmed');
+        if (!res?.success) return;
+        inq = res.data || { ...inq, status: 'Confirmed' };
+      }
+      navigate('/cases/bills/new', {
+        state: {
+          booking: {
+            inquiryId: inq._id,
+            name: inq.name,
+            phone: inq.phone,
+            patientId: inq.patient?._id || inq.patient || null,
+            items: inq.items || [],
+            note: inq.note || '',
+            preferredDate: inq.preferredDate || null
+          }
+        }
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to confirm booking');
+    } finally {
+      setUpdatingId('');
+    }
+  };
+
+  // Open the edit modal prefilled with the booking's current details.
+  const openEdit = (inq) => {
+    setEditTarget(inq);
+    setEditName(inq.name || '');
+    setEditPhone(inq.phone || '');
+    setEditPreferred(inq.preferredDate ? String(inq.preferredDate).slice(0, 10) : '');
+    setEditNote(inq.note || '');
+    setEditItems((inq.items || []).map((it) => ({
+      kind: it.kind || 'Other',
+      refId: it.refId || null,
+      name: it.name || '',
+      price: Number(it.price) || 0
+    })));
+    setEditError('');
+  };
+
+  const closeEdit = () => {
+    if (editSaving) return;
+    setEditTarget(null);
+    setEditError('');
+  };
+
+  const updateEditItem = (idx, patch) => {
+    setEditItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  };
+
+  const removeEditItem = (idx) => {
+    setEditItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const saveEdit = async () => {
+    if (!editTarget) return;
+    if (!editName.trim()) {
+      setEditError('Patient name is required.');
+      return;
+    }
+    if (!editPhone.trim()) {
+      setEditError('Phone is required.');
+      return;
+    }
+    if (!editItems.length) {
+      setEditError('At least one item is required.');
+      return;
+    }
+    if (editItems.some((it) => !String(it.name || '').trim())) {
+      setEditError('Every item needs a name.');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const res = await updateInquiry(editTarget._id, {
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        items: editItems.map((it) => ({
+          kind: ['Test', 'Package'].includes(it.kind) ? it.kind : 'Other',
+          refId: it.refId || null,
+          name: String(it.name).trim(),
+          price: Math.max(0, Number(it.price) || 0)
+        })),
+        preferredDate: editPreferred || null,
+        note: editNote
+      });
+      if (res?.success) {
+        setEditTarget(null);
+        fetchList();
+      }
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Failed to save booking changes.');
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -140,6 +255,26 @@ const Inquiries = () => {
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  disabled={updatingId === inq._id}
+                  onClick={() => openEdit(inq)}
+                  title="Edit name, phone, items or note when a modification is requested"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  disabled={updatingId === inq._id || inq.status === 'Cancelled'}
+                  onClick={() => confirmAndBill(inq)}
+                  title={inq.status === 'Confirmed' ? 'Open this booking in billing' : 'Confirm and move details to billing'}
+                >
+                  {inq.status === 'Confirmed' ? 'Bill →' : 'Confirm & Bill'}
+                </button>
                 {inq.patient?._id ? (
                   <button
                     type="button"
@@ -165,6 +300,75 @@ const Inquiries = () => {
           </tr>
         )}
       />
+
+      {/* Edit booking — used when any modification is requested before billing. */}
+      <Modal
+        isOpen={!!editTarget}
+        onClose={closeEdit}
+        title={`Edit booking — ${editTarget?.name || ''}`}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeEdit} disabled={editSaving}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={saveEdit} loading={editSaving} disabled={editSaving}>
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        {editError && (
+          <p className="form-error" style={{ marginBottom: '12px' }}>{editError}</p>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <Input label="Patient name" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Full name" />
+          <Input label="Phone" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" />
+          <Input label="Preferred date" type="date" value={editPreferred} onChange={(e) => setEditPreferred(e.target.value)} />
+          <Input label="Note" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Optional note" />
+        </div>
+        <div style={{ fontWeight: 700, margin: '16px 0 8px' }}>Booked items</div>
+        {editItems.map((it, idx) => (
+          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '110px 1fr 110px auto', gap: '8px', marginBottom: '8px', alignItems: 'end' }}>
+            <Select
+              label={idx === 0 ? 'Type' : undefined}
+              value={it.kind}
+              onChange={(e) => updateEditItem(idx, { kind: e.target.value })}
+              options={[
+                { value: 'Test', label: 'Test' },
+                { value: 'Package', label: 'Package' },
+                { value: 'Other', label: 'Other' }
+              ]}
+            />
+            <Input
+              label={idx === 0 ? 'Item name' : undefined}
+              value={it.name}
+              onChange={(e) => updateEditItem(idx, { name: e.target.value })}
+              placeholder="Test / package name"
+            />
+            <Input
+              label={idx === 0 ? 'Price (₹)' : undefined}
+              type="number"
+              value={it.price}
+              onChange={(e) => updateEditItem(idx, { price: Math.max(0, Number(e.target.value)) })}
+              placeholder="0"
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ padding: '6px 10px', fontSize: '0.75rem' }}
+              onClick={() => removeEditItem(idx)}
+              disabled={editItems.length <= 1}
+              title="Remove item"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+          Est. total: {formatCurrency(editItems.reduce((s, it) => s + (Number(it.price) || 0), 0))}
+        </p>
+      </Modal>
     </div>
   );
 };

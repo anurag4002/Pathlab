@@ -8,8 +8,12 @@ import '../Billing.css';
 
 const PaymentSummarySection = ({
   subtotal,
+  discountMode,
+  setDiscountMode,
   discountPercent,
   setDiscountPercent,
+  discountValue,
+  setDiscountValue,
   paidAmount,
   setPaidAmount,
   paymentMethod,
@@ -39,11 +43,15 @@ const PaymentSummarySection = ({
         <strong>{formatCurrency(subtotal)}</strong>
       </div>
 
-      {/* Discount Row (Phase 22 — DiscountRow with subtotal validation) */}
+      {/* Discount Row (Phase 22 — DiscountRow with %/amount toggle + subtotal validation) */}
       <DiscountRow
         subtotal={subtotal}
+        discountMode={discountMode}
+        setDiscountMode={setDiscountMode}
         discountPercent={discountPercent}
         setDiscountPercent={setDiscountPercent}
+        discountValue={discountValue}
+        setDiscountValue={setDiscountValue}
         error={errors?.discount}
       />
 
