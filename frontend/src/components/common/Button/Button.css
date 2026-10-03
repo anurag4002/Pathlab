@@ -65,8 +65,20 @@
 
 /* Sizes */
 .btn-sm {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--font-size-xs);
+  padding: 0.4rem 0.65rem;
+  font-size: var(--font-size-sm);
+  min-height: 2rem;
+}
+
+.btn-sm .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.btn-sm .btn-icon svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .btn-lg {

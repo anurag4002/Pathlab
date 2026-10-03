@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
-import { DataTable, PageHeader, Button, ConfirmDialog, StatusBadge, AdvancedFilterBar, BranchFilter } from '../../../components/common';
+import { DataTable, PageHeader, Button, ConfirmDialog, AdvancedFilterBar, BranchFilter } from '../../../components/common';
 import { PATIENT_TABLE_HEADERS } from '../../../constants/patientConstants';
 import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
 import usePagination from '../../../hooks/usePagination';
@@ -218,13 +218,14 @@ const PatientsPage = () => {
       />
 
       <DataTable
-        headers={['Reg No', 'Name', 'Mobile', 'Aadhaar', 'Address', 'Email', 'Registered On', 'Referred By', 'Actions']}
+        headers={PATIENT_TABLE_HEADERS}
         data={patients}
         loading={loading}
         emptyMessage="No patient profiles matched your query."
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by name, phone or reg no..."
+        stickyActions
         pagination={{
           total: paginationInfo.total,
           page,
@@ -235,27 +236,45 @@ const PatientsPage = () => {
         }}
         renderRow={(patient) => (
           <tr key={patient._id}>
-            <td style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-primary)' }}>
+            <td style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-primary)', whiteSpace: 'nowrap' }}>
               {patient.registrationNumber}
             </td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{patient.name}</td>
-            <td>{patient.phone}</td>
-            <td>{patient.aadhaar || '—'}</td>
-            <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={patient.address || ''}>
-              {patient.address || '—'}
-            </td>
-            <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={patient.email || ''}>
-              {patient.email || '—'}
-            </td>
-            <td>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString('en-IN') : '—'}</td>
+            <td>{patient.age != null && patient.age !== '' ? patient.age : '—'}</td>
+            <td>{patient.gender || '—'}</td>
+            <td style={{ whiteSpace: 'nowrap' }}>{patient.phone}</td>
             <td>{patient.referringDoctor?.name || 'Self'}</td>
             <td>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                <Button variant="secondary" size="sm" onClick={() => navigate(`/cases/patients/${patient._id}`)} icon={<FolderOpen size={14} />}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/cases/patients/${patient._id}`)}
+                  icon={<FolderOpen size={16} />}
+                  title="View details"
+                >
                   Details
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => openEdit(patient)} icon={<Edit2 size={14} />} />
-                <Button variant="danger" size="sm" onClick={() => setDeleteTarget(patient)} icon={<Trash2 size={14} />} />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => openEdit(patient)}
+                  icon={<Edit2 size={16} strokeWidth={2.25} />}
+                  title="Edit patient"
+                  aria-label={`Edit ${patient.name}`}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDeleteTarget(patient)}
+                  icon={<Trash2 size={16} strokeWidth={2.25} />}
+                  title="Delete patient"
+                  aria-label={`Delete ${patient.name}`}
+                >
+                  Delete
+                </Button>
               </div>
             </td>
           </tr>
