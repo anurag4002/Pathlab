@@ -26,14 +26,20 @@ const Agents = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Client-side pagination (GET /api/agents returns the full list).
-  const filtered = statusFilter ? agents.filter((a) => a.status === statusFilter) : agents;
+  // Client-side filter + pagination (avoid refetching the API on every keystroke).
+  const filtered = agents.filter((a) => {
+    if (statusFilter && a.status !== statusFilter) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(a.name || '').toLowerCase().includes(q)
+      || String(a.phone || '').toLowerCase().includes(q);
+  });
   const pg = useClientPagination(filtered, 10);
 
   const fetchAgents = async () => {
     setLoading(true);
     try {
-      const res = await getAgents({ search });
+      const res = await getAgents();
       if (res.success) setAgents(res.data);
     } catch (err) {
       console.error('Failed to load agents list', err);
@@ -44,7 +50,7 @@ const Agents = () => {
 
   useEffect(() => {
     fetchAgents();
-  }, [search]);
+  }, []);
 
   const handleOpenCreate = () => {
     setEditingAgent(null);

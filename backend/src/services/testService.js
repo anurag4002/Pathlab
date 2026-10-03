@@ -6,7 +6,7 @@ const Interpretation = require('../models/Interpretation');
 
 // Test Categories
 const getCategories = async () => {
-  return await TestCategory.find().sort({ name: 1 });
+  return await TestCategory.find().sort({ name: 1 }).lean();
 };
 
 const createCategory = async (data) => {
@@ -32,7 +32,10 @@ const getTests = async (filters = {}) => {
       { code: { $regex: filters.search, $options: 'i' } }
     ];
   }
-  return await Test.find(query).populate('category').sort({ name: 1 });
+  return await Test.find(query)
+    .populate('category', 'name')
+    .sort({ name: 1 })
+    .lean();
 };
 
 const createTest = async (data) => {
@@ -51,34 +54,41 @@ const updateTestRate = async (id, price) => {
   return await Test.findByIdAndUpdate(id, { price }, { new: true });
 };
 
-// Atomic-ish bulk rate update: sequential updates with per-item outcome counts.
+// Bulk rate update via bulkWrite (chunked) instead of N sequential round-trips.
 const bulkUpdateTestRates = async (updates = []) => {
   const results = { ok: 0, failed: 0, errors: [] };
+  const ops = [];
   for (const u of updates) {
-    try {
-      if (!u || !u.id || u.price === undefined || u.price === null || isNaN(Number(u.price)) || Number(u.price) < 0) {
-        results.failed += 1;
-        results.errors.push({ id: u && u.id, error: 'Invalid id or price' });
-        continue;
-      }
-      const updated = await Test.findByIdAndUpdate(u.id, { price: Number(u.price) }, { new: true });
-      if (!updated) {
-        results.failed += 1;
-        results.errors.push({ id: u.id, error: 'Test not found' });
-      } else {
-        results.ok += 1;
-      }
-    } catch (err) {
+    if (!u || !u.id || u.price === undefined || u.price === null || isNaN(Number(u.price)) || Number(u.price) < 0) {
       results.failed += 1;
-      results.errors.push({ id: u && u.id, error: err.message });
+      results.errors.push({ id: u && u.id, error: 'Invalid id or price' });
+      continue;
     }
+    ops.push({
+      updateOne: {
+        filter: { _id: u.id },
+        update: { $set: { price: Number(u.price) } }
+      }
+    });
+  }
+  if (!ops.length) return results;
+  try {
+    const res = await Test.bulkWrite(ops, { ordered: false });
+    results.ok = res.matchedCount || 0;
+    if (results.ok < ops.length) results.failed += ops.length - results.ok;
+  } catch (err) {
+    results.failed += ops.length;
+    results.errors.push({ error: err.message });
   }
   return results;
 };
 
-// Panels
+// Panels — lean + slim nested fields for billing/dropdown speed
 const getPanels = async () => {
-  return await TestPanel.find().populate('tests').sort({ name: 1 });
+  return await TestPanel.find()
+    .populate('tests', 'name code price unit status sampleType')
+    .sort({ name: 1 })
+    .lean();
 };
 
 const createPanel = async (data) => {
@@ -93,9 +103,12 @@ const deletePanel = async (id) => {
   return await TestPanel.findByIdAndDelete(id);
 };
 
-// Packages
+// Packages — lean + slim nested fields for billing/dropdown speed
 const getPackages = async () => {
-  return await TestPackage.find().populate('includedTests').sort({ name: 1 });
+  return await TestPackage.find()
+    .populate('includedTests', 'name code price unit status sampleType')
+    .sort({ name: 1 })
+    .lean();
 };
 
 const createPackage = async (data) => {
@@ -114,7 +127,7 @@ const deletePackage = async (id) => {
 const getInterpretations = async (testId = null) => {
   const query = {};
   if (testId) query.test = testId;
-  return await Interpretation.find(query).populate('test', 'name code').sort({ resultCondition: 1 });
+  return await Interpretation.find(query).populate('test', 'name code').sort({ resultCondition: 1 }).lean();
 };
 
 const createInterpretation = async (data) => {

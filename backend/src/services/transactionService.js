@@ -34,7 +34,7 @@ const getTransactions = async (filters = {}) => {
         { name: { $regex: filters.search, $options: 'i' } },
         { registrationNumber: { $regex: filters.search, $options: 'i' } }
       ]
-    }).select('_id');
+    }).select('_id').limit(100).lean();
     
     const patientIds = matchingPatients.map(p => p._id);
     query.$or = [
@@ -43,18 +43,20 @@ const getTransactions = async (filters = {}) => {
   }
 
   const page = parseInt(filters.page) || 1;
-  const limit = parseInt(filters.limit) || 10;
+  const limit = Math.min(parseInt(filters.limit) || 10, 100);
   const skip = (page - 1) * limit;
 
-  const transactions = await Transaction.find(query)
-    .populate('patient', 'name registrationNumber phone')
-    .populate('bill', 'billNumber totalAmount paidAmount dueAmount')
-    .populate('receivedBy', 'name')
-    .sort({ date: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Transaction.countDocuments(query);
+  const [transactions, total] = await Promise.all([
+    Transaction.find(query)
+      .populate('patient', 'name registrationNumber phone')
+      .populate('bill', 'billNumber totalAmount paidAmount dueAmount')
+      .populate('receivedBy', 'name')
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Transaction.countDocuments(query)
+  ]);
 
   return {
     transactions,

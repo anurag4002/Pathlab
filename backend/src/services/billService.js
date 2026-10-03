@@ -83,11 +83,11 @@ const createBill = async (billData, createdByUserId) => {
 
   await bill.save();
 
-  // Create BillItems
-  const itemRecords = items.map(item => ({
+  // Create BillItems (Custom/outsource lines may omit itemId)
+  const itemRecords = items.map((item) => ({
     billId: bill._id,
     itemType: item.itemType,
-    itemId: item.itemId,
+    itemId: item.itemType === 'Custom' ? null : item.itemId,
     name: item.name,
     price: item.price
   }));
@@ -186,7 +186,10 @@ const getBills = async (filters = {}) => {
   // Patient-scoped text: firstName / patient name / phone search
   const patientText = filters.firstName || filters.patientName || null;
   if (patientText) {
-    const matched = await PatientModel.find({ name: { $regex: String(patientText), $options: 'i' } }).select('_id');
+    const matched = await PatientModel.find({ name: { $regex: String(patientText), $options: 'i' } })
+      .select('_id')
+      .limit(100)
+      .lean();
     const ids = matched.map((m) => m._id);
     query.patient = query.patient ? query.patient : { $in: ids.length ? ids : [] };
   }
@@ -201,7 +204,7 @@ const getBills = async (filters = {}) => {
         { registrationNumber: { $regex: s, $options: 'i' } },
         { uhid: { $regex: s, $options: 'i' } }
       ]
-    }).select('_id');
+    }).select('_id').limit(100).lean();
     const ids = matched.map((m) => m._id);
     query.$and = query.$and || [];
     query.$and.push({
@@ -215,19 +218,21 @@ const getBills = async (filters = {}) => {
   }
 
   const page = parseInt(filters.page) || 1;
-  const limit = parseInt(filters.limit) || 10;
+  const limit = Math.min(parseInt(filters.limit) || 10, 100);
   const skip = (page - 1) * limit;
 
-  const bills = await Bill.find(query)
-    .populate('patient', 'name registrationNumber phone uhid age gender')
-    .populate('referringDoctor', 'name clinicHospital contact')
-    .populate('agent', 'name phone')
-    .populate('createdBy', 'name')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Bill.countDocuments(query);
+  const [bills, total] = await Promise.all([
+    Bill.find(query)
+      .populate('patient', 'name registrationNumber phone uhid age gender address email aadhaar')
+      .populate('referringDoctor', 'name clinicHospital contact')
+      .populate('agent', 'name phone')
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Bill.countDocuments(query)
+  ]);
 
   return {
     bills,

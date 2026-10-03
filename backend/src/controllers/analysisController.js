@@ -30,10 +30,8 @@ const getTestUsage = async (req, res, next) => {
       }
     }
 
-    // Bill ids in window (ids only — never shipped to the client).
-    const bills = await Bill.find(billMatch).select('_id').lean();
-    const billIds = bills.map((b) => b._id);
-    if (billIds.length === 0) {
+    const billCountRow = await Bill.countDocuments(billMatch);
+    if (!billCountRow) {
       return successResponse(res, 'Test usage loaded', {
         items: [],
         top: [],
@@ -43,9 +41,21 @@ const getTestUsage = async (req, res, next) => {
       });
     }
 
-    // Group BillItems by itemId within the window.
+    // Keep filters in the pipeline — avoid materializing every bill id into Node.
     const grouped = await BillItem.aggregate([
-      { $match: { billId: { $in: billIds } } },
+      {
+        $lookup: {
+          from: 'bills',
+          localField: 'billId',
+          foreignField: '_id',
+          as: 'bill',
+          pipeline: [
+            { $match: billMatch },
+            { $project: { _id: 1 } }
+          ]
+        }
+      },
+      { $match: { 'bill.0': { $exists: true } } },
       {
         $group: {
           _id: '$itemId',
@@ -92,7 +102,7 @@ const getTestUsage = async (req, res, next) => {
       orders: all.reduce((s, r) => s + r.count, 0),
       revenue: all.reduce((s, r) => s + r.revenue, 0),
       distinctTests: all.length,
-      bills: billIds.length
+      bills: billCountRow
     };
     const desc = [...all].sort((a, b) => b.count - a.count);
     const top = desc.slice(0, 5);

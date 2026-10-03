@@ -6,6 +6,7 @@ import {
   getPendingLabCases,
   getReportForEntry,
   uploadReport,
+  attachReportFile,
   deleteReport,
   createResultReport,
   saveReportResults,
@@ -53,7 +54,7 @@ import CommentThread from '../../components/lab/CommentThread';
 import VerificationTimeline from '../../components/lab/VerificationTimeline';
 import LabelPrintSheet from '../../components/lab/LabelPrintSheet';
 
-const emptyRow = () => ({ test: '', value: '', unit: '' });
+const emptyRow = () => ({ test: '', testName: '', value: '', unit: '' });
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -77,11 +78,19 @@ const getApiErrorMessage = (err, fallback) => {
 const inferDepartment = (report) => {
   const explicit = report?.bill?.department;
   if (typeof explicit === 'string' && explicit.trim()) return explicit.trim().toUpperCase();
+  if (report?.bill?.caseType === 'OutsourceLabCase') return 'OUTSOURCE LAB';
   const hay = `${report?.test?.name || ''} ${report?.test?.code || ''}`.toLowerCase();
   if (/usg|ultrasound/.test(hay)) return 'USG';
   if (/x-?ray|radiograph/.test(hay)) return 'XRAY';
   return 'LAB';
 };
+
+const isOutsourceBill = (bill) => (
+  bill?.caseType === 'OutsourceLabCase'
+  || String(bill?.department || '').toUpperCase().includes('OUTSOURCE')
+);
+
+const isOutsourceReport = (report) => isOutsourceBill(report?.bill);
 
 const matchesSearch = (report, q) => {
   const query = String(q || '').trim().toLowerCase();
@@ -145,6 +154,12 @@ const TodaysReports = () => {
   const [resultLoading, setResultLoading] = useState(false);
   const [entryOpen, setEntryOpen] = useState(false);
   const [activeReport, setActiveReport] = useState(null);
+  // 'values' = numeric grid; 'upload' = outsource PDF/image (no Enter value fields)
+  const [entryMode, setEntryMode] = useState('values');
+  const [entryUploadFile, setEntryUploadFile] = useState(null);
+  const [entryUploadError, setEntryUploadError] = useState(null);
+  // Tests from getReportForEntry — ensures Edit results shows names even before catalog loads
+  const [entryTestOptions, setEntryTestOptions] = useState([]);
   const [rows, setRows] = useState([emptyRow()]);
   const [tat, setTat] = useState({ collected: '', received: '' });
   const [sigId, setSigId] = useState('');
@@ -237,7 +252,16 @@ const TodaysReports = () => {
         getSignatures().catch(() => null)
       ]);
       if (patRes.success) setPatients(patRes.data.patients);
-      if (billRes.success) setBills(billRes.data.bills);
+      if (billRes.success) {
+        const incoming = billRes.data.bills || [];
+        // Keep bills prefilled from Pending (outsource) that may fall outside last-100.
+        setBills((prev) => {
+          const extras = (prev || []).filter(
+            (b) => !incoming.some((x) => String(x._id) === String(b._id))
+          );
+          return extras.length ? [...extras, ...incoming] : incoming;
+        });
+      }
       if (testRes.success) setTests(testRes.data);
       if (sigRes?.success) setSignatures(sigRes.data);
     } catch (err) {
@@ -304,13 +328,17 @@ const TodaysReports = () => {
 
   useEffect(() => {
     fetchReports();
-    loadUploadOptions();
     setFailedDeliveries(getFailedDeliveries());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortOrder, statusFilter]);
 
+  // Heavy catalogs when a modal needs them — not on every worklist filter change.
   useEffect(() => {
-    loadUploadOptions();
+    if (uploadOpen || entryOpen || resultOpen) loadUploadOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadOpen, entryOpen, resultOpen]);
+
+  useEffect(() => {
     loadLabProfile();
     loadTemplates();
     loadCredits();
@@ -424,6 +452,7 @@ const TodaysReports = () => {
       if (res.success) {
         setUploadOpen(false);
         fetchReports();
+        fetchPending();
       }
     } catch (err) {
       setFormErrors({ api: err.response?.data?.message || 'Failed to upload report file' });
@@ -451,6 +480,15 @@ const TodaysReports = () => {
   // ---- Result entry flow ----
   const handleCreateResult = async () => {
     if (!resultForm.patient || !resultForm.bill) { alert('Select patient and bill'); return; }
+    const pickedBill = bills.find((b) => String(b._id) === String(resultForm.bill));
+    if (isOutsourceBill(pickedBill)) {
+      setResultOpen(false);
+      setFormData({ patient: resultForm.patient, bill: resultForm.bill, test: '', file: null });
+      setUploadPatient(resultPatient);
+      setFormErrors({});
+      setUploadOpen(true);
+      return;
+    }
     setResultLoading(true);
     try {
       const res = await createResultReport(resultForm);
@@ -471,6 +509,10 @@ const TodaysReports = () => {
 
   // Start result entry directly from a pending sample (bill without a report).
   const handleStartPendingEntry = async (pendingCase) => {
+    if (isOutsourceBill(pendingCase?.bill)) {
+      handleUploadPendingOutsource(pendingCase);
+      return;
+    }
     const billId = pendingCase?.bill?._id || pendingCase?.bill;
     const patientId = pendingCase?.bill?.patient?._id || pendingCase?.bill?.patient;
     if (!billId || !patientId) { alert('Pending case is missing patient/bill linkage'); return; }
@@ -490,42 +532,183 @@ const TodaysReports = () => {
     }
   };
 
+  // Outsource pending → upload PDF/image (no numeric result entry).
+  const handleUploadPendingOutsource = (pendingCase) => {
+    const bill = pendingCase?.bill || {};
+    const patient = bill.patient && typeof bill.patient === 'object' ? bill.patient : null;
+    const patientId = patient?._id || bill.patient;
+    if (!bill._id || !patientId) {
+      alert('Pending case is missing patient/bill linkage');
+      return;
+    }
+    setFormData({ patient: patientId, bill: bill._id, test: '', file: null });
+    setUploadPatient(patient);
+    setFormErrors({});
+    // Ensure the Select has this bill even if the last-100 list omitted it.
+    setBills((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      if (list.some((b) => String(b._id) === String(bill._id))) return list;
+      return [{ ...bill, patient: patient || bill.patient }, ...list];
+    });
+    setUploadOpen(true);
+  };
+
   const openEntry = async (report) => {
-    setActiveReport(report);
     setSendResult(null);
     setDeliveryHistory(getDeliveryHistory(report._id));
-    setRows(report.results?.length ? report.results.map((r) => ({ test: r.test?._id || r.test || '', value: r.value || '', unit: r.unit || '' })) : [emptyRow()]);
-    setTat({ collected: report.tat?.collected ? String(report.tat.collected).slice(0, 10) : '', received: report.tat?.received ? String(report.tat.received).slice(0, 10) : '' });
+    setEntryTestOptions([]);
+    setEntryUploadFile(null);
+    setEntryUploadError(null);
     setSigId('');
-    setEntryOpen(true);
     setVerifyUrl('');
-    loadVerifyUrl(report._id);
-    // Enrich with the full entry payload (bill items -> tests with ranges).
-    // Degrades gracefully: the shell report above is already usable.
+    setEntryLoading(true);
+
+    // Resolve bill/tests BEFORE opening the modal so outsource never flashes value fields.
+    let nextReport = report;
+    let testEntries = [];
     try {
       const entry = await getReportForEntry(report._id);
-      const testEntries = entry?.data?.testEntries || [];
-      if (testEntries.length) {
-        setRows(testEntries.map((testEntry) => ({
-          test: testEntry.testId || '',
-          value: testEntry.existingValue || '',
-          unit: testEntry.existingUnit || testEntry.unit || ''
-        })));
-      }
+      const billFromEntry = entry?.data?.bill;
+      const patientFromEntry = entry?.data?.patient;
+      testEntries = entry?.data?.testEntries || [];
+      nextReport = {
+        ...report,
+        ...(entry?.data?.report || {}),
+        bill: billFromEntry || report.bill,
+        patient: patientFromEntry || report.patient
+      };
     } catch {
-      // Keep the shell report usable when enrichment is unavailable.
+      /* list payload only */
+    }
+
+    const items = nextReport?.bill?.items;
+    const billItemsCustomOnly = Array.isArray(items) && items.length > 0
+      && items.every((it) => it?.itemType === 'Custom' || (!it?.itemId && it?.name));
+    const entriesCustomOnly = testEntries.length > 0 && testEntries.every((t) => !t.testId);
+    const outsource = isOutsourceReport(nextReport) || isOutsourceBill(nextReport?.bill)
+      || billItemsCustomOnly || entriesCustomOnly
+      || String(inferDepartment(nextReport)).includes('OUTSOURCE');
+
+    setActiveReport(nextReport);
+    setTat({
+      collected: nextReport.tat?.collected ? String(nextReport.tat.collected).slice(0, 10) : '',
+      received: nextReport.tat?.received ? String(nextReport.tat.received).slice(0, 10) : ''
+    });
+    loadVerifyUrl(nextReport._id);
+
+    if (outsource) {
+      setEntryMode('upload');
+      setRows([]);
+      setEntryOpen(true);
+      setEntryLoading(false);
+      return;
+    }
+
+    setEntryMode('values');
+    if (testEntries.length) {
+      setEntryTestOptions(testEntries.map((te) => ({
+        _id: te.testId ? String(te.testId) : `custom:${te.testName}`,
+        name: te.testName || 'Test',
+        code: te.testCode || '',
+        unit: te.unit || ''
+      })));
+      setRows(testEntries.map((testEntry) => ({
+        test: testEntry.testId ? String(testEntry.testId) : `custom:${testEntry.testName}`,
+        testName: testEntry.testName || '',
+        value: testEntry.existingValue || '',
+        unit: testEntry.existingUnit || testEntry.unit || ''
+      })));
+    } else if (report.results?.length) {
+      setEntryTestOptions(report.results.map((r, i) => ({
+        _id: String(r.test?._id || r.test || `saved:${i}`),
+        name: r.testName || r.test?.name || `Test ${i + 1}`,
+        code: r.test?.code || '',
+        unit: r.unit || ''
+      })));
+      setRows(report.results.map((r) => ({
+        test: r.test?._id || r.test || '',
+        testName: r.testName || r.test?.name || '',
+        value: r.value || '',
+        unit: r.unit || ''
+      })));
+    } else {
+      setRows([emptyRow()]);
+    }
+    setEntryOpen(true);
+    setEntryLoading(false);
+  };
+
+  const handleEntryUploadSubmit = async () => {
+    if (!activeReport?._id) return;
+    if (!entryUploadFile) {
+      setEntryUploadError('Please select a PDF or image report file.');
+      return;
+    }
+    setEntryLoading(true);
+    setEntryUploadError(null);
+    try {
+      const payload = new FormData();
+      payload.append('file', entryUploadFile);
+      const res = await attachReportFile(activeReport._id, payload);
+      if (res?.success) {
+        setEntryOpen(false);
+        setEntryUploadFile(null);
+        fetchReports();
+        fetchPending();
+      } else {
+        setEntryUploadError(res?.message || 'Upload failed.');
+      }
+    } catch (err) {
+      setEntryUploadError(getApiErrorMessage(err, 'Failed to upload report file.'));
+    } finally {
+      setEntryLoading(false);
     }
   };
 
+  // Merge entry-resolved tests with catalog so Select always has labels for row IDs.
+  const entrySelectOptions = (() => {
+    const byId = new Map();
+    for (const t of entryTestOptions) {
+      if (t?._id) byId.set(String(t._id), { value: String(t._id), label: t.code ? `${t.name} (${t.code})` : t.name });
+    }
+    for (const t of tests) {
+      const id = String(t._id);
+      if (!byId.has(id)) byId.set(id, { value: id, label: `${t.name}${t.code ? ` (${t.code})` : ''}` });
+    }
+    // Ensure every row's current value appears even if missing from both lists
+    for (const row of rows) {
+      const id = row.test != null && row.test !== '' ? String(row.test) : '';
+      if (id && !byId.has(id)) {
+        byId.set(id, { value: id, label: row.testName || id });
+      }
+    }
+    return [...byId.values()];
+  })();
+
   const handleSaveResults = async () => {
-    const payload = rows.filter((r) => r.test && String(r.value) !== '').map((r) => ({ test: r.test, value: r.value, unit: r.unit }));
+    const payload = rows
+      .filter((r) => r.test && String(r.value) !== '')
+      .map((r) => {
+        const isCustom = String(r.test).startsWith('custom:');
+        return {
+          ...(isCustom ? {} : { test: r.test }),
+          testName: r.testName || (isCustom ? String(r.test).slice('custom:'.length) : undefined),
+          value: r.value,
+          unit: r.unit
+        };
+      });
     if (!payload.length) { alert('Add at least one result row'); return; }
     setEntryLoading(true);
     try {
       const res = await saveReportResults(activeReport._id, payload);
       if (res.success) {
         setActiveReport(res.data);
-        setRows(res.data.results.map((r) => ({ test: r.test?._id || r.test || '', value: r.value || '', unit: r.unit || '' })));
+        setRows(res.data.results.map((r) => ({
+          test: r.test?._id || r.test || (r.testName ? `custom:${r.testName}` : ''),
+          testName: r.testName || r.test?.name || '',
+          value: r.value || '',
+          unit: r.unit || ''
+        })));
         fetchReports();
         fetchPending();
       }
@@ -836,7 +1019,7 @@ const TodaysReports = () => {
             headers={['Patient', 'Reg No', 'Bill Number', 'Items', 'Report Status', 'Actions']}
             data={pgPending.paged}
             loading={pendingLoading}
-            emptyMessage="No pending samples — every lab bill already has a report."
+            emptyMessage="No pending samples — every lab / outsource bill already has a report."
             maxHeight={440}
             pagination={{
               total: pgPending.total,
@@ -849,22 +1032,41 @@ const TodaysReports = () => {
             renderRow={(pendingCase) => {
               const bill = pendingCase?.bill || {};
               const patient = bill?.patient || {};
+              const outsource = isOutsourceBill(bill);
               return (
                 <tr key={bill._id || pendingCase?.report?._id}>
-                  <td style={{ fontWeight: '600' }}>{patient?.name || 'Walk-in Patient'}</td>
+                  <td style={{ fontWeight: '600' }}>
+                    {patient?.name || 'Walk-in Patient'}
+                    {outsource && (
+                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>
+                        Outsource
+                      </span>
+                    )}
+                  </td>
                   <td>{patient?.registrationNumber || '—'}</td>
                   <td>{bill?.billNumber || 'N/A'}</td>
                   <td style={{ maxWidth: '240px' }}>{pendingItemsLabel(pendingCase)}</td>
                   <td>{pendingCase?.report?.status || 'Pending'}</td>
                   <td>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => handleStartPendingEntry(pendingCase)}
-                      disabled={resultLoading}
-                    >
-                      <FileEdit size={14} /> Start entry
-                    </button>
+                    {outsource ? (
+                      <button
+                        className="btn btn-primary"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => handleUploadPendingOutsource(pendingCase)}
+                        disabled={submitLoading}
+                      >
+                        <Plus size={14} /> Upload report
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => handleStartPendingEntry(pendingCase)}
+                        disabled={resultLoading}
+                      >
+                        <FileEdit size={14} /> Start entry
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -909,6 +1111,10 @@ const TodaysReports = () => {
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   {['Signed', 'Verified', 'Completed'].includes(report.status) ? (
                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Submitted</span>
+                  ) : isOutsourceReport(report) ? (
+                    <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
+                      <Plus size={14} /> Upload report
+                    </button>
                   ) : (
                     <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
                       <FileEdit size={14} /> {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
@@ -1005,25 +1211,41 @@ const TodaysReports = () => {
           <Select
             label="Related Bill Invoice"
             value={formData.bill}
-            onChange={(e) => setFormData(prev => ({ ...prev, bill: e.target.value }))}
-            options={bills.filter(b => b.patient?._id === formData.patient).map(b => ({ value: b._id, label: `${b.billNumber} (${formatCurrency(b.totalAmount)})` }))}
+            onChange={(e) => setFormData(prev => ({ ...prev, bill: e.target.value, test: '' }))}
+            options={bills.filter(b => b.patient?._id === formData.patient || String(b.patient) === String(formData.patient)).map(b => ({
+              value: b._id,
+              label: `${b.billNumber} · ${isOutsourceBill(b) ? 'Outsource' : (b.department || 'LAB')}${b.totalAmount != null ? ` (${formatCurrency(b.totalAmount)})` : ''}`
+            }))}
             error={formErrors.bill}
             required
             placeholder="Select Bill (Choose patient first)"
             disabled={!formData.patient}
           />
-          <Select
-            label="Specific Test (Optional)"
-            value={formData.test}
-            onChange={(e) => setFormData(prev => ({ ...prev, test: e.target.value }))}
-            options={tests.map(t => ({ value: t._id, label: `${t.name} (${t.code})` }))}
-            placeholder="Link to generic invoice total"
-          />
+          {(() => {
+            const selectedBill = bills.find((b) => String(b._id) === String(formData.bill));
+            if (isOutsourceBill(selectedBill)) {
+              return (
+                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                  Outsource bill — upload the external lab PDF or image below. No in-lab result entry is required.
+                </p>
+              );
+            }
+            return (
+              <Select
+                label="Specific Test (Optional)"
+                value={formData.test}
+                onChange={(e) => setFormData(prev => ({ ...prev, test: e.target.value }))}
+                options={tests.map(t => ({ value: t._id, label: `${t.name} (${t.code})` }))}
+                placeholder="Link to generic invoice total"
+              />
+            );
+          })()}
           <div style={{ marginTop: '0.5rem' }}>
             <FileUploader
               onChange={handleFileChange}
               value={formData.file}
-              label="Select PDF Report or Scan findings file"
+              label="Select PDF Report or Scan / Image file"
+              accept=".pdf,.jpg,.jpeg,.png"
             />
             {formErrors.file && <p className="form-error">{formErrors.file}</p>}
           </div>
@@ -1061,33 +1283,82 @@ const TodaysReports = () => {
         </div>
       </Modal>
 
-      {/* Enter results modal */}
+      {/* Enter results / outsource upload modal */}
       <Modal
         isOpen={entryOpen}
-        onClose={() => setEntryOpen(false)}
-        title={`Enter Results — ${activeReport?.registrationNumber || ''}`}
+        onClose={() => !entryLoading && setEntryOpen(false)}
+        title={
+          entryMode === 'upload'
+            ? `Upload Report — ${activeReport?.registrationNumber || ''}`
+            : `Enter Results — ${activeReport?.registrationNumber || ''}`
+        }
         size="lg"
         footer={
-          <>
-            <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
-            <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
-            <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
-            <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id)}><FileDown size={14} /> PDF</Button>
-            <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
-            {['Signed', 'Verified', 'Completed'].includes(activeReport?.status) ? (
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
-            ) : (
-              <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
-            )}
-          </>
+          entryMode === 'upload' ? (
+            <>
+              <Button variant="secondary" onClick={() => setEntryOpen(false)} disabled={entryLoading}>Close</Button>
+              <Button variant="primary" onClick={handleEntryUploadSubmit} loading={entryLoading}>
+                <Plus size={14} /> Upload File
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
+              <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
+              <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
+              <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id)}><FileDown size={14} /> PDF</Button>
+              <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
+              {['Signed', 'Verified', 'Completed'].includes(activeReport?.status) ? (
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
+              ) : (
+                <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
+              )}
+            </>
+          )
         }
       >
+        {entryMode === 'upload' ? (
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+            {entryUploadError ? <div className="form-error">{entryUploadError}</div> : null}
+            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+              Outsource case — upload the external lab PDF or scan/image. No numeric values are required.
+            </p>
+            {(activeReport?.bill?.items || []).length > 0 && (
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>
+                <strong>Tests:</strong>{' '}
+                {(activeReport.bill.items || []).map((i) => i.name).filter(Boolean).join(', ') || '—'}
+              </p>
+            )}
+            {activeReport?.fileUrl ? (
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-success, #166534)' }}>
+                A file is already attached. Uploading again will replace it.
+              </p>
+            ) : null}
+            <FileUploader
+              onChange={(file) => { setEntryUploadFile(file); setEntryUploadError(null); }}
+              value={entryUploadFile}
+              label="Select PDF Report or Scan / Image file"
+              accept=".pdf,.jpg,.jpeg,.png"
+            />
+          </div>
+        ) : (
+          <>
         {rows.map((row, i) => (
           <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
             <Select
-              value={row.test}
-              onChange={(e) => setRows(prev => prev.map((r, j) => j === i ? { ...r, test: e.target.value, unit: tests.find(t => t._id === e.target.value)?.unit || r.unit } : r))}
-              options={tests.map(t => ({ value: t._id, label: `${t.name} (${t.code})` }))}
+              value={row.test != null ? String(row.test) : ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                const fromEntry = entryTestOptions.find((t) => String(t._id) === v);
+                const fromCatalog = tests.find((t) => String(t._id) === v);
+                setRows((prev) => prev.map((r, j) => (j === i ? {
+                  ...r,
+                  test: v,
+                  testName: fromEntry?.name || fromCatalog?.name || r.testName || '',
+                  unit: fromEntry?.unit || fromCatalog?.unit || r.unit
+                } : r)));
+              }}
+              options={entrySelectOptions}
               placeholder="Select test"
               style={{ flex: 2 }}
             />
@@ -1202,6 +1473,8 @@ const TodaysReports = () => {
             <Button variant="secondary" size="sm" onClick={async () => { try { const r = await resendReport(activeReport._id); const rep = r?.data || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } } catch (e) { alert(e.response?.data?.message || 'Resend failed'); } }}>Resend for correction</Button>
           )}
         </div>
+          </>
+        )}
       </Modal>
 
       {/* Send modal — targets exactly the report it was opened for; contact

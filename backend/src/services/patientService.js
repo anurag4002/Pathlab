@@ -47,16 +47,18 @@ const getAllPatients = async (filters = {}) => {
 
   // Support pagination
   const page = parseInt(filters.page) || 1;
-  const limit = parseInt(filters.limit) || 10;
+  const limit = Math.min(parseInt(filters.limit) || 10, 100);
   const skip = (page - 1) * limit;
 
-  const patients = await Patient.find(query)
-    .populate('referringDoctor', 'name clinicHospital')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Patient.countDocuments(query);
+  const [patients, total] = await Promise.all([
+    Patient.find(query)
+      .populate('referringDoctor', 'name clinicHospital')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Patient.countDocuments(query)
+  ]);
 
   return {
     patients,

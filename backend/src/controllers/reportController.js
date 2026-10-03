@@ -91,6 +91,27 @@ const uploadReport = async (req, res, next) => {
   }
 };
 
+/** POST /reports/:id/file — attach PDF/image to an existing (e.g. outsource) report */
+const attachReportFile = async (req, res, next) => {
+  try {
+    persistRequestFiles(req, 'reports');
+    if (!req.file) {
+      return errorResponse(res, 'Please upload a file', 400);
+    }
+    await assertReportAccess(req, req.params.id);
+    const report = await reportService.attachReportFile(req.params.id, req.file, req.user);
+    await Activity.create({
+      user: req.user._id,
+      action: 'Upload Report',
+      module: 'Lab',
+      description: `Attached findings file to report ${report.registrationNumber}.`
+    });
+    return successResponse(res, 'Report file uploaded successfully', report);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const downloadReport = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -135,6 +156,7 @@ const deleteReport = async (req, res, next) => {
 module.exports = {
   getReports,
   uploadReport,
+  attachReportFile,
   downloadReport,
   deleteReport,
   createResultReport,
@@ -287,41 +309,24 @@ async function getPendingLabCases(req, res, next) {
   try {
     const branchScope = getBranchFilter(req);
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
     const search = String(req.query.search || req.query.q || '').trim();
     const statusFilter = String(req.query.status || '').trim();
+    const countOnly = req.query.countOnly === '1' || req.query.countOnly === 'true';
 
-    // Find LAB department bills that don't have a report, or have a report in Registered/Draft status.
-    // Verified/Rejected are terminal too — without them such bills leak back into pending.
-    const billsWithReports = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed', 'Verified', 'Rejected'] } }).distinct('bill');
-
-    // Also include bills that have a report still in data-entry (Registered/Draft)
-    let draftStatuses = ['Registered', 'Draft'];
-    if (statusFilter === 'Pending') {
-      draftStatuses = [];
-    } else if (statusFilter && draftStatuses.includes(statusFilter)) {
-      draftStatuses = [statusFilter];
-    }
-    const draftReportBills = draftStatuses.length
-      ? await Report.find({ ...branchScope, status: { $in: draftStatuses } }).distinct('bill')
-      : [];
-
-    // Combine: bills without reports OR bills with draft reports
-    const orClauses = [];
-    if (!statusFilter || statusFilter === 'Pending') {
-      orClauses.push({ _id: { $nin: billsWithReports }, department: 'LAB', isVoided: { $ne: true } });
-    }
-    if ((!statusFilter || statusFilter !== 'Pending') && draftReportBills.length) {
-      orClauses.push({ _id: { $in: draftReportBills }, department: 'LAB', isVoided: { $ne: true } });
-    }
-    if (!orClauses.length) {
-      return successResponse(res, 'Pending lab cases loaded', {
-        cases: [],
-        pagination: { total: 0, page, limit, pages: 0 }
-      });
-    }
-    const finalQuery = { ...branchScope, $or: orClauses };
+    // In-lab LAB + outsource (OUTSOURCE LAB / OutsourceLabCase) share this queue.
+    const deptClause = {
+      $or: [
+        { department: { $in: ['LAB', 'OUTSOURCE LAB'] } },
+        { caseType: 'OutsourceLabCase' }
+      ]
+    };
+    const matchBill = {
+      ...branchScope,
+      isVoided: { $ne: true },
+      $and: [deptClause]
+    };
 
     if (search) {
       const Patient = require('../models/Patient');
@@ -331,48 +336,173 @@ async function getPendingLabCases(req, res, next) {
           { registrationNumber: { $regex: search, $options: 'i' } },
           { phone: { $regex: search, $options: 'i' } }
         ]
-      }).select('_id');
+      }).select('_id').limit(100).lean();
       const patientIds = matchedPatients.map((p) => p._id);
-      finalQuery.$and = [{
+      matchBill.$and.push({
         $or: [
           { billNumber: { $regex: search, $options: 'i' } },
           ...(patientIds.length ? [{ patient: { $in: patientIds } }] : [])
         ]
-      }];
+      });
     }
 
-    const bills = await Bill.find(finalQuery)
-      .populate('patient', 'name registrationNumber age gender phone')
-      .populate('items')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    // Get report status for each bill
-    const billIds = bills.map(b => b._id);
-    const reports = await Report.find({ bill: { $in: billIds } }).select('bill status registrationNumber');
-    const reportMap = {};
-    reports.forEach(r => { reportMap[String(r.bill)] = { status: r.status, registrationNumber: r.registrationNumber, _id: r._id }; });
-
-    const data = bills.map(bill => {
-      const reportInfo = reportMap[String(bill._id)];
+    // Single pipeline: join reports, keep LAB/outsource bills with no report or draft/registered.
+    // Avoids distinct() materializing every report bill id into Node.
+    const pendingMatch = (() => {
+      if (statusFilter === 'Pending') {
+        return { reportCount: 0 };
+      }
+      if (statusFilter === 'Registered' || statusFilter === 'Draft') {
+        return { entryReport: { $elemMatch: { status: statusFilter } } };
+      }
       return {
-        bill: {
-          _id: bill._id,
-          billNumber: bill.billNumber,
-          date: bill.date,
-          patient: bill.patient,
-          items: bill.items
-        },
-        report: reportInfo || { status: 'Pending' }
+        $or: [
+          { reportCount: 0 },
+          { 'entryReport.0': { $exists: true } }
+        ]
       };
-    });
+    })();
 
-    const total = await Bill.countDocuments(finalQuery);
+    const basePipeline = [
+      { $match: matchBill },
+      {
+        $lookup: {
+          from: 'reports',
+          localField: '_id',
+          foreignField: 'bill',
+          as: 'reportDocs'
+        }
+      },
+      {
+        $lookup: {
+          from: 'billitems',
+          localField: '_id',
+          foreignField: 'billId',
+          as: 'itemDocs',
+          pipeline: [{ $project: { name: 1, itemType: 1, price: 1 } }]
+        }
+      },
+      {
+        $project: {
+          billNumber: 1,
+          date: 1,
+          patient: 1,
+          createdAt: 1,
+          department: 1,
+          caseType: 1,
+          items: '$itemDocs',
+          reportDocs: {
+            $map: {
+              input: '$reportDocs',
+              as: 'r',
+              in: {
+                _id: '$$r._id',
+                status: '$$r.status',
+                registrationNumber: '$$r.registrationNumber'
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          reportCount: { $size: '$reportDocs' },
+          entryReport: {
+            $filter: {
+              input: '$reportDocs',
+              as: 'r',
+              cond: { $in: ['$$r.status', ['Registered', 'Draft']] }
+            }
+          }
+        }
+      },
+      { $match: pendingMatch }
+    ];
+
+    if (countOnly) {
+      const countRows = await Bill.aggregate([
+        ...basePipeline,
+        { $count: 'total' }
+      ]);
+      const total = countRows[0]?.total || 0;
+      return successResponse(res, 'Pending lab cases loaded', {
+        cases: [],
+        pagination: { total, page: 1, limit: 1, pages: total > 0 ? 1 : 0 }
+      });
+    }
+
+    const rows = await Bill.aggregate([
+      ...basePipeline,
+      { $sort: { createdAt: -1 } },
+      {
+        $facet: {
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $lookup: {
+                from: 'patients',
+                localField: 'patient',
+                foreignField: '_id',
+                as: 'patientDoc',
+                pipeline: [
+                  { $project: { name: 1, registrationNumber: 1, age: 1, gender: 1, phone: 1 } }
+                ]
+              }
+            },
+            {
+              $addFields: {
+                patient: { $arrayElemAt: ['$patientDoc', 0] },
+                reportInfo: {
+                  $cond: [
+                    { $gt: [{ $size: '$entryReport' }, 0] },
+                    { $arrayElemAt: ['$entryReport', 0] },
+                    { $literal: { status: 'Pending' } }
+                  ]
+                }
+              }
+            },
+            {
+              $project: {
+                billNumber: 1,
+                date: 1,
+                patient: 1,
+                department: 1,
+                caseType: 1,
+                items: 1,
+                reportInfo: 1
+              }
+            }
+          ],
+          meta: [{ $count: 'total' }]
+        }
+      }
+    ]);
+
+    const facet = rows[0] || { data: [], meta: [] };
+    const total = facet.meta[0]?.total || 0;
+    const data = (facet.data || []).map((bill) => ({
+      bill: {
+        _id: bill._id,
+        billNumber: bill.billNumber,
+        date: bill.date,
+        patient: bill.patient,
+        department: bill.department || 'LAB',
+        caseType: bill.caseType || 'LabCase',
+        items: Array.isArray(bill.items) ? bill.items : []
+      },
+      report: bill.reportInfo?.status
+        ? {
+            _id: bill.reportInfo._id,
+            status: bill.reportInfo.status,
+            registrationNumber: bill.reportInfo.registrationNumber
+          }
+        : { status: 'Pending' }
+    }));
 
     return successResponse(res, 'Pending lab cases loaded', {
       cases: data,
-      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) || 0 }
     });
   } catch (error) {
     next(error);
@@ -397,32 +527,67 @@ async function getReportForEntry(req, res, next) {
       return errorResponse(res, 'Report not found', 404);
     }
 
-    // Resolve tests from bill items (Test, TestPackage, TestPanel)
+    // Resolve tests from bill items — batch package/panel lookups (no N+1).
     const TestPackage = require('../models/TestPackage');
     const TestPanel = require('../models/TestPanel');
+    const BillItem = require('../models/BillItem');
+
+    let billItems = (report.bill && Array.isArray(report.bill.items)) ? report.bill.items : [];
+    // Fallback when bill.items refs are empty but BillItem rows exist by billId
+    if ((!billItems.length || billItems.every((i) => !i || !i.name)) && report.bill?._id) {
+      billItems = await BillItem.find({ billId: report.bill._id }).lean();
+    }
 
     let allTests = [];
-    if (report.bill && report.bill.items) {
-      for (const item of report.bill.items) {
-        if (item.itemType === 'Test' && item.itemId) {
-          allTests.push({ type: 'Test', itemId: item.itemId, name: item.name });
-        } else if (item.itemType === 'TestPackage' && item.itemId) {
-          const pkg = await TestPackage.findById(item.itemId).populate('includedTests');
-          if (pkg && pkg.includedTests) {
-            pkg.includedTests.forEach(t => allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name }));
-          }
-        } else if (item.itemType === 'TestPanel' && item.itemId) {
-          const panel = await TestPanel.findById(item.itemId).populate('tests');
-          if (panel && panel.tests) {
-            panel.tests.forEach(t => allTests.push({ type: 'Test', itemId: t._id, name: t.name, panelName: panel.name }));
-          }
-        }
+    const packageIds = [];
+    const panelIds = [];
+    for (const item of billItems) {
+      if (!item) continue;
+      if (item.itemType === 'Test' && item.itemId) {
+        allTests.push({ type: 'Test', itemId: item.itemId, name: item.name });
+      } else if (item.itemType === 'TestPackage' && item.itemId) {
+        packageIds.push(item.itemId);
+      } else if (item.itemType === 'TestPanel' && item.itemId) {
+        panelIds.push(item.itemId);
+      } else if (item.itemType === 'Custom' || (!item.itemId && item.name)) {
+        // Outsource / typed lines — name only (no catalog test id)
+        allTests.push({ type: 'Custom', itemId: null, name: item.name });
       }
     }
 
+    // Also surface tests already saved on the report (edit path)
+    for (const r of (report.results || [])) {
+      const tid = r.test?._id || r.test;
+      const tname = r.testName || r.test?.name;
+      if (tid && !allTests.some((t) => String(t.itemId) === String(tid))) {
+        allTests.push({ type: 'Test', itemId: tid, name: tname || 'Test' });
+      } else if (!tid && tname && !allTests.some((t) => t.name === tname && !t.itemId)) {
+        allTests.push({ type: 'Custom', itemId: null, name: tname });
+      }
+    }
+
+    const [packages, panels] = await Promise.all([
+      packageIds.length
+        ? TestPackage.find({ _id: { $in: packageIds } }).populate('includedTests', 'name').lean()
+        : Promise.resolve([]),
+      panelIds.length
+        ? TestPanel.find({ _id: { $in: panelIds } }).populate('tests', 'name').lean()
+        : Promise.resolve([])
+    ]);
+    packages.forEach((pkg) => {
+      (pkg.includedTests || []).forEach((t) => {
+        allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name });
+      });
+    });
+    panels.forEach((panel) => {
+      (panel.tests || []).forEach((t) => {
+        allTests.push({ type: 'Test', itemId: t._id, name: t.name, panelName: panel.name });
+      });
+    });
+
     // Get full test details
     const testIds = [...new Set(allTests.map(t => t.itemId).filter(Boolean))];
-    const tests = await Test.find({ _id: { $in: testIds } });
+    const tests = await Test.find({ _id: { $in: testIds } }).lean();
     const testMap = {};
     tests.forEach(t => { testMap[String(t._id)] = t; });
 
@@ -434,11 +599,16 @@ async function getReportForEntry(req, res, next) {
     });
 
     const testEntries = allTests.map(t => {
-      const test = testMap[String(t.itemId)];
-      const existing = test ? existingResultMap[String(t.itemId)] : null;
+      const test = t.itemId ? testMap[String(t.itemId)] : null;
+      const existing = t.itemId ? existingResultMap[String(t.itemId)] : null;
+      // Match name-only saved results for Custom lines
+      const existingByName = !existing && t.name
+        ? (report.results || []).find((r) => !r.test && r.testName === t.name)
+        : null;
+      const row = existing || existingByName;
       return {
-        testId: t.itemId,
-        testName: test?.name || t.name,
+        testId: t.itemId || null,
+        testName: test?.name || t.name || 'Test',
         testCode: test?.code || '',
         category: test?.category,
         unit: test?.unit || '',
@@ -455,10 +625,10 @@ async function getReportForEntry(req, res, next) {
         isDerived: test?.isDerived,
         packageName: t.packageName,
         panelName: t.panelName,
-        existingValue: existing?.value || '',
-        existingUnit: existing?.unit || '',
-        existingFlag: existing?.flag || '',
-        existingRemark: existing?.remark || ''
+        existingValue: row?.value || '',
+        existingUnit: row?.unit || '',
+        existingFlag: row?.flag || '',
+        existingRemark: row?.remark || ''
       };
     });
 

@@ -208,35 +208,31 @@ const TestAnalysis = () => {
     };
   }, [refreshKey]);
 
+  // Filter the already-loaded catalog in memory — avoids a second full getTests hit.
   useEffect(() => {
-    let active = true;
-    setCatalog([]);
+    if (!Array.isArray(allTests)) {
+      setCatalog([]);
+      setCatalogLoading(indexLoading);
+      return;
+    }
+    setCatalogLoading(false);
     setCatalogError(null);
-    setCatalogLoading(true);
-
-    getTests({
-      search: debouncedSearch || undefined,
-      category: categoryFilter || undefined,
-      status: statusFilter || undefined
-    }).then((response) => {
-      if (!active) return;
-      if (response?.success && Array.isArray(response.data)) {
-        setCatalog(response.data);
-      } else {
-        setCatalogError('The test catalog service returned an unsuccessful response.');
-      }
-    }).catch((error) => {
-      if (active) {
-        setCatalogError(getApiErrorMessage(error, 'Failed to load the filtered test catalog.'));
-      }
-    }).finally(() => {
-      if (active) setCatalogLoading(false);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [debouncedSearch, categoryFilter, statusFilter, refreshKey]);
+    const q = (debouncedSearch || '').trim().toLowerCase();
+    setCatalog(
+      allTests.filter((t) => {
+        if (statusFilter && String(t.status || '') !== statusFilter) return false;
+        if (categoryFilter) {
+          const catId = t.category?._id || t.category || '';
+          if (String(catId) !== String(categoryFilter)) return false;
+        }
+        if (!q) return true;
+        return (
+          String(t.name || '').toLowerCase().includes(q) ||
+          String(t.code || '').toLowerCase().includes(q)
+        );
+      })
+    );
+  }, [allTests, debouncedSearch, categoryFilter, statusFilter, indexLoading]);
 
   useEffect(() => {
     let active = true;

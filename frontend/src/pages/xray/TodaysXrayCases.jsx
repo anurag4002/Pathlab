@@ -190,10 +190,11 @@ const TodaysXrayCases = () => {
     loadOptions();
   };
 
+  // Form catalogs only when creating/editing — not on every list visit.
   useEffect(() => {
-    loadOptions();
+    if (formOpen) loadOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [formOpen]);
 
   useEffect(() => {
     goToPage(1);

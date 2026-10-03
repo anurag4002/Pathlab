@@ -8,6 +8,10 @@ const EMPTY_FORM = {
   gender: '',
   phone: '',
   address: '',
+  email: '',
+  aadhaar: '',
+  history: '',
+  uhid: '',
   referringDoctor: ''
 };
 
@@ -43,7 +47,7 @@ const PatientFormModal = ({
       onClose={onClose}
       title={isEditing ? 'Edit Patient Details' : 'Register New Patient'}
       footer={footer}
-      size="md"
+      size="lg"
     >
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         {errors.api && (
@@ -91,19 +95,53 @@ const PatientFormModal = ({
             placeholder="Select gender"
           />
         </div>
-        <Input
-          label="Phone Number"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange('phone')}
-          error={errors.phone}
-          required
-        />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+          <Input
+            label="Phone Number"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange('phone')}
+            error={errors.phone}
+            required
+          />
+          <Input
+            label="UHID"
+            name="uhid"
+            value={formData.uhid || ''}
+            onChange={handleChange('uhid')}
+            placeholder="Universal Health ID (optional)"
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email || ''}
+            onChange={handleChange('email')}
+            placeholder="example@gmail.com"
+          />
+          <Input
+            label="Aadhaar"
+            name="aadhaar"
+            value={formData.aadhaar || ''}
+            onChange={handleChange('aadhaar')}
+            placeholder="12-digit UID"
+          />
+        </div>
         <Input
           label="Full Address"
           name="address"
           value={formData.address}
           onChange={handleChange('address')}
+          placeholder="Home address / city"
+        />
+        <Input
+          label="Symptoms / Past History"
+          name="history"
+          value={formData.history || ''}
+          onChange={handleChange('history')}
+          placeholder="Cough, high sugar, fever, etc."
         />
         <Select
           label="Referring Doctor"

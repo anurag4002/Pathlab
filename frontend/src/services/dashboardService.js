@@ -5,9 +5,13 @@ export const getSummary = async () => {
   return response.data;
 };
 
-export const getDailyBusiness = async (startDate, endDate) => {
+export const getDailyBusiness = async (startDate, endDate, options = {}) => {
   const response = await apiClient.get('/dashboard/business', {
-    params: { startDate, endDate }
+    params: {
+      startDate,
+      endDate,
+      ...(options.lite ? { lite: 1 } : {})
+    }
   });
   return response.data;
 };

@@ -16,7 +16,8 @@ const BillSchema = new mongoose.Schema({
   referringDoctor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Doctor',
-    default: null
+    default: null,
+    index: true
   },
   agent: {
     type: mongoose.Schema.Types.ObjectId,
@@ -147,5 +148,10 @@ const BillSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+BillSchema.index({ branch: 1, date: -1 });
+BillSchema.index({ branch: 1, department: 1, isVoided: 1 });
+BillSchema.index({ referringDoctor: 1, date: -1 });
+BillSchema.index({ branch: 1, paymentStatus: 1, date: -1 });
 
 module.exports = mongoose.model('Bill', BillSchema);

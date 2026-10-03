@@ -28,14 +28,21 @@ const ReferralDoctors = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Client-side pagination (GET /api/doctors returns the full list).
-  const filtered = statusFilter ? doctors.filter((d) => d.status === statusFilter) : doctors;
+  // Client-side filter + pagination (avoid refetching the API on every keystroke).
+  const filtered = doctors.filter((d) => {
+    if (statusFilter && d.status !== statusFilter) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(d.name || '').toLowerCase().includes(q)
+      || String(d.phone || '').toLowerCase().includes(q)
+      || String(d.clinicHospital || '').toLowerCase().includes(q);
+  });
   const pg = useClientPagination(filtered, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
     try {
-      const res = await getDoctors({ search });
+      const res = await getDoctors();
       if (res.success) {
         setDoctors(res.data);
       }
@@ -48,7 +55,7 @@ const ReferralDoctors = () => {
 
   useEffect(() => {
     fetchDoctors();
-  }, [search]);
+  }, []);
 
   const handleOpenCreate = () => {
     setEditingDoctor(null);

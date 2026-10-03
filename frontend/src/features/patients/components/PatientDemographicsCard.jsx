@@ -4,10 +4,14 @@ import '../Patients.css';
 
 const PatientDemographicsCard = ({ patient }) => {
   const fields = [
-    { label: 'Age / Gender', value: `${patient.age} Years / ${patient.gender}` },
-    { label: 'Phone', value: patient.phone },
+    { label: 'Age / Gender', value: `${patient.age ?? '—'} Years / ${patient.gender || '—'}` },
+    { label: 'Phone', value: patient.phone || '—' },
+    { label: 'UHID', value: patient.uhid || '—' },
+    { label: 'Email', value: patient.email || '—' },
+    { label: 'Aadhaar', value: patient.aadhaar || '—' },
     { label: 'Doctor Referral', value: patient.referringDoctor?.name || 'Self / Walk-in' },
-    { label: 'Address', value: patient.address || 'N/A' }
+    { label: 'Address', value: patient.address || '—' },
+    { label: 'History / Symptoms', value: patient.history || '—' }
   ];
 
   return (
@@ -22,6 +26,7 @@ const PatientDemographicsCard = ({ patient }) => {
           </h2>
           <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)', margin: 0 }}>
             {patient.registrationNumber}
+            {patient.title ? ` · ${patient.title}` : ''}
           </p>
         </div>
       </div>

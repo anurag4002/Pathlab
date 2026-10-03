@@ -15,9 +15,14 @@ const getDashboardSummary = async (req, res, next) => {
 
 const getDailyBusinessReport = async (req, res, next) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, lite } = req.query;
     const scope = getBranchFilter(req);
-    const report = await dashboardService.getDailyBusiness(startDate, endDate, scope.branch || null);
+    const report = await dashboardService.getDailyBusiness(
+      startDate,
+      endDate,
+      scope.branch || null,
+      { lite: lite === '1' || lite === 'true' }
+    );
     return successResponse(res, 'Daily business report loaded successfully', report);
   } catch (error) {
     next(error);

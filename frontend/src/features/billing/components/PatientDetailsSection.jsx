@@ -50,12 +50,14 @@ const PatientDetailsSection = ({
 }) => {
   const navigate = useNavigate();
 
+  // Only offer "+ Email" etc. for fields that are still hidden.
+  // Once a field is on (default / prefilled from patient), no toggle chip.
   const optionalFields = [
     { key: 'email', label: 'Email', active: showEmail, toggle: () => setShowEmail((v) => !v) },
     { key: 'address', label: 'Address', active: showAddress, toggle: () => setShowAddress((v) => !v) },
     { key: 'aadhaar', label: 'Aadhaar', active: showAadhaar, toggle: () => setShowAadhaar((v) => !v) },
     { key: 'history', label: 'Patient History', active: showHistory, toggle: () => setShowHistory((v) => !v) }
-  ];
+  ].filter((f) => !f.active);
 
   return (
     <div className="bill-form-card">
@@ -206,43 +208,47 @@ const PatientDetailsSection = ({
         <span>Online report requested (auto email/SMS findings link)</span>
       </label>
 
-      {/* Optional Field Toggles */}
-      <div className="optional-field-badges">
-        {optionalFields.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            className={`optional-badge-btn ${f.active ? 'active' : ''}`}
-            onClick={f.toggle}
-          >
-            + {f.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Rendered Optional Inputs */}
-      {showEmail && (
-        <Input
-          label="Email Address"
-          value={patientEmail}
-          onChange={(e) => setPatientEmail(e.target.value)}
-          placeholder="example@gmail.com"
-        />
+      {/* + chips only when a field is still off; defaults / prefilled stay as inputs only */}
+      {optionalFields.length > 0 && (
+        <div className="optional-field-badges">
+          {optionalFields.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              className="optional-badge-btn"
+              onClick={f.toggle}
+              title={`Show ${f.label}`}
+            >
+              + {f.label}
+            </button>
+          ))}
+        </div>
       )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+        {showEmail && (
+          <Input
+            label="Email Address"
+            value={patientEmail}
+            onChange={(e) => setPatientEmail(e.target.value)}
+            placeholder="example@gmail.com"
+          />
+        )}
+        {showAadhaar && (
+          <Input
+            label="Aadhaar ID Card"
+            value={patientAadhaar}
+            onChange={(e) => setPatientAadhaar(e.target.value)}
+            placeholder="12-digit UID"
+          />
+        )}
+      </div>
       {showAddress && (
         <Input
           label="Home Address / City"
           value={patientAddress}
           onChange={(e) => setPatientAddress(e.target.value)}
           placeholder="Address details"
-        />
-      )}
-      {showAadhaar && (
-        <Input
-          label="Aadhaar ID Card"
-          value={patientAadhaar}
-          onChange={(e) => setPatientAadhaar(e.target.value)}
-          placeholder="12-digit UID"
         />
       )}
       {showHistory && (

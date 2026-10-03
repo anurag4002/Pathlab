@@ -27,7 +27,7 @@ const listInquiries = async (req, res, next) => {
 
     const [docs, total] = await Promise.all([
       Inquiry.find(query)
-        .populate('patient', 'name registrationNumber age gender')
+        .populate('patient', 'name registrationNumber age gender phone address email aadhaar uhid history')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -99,7 +99,7 @@ const updateInquiry = async (req, res, next) => {
       return errorResponse(res, 'No editable fields provided', 400);
     }
     const doc = await Inquiry.findByIdAndUpdate(req.params.id, updates, { new: true })
-      .populate('patient', 'name registrationNumber age gender');
+      .populate('patient', 'name registrationNumber age gender phone address email aadhaar uhid history');
     return successResponse(res, 'Booking updated', doc);
   } catch (error) {
     next(error);

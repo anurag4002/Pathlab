@@ -31,7 +31,12 @@ const getExpenses = async (req, res, next) => {
       }
     }
 
-    const expenses = await Expense.find(query).populate('addedBy', 'name').sort({ date: -1 });
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 1000);
+    const expenses = await Expense.find(query)
+      .populate('addedBy', 'name')
+      .sort({ date: -1 })
+      .limit(limit)
+      .lean();
     return successResponse(res, 'Expenses fetched successfully', expenses);
   } catch (error) {
     next(error);

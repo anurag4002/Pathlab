@@ -21,6 +21,16 @@ export const uploadReport = async (formData) => {
   return response.data;
 };
 
+/** Attach PDF/image to an existing report (outsource Enter Results → upload). */
+export const attachReportFile = async (id, formData) => {
+  const response = await apiClient.post(`/reports/${id}/file`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
 export const deleteReport = async (id) => {
   const response = await apiClient.delete(`/reports/${id}`);
   return response.data;

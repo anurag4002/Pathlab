@@ -4,7 +4,7 @@ const Report = require('../models/Report');
 const Transaction = require('../models/Transaction');
 const Activity = require('../models/Activity');
 const { successResponse, errorResponse } = require('../utils/response');
-const { validatePatient } = require('../validators/patientValidator');
+const { validatePatient, validatePatientUpdate } = require('../validators/patientValidator');
 const MESSAGES = require('../constants/messages');
 
 const getPatients = async (req, res, next) => {
@@ -100,7 +100,8 @@ const updatePatient = async (req, res, next) => {
   try {
     const { id } = req.params;
     await patientService.assertPatientAccess(id, req);
-    const { errors, isValid } = validatePatient(req.body);
+    // Partial body OK — billing may sync only phone/email/address/aadhaar/history
+    const { errors, isValid } = validatePatientUpdate(req.body);
     if (!isValid) {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
     }

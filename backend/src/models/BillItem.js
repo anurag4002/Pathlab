@@ -9,12 +9,17 @@ const BillItemSchema = new mongoose.Schema({
   },
   itemType: {
     type: String,
-    enum: ['Test', 'TestPackage', 'TestPanel'],
+    enum: ['Test', 'TestPackage', 'TestPanel', 'Custom'],
     required: true
   },
+  // Optional for Custom (outsource) lines typed at the counter
   itemId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true
+    required: function requiredItemId() {
+      return this.itemType !== 'Custom';
+    },
+    default: null,
+    index: true
   },
   name: {
     type: String,

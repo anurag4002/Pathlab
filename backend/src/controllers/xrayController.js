@@ -24,14 +24,17 @@ const getXrayCases = async (req, res, next) => {
     if (search) {
       const patients = await Patient.find({
         name: { $regex: search, $options: 'i' }
-      }).select('_id');
+      }).select('_id').limit(100).lean();
       query.patient = { $in: patients.map(p => p._id) };
     }
 
+    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
     const cases = await XrayCase.find(query)
-      .populate('patient')
-      .populate('referringDoctor')
-      .sort({ date: -1 });
+      .populate('patient', 'name registrationNumber phone age gender')
+      .populate('referringDoctor', 'name clinicHospital')
+      .sort({ date: -1 })
+      .limit(limit)
+      .lean();
 
     return successResponse(res, 'X-Ray cases loaded successfully', cases);
   } catch (error) {

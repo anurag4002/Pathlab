@@ -85,26 +85,39 @@ const Inquiries = () => {
   // URL-mirroring replaces and page refreshes. BillCreateForm consumes + clears it.
   const confirmAndBill = async (inq) => {
     setUpdatingId(inq._id);
+    // Keep list-row fields — status API may return a slim doc.
+    const source = inq;
     try {
       if (inq.status !== 'Confirmed') {
         const res = await setInquiryStatus(inq._id, 'Confirmed');
         if (!res?.success) return;
-        inq = res.data || { ...inq, status: 'Confirmed' };
+        inq = { ...source, ...(res.data || {}), status: 'Confirmed' };
       }
+      const linked = inq.patient && typeof inq.patient === 'object' ? inq.patient : null;
+      // Only treat as registered when we have a populated patient (or a real id).
+      const patientId = linked?._id || (typeof inq.patient === 'string' ? inq.patient : null) || null;
+      const booking = {
+        inquiryId: inq._id || source._id,
+        name: source.name || inq.name || '',
+        phone: source.phone || inq.phone || '',
+        patientId,
+        email: linked?.email || '',
+        address: linked?.address || '',
+        aadhaar: linked?.aadhaar || '',
+        history: linked?.history || source.note || inq.note || '',
+        age: linked?.age,
+        gender: linked?.gender,
+        title: linked?.title || '',
+        items: source.items || inq.items || [],
+        note: source.note || inq.note || '',
+        preferredDate: source.preferredDate || inq.preferredDate || null
+      };
       try {
-        sessionStorage.setItem('billBookingPrefill', JSON.stringify({
-          inquiryId: inq._id,
-          name: inq.name,
-          phone: inq.phone,
-          patientId: inq.patient?._id || inq.patient || null,
-          items: inq.items || [],
-          note: inq.note || '',
-          preferredDate: inq.preferredDate || null
-        }));
+        sessionStorage.setItem('billBookingPrefill', JSON.stringify(booking));
       } catch {
-        /* storage unavailable — billing opens unprefilled */
+        /* storage unavailable — pass via router state instead */
       }
-      navigate('/cases/bills/new');
+      navigate('/cases/bills/new', { state: { booking } });
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to confirm booking');
     } finally {
@@ -230,6 +243,10 @@ const Inquiries = () => {
               {inq.patient?.registrationNumber && (
                 <span style={{ display: 'block', fontWeight: 400, fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                   {inq.patient.registrationNumber}
+                  {inq.patient.age != null ? ` · ${inq.patient.age}y` : ''}
+                  {inq.patient.gender ? ` / ${inq.patient.gender}` : ''}
+                  {inq.patient.aadhaar ? ` · Aadhaar ${inq.patient.aadhaar}` : ''}
+                  {inq.patient.address ? ` · ${inq.patient.address}` : ''}
                 </span>
               )}
             </td>

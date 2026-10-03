@@ -97,7 +97,6 @@ const PatientsPage = () => {
   }, [debouncedSearch, page, limit, branch, adv.uhid, adv.firstName, adv.lastName, adv.mobile, adv.patientId, adv.from, adv.to]);
 
   useEffect(() => {
-    fetchDoctorsList();
     if (searchParams.get('add') === 'true') {
       openCreate();
     }
@@ -106,6 +105,12 @@ const PatientsPage = () => {
     if (q && q !== 'undefined' && q !== 'null') setSearch(q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Doctors only needed for create/edit form — not on list mount.
+  useEffect(() => {
+    if (formOpen && doctors.length === 0) fetchDoctorsList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formOpen]);
 
   const openCreate = () => {
     setEditingPatient(null);
@@ -122,6 +127,10 @@ const PatientsPage = () => {
       gender: patient.gender,
       phone: patient.phone,
       address: patient.address || '',
+      email: patient.email || '',
+      aadhaar: patient.aadhaar || '',
+      history: patient.history || '',
+      uhid: patient.uhid || '',
       referringDoctor: patient.referringDoctor?._id || ''
     });
     setErrors({});
@@ -209,7 +218,7 @@ const PatientsPage = () => {
       />
 
       <DataTable
-        headers={['Reg No', 'Name', 'Address', 'Mobile', 'Registered On', 'Referred By', 'Actions']}
+        headers={['Reg No', 'Name', 'Mobile', 'Aadhaar', 'Address', 'Email', 'Registered On', 'Referred By', 'Actions']}
         data={patients}
         loading={loading}
         emptyMessage="No patient profiles matched your query."
@@ -230,8 +239,14 @@ const PatientsPage = () => {
               {patient.registrationNumber}
             </td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{patient.name}</td>
-            <td>{patient.address || '—'}</td>
             <td>{patient.phone}</td>
+            <td>{patient.aadhaar || '—'}</td>
+            <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={patient.address || ''}>
+              {patient.address || '—'}
+            </td>
+            <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={patient.email || ''}>
+              {patient.email || '—'}
+            </td>
             <td>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString('en-IN') : '—'}</td>
             <td>{patient.referringDoctor?.name || 'Self'}</td>
             <td>

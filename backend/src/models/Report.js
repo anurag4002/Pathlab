@@ -96,7 +96,8 @@ const ReportSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Pending', 'Registered', 'Collected', 'Received', 'Reported', 'Signed', 'Completed', 'Draft', 'Verified', 'Rejected'],
-    default: 'Completed'
+    default: 'Completed',
+    index: true
   },
   // Verification workflow (backward-compat: all optional with defaults).
   verifiedBy: {
@@ -134,5 +135,9 @@ const ReportSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Speeds pending-cases distincts and status filters
+ReportSchema.index({ status: 1, bill: 1 });
+ReportSchema.index({ branch: 1, status: 1 });
 
 module.exports = mongoose.model('Report', ReportSchema);

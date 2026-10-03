@@ -129,7 +129,7 @@ const BusinessOverview = ({ refreshKey, onRefresh }) => {
   useEffect(() => {
     let active = true;
 
-    Promise.allSettled([getDailyBusiness(), getMonthlyTrends()]).then(([dailyResult, trendsResult]) => {
+    Promise.allSettled([getDailyBusiness(undefined, undefined, { lite: true }), getMonthlyTrends()]).then(([dailyResult, trendsResult]) => {
       if (!active) return;
 
       if (dailyResult.status === 'fulfilled' && dailyResult.value?.success) {
@@ -235,7 +235,7 @@ const PendingWorkCard = ({ refreshKey, onRefresh, canVerify }) => {
   useEffect(() => {
     let active = true;
 
-    getPendingLabCases({ page: 1, limit: 1 }).then((response) => {
+    getPendingLabCases({ page: 1, limit: 1, countOnly: 1 }).then((response) => {
       if (!active) return;
       if (response?.success && response.data?.pagination) {
         setPendingState({ key: refreshKey, total: response.data.pagination.total, error: null });

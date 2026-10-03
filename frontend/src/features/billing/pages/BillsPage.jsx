@@ -276,10 +276,11 @@ const BillsPage = () => {
     adv.caseType
   ]);
 
+  // Catalogs are only needed for bill creation — don't download them on list view.
   useEffect(() => {
-    fetchFormOptions();
+    if (isCreateView) fetchFormOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isCreateView]);
 
   // Consume an incoming `?search=` deep-link (View Bill / global search).
   // Sanitized so a missing value can never show up as "undefined", and
@@ -427,7 +428,7 @@ const BillsPage = () => {
   // success path clears its own error state.
   const retryLoad = () => {
     if (!isCreateView) fetchBillsList();
-    fetchFormOptions();
+    else fetchFormOptions();
   };
 
   const detailPatientName = details?.patient?.name || detailsTarget?.patient?.name || '';

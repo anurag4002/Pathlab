@@ -1,29 +1,83 @@
+const GENDERS = ['Male', 'Female', 'Other'];
+const PHONE_RE = /^\+?[0-9\s-]{7,15}$/;
+
+const validateAge = (age, errors) => {
+  if (age === undefined || age === null || age === '') {
+    errors.age = 'Age is required';
+    return;
+  }
+  const ageNum = Number(age);
+  if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
+    errors.age = 'Age must be a number between 0 and 150';
+  }
+};
+
+const validateGender = (gender, errors) => {
+  if (!gender) {
+    errors.gender = 'Gender is required';
+  } else if (!GENDERS.includes(gender)) {
+    errors.gender = 'Gender must be Male, Female, or Other';
+  }
+};
+
+const validatePhone = (phone, errors) => {
+  if (!phone || String(phone).trim() === '') {
+    errors.phone = 'Phone number is required';
+  } else if (!PHONE_RE.test(String(phone).trim())) {
+    errors.phone = 'Phone number format is invalid';
+  }
+};
+
+/** Full create — name / age / gender / phone required. Profile extras optional. */
 const validatePatient = (data) => {
   const errors = {};
 
-  if (!data.name || data.name.trim() === '') {
+  if (!data.name || String(data.name).trim() === '') {
     errors.name = 'Patient name is required';
   }
+  validateAge(data.age, errors);
+  validateGender(data.gender, errors);
+  validatePhone(data.phone, errors);
 
-  if (data.age === undefined || data.age === null || data.age === '') {
-    errors.age = 'Age is required';
-  } else {
+  return {
+    errors,
+    isValid: Object.keys(errors).length === 0
+  };
+};
+
+/**
+ * Partial update (e.g. billing sync of email/address/aadhaar/history).
+ * Only validates fields that are present — name is not required.
+ */
+const validatePatientUpdate = (data) => {
+  const errors = {};
+
+  if (data.name !== undefined && (!data.name || String(data.name).trim() === '')) {
+    errors.name = 'Patient name is required';
+  }
+  if (data.age !== undefined && data.age !== null && data.age !== '') {
     const ageNum = Number(data.age);
-    if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
+    if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
       errors.age = 'Age must be a number between 0 and 150';
     }
   }
-
-  if (!data.gender) {
-    errors.gender = 'Gender is required';
-  } else if (!['Male', 'Female', 'Other'].includes(data.gender)) {
-    errors.gender = 'Gender must be Male, Female, or Other';
+  if (data.gender !== undefined) {
+    if (!data.gender || !GENDERS.includes(data.gender)) {
+      errors.gender = 'Gender must be Male, Female, or Other';
+    }
   }
-
-  if (!data.phone || data.phone.trim() === '') {
-    errors.phone = 'Phone number is required';
-  } else if (!/^\+?[0-9\s-]{7,15}$/.test(data.phone.trim())) {
-    errors.phone = 'Phone number format is invalid';
+  if (data.phone !== undefined) {
+    if (!data.phone || String(data.phone).trim() === '') {
+      errors.phone = 'Phone number is required';
+    } else if (!PHONE_RE.test(String(data.phone).trim())) {
+      errors.phone = 'Phone number format is invalid';
+    }
+  }
+  if (data.email !== undefined && data.email !== null && String(data.email).trim() !== '') {
+    const email = String(data.email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Email format is invalid';
+    }
   }
 
   return {
@@ -33,5 +87,6 @@ const validatePatient = (data) => {
 };
 
 module.exports = {
-  validatePatient
+  validatePatient,
+  validatePatientUpdate
 };

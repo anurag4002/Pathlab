@@ -27,6 +27,7 @@ router.get('/:id/pdf', reportController.reportPdfDownload);
 router.get('/:id/qr', reportController.reportQr);
 router.get('/:id/download', reportController.downloadReport);
 router.post('/upload', uploadLimiter, upload.single('file'), reportController.uploadReport);
+router.post('/:id/file', uploadLimiter, requirePermission('reports'), upload.single('file'), reportController.attachReportFile);
 router.delete('/:id', authorize('Admin'), reportController.deleteReport);
 
 module.exports = router;

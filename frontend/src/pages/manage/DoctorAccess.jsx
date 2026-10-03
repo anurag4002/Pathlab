@@ -37,13 +37,20 @@ const DoctorAccess = () => {
 
   // Client-side pagination for both tables.
   const pgInvites = useClientPagination(invites, 5);
-  const filteredDoctors = statusFilter ? doctors.filter((d) => d.status === statusFilter) : doctors;
+  const filteredDoctors = doctors.filter((d) => {
+    if (statusFilter && d.status !== statusFilter) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return String(d.name || '').toLowerCase().includes(q)
+      || String(d.email || '').toLowerCase().includes(q)
+      || String(d.phone || '').toLowerCase().includes(q);
+  });
   const pgDoctors = useClientPagination(filteredDoctors, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
     try {
-      const res = await getUsers({ search });
+      const res = await getUsers();
       if (res.success) {
         // filter out only Doctors
         const list = res.data.filter(u => u.role === 'Doctor');
@@ -61,7 +68,7 @@ const DoctorAccess = () => {
     try { const r = await getInvites(); if (r.success) setInvites(r.data?.invites || r.data || []); }
     catch (e) { console.error('invites', e); } finally { setInvLoading(false); }
   };
-  useEffect(() => { fetchDoctors(); fetchInvites(); }, [search]);
+  useEffect(() => { fetchDoctors(); fetchInvites(); }, []);
   const handleInvite = async (e) => {
     e.preventDefault();
     setInvSaving(true); setInvToken('');

@@ -48,4 +48,7 @@ const TransactionSchema = new mongoose.Schema({
   timestamps: true
 });
 
+TransactionSchema.index({ branch: 1, type: 1, date: -1 });
+TransactionSchema.index({ branch: 1, date: -1 });
+
 module.exports = mongoose.model('Transaction', TransactionSchema);

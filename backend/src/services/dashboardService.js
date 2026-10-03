@@ -15,74 +15,60 @@ const getDashboardStats = async (branch) => {
   endOfToday.setHours(23, 59, 59, 999);
   const bMatch = branch ? { branch } : {};
 
-  // Today's Revenue (Transactions where type is Income and date is today)
-  const revenueAgg = await Transaction.aggregate([
-    {
-      $match: {
-        type: 'Income',
-        ...bMatch,
-        date: { $gte: today, $lte: endOfToday }
+  // Run independent reads in parallel — sequential awaits were stacking latency.
+  const [
+    revenueAgg,
+    totalPatients,
+    todayBills,
+    paymentSummaryAgg,
+    totalTests,
+    totalBills,
+    totalUSG,
+    totalXray,
+    recentTransactions
+  ] = await Promise.all([
+    Transaction.aggregate([
+      {
+        $match: {
+          type: 'Income',
+          ...bMatch,
+          date: { $gte: today, $lte: endOfToday }
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]),
+    Patient.countDocuments({ ...bMatch }),
+    Bill.countDocuments({
+      ...bMatch,
+      date: { $gte: today, $lte: endOfToday }
+    }),
+    Bill.aggregate([
+      { $match: { ...bMatch } },
+      {
+        $group: {
+          _id: null,
+          due: { $sum: '$dueAmount' },
+          cleared: { $sum: '$paidAmount' },
+          total: { $sum: '$totalAmount' }
+        }
       }
-    },
-    {
-      $group: {
-        _id: null,
-        total: { $sum: '$amount' }
-      }
-    }
+    ]),
+    Test.countDocuments({ status: 'Active' }),
+    Bill.countDocuments({ ...bMatch }),
+    USGCase.countDocuments({ ...bMatch }),
+    XrayCase.countDocuments({ ...bMatch }),
+    Transaction.find({ ...bMatch })
+      .populate('patient', 'name registrationNumber')
+      .populate('bill', 'billNumber')
+      .sort({ date: -1 })
+      .limit(5)
+      .lean()
   ]);
+
   const todayRevenue = revenueAgg[0] ? revenueAgg[0].total : 0;
-
-  // Total Patients
-  const totalPatients = await Patient.countDocuments({ ...bMatch });
-
-  // Today's Bills count
-  const todayBills = await Bill.countDocuments({
-    ...bMatch,
-    date: { $gte: today, $lte: endOfToday }
-  });
-
-  // Pending Payments (due amount sum on all bills)
-  const pendingAgg = await Bill.aggregate([
-    { $match: { ...bMatch } },
-    {
-      $group: {
-        _id: null,
-        total: { $sum: '$dueAmount' }
-      }
-    }
-  ]);
-  const pendingPayments = pendingAgg[0] ? pendingAgg[0].total : 0;
-
-  // Lab Tests count in database
-  const totalTests = await Test.countDocuments({ status: 'Active' });
-
-  // Total Cases (Bills count + USG cases + X-Ray cases)
-  const totalBills = await Bill.countDocuments({ ...bMatch });
-  const totalUSG = await USGCase.countDocuments({ ...bMatch });
-  const totalXray = await XrayCase.countDocuments({ ...bMatch });
-  const totalCasesCount = totalBills + totalUSG + totalXray;
-
-  // Payments summary
-  const paymentSummaryAgg = await Bill.aggregate([
-    { $match: { ...bMatch } },
-    {
-      $group: {
-        _id: null,
-        due: { $sum: '$dueAmount' },
-        cleared: { $sum: '$paidAmount' },
-        total: { $sum: '$totalAmount' }
-      }
-    }
-  ]);
   const paymentSummary = paymentSummaryAgg[0] || { due: 0, cleared: 0, total: 0 };
-
-  // Recent transactions
-  const recentTransactions = await Transaction.find({ ...bMatch })
-    .populate('patient', 'name registrationNumber')
-    .populate('bill', 'billNumber')
-    .sort({ date: -1 })
-    .limit(5);
+  const pendingPayments = paymentSummary.due || 0;
+  const totalCasesCount = totalBills + totalUSG + totalXray;
 
   return {
     todayRevenue,
@@ -96,26 +82,65 @@ const getDashboardStats = async (branch) => {
   };
 };
 
-const getDailyBusiness = async (startDate, endDate, branch) => {
+const getDailyBusiness = async (startDate, endDate, branch, options = {}) => {
   const start = new Date(startDate || new Date().setHours(0, 0, 0, 0));
   const end = new Date(endDate || new Date().setHours(23, 59, 59, 999));
   const bMatch = branch ? { branch } : {};
+  const lite = Boolean(options.lite);
 
-  // Income summary for date range
-  const transactions = await Transaction.find({
-    ...bMatch,
-    date: { $gte: start, $lte: end }
-  })
-    .populate('patient', 'name registrationNumber')
-    .populate('bill', 'billNumber referringDoctor')
-    .populate('receivedBy', 'name')
-    .sort({ date: -1 });
+  // Dashboard only needs KPI totals — skip heavy populate + full transaction dump.
+  if (lite) {
+    const [incomeAgg, refundAgg, expenseAgg] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { ...bMatch, type: 'Income', date: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Transaction.aggregate([
+        { $match: { ...bMatch, type: 'Refund', date: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Expense.aggregate([
+        { $match: { ...bMatch, date: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+    const totalIncome = incomeAgg[0]?.total || 0;
+    const totalRefunds = refundAgg[0]?.total || 0;
+    const totalExpenses = expenseAgg[0]?.total || 0;
+    return {
+      totalIncome,
+      totalExpenses,
+      totalRefunds,
+      netIncome: totalIncome - totalRefunds - totalExpenses,
+      incomeSplit: { Cash: 0, Card: 0, UPI: 0, Insurance: 0 },
+      cashierWise: [],
+      caseSplit: [],
+      monthlyOverview: [],
+      transactions: []
+    };
+  }
 
-  // Expenses for date range
-  const expenses = await Expense.find({
-    ...bMatch,
-    date: { $gte: start, $lte: end }
-  });
+  // Full report (Daily Business page): load range in parallel, lean docs.
+  const [transactions, expenses, billDepts] = await Promise.all([
+    Transaction.find({
+      ...bMatch,
+      date: { $gte: start, $lte: end }
+    })
+      .populate('patient', 'name registrationNumber')
+      .populate('bill', 'billNumber referringDoctor')
+      .populate('receivedBy', 'name')
+      .sort({ date: -1 })
+      .lean(),
+    Expense.find({
+      ...bMatch,
+      date: { $gte: start, $lte: end }
+    }).lean(),
+    Bill.aggregate([
+      { $match: { ...bMatch, date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
+      { $group: { _id: '$department', count: { $sum: 1 }, billed: { $sum: '$totalAmount' }, collected: { $sum: '$paidAmount' }, due: { $sum: '$dueAmount' } } },
+      { $sort: { billed: -1 } }
+    ])
+  ]);
 
   const totalIncome = transactions
     .filter(t => t.type === 'Income')
@@ -155,12 +180,6 @@ const getDailyBusiness = async (startDate, endDate, branch) => {
     cashierWise[id].count += 1;
   });
 
-  // Case-type split: bills grouped by department (LAB/USG/XRAY/CT/...).
-  const billDepts = await Bill.aggregate([
-    { $match: { ...bMatch, date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
-    { $group: { _id: '$department', count: { $sum: 1 }, billed: { $sum: '$totalAmount' }, collected: { $sum: '$paidAmount' }, due: { $sum: '$dueAmount' } } },
-    { $sort: { billed: -1 } }
-  ]);
   const caseSplit = billDepts.map(d => ({
     department: d._id || 'LAB',
     count: d.count,
@@ -286,55 +305,57 @@ const getMonthlyTrends = async (branch) => {
     });
   }
 
-  const trends = await Promise.all(
-    months.map(async (m) => {
-      // Aggregate income transactions in this month
-      const incomeAgg = await Transaction.aggregate([
-        {
-          $match: {
-            type: 'Income',
-            ...bMatch,
-            date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$amount' }
-          }
+  const rangeStart = months[0].startOfMonth;
+  const rangeEnd = months[months.length - 1].endOfMonth;
+
+  // Two range aggregates instead of 12 per-month queries
+  const [incomeByMonth, expenseByMonth] = await Promise.all([
+    Transaction.aggregate([
+      {
+        $match: {
+          type: 'Income',
+          ...bMatch,
+          date: { $gte: rangeStart, $lte: rangeEnd }
         }
-      ]);
-
-      // Aggregate expenses in this month
-      const expenseAgg = await Expense.aggregate([
-        {
-          $match: {
-            ...bMatch,
-            date: { $gte: m.startOfMonth, $lte: m.endOfMonth }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$amount' }
-          }
+      },
+      {
+        $group: {
+          _id: { y: { $year: '$date' }, m: { $month: '$date' } },
+          total: { $sum: '$amount' }
         }
-      ]);
+      }
+    ]),
+    Expense.aggregate([
+      {
+        $match: {
+          ...bMatch,
+          date: { $gte: rangeStart, $lte: rangeEnd }
+        }
+      },
+      {
+        $group: {
+          _id: { y: { $year: '$date' }, m: { $month: '$date' } },
+          total: { $sum: '$amount' }
+        }
+      }
+    ])
+  ]);
 
-      const revenue = incomeAgg[0] ? incomeAgg[0].total : 0;
-      const expenses = expenseAgg[0] ? expenseAgg[0].total : 0;
+  const incomeMap = new Map(incomeByMonth.map((r) => [`${r._id.y}-${r._id.m}`, r.total]));
+  const expenseMap = new Map(expenseByMonth.map((r) => [`${r._id.y}-${r._id.m}`, r.total]));
 
-      return {
-        month: m.month,
-        year: m.year,
-        revenue,
-        expenses,
-        net: revenue - expenses
-      };
-    })
-  );
-
-  return trends;
+  return months.map((m) => {
+    const key = `${m.startOfMonth.getFullYear()}-${m.startOfMonth.getMonth() + 1}`;
+    const revenue = incomeMap.get(key) || 0;
+    const expenses = expenseMap.get(key) || 0;
+    return {
+      month: m.month,
+      year: m.year,
+      revenue,
+      expenses,
+      net: revenue - expenses
+    };
+  });
 };
 
 module.exports = {

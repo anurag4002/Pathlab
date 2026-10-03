@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill } from '../../../services/billService';
-import { createPatient, getPatientById } from '../../../services/patientService';
+import { createPatient, getPatientById, updatePatient } from '../../../services/patientService';
 import { getTests } from '../../../services/testService';
 import { PageHeader, Button, Select } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
@@ -9,8 +9,9 @@ import DepartmentSelector from './DepartmentSelector';
 import BillItemsTable from './BillItemsTable';
 import PaymentSummarySection from './PaymentSummarySection';
 import ComboIndicator from './ComboIndicator';
+import OutsourceTestModal from './OutsourceTestModal';
 import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
-import { ArrowLeft, Plus, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Plus, ShoppingCart, ExternalLink } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
 
@@ -43,22 +44,26 @@ const getApiErrorMessage = (err, fallback) => {
   return err?.message || fallback;
 };
 
-// Module-scope booking handoff cache — survives StrictMode remounts within
-// the same page load (both mount passes share the module instance).
+// Module-scope booking handoff — survives StrictMode remounts. Always prefer
+// a fresh sessionStorage write (Confirm & Bill) over a stale empty cache from
+// an earlier /bills/new visit.
 let cachedBookingPrefill = null;
-let cachedBookingRead = false;
 const takeBookingPrefill = (fallback) => {
-  if (!cachedBookingRead) {
-    cachedBookingRead = true;
-    try {
-      const raw = sessionStorage.getItem('billBookingPrefill');
-      if (raw) cachedBookingPrefill = JSON.parse(raw);
-    } catch {
-      /* storage unavailable — ignore */
+  try {
+    const raw = sessionStorage.getItem('billBookingPrefill');
+    if (raw) {
+      cachedBookingPrefill = JSON.parse(raw);
+      return cachedBookingPrefill;
     }
-    if (!cachedBookingPrefill && fallback) cachedBookingPrefill = fallback;
+  } catch {
+    /* storage unavailable — ignore */
   }
-  return cachedBookingPrefill;
+  if (cachedBookingPrefill) return cachedBookingPrefill;
+  if (fallback) {
+    cachedBookingPrefill = fallback;
+    return cachedBookingPrefill;
+  }
+  return null;
 };
 // Clears a consumed handoff so a later manual "Create Bill" starts empty.
 export const clearBookingPrefill = () => {
@@ -82,14 +87,77 @@ const EMPTY_PATIENT_FORM = {
   patientAgeMonths: '',
   patientAgeDays: '',
   onlineReportRequested: false,
-  showEmail: false,
-  showAddress: false,
-  showAadhaar: false,
-  showHistory: false,
+  // Email / Address / Aadhaar / History are always on by default in billing
+  showEmail: true,
+  showAddress: true,
+  showAadhaar: true,
+  showHistory: true,
   patientEmail: '',
   patientAddress: '',
   patientAadhaar: '',
   patientHistory: ''
+};
+
+/** Build "Register New" patient fields from a booking inquiry (no linked patient). */
+const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
+  const rawName = String(b?.name || '').trim();
+  const parts = rawName.split(/\s+/).filter(Boolean);
+  const titles = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mr', 'Mrs', 'Ms', 'Dr'];
+  const hasTitle = parts.length && titles.includes(parts[0]);
+  const title = hasTitle
+    ? (parts[0].endsWith('.') ? parts[0] : `${parts[0]}.`)
+    : (b?.title || prev.patientTitle || 'Mr.');
+  const nameParts = hasTitle ? parts.slice(1) : parts;
+  return {
+    ...prev,
+    isExistingPatient: false,
+    selectedPatientId: '',
+    showEmail: true,
+    showAddress: true,
+    showAadhaar: true,
+    showHistory: true,
+    patientTitle: ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(title) ? title : 'Mr.',
+    patientFirstName: nameParts[0] || '',
+    patientLastName: nameParts.slice(1).join(' ') || '',
+    patientPhone: b?.phone || '',
+    patientEmail: b?.email || '',
+    patientAddress: b?.address || '',
+    patientAadhaar: b?.aadhaar || '',
+    patientHistory: b?.history || b?.note || '',
+    patientGender: b?.gender || prev.patientGender || 'Male',
+    patientAgeYears: b?.age != null && b?.age !== '' ? String(b.age) : prev.patientAgeYears
+  };
+};
+
+/** Map a Patient document into billing patient-form fields (invoice / booking / picker). */
+const applyPatientToForm = (pat, prev = EMPTY_PATIENT_FORM) => {
+  if (!pat) return prev;
+  const nameParts = String(pat.name || '').trim().split(/\s+/);
+  const titleGuess = ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(nameParts[0]) ? nameParts[0] : (pat.title || prev.patientTitle);
+  const first = pat.title || ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(nameParts[0])
+    ? nameParts[1] || ''
+    : nameParts[0] || '';
+  const last = pat.title || ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(nameParts[0])
+    ? nameParts.slice(2).join(' ')
+    : nameParts.slice(1).join(' ');
+  return {
+    ...prev,
+    selectedPatientId: pat._id || prev.selectedPatientId,
+    patientTitle: titleGuess || 'Mr.',
+    patientPhone: pat.phone || prev.patientPhone,
+    patientFirstName: first || prev.patientFirstName,
+    patientLastName: last || prev.patientLastName,
+    patientGender: pat.gender || prev.patientGender || 'Male',
+    patientAgeYears: pat.age != null && pat.age !== '' ? String(pat.age) : prev.patientAgeYears,
+    patientEmail: pat.email || '',
+    patientAddress: pat.address || '',
+    patientAadhaar: pat.aadhaar || '',
+    patientHistory: pat.history || '',
+    showEmail: true,
+    showAddress: true,
+    showAadhaar: true,
+    showHistory: true
+  };
 };
 
 const BillCreateForm = ({
@@ -110,9 +178,35 @@ const BillCreateForm = ({
   // passes; cleared once the items are applied (see items effect below).
   const [bookingPrefill] = useState(() => takeBookingPrefill(location.state?.booking || null));
 
-  const [patientForm, setPatientForm] = useState(EMPTY_PATIENT_FORM);
+  // Prefill Register New immediately so unregistered inquiry details show even
+  // if a later effect is skipped (StrictMode / navigation timing).
+  const [patientForm, setPatientForm] = useState(() => {
+    const b = takeBookingPrefill(null);
+    if (!b) return EMPTY_PATIENT_FORM;
+    const linkedId = b.patientId && String(b.patientId) !== 'null' ? b.patientId : null;
+    if (linkedId) {
+      return {
+        ...applyPatientToForm({
+          _id: linkedId,
+          name: b.name,
+          phone: b.phone,
+          email: b.email,
+          address: b.address,
+          aadhaar: b.aadhaar,
+          history: b.history || b.note,
+          age: b.age,
+          gender: b.gender,
+          title: b.title
+        }, EMPTY_PATIENT_FORM),
+        isExistingPatient: true,
+        selectedPatientId: linkedId
+      };
+    }
+    return bookingToNewPatientForm(b);
+  });
   const [bookingBanner, setBookingBanner] = useState('');
   const [unmatchedBookingItems, setUnmatchedBookingItems] = useState([]);
+  const [outsourceOpen, setOutsourceOpen] = useState(false);
   // Discount mode: 'percent' (0–100%) or 'amount' (flat ₹). The %/₹ badge
   // in DiscountRow toggles between them; both values are preserved.
   const [discountMode, setDiscountMode] = useState('percent');
@@ -122,7 +216,8 @@ const BillCreateForm = ({
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
-  const [pickerType, setPickerType] = useState('Test');
+  // 'All' | 'Test' | 'TestPackage' | 'TestPanel'
+  const [pickerType, setPickerType] = useState('All');
   // One search box: filter local catalog first, then fall back to server (tests).
   const [pickerQuery, setPickerQuery] = useState('');
   const [serverResults, setServerResults] = useState([]);
@@ -136,6 +231,7 @@ const BillCreateForm = ({
   const [submitting, setSubmitting] = useState(false);
   const cartRef = useRef(null);
   const flashTimerRef = useRef(null);
+  const bookingItemsAppliedRef = useRef(false);
 
   const handlePatientSelect = (pat) => {
     if (!pat) {
@@ -144,20 +240,17 @@ const BillCreateForm = ({
       return;
     }
     setPickedPatient(pat);
-    const nameParts = String(pat.name || '').split(' ');
-    setPatientForm((prev) => ({
-      ...prev,
-      selectedPatientId: pat._id,
-      patientPhone: pat.phone,
-      patientFirstName: nameParts[0] || '',
-      patientLastName: nameParts.slice(1).join(' ') || '',
-      patientGender: pat.gender || 'Male',
-      patientAgeYears: String(pat.age || ''),
-      patientAgeMonths: '',
-      patientAgeDays: '',
-      ...(pat.email ? { patientEmail: pat.email, showEmail: true } : {}),
-      ...(pat.address ? { patientAddress: pat.address, showAddress: true } : {})
-    }));
+    setPatientForm((prev) => applyPatientToForm(pat, prev));
+    // List picker rows can be slim — pull full profile so Email/Address/Aadhaar/History fill in.
+    getPatientById(pat._id)
+      .then((res) => {
+        const full = res?.data?.patient || res?.data;
+        if (res?.success && full?._id) {
+          setPickedPatient(full);
+          setPatientForm((prev) => applyPatientToForm(full, prev));
+        }
+      })
+      .catch(() => { /* keep slim picker data */ });
   };
 
   const revealCart = () => {
@@ -175,6 +268,21 @@ const BillCreateForm = ({
     );
     if (alreadyAdded) return;
     setSelectedItems((prev) => [...prev, { itemId: item._id, itemType: type, name: item.name, price: item.price }]);
+    requestAnimationFrame(revealCart);
+  };
+
+  const handleAddOutsourceTest = ({ name, price }) => {
+    const key = `custom-${name.trim().toLowerCase()}-${price}`;
+    setSelectedItems((prev) => {
+      if (prev.some((si) => si.itemType === 'Custom' && si._key === key)) return prev;
+      return [...prev, {
+        itemId: null,
+        itemType: 'Custom',
+        name: name.trim(),
+        price: Number(price) || 0,
+        _key: key
+      }];
+    });
     requestAnimationFrame(revealCart);
   };
 
@@ -223,45 +331,62 @@ const BillCreateForm = ({
   const totalAmount = Math.max(0, subtotal - discountAmount);
   const dueAmount = Math.max(0, totalAmount - paidAmount);
 
-  // Prefill patient + items from a confirmed booking inquiry. Catalog-aware:
-  // refIds are used directly; otherwise names are matched against the loaded
-  // tests/packages/panels so every prefilled line carries a real catalog ID
-  // (BillItem.itemId is a required ObjectId). Unmatched names are reported
-  // so staff can pick them manually instead of failing at submit.
+  // Prefill patient + items from a confirmed booking inquiry.
+  // Unregistered bookings open "Register New" with name/phone/note filled.
   useEffect(() => {
     if (!bookingPrefill) return;
     const b = bookingPrefill;
-    if (b.patientId) {
+    const linkedId = b.patientId && String(b.patientId) !== 'null' ? b.patientId : null;
+
+    if (linkedId) {
+      // Optimistic fill from inquiry; swap to full profile when fetch succeeds.
       setPatientForm((prev) => ({
-        ...prev,
+        ...applyPatientToForm({
+          _id: linkedId,
+          name: b.name,
+          phone: b.phone,
+          email: b.email,
+          address: b.address,
+          aadhaar: b.aadhaar,
+          history: b.history || b.note,
+          age: b.age,
+          gender: b.gender,
+          title: b.title
+        }, prev),
         isExistingPatient: true,
-        selectedPatientId: b.patientId,
-        patientPhone: b.phone || prev.patientPhone
+        selectedPatientId: linkedId
       }));
-      // The linked profile may sit outside the preloaded first-100 list —
-      // fetch it so the picker displays the name immediately.
-      if (!patients.some((p) => String(p._id) === String(b.patientId))) {
-        getPatientById(b.patientId)
-          // GET /patients/:id returns { patient, bills, reports, transactions }
-          .then((res) => { const p = res?.data?.patient || res?.data; if (res?.success && p?._id) setPickedPatient(p); })
-          .catch(() => { /* picker stays searchable — non-fatal */ });
-      }
+      getPatientById(linkedId)
+        .then((res) => {
+          const p = res?.data?.patient || res?.data;
+          if (res?.success && p?._id) {
+            setPickedPatient(p);
+            setPatientForm((prev) => applyPatientToForm(p, { ...prev, isExistingPatient: true }));
+            return;
+          }
+          // Linked id missing / not registered — fall back to new patient from booking.
+          setPickedPatient(null);
+          setPatientForm((prev) => bookingToNewPatientForm(b, prev));
+        })
+        .catch(() => {
+          setPickedPatient(null);
+          setPatientForm((prev) => bookingToNewPatientForm(b, prev));
+        });
     } else {
-      const parts = String(b.name || '').trim().split(/\s+/);
-      setPatientForm((prev) => ({
-        ...prev,
-        isExistingPatient: false,
-        patientFirstName: parts[0] || '',
-        patientLastName: parts.slice(1).join(' ') || '',
-        patientPhone: b.phone || ''
-      }));
+      setPickedPatient(null);
+      setPatientForm((prev) => bookingToNewPatientForm(b, prev));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!bookingPrefill?.items?.length) return;
-    if (!tests.length && !packages.length && !panels.length) return;
+    if (!bookingPrefill?.items?.length || bookingItemsAppliedRef.current) return;
+    // Wait for catalog load when booking lines may match tests/packages/panels.
+    const needsCatalog = bookingPrefill.items.some(
+      (it) => it.refId || it.kind === 'Test' || it.kind === 'Package'
+    );
+    if (needsCatalog && !tests.length && !packages.length && !panels.length) return;
+
     const norm = (s) => String(s || '').trim().toLowerCase();
     const findById = (id, list) => (list || []).find((t) => String(t._id) === String(id));
     const findByName = (name, list) => (list || []).find((t) => norm(t.name) === norm(name));
@@ -286,31 +411,44 @@ const BillCreateForm = ({
           : match && packages.includes(match) ? 'TestPackage' : 'Test';
       }
       if (match) {
-        resolved.push({ itemId: match._id, itemType, name: match.name, price: Number(match.price) || 0 });
+        resolved.push({
+          itemId: match._id,
+          itemType,
+          name: match.name,
+          price: Number(match.price) || Number(it.price) || 0
+        });
       } else if (it.refId && /^[a-fA-F0-9]{24}$/.test(String(it.refId))) {
-        // Valid ObjectId but not in the loaded catalog slice — keep it; the
-        // server stores the line with the inquiry's name/price.
         resolved.push({
           itemId: it.refId,
           itemType: kind === 'Package' ? 'TestPackage' : 'Test',
-          name: it.name, price: Number(it.price) || 0
+          name: it.name,
+          price: Number(it.price) || 0
         });
       } else {
+        // Every booking line stays selected — Custom name + rate from inquiry.
+        resolved.push({
+          itemId: null,
+          itemType: 'Custom',
+          name: it.name,
+          price: Number(it.price) || 0,
+          _key: `booking-${norm(it.name)}-${it.price}`
+        });
         unmatched.push(it.name);
       }
     }
-    if (resolved.length) {
-      setSelectedItems((prev) => {
-        if (prev.length) return prev; // don't clobber user picks on re-renders
-        // Handoff consumed — later manual visits start empty.
-        clearBookingPrefill();
-        return resolved;
-      });
-      setBookingBanner(
-        `Prefilled from confirmed booking${bookingPrefill.name ? ` — ${bookingPrefill.name}` : ''} (${resolved.length} item${resolved.length === 1 ? '' : 's'}). Verify before invoicing.`
-      );
+    if (!resolved.length) return;
+    bookingItemsAppliedRef.current = true;
+    setSelectedItems(resolved);
+    setUnmatchedBookingItems(unmatched);
+    // Drop session key only — keep module cache so StrictMode remount still prefills.
+    try {
+      sessionStorage.removeItem('billBookingPrefill');
+    } catch {
+      /* ignore */
     }
-    if (unmatched.length) setUnmatchedBookingItems(unmatched);
+    setBookingBanner(
+      `Prefilled from confirmed booking${bookingPrefill.name ? ` — ${bookingPrefill.name}` : ''} (${resolved.length} item${resolved.length === 1 ? '' : 's'} selected). Verify before invoicing.`
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tests, packages, panels]);
 
@@ -343,27 +481,59 @@ const BillCreateForm = ({
     setSubmitting(true);
     try {
       let patientId = patientForm.selectedPatientId;
+      const profilePayload = {
+        title: patientForm.patientTitle || '',
+        phone: patientForm.patientPhone,
+        gender: patientForm.patientGender,
+        age: Number(patientForm.patientAgeYears) || undefined,
+        address: patientForm.showAddress ? (patientForm.patientAddress || '') : undefined,
+        email: patientForm.showEmail ? (patientForm.patientEmail || '') : undefined,
+        aadhaar: patientForm.showAadhaar ? (patientForm.patientAadhaar || '') : undefined,
+        history: patientForm.showHistory ? (patientForm.patientHistory || '') : undefined
+      };
 
       if (!patientForm.isExistingPatient) {
         const patientPayload = {
+          ...profilePayload,
           name: `${patientForm.patientTitle} ${patientForm.patientFirstName} ${patientForm.patientLastName}`.trim(),
-          phone: patientForm.patientPhone,
-          gender: patientForm.patientGender,
           age: Number(patientForm.patientAgeYears),
-          address: patientForm.showAddress ? patientForm.patientAddress : 'Registered Inline',
-          ...(patientForm.showEmail ? { email: patientForm.patientEmail } : {})
+          address: patientForm.showAddress ? patientForm.patientAddress : '',
+          email: patientForm.showEmail ? patientForm.patientEmail : '',
+          aadhaar: patientForm.showAadhaar ? patientForm.patientAadhaar : '',
+          history: patientForm.showHistory ? patientForm.patientHistory : ''
         };
         const patRes = await createPatient(patientPayload);
         if (!patRes.success) throw new Error('Failed to auto-register patient');
         patientId = patRes.data._id;
+      } else if (patientId) {
+        // Keep invoice ↔ profile in sync for Email / Address / Aadhaar / History
+        try {
+          await updatePatient(patientId, {
+            phone: profilePayload.phone,
+            gender: profilePayload.gender,
+            ...(profilePayload.age != null ? { age: profilePayload.age } : {}),
+            ...(patientForm.showAddress ? { address: patientForm.patientAddress || '' } : {}),
+            ...(patientForm.showEmail ? { email: patientForm.patientEmail || '' } : {}),
+            ...(patientForm.showAadhaar ? { aadhaar: patientForm.patientAadhaar || '' } : {}),
+            ...(patientForm.showHistory ? { history: patientForm.patientHistory || '' } : {})
+          });
+        } catch {
+          /* non-fatal — bill still proceeds */
+        }
       }
 
       // Courtesy guard: 200 bills/day soft limit (§10)
+      // Custom/outsource lines omit itemId (name + rate only).
+      const billItems = selectedItems.map(({ itemId, itemType, name, price }) => {
+        const row = { itemType, name, price: Number(price) || 0 };
+        if (itemType !== 'Custom' && itemId) row.itemId = itemId;
+        return row;
+      });
       const res = await createBill({
         patient: patientId,
         referringDoctor: selectedDoctor || null,
         agent: selectedAgent || null,
-        items: selectedItems,
+        items: billItems,
         discount: discountAmount,
         paidAmount,
         paymentMethod,
@@ -394,21 +564,35 @@ const BillCreateForm = ({
     ? tests.filter((t) => !t.status || t.status === 'Active')
     : departmentTests;
 
-  // Picker source per active tab — every price comes from the existing
-  // catalog APIs (tests / packages / panels); nothing is priced in frontend
-  // constants, and all three types are accepted by the bill validator.
-  const pickerSource =
-    pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : deptTestList;
-  const pickerItems = (Array.isArray(pickerSource) ? pickerSource : [])
+  // Picker source per active tab — All merges tests + packages + panels.
+  const activeOnly = (list) => (Array.isArray(list) ? list : [])
     .filter((item) => !item.status || item.status === 'Active');
+  const pickerItems = (() => {
+    if (pickerType === 'All') {
+      return [
+        ...activeOnly(deptTestList).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' })),
+        ...activeOnly(packages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' })),
+        ...activeOnly(panels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }))
+      ];
+    }
+    if (pickerType === 'TestPackage') {
+      return activeOnly(packages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' }));
+    }
+    if (pickerType === 'TestPanel') {
+      return activeOnly(panels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }));
+    }
+    return activeOnly(deptTestList).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }));
+  })();
   // Local filter first; server results used only when local has no matches.
   const pickerQ = pickerQuery.trim();
   const localFiltered = pickerQ
     ? pickerItems.filter((item) => matchesPickerQuery(item, pickerQ))
     : pickerItems;
   const usingServerResults =
-    pickerType === 'Test' && pickerQ.length > 0 && localFiltered.length === 0;
-  const filteredPickerItems = usingServerResults ? serverResults : localFiltered;
+    (pickerType === 'Test' || pickerType === 'All') && pickerQ.length > 0 && localFiltered.length === 0;
+  const filteredPickerItems = usingServerResults
+    ? (serverResults || []).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }))
+    : localFiltered;
 
   useEffect(() => {
     if (!usingServerResults) {
@@ -443,20 +627,31 @@ const BillCreateForm = ({
     ? 'Searching catalog…'
     : pickerQ
       ? `No matches for “${pickerQ}”.`
-      : pickerType === 'Test'
-        ? (deptFallback
-            ? 'No tests found.'
-            : `No tests mapped under ${activeDepartment}`)
-        : pickerType === 'TestPackage'
-          ? 'No packages available.'
-          : 'No panels available.';
+      : pickerType === 'All'
+        ? 'No tests, packages or panels available.'
+        : pickerType === 'Test'
+          ? (deptFallback
+              ? 'No tests found.'
+              : `No tests mapped under ${activeDepartment}`)
+          : pickerType === 'TestPackage'
+            ? 'No packages available.'
+            : 'No panels available.';
 
   const handlePickerSelect = (item) => {
-    if (pickerType === 'Test') {
+    const kind = item._pickerKind || pickerType;
+    if (kind === 'Test') {
       handleAddItem(item, 'Test');
       return;
     }
-    handleSelectBundle(item, pickerType === 'TestPanel' ? 'panels' : 'packages');
+    handleSelectBundle(item, kind === 'TestPanel' ? 'panels' : 'packages');
+  };
+
+  const isPickerItemAdded = (item) => {
+    const kind = item._pickerKind || pickerType;
+    if (kind === 'Test') {
+      return selectedItems.some((si) => si.itemId === item._id && si.itemType === 'Test');
+    }
+    return selectedBundleIds.includes(item._id);
   };
 
   return (
@@ -492,7 +687,7 @@ const BillCreateForm = ({
       )}
       {unmatchedBookingItems.length > 0 && (
         <div
-          role="alert"
+          role="status"
           style={{
             padding: 'var(--space-3)',
             backgroundColor: 'var(--color-warning-bg, #fef9c3)',
@@ -502,7 +697,7 @@ const BillCreateForm = ({
             fontSize: 'var(--font-size-sm)'
           }}
         >
-          Could not auto-match from the booking: {unmatchedBookingItems.join(', ')}. Please add them manually from the picker.
+          Added from booking as custom lines (not in catalog): {unmatchedBookingItems.join(', ')}. Rates are from the booking — edit the cart if needed.
         </div>
       )}
 
@@ -617,23 +812,63 @@ const BillCreateForm = ({
             </div>
 
             {/* Department Selector */}
-            <DepartmentSelector activeDepartment={activeDepartment} onSelect={(d) => { setActiveDepartment(d); setPickerQuery(''); }} />
+            <DepartmentSelector
+              activeDepartment={activeDepartment}
+              onSelect={(d) => {
+                setActiveDepartment(d);
+                setPickerQuery('');
+                if (d === 'OUTSOURCE LAB') setOutsourceOpen(true);
+              }}
+            />
+
+            {activeDepartment === 'OUTSOURCE LAB' && (
+              <div
+                style={{
+                  padding: 'var(--space-3)',
+                  border: '1px dashed var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--color-background)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)'
+                }}
+              >
+                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                  Outsource / send-out tests: enter the test name and rate. They appear on the bill as billed.
+                  On Today&apos;s Reports, upload the external PDF or image — no in-lab result entry.
+                </p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<ExternalLink size={14} />}
+                  onClick={() => setOutsourceOpen(true)}
+                >
+                  Add outsource test (name + rate)
+                </Button>
+              </div>
+            )}
 
             {/* Single search: local catalog first, server fallback for tests */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                Select services
+                {activeDepartment === 'OUTSOURCE LAB' ? 'Or pick from catalog (optional)' : 'Select services'}
               </label>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                <Button variant={pickerType === 'Test' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('Test'); setPickerQuery(''); }}>
-                  Tests
-                </Button>
-                <Button variant={pickerType === 'TestPackage' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('TestPackage'); setPickerQuery(''); }}>
-                  Packages
-                </Button>
-                <Button variant={pickerType === 'TestPanel' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('TestPanel'); setPickerQuery(''); }}>
-                  Panels
-                </Button>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'All', label: 'All' },
+                  { key: 'Test', label: 'Tests' },
+                  { key: 'TestPackage', label: 'Packages' },
+                  { key: 'TestPanel', label: 'Panels' }
+                ].map((tab) => (
+                  <Button
+                    key={tab.key}
+                    variant={pickerType === tab.key ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => { setPickerType(tab.key); setPickerQuery(''); }}
+                  >
+                    {tab.label}
+                  </Button>
+                ))}
               </div>
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
@@ -641,7 +876,11 @@ const BillCreateForm = ({
                   className="form-control"
                   value={pickerQuery}
                   onChange={(e) => setPickerQuery(e.target.value)}
-                  placeholder={`Search ${pickerType === 'Test' ? 'tests' : pickerType === 'TestPackage' ? 'packages' : 'panels'} by name or code…`}
+                  placeholder={
+                    pickerType === 'All'
+                      ? 'Search all tests, packages & panels…'
+                      : `Search ${pickerType === 'Test' ? 'tests' : pickerType === 'TestPackage' ? 'packages' : 'panels'} by name or code…`
+                  }
                   aria-label={`Search ${pickerType} list`}
                   style={{ flex: 1 }}
                 />
@@ -653,7 +892,7 @@ const BillCreateForm = ({
                   </span>
                 )}
               </div>
-              {deptFallback && pickerType === 'Test' && !pickerQ && (
+              {deptFallback && (pickerType === 'Test' || pickerType === 'All') && !pickerQ && (
                 <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '0 0 var(--space-2)' }}>
                   No dedicated {activeDepartment} tests — showing full catalog.
                 </p>
@@ -665,12 +904,11 @@ const BillCreateForm = ({
                   </p>
                 ) : (
                   filteredPickerItems.map((item) => {
-                    const alreadyAdded = pickerType === 'Test'
-                      ? selectedItems.some((si) => si.itemId === item._id && si.itemType === 'Test')
-                      : selectedBundleIds.includes(item._id);
+                    const alreadyAdded = isPickerItemAdded(item);
+                    const kind = item._pickerKind || 'Test';
                     return (
                       <div
-                        key={item._id}
+                        key={`${kind}-${item._id}`}
                         className="test-picker-item"
                         onClick={() => !alreadyAdded && handlePickerSelect(item)}
                         role="button"
@@ -679,6 +917,11 @@ const BillCreateForm = ({
                         onKeyDown={(e) => { if (!alreadyAdded && e.key === 'Enter') handlePickerSelect(item); }}
                       >
                         <span>
+                          {pickerType === 'All' && item._pickerLabel ? (
+                            <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>
+                              [{item._pickerLabel}]
+                            </span>
+                          ) : null}
                           {item.name}
                           {item.code ? ` (${item.code})` : ''}
                           {alreadyAdded ? ' — Added' : ''}
@@ -748,6 +991,12 @@ const BillCreateForm = ({
           <strong>{formatCurrency(totalAmount)}</strong>
         </button>
       )}
+
+      <OutsourceTestModal
+        isOpen={outsourceOpen}
+        onClose={() => setOutsourceOpen(false)}
+        onAdd={handleAddOutsourceTest}
+      />
     </div>
   );
 };

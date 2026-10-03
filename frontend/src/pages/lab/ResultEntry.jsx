@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
   Button,
@@ -9,7 +9,10 @@ import {
   LoadingSpinner,
   ConfirmDialog,
   TatTimeline,
-  AdvancedFilterBar
+  AdvancedFilterBar,
+  Modal,
+  FileUploader,
+  Select
 } from '../../components/common';
 import {
   getPendingLabCases,
@@ -17,7 +20,8 @@ import {
   createResultReport,
   saveReportResultsDraft,
   submitReportResults,
-  getReports
+  getReports,
+  uploadReport
 } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
@@ -25,6 +29,11 @@ import { buildCalculatedResults } from '../../utils/reportResults';
 import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
 import '../../styles/ResultEntry.css';
+
+const isOutsourceBill = (bill) => (
+  bill?.caseType === 'OutsourceLabCase'
+  || String(bill?.department || '').toUpperCase().includes('OUTSOURCE')
+);
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -85,15 +94,20 @@ const dedupeTestEntries = (list) => {
 
 /* Payload mirrors the backend row builder: non-derived tests only,
    trimmed non-empty values, unit carried from the test master. */
+const entryKey = (testEntry) => testEntry?.testId ?? `name:${testEntry?.testName || ''}`;
+
 const buildResultsPayload = (testEntries, values) =>
   (testEntries || [])
     .filter((testEntry) => !testEntry.isDerived)
-    .map((testEntry) => ({
-      test: testEntry.testId,
-      testName: testEntry.testName,
-      value: String(values[testEntry.testId] ?? '').trim(),
-      unit: testEntry.unit || testEntry.existingUnit || ''
-    }))
+    .map((testEntry) => {
+      const key = entryKey(testEntry);
+      return {
+        ...(testEntry.testId ? { test: testEntry.testId } : {}),
+        testName: testEntry.testName,
+        value: String(values[key] ?? '').trim(),
+        unit: testEntry.unit || testEntry.existingUnit || ''
+      };
+    })
     .filter((row) => row.value !== '');
 
 const ResultEntry = () => {
@@ -113,6 +127,14 @@ const ResultEntry = () => {
   const [activeRow, setActiveRow] = useState(null);
   const [entry, setEntry] = useState(null);
   const [entryLoading, setEntryLoading] = useState(false);
+
+  // Outsource PDF/image upload (same API as Today's Reports)
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadTarget, setUploadTarget] = useState(null); // { patient, bill }
+  const [uploadPickBillId, setUploadPickBillId] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [entryError, setEntryError] = useState(null);
   const [referrerName, setReferrerName] = useState('');
   // Server-calculated (formula) results for billed formula tests, keyed by
@@ -218,7 +240,8 @@ const ResultEntry = () => {
     const testEntries = dedupeTestEntries(data.testEntries);
     const initial = {};
     testEntries.forEach((testEntry) => {
-      initial[testEntry.testId] =
+      const key = entryKey(testEntry);
+      initial[key] =
         testEntry.existingValue != null ? String(testEntry.existingValue) : '';
     });
     setEntry({ ...data, testEntries });
@@ -227,8 +250,79 @@ const ResultEntry = () => {
     resolveReferrer(data.patient, data.bill);
   };
 
+  const openUploadForCase = (row) => {
+    const bill = row?.bill || null;
+    const patient = bill?.patient && typeof bill.patient === 'object' ? bill.patient : null;
+    if (!bill?._id || !patient?._id) {
+      setFeedback({ type: 'error', text: 'This case is missing patient or bill information.' });
+      return;
+    }
+    setUploadTarget({ bill, patient });
+    setUploadPickBillId(String(bill._id));
+    setUploadFile(null);
+    setUploadError(null);
+    setUploadOpen(true);
+  };
+
+  const openUploadPicker = () => {
+    setUploadTarget(null);
+    setUploadPickBillId('');
+    setUploadFile(null);
+    setUploadError(null);
+    setUploadOpen(true);
+  };
+
+  const handleUploadSubmit = async () => {
+    let patientId = uploadTarget?.patient?._id;
+    let billId = uploadTarget?.bill?._id;
+    if (!billId && uploadPickBillId) {
+      const row = cases.find((c) => String(c?.bill?._id) === String(uploadPickBillId));
+      patientId = row?.bill?.patient?._id;
+      billId = row?.bill?._id;
+    }
+    if (!patientId || !billId) {
+      setUploadError('Select an outsource invoice to upload against.');
+      return;
+    }
+    if (!uploadFile) {
+      setUploadError('Please select a PDF or image report file.');
+      return;
+    }
+    setUploadLoading(true);
+    setUploadError(null);
+    try {
+      const payload = new FormData();
+      payload.append('patient', patientId);
+      payload.append('bill', billId);
+      payload.append('file', uploadFile);
+      const res = await uploadReport(payload);
+      if (res?.success) {
+        setUploadOpen(false);
+        setUploadFile(null);
+        setUploadTarget(null);
+        setFeedback({
+          type: 'success',
+          text: res.message || 'Outsource report uploaded successfully.'
+        });
+        refreshList();
+        if (view === 'entry') performBack();
+      } else {
+        setUploadError(res?.message || 'Upload failed.');
+      }
+    } catch (err) {
+      setUploadError(getApiErrorMessage(err, 'Failed to upload report file.'));
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
   const openCase = async (row) => {
     if (inFlightRef.current) return;
+    // Outsource bills use PDF/image upload — not numeric result grids.
+    if (isOutsourceBill(row?.bill)) {
+      openUploadForCase(row);
+      return;
+    }
     inFlightRef.current = true;
     setView('entry');
     setEntryLoading(true);
@@ -404,9 +498,13 @@ const ResultEntry = () => {
       .filter((value) => value != null && value !== '')
       .join(' / ');
     const final = isReportFinal(row?.report?.status);
+    const outsource = isOutsourceBill(row?.bill);
     return (
       <tr key={row?.bill?._id}>
-        <td>{row?.bill?.billNumber || '—'}</td>
+        <td>
+          {row?.bill?.billNumber || '—'}
+          {outsource ? <div className="re-sub">Outsource</div> : null}
+        </td>
         <td>
           <div className="re-patient-name">{patient?.name || '—'}</div>
           {patient?.registrationNumber ? (
@@ -420,6 +518,10 @@ const ResultEntry = () => {
         <td>
           {final ? (
             <span className="re-sub">Submitted — no action</span>
+          ) : outsource ? (
+            <Button size="sm" variant="primary" icon={<Upload size={14} />} onClick={() => openUploadForCase(row)}>
+              Upload Report
+            </Button>
           ) : (
             <Button size="sm" variant="secondary" onClick={() => openCase(row)}>
               {row?.report?.status === 'Draft' ? 'Edit Draft' : 'Enter Results'}
@@ -432,15 +534,16 @@ const ResultEntry = () => {
 
   const renderTestRow = (testEntry, index) => {
     const isDerived = Boolean(testEntry.isDerived);
+    const key = entryKey(testEntry);
     // Billed formula test: show the server-calculated value (read-only).
-    const calcRow = isDerived ? calculated[testEntry.testId] : null;
+    const calcRow = isDerived ? calculated[testEntry.testId] || calculated[key] : null;
     const subLine = [testEntry.testCode, testEntry.packageName, testEntry.panelName]
       .filter(Boolean)
       .join(' · ');
     return (
-      <tr key={testEntry.testId ?? index}>
+      <tr key={key || index}>
         <td>
-          <div className="re-test-name">{testEntry.testName}</div>
+          <div className="re-test-name">{testEntry.testName || 'Test'}</div>
           {subLine ? <div className="re-sub">{subLine}</div> : null}
         </td>
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
@@ -449,17 +552,17 @@ const ResultEntry = () => {
         </td>
         <td className="re-result-cell">
           <Input
-            id={`result-${testEntry.testId}`}
-            name={`result-${testEntry.testId}`}
+            id={`result-${key}`}
+            name={`result-${key}`}
             type="text"
-            aria-label={`Result value for ${testEntry.testName}`}
+            aria-label={`Result value for ${testEntry.testName || 'test'}`}
             placeholder="Enter value"
             value={
               isDerived
-                ? calcRow?.value || values[testEntry.testId] || ''
-                : values[testEntry.testId] ?? ''
+                ? calcRow?.value || values[key] || ''
+                : values[key] ?? ''
             }
-            onChange={(event) => handleValueChange(testEntry.testId, event.target.value)}
+            onChange={(event) => handleValueChange(key, event.target.value)}
             disabled={isDerived || busy !== null || isReportFinal(entry?.report?.status)}
             helperText={
               isDerived
@@ -479,25 +582,37 @@ const ResultEntry = () => {
   const enterableCount = testEntries.filter((testEntry) => !testEntry.isDerived).length;
   const enteredCount = testEntries.filter(
     (testEntry) =>
-      !testEntry.isDerived && String(values[testEntry.testId] ?? '').trim() !== ''
+      !testEntry.isDerived && String(values[entryKey(testEntry)] ?? '').trim() !== ''
   ).length;
+
+  const outsourcePending = cases.filter((c) => isOutsourceBill(c?.bill) && !isReportFinal(c?.report?.status));
 
   return (
     <div className="result-entry-page">
       <PageHeader
         title="Result Entry"
-        subtitle="Open a pending lab case, enter test results, then save a draft or submit."
+        subtitle="Enter in-lab results or upload outsource PDF/image reports for pending cases."
         action={
           view === 'list' ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<RefreshCw size={16} />}
-              onClick={refreshList}
-              disabled={listLoading}
-            >
-              Refresh
-            </Button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Upload size={16} />}
+                onClick={openUploadPicker}
+              >
+                Upload Report
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<RefreshCw size={16} />}
+                onClick={refreshList}
+                disabled={listLoading}
+              >
+                Refresh
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -513,6 +628,21 @@ const ResultEntry = () => {
           </div>
         ) : (
           <>
+            {feedback ? (
+              <div
+                className={`re-banner ${
+                  feedback.type === 'error' ? 're-banner-error' : 're-banner-success'
+                }`}
+                role={feedback.type === 'error' ? 'alert' : 'status'}
+              >
+                {feedback.type === 'error' ? (
+                  <AlertTriangle size={16} aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={16} aria-hidden="true" />
+                )}
+                <span>{feedback.text}</span>
+              </div>
+            ) : null}
             <AdvancedFilterBar
               values={{ search, status: statusFilter }}
               onChange={(key, value) => {
@@ -766,6 +896,69 @@ const ResultEntry = () => {
         cancelText="Keep editing"
         confirmVariant="danger"
       />
+
+      <Modal
+        isOpen={uploadOpen}
+        onClose={() => !uploadLoading && setUploadOpen(false)}
+        title="Upload Outsource Report"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setUploadOpen(false)} disabled={uploadLoading}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleUploadSubmit} loading={uploadLoading} icon={<Upload size={16} />}>
+              Upload File
+            </Button>
+          </>
+        }
+      >
+        <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          {uploadError ? <div className="form-error">{uploadError}</div> : null}
+          {uploadTarget ? (
+            <dl className="re-fields">
+              <div className="re-field">
+                <dt>Patient</dt>
+                <dd>{uploadTarget.patient?.name || '—'}</dd>
+              </div>
+              <div className="re-field">
+                <dt>Invoice</dt>
+                <dd>
+                  {uploadTarget.bill?.billNumber || '—'}
+                  {uploadTarget.bill?.items?.length
+                    ? ` · ${uploadTarget.bill.items.map((i) => i.name).filter(Boolean).join(', ')}`
+                    : ''}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <Select
+              label="Outsource invoice"
+              value={uploadPickBillId}
+              onChange={(e) => setUploadPickBillId(e.target.value)}
+              required
+              placeholder={outsourcePending.length ? 'Select pending outsource bill' : 'No pending outsource bills'}
+              options={outsourcePending.map((c) => ({
+                value: String(c.bill._id),
+                label: `${c.bill.billNumber} · ${c.bill.patient?.name || 'Patient'}${
+                  c.bill.items?.length
+                    ? ` · ${c.bill.items.map((i) => i.name).filter(Boolean).slice(0, 2).join(', ')}`
+                    : ''
+                }`
+              }))}
+              disabled={!outsourcePending.length}
+            />
+          )}
+          <p className="re-sub" style={{ margin: 0 }}>
+            Upload the external lab PDF or scan/image. No numeric result entry is required for outsource.
+          </p>
+          <FileUploader
+            onChange={(file) => { setUploadFile(file); setUploadError(null); }}
+            value={uploadFile}
+            label="Select PDF Report or Scan / Image file"
+            accept=".pdf,.jpg,.jpeg,.png"
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

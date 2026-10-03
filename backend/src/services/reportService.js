@@ -71,19 +71,21 @@ const getReports = async (filters = {}) => {
   }
 
   const page = parseInt(filters.page) || 1;
-  const limit = parseInt(filters.limit) || 10;
+  const limit = Math.min(parseInt(filters.limit) || 10, 100);
   const skip = (page - 1) * limit;
 
-  const reports = await Report.find(query)
-    .populate('patient', 'name registrationNumber phone')
-    .populate('bill', 'billNumber totalAmount paidAmount dueAmount')
-    .populate('test', 'name code')
-    .populate('uploadedBy', 'name')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Report.countDocuments(query);
+  const [reports, total] = await Promise.all([
+    Report.find(query)
+      .populate('patient', 'name registrationNumber phone')
+      .populate('bill', 'billNumber totalAmount paidAmount dueAmount department caseType')
+      .populate('test', 'name code')
+      .populate('uploadedBy', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Report.countDocuments(query)
+  ]);
 
   return {
     reports,
@@ -124,6 +126,30 @@ const createReport = async (reportData, file, user) => {
   });
 
   return await report.save();
+};
+
+/** Attach / replace PDF-image file on an existing report (outsource shells). */
+const attachReportFile = async (reportId, file, user) => {
+  const report = await Report.findById(reportId);
+  if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  if (!file?.filename) throw Object.assign(new Error('Please upload a file'), { statusCode: 400 });
+
+  if (report.fileUrl) {
+    try {
+      await storageService.deleteFile(report.fileUrl);
+    } catch {
+      /* old file missing — continue */
+    }
+  }
+
+  report.fileUrl = `uploads/reports/${file.filename}`;
+  report.uploadedBy = user._id;
+  report.status = 'Completed';
+  report.reportDate = new Date();
+  report.tat = report.tat || {};
+  if (!report.tat.reported) report.tat.reported = new Date();
+  await report.save();
+  return report;
 };
 
 const deleteReport = async (id) => {
@@ -171,7 +197,9 @@ const saveResults = async (reportId, entries = [], user) => {
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
 
   const patient = report.patient || {};
-  const testIds = entries.map((e) => e.test).filter(Boolean);
+  const testIds = entries
+    .map((e) => e.test)
+    .filter((id) => id && /^[a-fA-F0-9]{24}$/.test(String(id)));
   const tests = await Test.find({ _id: { $in: testIds } });
   const byId = {};
   tests.forEach((t) => { byId[String(t._id)] = t; });
@@ -446,6 +474,7 @@ const getDeliveryHistory = async (reportId) => {
 module.exports = {
   getReports,
   createReport,
+  attachReportFile,
   deleteReport,
   createResultReport,
   saveResults,
