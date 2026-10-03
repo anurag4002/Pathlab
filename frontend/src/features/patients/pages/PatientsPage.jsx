@@ -182,16 +182,22 @@ const PatientsPage = () => {
         }
       />
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <BranchFilter value={branch} onChange={(v) => { setBranch(v); goToPage(1); }} />
-      </div>
-
       <AdvancedFilterBar
-        values={adv}
-        onChange={setAdvKey}
+        values={{ branch, ...adv }}
+        onChange={(key, value) => {
+          if (key === 'branch') {
+            setBranch(value);
+            goToPage(1);
+            return;
+          }
+          setAdvKey(key, value);
+        }}
         onSearch={() => { goToPage(1); fetchPatientsList(); }}
         onClear={() => { setAdv({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' }); setSearch(''); setBranch(''); goToPage(1); }}
         fields={[
+          { key: 'branch', type: 'custom', size: 'md', render: ({ value, onChange }) => (
+            <BranchFilter value={value} onChange={onChange} />
+          ) },
           { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
           { key: 'firstName', label: 'First name', type: 'text', placeholder: 'First name' },
           { key: 'lastName', label: 'Last name', type: 'text', placeholder: 'Last name' },

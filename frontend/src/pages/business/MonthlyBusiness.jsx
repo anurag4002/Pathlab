@@ -18,7 +18,8 @@ import {
   PageHeader,
   Select,
   StatCard,
-  StatusBadge
+  StatusBadge,
+  AdvancedFilterBar
 } from '../../components/common';
 
 const MONTH_VALUE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -469,37 +470,32 @@ const MonthlyBusiness = () => {
         }
       />
 
-      <div
-        className="card"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 'var(--space-4)',
-          flexWrap: 'wrap',
-          marginBottom: 'var(--space-4)'
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={false}
+        values={{ month: monthValue }}
+        onChange={(key, value) => {
+          if (key === 'month') handleMonthChange({ target: { value } });
         }}
-      >
-        <div style={{ minWidth: '220px' }}>
-          <Input
-            id="monthly-business-month"
-            label="Reporting month"
-            type="month"
-            value={monthValue}
-            onChange={handleMonthChange}
-            required
-            style={{ marginBottom: 0 }}
-          />
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ display: 'block', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)', textTransform: 'uppercase' }}>
-            Selected period
-          </span>
-          <strong style={{ fontSize: 'var(--font-size-lg)' }}>
-            {monthRange?.label || 'Select a valid month'}
-          </strong>
-        </div>
-      </div>
+        trailing={monthRange?.label || 'Select a valid month'}
+        fields={[
+          {
+            key: 'month',
+            type: 'custom',
+            size: 'md',
+            render: ({ value, onChange }) => (
+              <Input
+                id="monthly-business-month"
+                label="Reporting month"
+                type="month"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                required
+              />
+            )
+          }
+        ]}
+      />
 
       {monthRange && (
         <p style={{ margin: '0 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
@@ -742,34 +738,39 @@ const MonthlyBusiness = () => {
           description="Server-paginated transaction records for the selected month."
         />
         {monthRange && (
-          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-            <Select
-              name="monthly-transaction-type"
-              label="Transaction type"
-              value={transactionType}
-              onChange={(event) => {
-                clearTransactionData();
-                setTransactionType(event.target.value);
-                setPage(1);
-              }}
-              options={TRANSACTION_TYPE_FILTERS.map((type) => ({ value: type, label: type }))}
-              placeholder="All types"
-              style={{ minWidth: '160px', marginBottom: 0 }}
-            />
-            <Select
-              name="monthly-payment-method"
-              label="Payment mode"
-              value={paymentMethod}
-              onChange={(event) => {
-                clearTransactionData();
-                setPaymentMethod(event.target.value);
-                setPage(1);
-              }}
-              options={paymentModes}
-              placeholder="All modes"
-              style={{ minWidth: '160px', marginBottom: 0 }}
-            />
-          </div>
+          <AdvancedFilterBar
+            showSearchButton={false}
+            showClearButton={!!(transactionType || paymentMethod)}
+            onClear={() => {
+              clearTransactionData();
+              setTransactionType('');
+              setPaymentMethod('');
+              setPage(1);
+            }}
+            values={{ type: transactionType, method: paymentMethod }}
+            onChange={(key, value) => {
+              clearTransactionData();
+              setPage(1);
+              if (key === 'type') setTransactionType(value);
+              else if (key === 'method') setPaymentMethod(value);
+            }}
+            fields={[
+              {
+                key: 'type',
+                label: 'Transaction type',
+                type: 'select',
+                placeholder: 'All types',
+                options: TRANSACTION_TYPE_FILTERS.map((type) => ({ value: type, label: type }))
+              },
+              {
+                key: 'method',
+                label: 'Payment mode',
+                type: 'select',
+                placeholder: 'All modes',
+                options: paymentModes
+              }
+            ]}
+          />
         )}
         {monthRange && transactionsError && <ErrorBanner message={transactionsError} onRetry={handleRefresh} />}
         {monthRange && !transactionsError && (

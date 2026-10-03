@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getTransactions } from '../../services/transactionService';
 import { getDailyBusiness } from '../../services/dashboardService';
-import { PageHeader, DatePicker } from '../../components/common';
+import { PageHeader, AdvancedFilterBar } from '../../components/common';
+import { PAYMENT_METHODS } from '../../constants/billConstants';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
 import { usePermissions } from '../../hooks/usePermission';
 import TransactionTable from './components/TransactionTable';
-import ModeFilter from './components/ModeFilter';
 import CashSummaryCards from './components/CashSummaryCards';
 
 // Phase 18 — Cashbook page.
@@ -89,11 +89,42 @@ const Cashbook = () => {
           Your role has no finance permission — this view is cosmetic; the server still enforces access.
         </p>
       )}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        <DatePicker label="From" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ marginBottom: 0 }} />
-        <DatePicker label="To" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ marginBottom: 0 }} />
-        <ModeFilter mode={mode} setMode={(v) => { setMode(v); goToPage(1); }} type={type} setType={(v) => { setType(v); goToPage(1); }} onReset={() => { setMode(''); setType(''); }} />
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(mode || type || search)}
+        onClear={() => { setMode(''); setType(''); setSearch(''); goToPage(1); }}
+        values={{ from: startDate, to: endDate, mode, type, search }}
+        onChange={(key, value) => {
+          if (key === 'from') setStartDate(value);
+          else if (key === 'to') setEndDate(value);
+          else if (key === 'mode') { setMode(value); goToPage(1); }
+          else if (key === 'type') { setType(value); goToPage(1); }
+          else if (key === 'search') { setSearch(value); goToPage(1); }
+        }}
+        fields={[
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' },
+          {
+            key: 'mode',
+            label: 'Payment mode',
+            type: 'select',
+            placeholder: 'All modes',
+            options: PAYMENT_METHODS.map((m) => ({ value: m, label: m }))
+          },
+          {
+            key: 'type',
+            label: 'Type',
+            type: 'select',
+            placeholder: 'All types',
+            options: [
+              { value: 'Income', label: 'Cash in (Income)' },
+              { value: 'Refund', label: 'Cash out (Refund)' },
+              { value: 'Expense', label: 'Expense' }
+            ]
+          },
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search patient / bill no...' }
+        ]}
+      />
       {dateError && <p className="form-error" style={{ marginBottom: '1rem' }}>{dateError}</p>}
       <CashSummaryCards income={income} refunds={refunds} net={net} count={paginationInfo.total || transactions.length} />
       <div className="card" style={{ padding: '10px 14px', marginBottom: '1rem', fontSize: '0.82rem' }}>
@@ -111,8 +142,6 @@ const Cashbook = () => {
       <TransactionTable
         transactions={transactions}
         loading={loading}
-        search={search}
-        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         pagination={{ total: paginationInfo.total, page, limit, pages: paginationInfo.pages }}
         goToPage={goToPage}
         onLimitChange={setLimit}

@@ -1,0 +1,186 @@
+/* Shared filter bar — consistent alignment across pages */
+
+.afb {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-xs);
+}
+
+.afb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.afb-field {
+  flex: 0 1 11.5rem;
+  min-width: 9.5rem;
+  max-width: 100%;
+}
+
+.afb-field--sm {
+  flex-basis: 9rem;
+  min-width: 8rem;
+}
+
+.afb-field--md {
+  flex-basis: 13rem;
+  min-width: 11rem;
+}
+
+.afb-field--lg {
+  flex-basis: 16rem;
+  min-width: 13rem;
+}
+
+.afb-field--auto {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Kill default form-group bottom margin so rows stay level */
+.afb-field .form-group {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.afb-field .form-label {
+  margin-bottom: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 1.25rem;
+  line-height: 1.25rem;
+}
+
+.afb-field .form-control,
+.afb-field .select-control {
+  min-height: 2.375rem;
+  height: 2.375rem;
+  box-sizing: border-box;
+}
+
+.afb-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.375rem;
+  padding: 0 0.15rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.afb-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.afb-segmented {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-surface);
+  min-height: 2.375rem;
+}
+
+.afb-segmented-btn {
+  border: none;
+  background: transparent;
+  padding: 0 0.85rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.afb-segmented-btn.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.afb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  min-height: 2.375rem;
+}
+
+.afb-trailing {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.afb-plain {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.afb-field .branch-filter-static {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.afb-field .branch-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.375rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 768px) {
+  .afb-field,
+  .afb-field--sm,
+  .afb-field--md,
+  .afb-field--lg {
+    flex: 1 1 calc(50% - var(--space-3));
+    min-width: calc(50% - var(--space-3));
+  }
+
+  .afb-field--auto {
+    flex: 1 1 100%;
+  }
+
+  .afb-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .afb-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .afb-field,
+  .afb-field--sm,
+  .afb-field--md,
+  .afb-field--lg {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+}

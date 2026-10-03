@@ -14,6 +14,11 @@
 
 .sidebar.collapsed {
   width: var(--sidebar-collapsed-width);
+  overflow: visible;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  overflow: visible;
 }
 
 .sidebar-logo-wrapper {
@@ -30,8 +35,10 @@
 }
 
 .sidebar-logo-img {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 40px !important;
+  height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
   border-radius: var(--radius-full);
   object-fit: cover;
   border: 1px solid var(--color-border);
@@ -115,6 +122,10 @@
   color: var(--color-primary);
 }
 
+.sidebar-submenu {
+  position: relative;
+}
+
 .sidebar-submenu-header {
   display: flex;
   align-items: center;
@@ -128,6 +139,17 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
   user-select: none;
+}
+
+.sidebar.collapsed .sidebar-submenu-header {
+  justify-content: center;
+  padding: 0.55rem;
+}
+
+.sidebar-submenu-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .sidebar-submenu-header:hover,
@@ -160,4 +182,62 @@
   background-color: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: var(--font-weight-medium);
+}
+
+/* Flyout for collapsed desktop sidebar — keeps nested nav usable */
+.sidebar-flyout {
+  position: absolute;
+  left: calc(100% + 0.35rem);
+  top: 0;
+  min-width: 12.5rem;
+  max-height: min(24rem, 70vh);
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1) 0;
+  z-index: 250;
+  animation: sidebar-flyout-in 0.12s ease;
+}
+
+.sidebar-flyout-title {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-1);
+}
+
+.sidebar-flyout-link {
+  display: block;
+  padding: 0.45rem var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar-flyout-link:hover,
+.sidebar-flyout-link.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+@keyframes sidebar-flyout-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0.55rem;
+}
+
+.sidebar.collapsed .sidebar-link span {
+  display: none;
 }

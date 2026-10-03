@@ -8,7 +8,7 @@ import formatDate from '../../utils/formatDate';
 import downloadFile from '../../utils/downloadFile';
 import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, Download, Printer, RefreshCw } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, AdvancedFilterBar } from '../../components/common';
 import XrayImagePane from '../../components/xray/XrayImagePane';
 import '../../styles/Xray.css';
 
@@ -147,17 +147,24 @@ const XrayReports = () => {
         </div>
       )}
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pg.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search patient…' }
+        ]}
+      />
+
       <DataTable
         headers={['Completed Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Download Scan File', 'Preview']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No completed X-Ray scans archived yet."
-        searchValue={search}
-        onSearchChange={(event) => {
-          setSearch(event.target.value);
-          pg.reset();
-        }}
-        searchPlaceholder="Search patient…"
         pagination={{
           total: pg.total,
           page: pg.page,

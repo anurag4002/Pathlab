@@ -1,29 +1,51 @@
 import React from 'react';
 import formatCurrency from '../../../utils/formatCurrency';
 
-// Phase 22 — bill-level discount row with % / amount toggle.
-// Rule: totalDiscount <= subtotal. Rendered inside the payment summary.
-// The trailing % / ₹ badge is a toggle button: clicking it switches between
-// percent mode and absolute-amount mode, preserving both values.
+// Bill-level discount row with % / amount toggle.
+// Inputs stay blank by default (no zero); empty is treated as 0 in totals.
 const DiscountRow = ({
   subtotal = 0,
   discountMode = 'percent',
   setDiscountMode,
-  discountPercent = 0,
+  discountPercent = '',
   setDiscountPercent,
-  discountValue = 0,
+  discountValue = '',
   setDiscountValue,
   error
 }) => {
   const sub = Number(subtotal) || 0;
   const isPercent = discountMode !== 'amount';
+  const percentNum = discountPercent === '' || discountPercent === null ? 0 : Number(discountPercent);
+  const amountNum = discountValue === '' || discountValue === null ? 0 : Number(discountValue);
   const discountAmount = isPercent
-    ? Math.max(0, (sub * (Number(discountPercent) || 0)) / 100)
-    : Math.max(0, Math.min(sub, Number(discountValue) || 0));
+    ? Math.max(0, (sub * (percentNum || 0)) / 100)
+    : Math.max(0, Math.min(sub, amountNum || 0));
   const over = discountAmount > sub;
 
   const toggleMode = () => {
     setDiscountMode?.(isPercent ? 'amount' : 'percent');
+  };
+
+  const onPercentChange = (e) => {
+    const raw = e.target.value;
+    if (raw === '') {
+      setDiscountPercent?.('');
+      return;
+    }
+    const n = Number(raw);
+    if (Number.isNaN(n)) return;
+    setDiscountPercent?.(Math.min(100, Math.max(0, n)));
+  };
+
+  const onAmountChange = (e) => {
+    const raw = e.target.value;
+    if (raw === '') {
+      setDiscountValue?.('');
+      return;
+    }
+    const n = Number(raw);
+    if (Number.isNaN(n)) return;
+    setDiscountValue?.(Math.max(0, n));
   };
 
   return (
@@ -39,8 +61,8 @@ const DiscountRow = ({
             value={discountPercent}
             min={0}
             max={100}
-            onChange={(e) => setDiscountPercent?.(Math.min(100, Math.max(0, Number(e.target.value))))}
-            placeholder="0"
+            onChange={onPercentChange}
+            placeholder=""
             style={{ borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', flex: 1 }}
             aria-label="Discount percent"
           />
@@ -50,9 +72,9 @@ const DiscountRow = ({
             className={`form-control ${error || over ? 'has-error' : ''}`}
             value={discountValue}
             min={0}
-            max={sub}
-            onChange={(e) => setDiscountValue?.(Math.max(0, Number(e.target.value)))}
-            placeholder="0"
+            max={sub || undefined}
+            onChange={onAmountChange}
+            placeholder=""
             style={{ borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', flex: 1 }}
             aria-label="Discount amount"
           />

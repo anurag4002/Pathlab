@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { getTickets, createTicket, setTicketStatus } from '../../services/supportService';
-import { PageHeader, DataTable, Button, Modal, Input, StatusBadge } from '../../components/common';
+import { PageHeader, DataTable, Button, Modal, Input, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import useAuth from '../../hooks/useAuth';
+
+const STATUS_OPTIONS = [
+  { value: 'Open', label: 'Open' },
+  { value: 'Closed', label: 'Closed' }
+];
 
 const Tickets = () => {
   const { user } = useAuth();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const filtered = list.filter((t) => {
+    if (statusFilter && t.status !== statusFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return String(t.subject || '').toLowerCase().includes(q) ||
@@ -33,10 +40,22 @@ const Tickets = () => {
   return (
     <div>
       <PageHeader title="Support Tickets" subtitle="Raise & track issues" action={<Button size="sm" onClick={() => setModal(true)}>New Ticket</Button>} />
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search tickets…' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
       <DataTable headers={['Subject', 'Priority', 'Status', 'Action']} data={pg.paged} loading={loading} emptyMessage="No tickets."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search tickets…"
         pagination={{
           total: pg.total,
           page: pg.page,

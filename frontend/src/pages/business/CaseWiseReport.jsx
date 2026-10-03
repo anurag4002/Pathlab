@@ -4,7 +4,7 @@ import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
-import { PageHeader, DataTable, DatePicker, StatusBadge, Button } from '../../components/common';
+import { PageHeader, DataTable, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
 import { Printer, Mail, FileDown } from 'lucide-react';
 
 export const CASE_TYPES_13 = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'];
@@ -78,34 +78,70 @@ const CaseWiseReport = () => {
         }
       />
 
-      <div className="card" style={{ display: 'flex', gap: '16px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <DatePicker label="From Date" value={startDate} onChange={(e) => { setStartDate(e.target.value); goToPage(1); }} style={{ marginBottom: 0, minWidth: '180px' }} />
-        <DatePicker label="To Date" value={endDate} onChange={(e) => { setEndDate(e.target.value); goToPage(1); }} style={{ marginBottom: 0, minWidth: '180px' }} />
-        <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label"><span>Collection centre</span></label>
-          <select className="select-control" value={centre} onChange={(e) => { setCentre(e.target.value); goToPage(1); }}>
-            <option value="">All centres</option>
-            <option value="Main">Main</option>
-          </select>
-        </div>
-        <label style={{ display: 'flex', gap: '6px', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600 }}>
-          <input type="checkbox" checked={excludeCancelled} onChange={(e) => setExcludeCancelled(e.target.checked)} />
-          Exclude cancelled cases
-        </label>
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px' }}>Case types ({selectedTypes.length}/13 selected)</div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {CASE_TYPES_13.map((t) => (
-            <label key={t} style={{ fontSize: '0.78rem', display: 'flex', gap: '4px', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '4px 8px', background: selectedTypes.includes(t) ? 'var(--primary-light)' : 'transparent' }}>
-              <input type="checkbox" checked={selectedTypes.includes(t)} onChange={() => { toggleType(t); goToPage(1); }} />
-              {t}
-            </label>
-          ))}
-          {selectedTypes.length > 0 && <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => { setSelectedTypes([]); goToPage(1); }}>Clear types</button>}
-        </div>
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(startDate || endDate || centre || selectedTypes.length || !excludeCancelled)}
+        onClear={() => {
+          setStartDate('');
+          setEndDate('');
+          setCentre('');
+          setSelectedTypes([]);
+          setExcludeCancelled(true);
+          goToPage(1);
+        }}
+        values={{ from: startDate, to: endDate, centre, excludeCancelled }}
+        onChange={(key, value) => {
+          goToPage(1);
+          if (key === 'from') setStartDate(value);
+          else if (key === 'to') setEndDate(value);
+          else if (key === 'centre') setCentre(value);
+          else if (key === 'excludeCancelled') setExcludeCancelled(value);
+        }}
+        fields={[
+          { key: 'from', label: 'From Date', type: 'date' },
+          { key: 'to', label: 'To Date', type: 'date' },
+          {
+            key: 'centre',
+            label: 'Collection centre',
+            type: 'select',
+            size: 'sm',
+            placeholder: 'All centres',
+            options: [{ value: 'Main', label: 'Main' }]
+          },
+          { key: 'excludeCancelled', label: 'Exclude cancelled cases', type: 'toggle' },
+          {
+            key: 'caseTypes',
+            type: 'custom',
+            size: 'auto',
+            render: () => (
+              <div>
+                <div className="form-label"><span>Case types ({selectedTypes.length}/13)</span></div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', maxWidth: '48rem' }}>
+                  {CASE_TYPES_13.map((t) => (
+                    <label
+                      key={t}
+                      style={{
+                        fontSize: '0.78rem',
+                        display: 'flex',
+                        gap: '4px',
+                        alignItems: 'center',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        background: selectedTypes.includes(t) ? 'var(--color-primary-light)' : 'transparent',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <input type="checkbox" checked={selectedTypes.includes(t)} onChange={() => { toggleType(t); goToPage(1); }} />
+                      {t}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )
+          }
+        ]}
+      />
 
       <DataTable
         headers={['Invoice Ref', 'Patient Reg Code', 'Patient Name', 'Type', 'Centre', 'Referred By', 'Registered Date', 'Gross Price', 'Status']}

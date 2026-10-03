@@ -3,7 +3,12 @@ import { getBrowsers, createBrowser, setBrowserStatus, deleteBrowser } from '../
 import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Ban, CheckCircle2, Trash2 } from 'lucide-react';
-import { PageHeader, DataTable, StatusBadge, Button, Modal, Input } from '../../components/common';
+import { PageHeader, DataTable, StatusBadge, Button, Modal, Input, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Blocked', label: 'Blocked' }
+];
 
 const BrowserSecurity = () => {
   const [browsers, setBrowsers] = useState([]);
@@ -13,9 +18,11 @@ const BrowserSecurity = () => {
   const [form, setForm] = useState({ code: '', label: '' });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [loginSearch, setLoginSearch] = useState('');
 
   const filteredBrowsers = browsers.filter((b) => {
+    if (statusFilter && b.status !== statusFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return String(b.code || '').toLowerCase().includes(q) || String(b.label || '').toLowerCase().includes(q);
@@ -59,10 +66,22 @@ const BrowserSecurity = () => {
     <div>
       <PageHeader title="Browser Security" subtitle="Allow-listed browsers + recent login feed"
         action={<Button variant="primary" size="sm" onClick={() => setModal(true)}><Plus size={14} /> Register Browser</Button>} />
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pgBrowsers.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pgBrowsers.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search code or label…' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
       <DataTable headers={['Code', 'Label', 'Status', 'Last Seen', 'Actions']} data={pgBrowsers.paged} loading={loading} emptyMessage="No browsers registered."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pgBrowsers.reset(); }}
-        searchPlaceholder="Search code or label…"
         pagination={{
           total: pgBrowsers.total,
           page: pgBrowsers.page,
@@ -84,10 +103,19 @@ const BrowserSecurity = () => {
             </div></td>
           </tr>)} />
       <h3 style={{ margin: '1.5rem 0 .5rem' }}>Recent Logins</h3>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!loginSearch}
+        onClear={() => { setLoginSearch(''); pgLogins.reset(); }}
+        values={{ search: loginSearch }}
+        onChange={(key, value) => {
+          if (key === 'search') { setLoginSearch(value); pgLogins.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search user or IP…' }
+        ]}
+      />
       <DataTable headers={['Date', 'User', 'Role', 'IP', 'User Agent', 'Action']} data={pgLogins.paged} loading={loading} emptyMessage="No login activity."
-        searchValue={loginSearch}
-        onSearchChange={(e) => { setLoginSearch(e.target.value); pgLogins.reset(); }}
-        searchPlaceholder="Search user or IP…"
         pagination={{
           total: pgLogins.total,
           page: pgLogins.page,

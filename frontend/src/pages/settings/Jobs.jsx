@@ -7,8 +7,7 @@ import {
   recordDeliveryAttempt,
 } from '../../services/deliveryHistoryService';
 import { getLabProfile } from '../../services/setupService';
-import { PageHeader, Button, DataTable, Select } from '../../components/common';
-import { StatusBadge } from '../../components/common';
+import { PageHeader, Button, DataTable, Select, AdvancedFilterBar, StatusBadge } from '../../components/common';
 import { RotateCcw, AlertTriangle, CheckCircle2, RefreshCw, Server, Smartphone } from 'lucide-react';
 import usePagination from '../../hooks/usePagination';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -182,17 +181,27 @@ const Jobs = () => {
             <p className="jobs-card-desc">Live server queue — failed and pending jobs with one-click retry.</p>
           </div>
         </div>
-        <div className="jobs-filter-row">
-          <div style={{ minWidth: '11rem', maxWidth: '14rem', flex: '0 1 auto' }}>
-            <Select
-              placeholder="All statuses"
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); goToPage(1); }}
-              options={JOB_STATUS_OPTIONS}
-            />
-          </div>
-          <span className="jobs-count">{paginationInfo.total} job{paginationInfo.total === 1 ? '' : 's'}</span>
-        </div>
+        <AdvancedFilterBar
+          variant="plain"
+          showSearchButton={false}
+          showClearButton={!!statusFilter}
+          onClear={() => { setStatusFilter(''); goToPage(1); }}
+          trailing={`${paginationInfo.total} job${paginationInfo.total === 1 ? '' : 's'}`}
+          values={{ status: statusFilter }}
+          onChange={(key, value) => {
+            if (key === 'status') { setStatusFilter(value); goToPage(1); }
+          }}
+          fields={[
+            {
+              key: 'status',
+              label: 'Status',
+              type: 'select',
+              size: 'sm',
+              placeholder: 'All statuses',
+              options: JOB_STATUS_OPTIONS.filter((o) => o.value)
+            }
+          ]}
+        />
         <DataTable
           headers={['Type', 'Detail', 'Status', 'Attempts', 'Error', 'Created', 'Action']}
           data={jobs}

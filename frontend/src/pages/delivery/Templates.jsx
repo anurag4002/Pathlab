@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getTemplates, saveTemplate } from '../../services/notifyService';
-import { PageHeader, DataTable, Button, Modal, Input } from '../../components/common';
+import { PageHeader, DataTable, Button, Modal, Input, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Edit2 } from 'lucide-react';
 
@@ -32,10 +32,19 @@ const Templates = () => {
   return (
     <div>
       <PageHeader title="Message Templates" subtitle="SMS / WhatsApp / Email templates" action={<Button size="sm" onClick={() => open(null)}>New Template</Button>} />
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pg.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search templates…' }
+        ]}
+      />
       <DataTable headers={['Key', 'Channel', 'Body', 'Action']} data={pg.paged} loading={loading} emptyMessage="No templates."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search templates…"
         pagination={{
           total: pg.total,
           page: pg.page,

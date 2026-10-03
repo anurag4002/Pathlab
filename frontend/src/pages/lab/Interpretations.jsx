@@ -2,7 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getInterpretations, createInterpretation, updateInterpretation, deleteInterpretation, getTests } from '../../services/testService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const Interpretations = () => {
   const [interpretations, setInterpretations] = useState([]);
@@ -22,15 +27,17 @@ const Interpretations = () => {
 
   // Search + client-side pagination.
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const filteredInterpretations = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return interpretations;
-    return interpretations.filter((r) =>
-      String(r.test?.name || '').toLowerCase().includes(q) ||
-      String(r.resultCondition || '').toLowerCase().includes(q) ||
-      String(r.interpretationText || '').toLowerCase().includes(q)
-    );
-  }, [interpretations, search]);
+    return interpretations.filter((r) => {
+      if (statusFilter && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return String(r.test?.name || '').toLowerCase().includes(q) ||
+        String(r.resultCondition || '').toLowerCase().includes(q) ||
+        String(r.interpretationText || '').toLowerCase().includes(q);
+    });
+  }, [interpretations, search, statusFilter]);
   const pg = useClientPagination(filteredInterpretations, 10);
 
   const fetchInterpretations = async () => {
@@ -144,14 +151,27 @@ const Interpretations = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search test, condition, text…' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Test Associated', 'Result Condition', 'Interpretation Text', 'Guidance Type', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No clinical interpretations registered."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search test, condition, text…"
         pagination={{
           total: pg.total,
           page: pg.page,

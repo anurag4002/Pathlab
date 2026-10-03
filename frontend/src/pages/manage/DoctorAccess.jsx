@@ -3,7 +3,12 @@ import { getUsers, createUser, updateUser, deleteUser } from '../../services/aut
 import { getInvites, createInvite } from '../../services/doctorPortalService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const DoctorAccess = () => {
   const [doctors, setDoctors] = useState([]);
@@ -18,6 +23,7 @@ const DoctorAccess = () => {
 
   // Search
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Delete State
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -31,7 +37,8 @@ const DoctorAccess = () => {
 
   // Client-side pagination for both tables.
   const pgInvites = useClientPagination(invites, 5);
-  const pgDoctors = useClientPagination(doctors, 10);
+  const filteredDoctors = statusFilter ? doctors.filter((d) => d.status === statusFilter) : doctors;
+  const pgDoctors = useClientPagination(filteredDoctors, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -168,14 +175,27 @@ const DoctorAccess = () => {
           renderRow={(iv, i) => (<tr key={iv._id || i}><td>{iv.name}</td><td>{iv.email}</td><td>{iv.phone || '-'}</td><td style={{ fontSize: '.78rem' }}><code>{iv.token || iv.status || '-'}</code></td></tr>)} />
       </div>
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pgDoctors.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pgDoctors.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by doctor name...' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Name', 'Email Address', 'Role', 'Status', 'Actions']}
         data={pgDoctors.paged}
         loading={loading}
         emptyMessage="No Doctor accounts configured."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pgDoctors.reset(); }}
-        searchPlaceholder="Search by doctor name..."
         pagination={{
           total: pgDoctors.total,
           page: pgDoctors.page,

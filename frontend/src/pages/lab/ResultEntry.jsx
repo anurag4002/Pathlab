@@ -8,7 +8,8 @@ import {
   Input,
   LoadingSpinner,
   ConfirmDialog,
-  TatTimeline
+  TatTimeline,
+  AdvancedFilterBar
 } from '../../components/common';
 import {
   getPendingLabCases,
@@ -22,7 +23,15 @@ import { getDoctorById } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
 import { buildCalculatedResults } from '../../utils/reportResults';
 import formatCurrency from '../../utils/formatCurrency';
+import useDebounce from '../../hooks/useDebounce';
 import '../../styles/ResultEntry.css';
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All statuses' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Registered', label: 'Registered' },
+  { value: 'Draft', label: 'Draft' }
+];
 
 /* Local API error mapper: surfaces only the backend's user-facing `message`
    field (never `errors.stack`), with sensible fallbacks per failure type. */
@@ -92,6 +101,9 @@ const ResultEntry = () => {
   const [cases, setCases] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const debouncedSearch = useDebounce(search, 400);
   const [reloadKey, setReloadKey] = useState(0);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState(null);
@@ -125,7 +137,11 @@ const ResultEntry = () => {
     let active = true;
     (async () => {
       try {
-        const res = await getPendingLabCases({ page });
+        const params = { page };
+        const query = debouncedSearch.trim();
+        if (query) params.search = query;
+        if (statusFilter) params.status = statusFilter;
+        const res = await getPendingLabCases(params);
         if (!active) return;
         const data = res?.data ?? {};
         const targetPage = Math.max(1, Math.min(page, data.pagination?.pages || 1));
@@ -150,7 +166,7 @@ const ResultEntry = () => {
     return () => {
       active = false;
     };
-  }, [page, reloadKey]);
+  }, [page, reloadKey, debouncedSearch, statusFilter]);
 
   // Resolve the referring doctor's display name (optional enrichment).
   const resolveReferrer = (patient, bill) => {
@@ -496,19 +512,62 @@ const ResultEntry = () => {
             </Button>
           </div>
         ) : (
-          // Status only: the pending-cases API returns report.status but no
-          // tat/registeredAt, so Registered/TAT columns are omitted here.
-          <DataTable
-            headers={['Invoice No', 'Patient', 'Age / Gender', 'Report Status', 'Action']}
-            data={cases}
-            loading={listLoading}
-            emptyTitle="No pending cases"
-            emptyMessage="There are no lab cases waiting for result entry right now."
-            pagination={
-              pagination ? { ...pagination, onPageChange: goToPage } : undefined
-            }
-            renderRow={renderCaseRow}
-          />
+          <>
+            <AdvancedFilterBar
+              values={{ search, status: statusFilter }}
+              onChange={(key, value) => {
+                if (key === 'search') setSearch(value);
+                if (key === 'status') setStatusFilter(value);
+                setPage(1);
+                setListLoading(true);
+              }}
+              onSearch={() => {
+                setPage(1);
+                setListLoading(true);
+                setReloadKey((k) => k + 1);
+              }}
+              onClear={() => {
+                setSearch('');
+                setStatusFilter('');
+                setPage(1);
+                setListLoading(true);
+                setReloadKey((k) => k + 1);
+              }}
+              fields={[
+                {
+                  key: 'search',
+                  label: 'Search',
+                  type: 'text',
+                  placeholder: 'Invoice, patient name, ID, or phone…',
+                  size: 'lg'
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  type: 'select',
+                  options: STATUS_OPTIONS,
+                  placeholder: 'All statuses'
+                }
+              ]}
+            />
+            {/* Status only: the pending-cases API returns report.status but no
+                tat/registeredAt, so Registered/TAT columns are omitted here. */}
+            <DataTable
+              headers={['Invoice No', 'Patient', 'Age / Gender', 'Report Status', 'Action']}
+              data={cases}
+              loading={listLoading}
+              emptyTitle={debouncedSearch || statusFilter ? 'No matching cases' : 'No pending cases'}
+              emptyMessage={
+                debouncedSearch || statusFilter
+                  ? 'No lab cases match your current filters.'
+                  : 'There are no lab cases waiting for result entry right now.'
+              }
+              pagination={
+                pagination ? { ...pagination, onPageChange: goToPage } : undefined
+              }
+              renderRow={renderCaseRow}
+            />
+          </>
         )
       ) : (
         <>

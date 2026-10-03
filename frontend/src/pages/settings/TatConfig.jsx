@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getTests, updateTest } from '../../services/testService';
-import { PageHeader, Button, Input, DataTable } from '../../components/common';
+import { PageHeader, Button, Input, DataTable, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import { TAT_CONFIG_KEY, DEFAULT_TAT_SETTINGS, loadTatSettings } from '../../components/lab/TatCountdown';
 
@@ -181,14 +181,23 @@ const TatConfig = () => {
 
       <h3 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>Per-test TAT (hours)</h3>
       {testsError && <p style={{ fontSize: '0.85rem', color: 'red' }}>{testsError}</p>}
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!testSearch}
+        onClear={() => { setTestSearch(''); pg.reset(); }}
+        values={{ search: testSearch }}
+        onChange={(key, value) => {
+          if (key === 'search') { setTestSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search tests…' }
+        ]}
+      />
       <DataTable
         headers={['Test', 'Code', 'TAT (h)', 'Effective', 'Actions']}
         data={pg.paged}
         loading={testsLoading}
         emptyMessage="No active tests found."
-        searchValue={testSearch}
-        onSearchChange={(e) => { setTestSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search tests…"
         pagination={{
           total: pg.total,
           page: pg.page,

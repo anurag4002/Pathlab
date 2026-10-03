@@ -16,6 +16,12 @@ const Header = ({ collapsed, toggleCollapsed }) => {
         >
           <Menu size={20} />
         </button>
+
+        <div className="header-brand" aria-label="Pure Path Lab">
+          <img src="/logo.jpg" alt="" className="header-logo-img" width={32} height={32} />
+          <span className="header-logo-text">PURE PATH LAB</span>
+        </div>
+
         <GlobalSearch />
       </div>
 

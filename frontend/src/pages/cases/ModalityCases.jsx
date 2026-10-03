@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getModalityCases, createModalityCase, updateModalityCase, deleteModalityCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
-import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, PatientPicker } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, Input, StatusBadge, ConfirmDialog, PatientPicker, AdvancedFilterBar } from '../../components/common';
 import useAuth from '../../hooks/useAuth';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
@@ -109,14 +109,23 @@ const ModalityCases = () => {
           <Button key={m} variant={m === modality ? 'primary' : 'secondary'} size="sm" onClick={() => { setModality(m); goToPage(1); }}>{m}</Button>
         ))}
       </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); goToPage(1); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); goToPage(1); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search procedure…' }
+        ]}
+      />
       <DataTable
         headers={['Date', 'Patient', 'Procedure', 'Findings', 'Impression', 'Status', 'Actions']}
         data={cases}
         loading={loading}
         emptyMessage={`No ${modality} cases found.`}
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
-        searchPlaceholder="Search procedure…"
         pagination={{
           total: paginationInfo.total,
           page,

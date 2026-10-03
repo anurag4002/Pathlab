@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAuditLogs } from '../../services/auditLogService';
-import { PageHeader, DataTable, Input, Select, DatePicker, StatusBadge, Button } from '../../components/common';
+import { PageHeader, DataTable, Input, Select, DatePicker, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatDate from '../../utils/formatDate';
@@ -62,18 +62,27 @@ const AuditLog = () => {
   return (
     <div>
       <PageHeader title="Audit Log" subtitle="Append-only trail of who did what, when (read-only)" />
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
-        <Input label="Actor" value={actor} onChange={(e) => { setActor(e.target.value); goToPage(1); }} placeholder="User name..." style={{ minWidth: '160px' }} />
-        <Input label="Action" value={action} onChange={(e) => { setAction(e.target.value); goToPage(1); }} placeholder="e.g. Void Bill" style={{ minWidth: '160px' }} />
-        <Select label="Module" value={module} onChange={(e) => { setModule(e.target.value); goToPage(1); }} options={MODULES.map((m) => ({ value: m, label: m }))} style={{ minWidth: '150px' }} />
-        <DatePicker label="From" value={from} onChange={(e) => { setFrom(e.target.value); goToPage(1); }} style={{ marginBottom: 0 }} />
-        <DatePicker label="To" value={to} onChange={(e) => { setTo(e.target.value); goToPage(1); }} style={{ marginBottom: 0 }} />
-        {(actor || action || module !== 'All' || from || to) && (
-          <Button variant="secondary" size="sm" onClick={clearAll}>
-            Clear
-          </Button>
-        )}
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(actor || action || module !== 'All' || from || to)}
+        onClear={clearAll}
+        values={{ actor, action, module, from, to }}
+        onChange={(key, value) => {
+          goToPage(1);
+          if (key === 'actor') setActor(value);
+          else if (key === 'action') setAction(value);
+          else if (key === 'module') setModule(value);
+          else if (key === 'from') setFrom(value);
+          else if (key === 'to') setTo(value);
+        }}
+        fields={[
+          { key: 'actor', label: 'Actor', type: 'text', placeholder: 'User name…' },
+          { key: 'action', label: 'Action', type: 'text', placeholder: 'e.g. Void Bill' },
+          { key: 'module', label: 'Module', type: 'select', options: MODULES.map((m) => ({ value: m, label: m })), placeholder: '', size: 'sm' },
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' }
+        ]}
+      />
       {loadError && <p className="form-error" style={{ marginBottom: '1rem' }}>{loadError}</p>}
       <DataTable
         headers={['Timestamp', 'Actor', 'Role', 'Action', 'Entity / Module', 'Details']}

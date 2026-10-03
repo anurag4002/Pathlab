@@ -4,7 +4,12 @@ import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const TestPanels = () => {
   const [panels, setPanels] = useState([]);
@@ -24,11 +29,15 @@ const TestPanels = () => {
 
   // Search + client-side pagination (GET /api/panels returns the full list).
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const filteredPanels = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return panels;
-    return panels.filter((p) => String(p.name || '').toLowerCase().includes(q));
-  }, [panels, search]);
+    return panels.filter((p) => {
+      if (statusFilter && p.status !== statusFilter) return false;
+      if (!q) return true;
+      return String(p.name || '').toLowerCase().includes(q);
+    });
+  }, [panels, search, statusFilter]);
   const pg = useClientPagination(filteredPanels, 10);
 
   const fetchPanels = async () => {
@@ -168,14 +177,27 @@ const TestPanels = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search panels…' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Panel Name', 'Included Tests', 'Price', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No test panels defined in the system."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search panels…"
         pagination={{
           total: pg.total,
           page: pg.page,

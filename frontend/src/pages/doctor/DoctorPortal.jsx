@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMyCases } from '../../services/doctorPortalService';
-import { PageHeader, DataTable, StatCard } from '../../components/common';
+import { PageHeader, DataTable, StatCard, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import { FileText, Radio, Layers } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
@@ -38,11 +38,20 @@ const DoctorPortal = () => {
         <StatCard title="USG" value={data.summary?.usg ?? data.usg.length} icon={Radio} />
         <StatCard title="X-Ray" value={data.summary?.xray ?? data.xray.length} icon={Layers} />
       </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pgBills.reset(); pgUsg.reset(); pgXray.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pgBills.reset(); pgUsg.reset(); pgXray.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search patient…' }
+        ]}
+      />
       <h4>Bills</h4>
       <DataTable headers={['Date', 'Patient', 'Amount', 'Status']} data={pgBills.paged} loading={loading} emptyMessage="No bill cases."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pgBills.reset(); pgUsg.reset(); pgXray.reset(); }}
-        searchPlaceholder="Search patient…"
         pagination={pgProps(pgBills)}
         renderRow={(b, i) => (<tr key={b._id || i}><td>{formatDate(b.date || b.createdAt)}</td><td>{(b.patient && typeof b.patient === 'object' ? b.patient.name : b.patient) || '-'}</td><td>{b.totalAmount ?? b.total ?? b.amount ?? '-'}</td><td>{b.paymentStatus || b.status || '-'}</td></tr>)} />
       <h4 style={{ marginTop: 16 }}>USG</h4>

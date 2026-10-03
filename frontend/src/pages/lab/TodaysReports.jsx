@@ -42,10 +42,10 @@ import {
   FileUploader,
   ConfirmDialog,
   EmptyState,
-  PatientPicker
+  PatientPicker,
+  AdvancedFilterBar
 } from '../../components/common';
 import TatCountdown, { getTatInfo, loadTatSettings, isDoneStatus } from '../../components/lab/TatCountdown';
-import WorklistTabs, { DepartmentFilterChips } from '../../components/lab/WorklistTabs';
 import SignaturePicker from '../../components/lab/SignaturePicker';
 import ReportPreviewModal from '../../components/lab/ReportPreviewModal';
 import RejectDialog from '../../components/lab/RejectDialog';
@@ -753,41 +753,74 @@ const TodaysReports = () => {
 
       {(() => {
         const count = (s) => reports.filter((r) => r.status === s).length;
-        const stats = [
-          ['All', reports.length], ['Registered', count('Registered')], ['Received', count('Received')],
-          ['Reported', count('Reported')], ['Signed', count('Signed')], ['Completed', count('Completed')],
-        ];
         return (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-            {stats.map(([k, v]) => (
-              <button key={k} onClick={() => { setStatusFilter(k === 'All' ? '' : k); pg.reset(); }} className={`btn ${statusFilter === (k === 'All' ? '' : k) ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '4px 10px', fontSize: '0.75rem' }}>{k} {v}</button>
-            ))}
-            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="select-control" style={{ maxWidth: '160px', padding: '4px 8px', fontSize: '0.8rem' }}>
-              <option value="Recent">Sort: Recent</option>
-              <option value="Oldest">Sort: Oldest</option>
-              <option value="Due">Sort: Due first</option>
-            </select>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reports for today • Go to <a href="/lab/search">Search</a> • Recent changes auto-refresh on save</span>
-          </div>
+          <AdvancedFilterBar
+            showSearchButton={false}
+            showClearButton={!!(statusFilter || search || dept !== 'All' || tab !== 'today' || sortOrder !== 'Recent')}
+            onClear={() => {
+              setStatusFilter('');
+              setSearch('');
+              setDept('All');
+              setTab('today');
+              setSortOrder('Recent');
+              pg.reset();
+              pgPending.reset();
+            }}
+            trailing={<span>Reports for today · <a href="/lab/search">Search</a></span>}
+            values={{ status: statusFilter || 'All', sort: sortOrder, tab, dept, search }}
+            onChange={(key, value) => {
+              if (key === 'status') { setStatusFilter(value === 'All' ? '' : value); pg.reset(); }
+              else if (key === 'sort') setSortOrder(value);
+              else if (key === 'tab') { setTab(value); pg.reset(); pgPending.reset(); }
+              else if (key === 'dept') { setDept(value); pg.reset(); }
+              else if (key === 'search') { setSearch(value); pg.reset(); }
+            }}
+            fields={[
+              {
+                key: 'status',
+                type: 'segmented',
+                options: [
+                  { value: 'All', label: `All ${reports.length}` },
+                  { value: 'Registered', label: `Registered ${count('Registered')}` },
+                  { value: 'Received', label: `Received ${count('Received')}` },
+                  { value: 'Reported', label: `Reported ${count('Reported')}` },
+                  { value: 'Signed', label: `Signed ${count('Signed')}` },
+                  { value: 'Completed', label: `Completed ${count('Completed')}` }
+                ]
+              },
+              {
+                key: 'tab',
+                type: 'segmented',
+                options: [
+                  { value: 'today', label: `Today (${filteredReports.length})` },
+                  { value: 'due', label: `Due (${dueReports.length})` },
+                  { value: 'pending', label: `Pending (${pendingCases.length})` }
+                ]
+              },
+              {
+                key: 'dept',
+                label: 'Department',
+                type: 'select',
+                placeholder: '',
+                options: (deptOptions || []).map((d) => ({ value: d, label: d }))
+              },
+              {
+                key: 'sort',
+                label: 'Sort',
+                type: 'select',
+                size: 'sm',
+                placeholder: '',
+                options: [
+                  { value: 'Recent', label: 'Recent' },
+                  { value: 'Oldest', label: 'Oldest' },
+                  { value: 'Due', label: 'Due first' }
+                ]
+              },
+              { key: 'search', label: 'Search', type: 'search', size: 'lg', placeholder: 'Patient / reg no / bill / test…' }
+            ]}
+          />
         );
       })()}
-
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem' }}>
-        <WorklistTabs
-          active={tab}
-          onChange={(t) => { setTab(t); pg.reset(); pgPending.reset(); }}
-          counts={{ today: filteredReports.length, due: dueReports.length, pending: pendingCases.length }}
-        />
-        <DepartmentFilterChips options={deptOptions} value={dept} onChange={(d) => { setDept(d); pg.reset(); }} />
-        <input
-          type="text"
-          placeholder="Search patient / reg no / bill / test…"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-          className="select-control"
-          style={{ maxWidth: '260px', padding: '4px 8px', fontSize: '0.8rem' }}
-        />
-      </div>
 
       {tab === 'pending' ? (
         pendingError ? (

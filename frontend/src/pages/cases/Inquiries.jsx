@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getInquiries, setInquiryStatus, updateInquiry } from '../../services/inquiryService';
-import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button } from '../../components/common';
+import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button, AdvancedFilterBar } from '../../components/common';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatCurrency from '../../utils/formatCurrency';
@@ -193,16 +193,18 @@ const Inquiries = () => {
         subtitle="Self-service test bookings from the patient portal — confirm by phone, bill at the counter"
       />
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ minWidth: '11rem', maxWidth: '14rem' }}>
-          <Select
-            label="Status"
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); goToPage(1); }}
-            options={STATUS_OPTIONS}
-          />
-        </div>
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!statusFilter}
+        onClear={() => { setStatusFilter(''); goToPage(1); }}
+        values={{ status: statusFilter }}
+        onChange={(key, value) => {
+          if (key === 'status') { setStatusFilter(value); goToPage(1); }
+        }}
+        fields={[
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.filter((o) => o.value), placeholder: 'All statuses', size: 'sm' }
+        ]}
+      />
 
       <DataTable
         headers={['Raised On', 'Patient', 'Phone', 'Items', 'Est. Total', 'Preferred', 'Status', 'Actions']}

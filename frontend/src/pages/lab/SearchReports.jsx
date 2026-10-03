@@ -115,6 +115,7 @@ const SearchReports = () => {
         onChange={(k, v) => { setAdvKey(k, v); goToPage(1); }}
         onSearch={() => { goToPage(1); fetchReports(); }}
         onClear={() => { setAdv({ duration: '', firstName: '', status: '', referredBy: '', regNo: '', dailyCaseNo: '', uhid: '', cc: '', test: '', from: '', to: '' }); setSearch(''); goToPage(1); }}
+        collapseAfter={6}
         fields={[
           { key: 'duration', label: 'Duration', type: 'select', options: DURATION_OPTIONS },
           { key: 'firstName', label: 'Patient first name', type: 'text', placeholder: 'First name' },
@@ -124,7 +125,7 @@ const SearchReports = () => {
           { key: 'dailyCaseNo', label: 'Daily case no.', type: 'text', placeholder: 'DCN' },
           { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
           { key: 'cc', label: 'Collection centre', type: 'select', options: [{ value: 'Main', label: 'Main' }] },
-          { key: 'test', label: 'Select test', type: 'select', options: (Array.isArray(tests) ? tests : tests?.tests || []).map((t) => ({ value: t._id, label: `${t.name} (${t.code})` })) },
+          { key: 'test', label: 'Select test', type: 'select', size: 'lg', options: (Array.isArray(tests) ? tests : tests?.tests || []).map((t) => ({ value: t._id, label: `${t.name} (${t.code})` })) },
           { key: 'from', label: 'From', type: 'date' },
           { key: 'to', label: 'To', type: 'date' },
         ]}

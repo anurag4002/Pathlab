@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getActivityLogs } from '../../services/dashboardService';
 import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
-import { PageHeader, DataTable, StatusBadge } from '../../components/common';
+import { PageHeader, DataTable, StatusBadge, AdvancedFilterBar } from '../../components/common';
 
 const Activities = () => {
   const [activities, setActivities] = useState([]);
@@ -44,14 +44,24 @@ const Activities = () => {
         subtitle="Chronological clinical log trace of employee updates, billing changes, and configuration details"
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pg.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search action, module, user…' }
+        ]}
+      />
+
       <DataTable
         headers={['Timestamp', 'User Operator', 'Role', 'Action performed', 'Module', 'Log Details']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No system audit logs found."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search action, module, user…"
         pagination={{
           total: pg.total,
           page: pg.page,

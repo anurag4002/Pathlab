@@ -6,7 +6,7 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { EXPENSE_CATEGORIES } from '../../constants/businessConstants';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import { Plus, Edit2, Trash2, Landmark } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -212,23 +212,61 @@ const Expenses = () => {
 
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-        <button className={`btn ${tab === 'expenses' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => { setTab('expenses'); pg.reset(); }}>Expenses</button>
-        <button className={`btn ${tab === 'analysis' ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => { setTab('analysis'); pg.reset(); }}>Analysis</button>
-        <select value={month} onChange={(e) => { setMonth(e.target.value); pg.reset(); }} className="select-control" style={{ maxWidth: '130px' }}>
-          <option value="">All months</option>
-          {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-        </select>
-        <select value={year} onChange={(e) => { setYear(e.target.value); pg.reset(); }} className="select-control" style={{ maxWidth: '130px' }}>
-          <option value="">All years</option>
-          {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <input className="form-control" placeholder="Filters..." value={filterText} onChange={(e) => setFilterText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { pg.reset(); fetchExpensesData(); } }} style={{ maxWidth: '180px' }} />
-        <Button variant="secondary" size="sm" onClick={() => { pg.reset(); fetchExpensesData(); }}>Filters</Button>
-        <Button variant="secondary" size="sm" onClick={exportCsv}>Export</Button>
-        <Button variant="secondary" size="sm" onClick={() => setCatOpen(true)}>Manage categories</Button>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Records in page: {expenses.length}/{expenses.length} • <a href="#feedback" onClick={(e) => { e.preventDefault(); alert('Thanks! Feedback: expenses parity delivered.'); }}>Have feedback? share here</a> • <a href="#how" onClick={(e) => { e.preventDefault(); alert('Expenses: record operating costs; Analysis tab shows category + monthly trends.'); }}>How expenses work?</a></span>
-      </div>
+      <AdvancedFilterBar
+        showSearchButton
+        onSearch={() => { pg.reset(); fetchExpensesData(); }}
+        showClearButton={!!(month || year || filterText || tab !== 'expenses')}
+        onClear={() => {
+          setTab('expenses');
+          setMonth('');
+          setYear('');
+          setFilterText('');
+          pg.reset();
+          fetchExpensesData();
+        }}
+        values={{ tab, month: String(month || ''), year: String(year || ''), search: filterText }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'tab') setTab(value);
+          else if (key === 'month') setMonth(value);
+          else if (key === 'year') setYear(value);
+          else if (key === 'search') setFilterText(value);
+        }}
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={exportCsv}>Export</Button>
+            <Button variant="secondary" size="sm" onClick={() => setCatOpen(true)}>Manage categories</Button>
+          </>
+        }
+        trailing={`Records: ${expenses.length}`}
+        fields={[
+          {
+            key: 'tab',
+            type: 'segmented',
+            options: [
+              { value: 'expenses', label: 'Expenses' },
+              { value: 'analysis', label: 'Analysis' }
+            ]
+          },
+          {
+            key: 'month',
+            label: 'Month',
+            type: 'select',
+            size: 'sm',
+            placeholder: 'All months',
+            options: MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))
+          },
+          {
+            key: 'year',
+            label: 'Year',
+            type: 'select',
+            size: 'sm',
+            placeholder: 'All years',
+            options: YEARS.map((y) => ({ value: String(y), label: String(y) }))
+          },
+          { key: 'search', label: 'Search', type: 'text', placeholder: 'Filters…' }
+        ]}
+      />
 
       {tab === 'analysis' ? (
         <div className="card">

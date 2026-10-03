@@ -1,85 +1,58 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import Sidebar from './Sidebar';
+import './MobileSidebar.css';
 
 const MobileSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Close mobile sidebar on route transition
-    if (isOpen) {
-      onClose();
-    }
+    if (isOpen) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- close only on route change
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!isOpen) return undefined;
+
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && isOpen) onClose();
+      if (e.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleEscape);
-    }
+
+    const root = document.documentElement;
+    root.classList.add('mobile-nav-open');
+    window.addEventListener('keydown', handleEscape);
+
     return () => {
-      document.body.style.overflow = '';
+      root.classList.remove('mobile-nav-open');
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="mobile-sidebar-backdrop"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.6)',
-        backdropFilter: 'blur(2px)',
-        zIndex: 1050,
-        display: 'flex'
-      }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label="Navigation menu"
     >
-      <div
-        className="mobile-sidebar-drawer"
-        style={{
-          width: 'var(--sidebar-width, 16.5rem)',
-          height: '100%',
-          position: 'relative',
-          boxShadow: 'var(--shadow-xl)',
-          backgroundColor: 'var(--color-surface, #ffffff)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="mobile-sidebar-drawer" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
+          className="mobile-sidebar-close"
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '0.875rem',
-            right: '0.875rem',
-            background: 'none',
-            border: 'none',
-            color: 'var(--color-text-muted, #64748b)',
-            cursor: 'pointer',
-            zIndex: 1060,
-            padding: '0.25rem',
-            display: 'flex'
-          }}
           aria-label="Close mobile navigation"
         >
           <X size={20} />
         </button>
-
-        <Sidebar collapsed={false} />
+        <Sidebar collapsed={false} variant="drawer" />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

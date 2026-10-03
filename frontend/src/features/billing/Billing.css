@@ -1,22 +1,67 @@
+/* Two-column create-bill layout: picker | sticky cart */
 .bill-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
   gap: var(--space-6);
+  align-items: start;
 }
 
-/* Sticky cart — the Selected-lines + Payment column stays pinned under the
-   fixed header while the left picker column scrolls. align-self:start keeps
-   the item at the top of its (stretched, row-tall) grid area so sticky has
-   room to travel. Falls back to normal flow where the grid stacks. */
+/* Sticky cart — stays visible while scrolling the picker */
 .bill-summary-column {
   position: sticky;
   top: calc(var(--header-height) + var(--space-4));
   align-self: start;
+  max-height: calc(100vh - var(--header-height) - var(--space-8));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 5;
 }
 
-@media (max-width: 70rem) {
+.bill-summary-column.bill-cart-flash {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+  transition: outline-color 0.35s ease;
+}
+
+/* Compact bar when the grid stacks — always shows cart totals */
+.bill-cart-dock {
+  display: none;
+  position: sticky;
+  bottom: var(--space-3);
+  z-index: 40;
+  margin-top: var(--space-4);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bill-cart-dock strong {
+  font-size: var(--font-size-base);
+}
+
+@media (max-width: 960px) {
+  .bill-form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .bill-summary-column {
     position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .bill-cart-dock {
+    display: flex;
   }
 }
 
@@ -65,8 +110,7 @@
   margin: 0;
 }
 
-/* Department Selector Pills — wrapped grid so every department is visible
-   at once (no hidden horizontal scroll). */
+/* Department Selector Pills */
 .department-selector-grid {
   display: flex;
   flex-wrap: wrap;
@@ -75,7 +119,6 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-/* Legacy horizontal-scroll variant (kept for other usages). */
 .department-selector-scroll {
   display: flex;
   gap: var(--space-2);

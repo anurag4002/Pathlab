@@ -1,0 +1,19 @@
+/* Drawer animation only — core layout is in styles/shell.css */
+.mobile-sidebar-drawer {
+  animation: mobile-drawer-in 0.2s ease;
+}
+
+@keyframes mobile-drawer-in {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.mobile-sidebar-drawer .sidebar-logo-wrapper {
+  padding-right: 2.75rem;
+}

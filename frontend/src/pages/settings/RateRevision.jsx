@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getTests, updateTestRate, bulkUpdateTestRates } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
-import { DataTable, PageHeader, Button, Input, Select, ConfirmDialog } from '../../components/common';
+import { DataTable, PageHeader, Button, Input, Select, ConfirmDialog, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 
 const RateRevision = () => {
@@ -143,24 +143,37 @@ const RateRevision = () => {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-        <div style={{ flex: 1, minWidth: '160px' }}>
-          <Input label="Search tests" name="search" value={search} onChange={(e) => { setSearch(e.target.value); pg.reset(); }} placeholder="Code / name / department" />
-        </div>
-        <div style={{ flex: 1, minWidth: '140px' }}>
-          <Select label="Revision mode" name="mode" value={mode} onChange={(e) => setMode(e.target.value)}
-            options={[{ value: 'percent', label: 'Percent (%)' }, { value: 'absolute', label: 'Absolute (₹)' }]} />
-        </div>
-        <div style={{ flex: 1, minWidth: '140px' }}>
-          <Input label={mode === 'percent' ? 'Change % (+/-)' : 'Change ₹ (+/-)'} name="amount" type="number" step="any"
-            value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === 'percent' ? 'e.g. 10 or -5' : 'e.g. 50 or -20'} />
-        </div>
-        <div style={{ flex: 1, minWidth: '160px' }}>
-          <Input label="Effective date (display only)" name="effectiveDate" type="date"
-            value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)}
-            helperText="For reference only" />
-        </div>
-      </div>
+      <AdvancedFilterBar
+        values={{ search, mode, amount, effectiveDate }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+          else if (key === 'mode') setMode(value);
+          else if (key === 'amount') setAmount(value);
+          else if (key === 'effectiveDate') setEffectiveDate(value);
+        }}
+        onClear={() => { setSearch(''); setAmount(''); setEffectiveDate(''); setMode('percent'); pg.reset(); }}
+        showSearchButton={false}
+        fields={[
+          { key: 'search', label: 'Search tests', type: 'text', size: 'lg', placeholder: 'Code / name / department' },
+          {
+            key: 'mode',
+            label: 'Revision mode',
+            type: 'select',
+            options: [
+              { value: 'percent', label: 'Percent (%)' },
+              { value: 'absolute', label: 'Absolute (₹)' }
+            ],
+            placeholder: ''
+          },
+          {
+            key: 'amount',
+            label: mode === 'percent' ? 'Change % (+/-)' : 'Change ₹ (+/-)',
+            type: 'text',
+            placeholder: mode === 'percent' ? 'e.g. 10 or -5' : 'e.g. 50 or -20'
+          },
+          { key: 'effectiveDate', label: 'Effective date', type: 'date' }
+        ]}
+      />
 
       {/* Impact preview */}
       <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>

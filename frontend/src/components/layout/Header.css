@@ -10,9 +10,12 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--space-6);
-  z-index: 99;
+  z-index: 100;
   transition: left var(--transition-slow);
   box-shadow: var(--shadow-xs);
+  gap: var(--space-3);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .header.collapsed {
@@ -22,13 +25,46 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* Mobile/tablet brand — desktop logo lives in the sidebar */
+.header-brand {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.header-logo-img {
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.header-logo-text {
+  font-size: 0.95rem;
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-toggle-btn {
@@ -88,6 +124,7 @@
   display: flex;
   flex-direction: column;
   text-align: left;
+  min-width: 0;
 }
 
 .user-name {

@@ -4,7 +4,12 @@ import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const TestPackages = () => {
   const [packages, setPackages] = useState([]);
@@ -24,11 +29,15 @@ const TestPackages = () => {
 
   // Search + client-side pagination (GET /api/packages returns the full list).
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const filteredPackages = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return packages;
-    return packages.filter((p) => String(p.name || '').toLowerCase().includes(q));
-  }, [packages, search]);
+    return packages.filter((p) => {
+      if (statusFilter && p.status !== statusFilter) return false;
+      if (!q) return true;
+      return String(p.name || '').toLowerCase().includes(q);
+    });
+  }, [packages, search, statusFilter]);
   const pg = useClientPagination(filteredPackages, 10);
 
   const fetchPackages = async () => {
@@ -169,14 +178,27 @@ const TestPackages = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search packages…' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Package Name', 'Included Tests', 'Price', 'Applicable Gender', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No test packages defined in the system."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search packages…"
         pagination={{
           total: pg.total,
           page: pg.page,

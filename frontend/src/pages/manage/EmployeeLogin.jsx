@@ -6,7 +6,7 @@ import useDebounce from '../../hooks/useDebounce';
 import useClientPagination from '../../hooks/useClientPagination';
 import { validateEmail } from '../../utils/validators';
 import formatDate from '../../utils/formatDate';
-import { DataTable, PageHeader, Button, Modal, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import EmployeeForm from './components/EmployeeForm';
 import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
@@ -361,29 +361,25 @@ const EmployeeLogin = () => {
       {actionError && <div className="user-management-alert user-management-alert-error" role="alert">{actionError}</div>}
       {notice && <div className="user-management-alert user-management-alert-success" role="status">{notice}</div>}
 
-      <div className="user-management-filters" aria-label="User list filters">
-        <Select
-          label="Role"
-          name="role-filter"
-          value={roleFilter}
-          onChange={(event) => setRoleFilter(event.target.value)}
-          options={[{ value: '', label: 'All staff roles' }, ...ROLE_OPTIONS]}
-          placeholder=""
-          disabled={loading}
-        />
-        <Select
-          label="Status"
-          name="status-filter"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
-          options={[{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS]}
-          placeholder=""
-          disabled={loading}
-        />
-        <Button variant="secondary" onClick={refreshUsers} disabled={loading} icon={<RefreshCw size={14} />}>
-          Refresh
-        </Button>
-      </div>
+      <AdvancedFilterBar
+        aria-label="User list filters"
+        showSearchButton={false}
+        showClearButton={false}
+        values={{ role: roleFilter, status: statusFilter }}
+        onChange={(key, value) => {
+          if (key === 'role') setRoleFilter(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        actions={
+          <Button variant="secondary" size="sm" onClick={refreshUsers} disabled={loading} icon={<RefreshCw size={14} />}>
+            Refresh
+          </Button>
+        }
+        fields={[
+          { key: 'role', label: 'Role', type: 'select', options: ROLE_OPTIONS, placeholder: 'All staff roles' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
 
       <p className="user-management-helper">
         Search and filters use the existing user API. Doctor accounts remain in Doctor Access.

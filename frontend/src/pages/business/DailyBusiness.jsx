@@ -5,7 +5,8 @@ import { downloadServerCsv } from '../../services/exportService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { Download, Printer, RefreshCw, Mail } from 'lucide-react';
-import { PageHeader, DataTable, DatePicker, StatusBadge, Select, Button } from '../../components/common';
+import { PageHeader, DataTable, StatusBadge, Select, Button, AdvancedFilterBar } from '../../components/common';
+import { SvgGroupedBars, SvgHBars } from '../../components/charts/SvgCharts';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
    only the backend's user-facing `message` field, never stack traces. */
@@ -273,8 +274,15 @@ const DailyBusiness = () => {
   };
 
   const overview = data?.monthlyOverview || [];
-  const ovMax = Math.max(1, ...overview.map((d) => d.income || 0));
-  const ovW = Math.max(200, overview.length * 46);
+  const overviewGrouped = overview.map((d) => ({
+    label: String(d.date || '').slice(5),
+    income: d.income || 0,
+    net: Math.max(0, d.net || 0)
+  }));
+  const paymentModeBars = Object.entries(data?.incomeSplit || {})
+    .map(([mode, amount]) => ({ label: mode, value: Number(amount) || 0 }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   return (
     <div>
@@ -312,21 +320,48 @@ const DailyBusiness = () => {
         }
       />
 
-      {/* Date Selectors & Quick Status */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <DatePicker label="" value={startDate} onChange={handleStartDateChange} style={{ marginBottom: 0, width: '150px' }} />
-          <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>to</span>
-          <DatePicker label="" value={endDate} onChange={handleEndDateChange} style={{ marginBottom: 0, width: '150px' }} />
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); }}>Today</button>
-          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => { const u = new URL(window.location.href); u.searchParams.set('from', startDate); u.searchParams.set('to', endDate); navigator.clipboard?.writeText(u.toString()); alert('Link copied: ' + u.toString()); }}>Share URL</button>
-          <div style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>
-            Date - {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}, {new Date().toLocaleDateString('en-IN')}
-          </div>
-        </div>
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={false}
+        values={{ from: startDate, to: endDate }}
+        onChange={(key, value) => {
+          if (key === 'from') handleStartDateChange({ target: { value } });
+          else if (key === 'to') handleEndDateChange({ target: { value } });
+        }}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const t = new Date().toISOString().split('T')[0];
+                setStartDate(t);
+                setEndDate(t);
+              }}
+            >
+              Today
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const u = new URL(window.location.href);
+                u.searchParams.set('from', startDate);
+                u.searchParams.set('to', endDate);
+                navigator.clipboard?.writeText(u.toString());
+                alert('Link copied: ' + u.toString());
+              }}
+            >
+              Share URL
+            </Button>
+          </>
+        }
+        trailing={`${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}, ${new Date().toLocaleDateString('en-IN')}`}
+        fields={[
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' }
+        ]}
+      />
 
       {invalidRange && (
         <div
@@ -395,15 +430,13 @@ const DailyBusiness = () => {
           {/* Collections by payment mode — keys come from the API's incomeSplit */}
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ fontWeight: '700', fontSize: '0.875rem', marginBottom: '8px' }}>Collections by payment mode</h4>
-            {(data.totalIncome || 0) > 0 ? (
-              <div className="card" style={{ padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '16px', backgroundColor: 'var(--color-background)', border: '1px dashed var(--color-border)' }}>
-                {Object.entries(data.incomeSplit || {}).map(([mode, amount]) => (
-                  <div key={mode}>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>{mode}: </span>
-                    <strong style={{ color: 'var(--color-text)' }}>{formatCurrency(amount)}</strong>
-                  </div>
-                ))}
-
+            {paymentModeBars.length > 0 ? (
+              <div className="card" style={{ padding: '1rem', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-background)', border: '1px solid var(--color-border)' }}>
+                <SvgHBars
+                  data={paymentModeBars}
+                  color="var(--color-primary)"
+                  formatValue={(v) => formatCurrency(v)}
+                />
               </div>
             ) : (
               <div className="card" style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', marginBottom: 0 }}>
@@ -413,28 +446,18 @@ const DailyBusiness = () => {
           </div>
 
           {/* Monthly Overview Strip: income vs net per day (server-provided series) */}
-          {overview.length > 0 && (
+          {overviewGrouped.length > 0 && (
             <div className="card" style={{ marginBottom: '1.5rem', overflowX: 'auto' }}>
               <h4 style={{ fontWeight: '700', fontSize: '0.875rem', marginBottom: '8px' }}>Daily Overview — Income vs Net</h4>
-              <svg viewBox={`0 0 ${ovW} 150`} width={ovW} height="150" role="img">
-                {overview.map((d, i) => {
-                  const ih = Math.max(2, ((d.income || 0) / ovMax) * 110);
-                  const nh = Math.max(2, (Math.max(0, d.net || 0) / ovMax) * 110);
-                  const x = 10 + i * 46;
-                  return (
-                    <g key={d.date}>
-                      <title>{`${d.date}: income ${d.income}, net ${d.net}`}</title>
-                      <rect x={x} y={120 - ih} width="18" height={ih} rx="2" fill="var(--color-primary)" opacity="0.85" />
-                      <rect x={x + 20} y={120 - nh} width="18" height={nh} rx="2" fill="var(--color-success)" opacity="0.85" />
-                      <text x={x + 19} y="134" fontSize="8" fill="var(--color-text-muted)" textAnchor="middle">{d.date.slice(5)}</text>
-                    </g>
-                  );
-                })}
-              </svg>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--color-primary)', borderRadius: 2 }} /> Income</span>
-                <span><span style={{ display: 'inline-block', width: 10, height: 10, background: 'var(--color-success)', borderRadius: 2 }} /> Net</span>
-              </div>
+              <SvgGroupedBars
+                data={overviewGrouped}
+                height={200}
+                series={[
+                  { key: 'income', label: 'Income', color: 'var(--color-primary)' },
+                  { key: 'net', label: 'Net', color: 'var(--color-success)' }
+                ]}
+                formatValue={(v) => formatCurrency(v)}
+              />
             </div>
           )}
 
@@ -473,34 +496,50 @@ const DailyBusiness = () => {
         </p>
       )}
 
-      {/* Filter Tabs & Search + Cashier filter */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['transactions', 'bills', 'expenses'].map((t) => (
-                <button key={t} className={`btn ${activeTab === t ? 'btn-primary' : 'btn-secondary'}`}
-                  disabled={exporting}
-                  onClick={() => { handleTabChange(t); resetPages(); }}
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.825rem', textTransform: 'capitalize' }}>
-                  {t} ({t === 'transactions' ? fTx.length : t === 'bills' ? fBills.length : fExp.length})
-                </button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Select name="department" value={deptFilter} onChange={(e) => { setDeptFilter(e.target.value); resetPages(); }}
-                options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))} placeholder="All departments (client-side)" style={{ marginBottom: 0, minWidth: '200px' }} />
-              <Select name="cashier" value={cashierFilter} onChange={(e) => { setCashierFilter(e.target.value); resetPages(); }}
-                options={cashierOptions} placeholder="All cashiers" style={{ marginBottom: 0, minWidth: '160px' }} />
-              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '4px 12px', backgroundColor: 'var(--color-surface)' }}>
-                <input type="text" placeholder="Search in page..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); resetPages(); }}
-                  style={{ border: 'none', outline: 'none', fontSize: '0.825rem', width: '200px', background: 'transparent' }} />
-              </div>
-            </div>
-          </div>
-          {deptFilter && (
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '-0.5rem', marginBottom: '1rem' }}>
-              Department filter applies to the loaded rows. Clear it to see all departments.
-            </p>
-          )}
+          <AdvancedFilterBar
+            showSearchButton={false}
+            showClearButton={!!(deptFilter || cashierFilter !== 'All' || searchQuery)}
+            onClear={() => {
+              setDeptFilter('');
+              setCashierFilter('All');
+              setSearchQuery('');
+              resetPages();
+            }}
+            values={{ tab: activeTab, dept: deptFilter, cashier: cashierFilter, search: searchQuery }}
+            onChange={(key, value) => {
+              resetPages();
+              if (key === 'tab') handleTabChange(value);
+              else if (key === 'dept') setDeptFilter(value);
+              else if (key === 'cashier') setCashierFilter(value);
+              else if (key === 'search') setSearchQuery(value);
+            }}
+            fields={[
+              {
+                key: 'tab',
+                type: 'segmented',
+                options: [
+                  { value: 'transactions', label: `Transactions (${fTx.length})` },
+                  { value: 'bills', label: `Bills (${fBills.length})` },
+                  { value: 'expenses', label: `Expenses (${fExp.length})` }
+                ]
+              },
+              {
+                key: 'dept',
+                label: 'Department',
+                type: 'select',
+                placeholder: 'All departments',
+                options: DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))
+              },
+              {
+                key: 'cashier',
+                label: 'Cashier',
+                type: 'select',
+                placeholder: '',
+                options: cashierOptions
+              },
+              { key: 'search', label: 'Search', type: 'search', size: 'lg', placeholder: 'Search in page…' }
+            ]}
+          />
 
           {/* Cashier-wise summary (server-grouped collections per user) */}
           {(data?.cashierWise?.length > 0) && (

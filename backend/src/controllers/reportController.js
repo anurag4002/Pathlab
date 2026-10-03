@@ -289,22 +289,57 @@ async function getPendingLabCases(req, res, next) {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const search = String(req.query.search || req.query.q || '').trim();
+    const statusFilter = String(req.query.status || '').trim();
 
     // Find LAB department bills that don't have a report, or have a report in Registered/Draft status.
     // Verified/Rejected are terminal too — without them such bills leak back into pending.
     const billsWithReports = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft', 'Reported', 'Signed', 'Completed', 'Verified', 'Rejected'] } }).distinct('bill');
 
     // Also include bills that have a report still in data-entry (Registered/Draft)
-    const draftReportBills = await Report.find({ ...branchScope, status: { $in: ['Registered', 'Draft'] } }).distinct('bill');
+    let draftStatuses = ['Registered', 'Draft'];
+    if (statusFilter === 'Pending') {
+      draftStatuses = [];
+    } else if (statusFilter && draftStatuses.includes(statusFilter)) {
+      draftStatuses = [statusFilter];
+    }
+    const draftReportBills = draftStatuses.length
+      ? await Report.find({ ...branchScope, status: { $in: draftStatuses } }).distinct('bill')
+      : [];
 
     // Combine: bills without reports OR bills with draft reports
-    const finalQuery = {
-      ...branchScope,
-      $or: [
-        { _id: { $nin: billsWithReports }, department: 'LAB', isVoided: { $ne: true } },
-        { _id: { $in: draftReportBills }, department: 'LAB', isVoided: { $ne: true } }
-      ]
-    };
+    const orClauses = [];
+    if (!statusFilter || statusFilter === 'Pending') {
+      orClauses.push({ _id: { $nin: billsWithReports }, department: 'LAB', isVoided: { $ne: true } });
+    }
+    if ((!statusFilter || statusFilter !== 'Pending') && draftReportBills.length) {
+      orClauses.push({ _id: { $in: draftReportBills }, department: 'LAB', isVoided: { $ne: true } });
+    }
+    if (!orClauses.length) {
+      return successResponse(res, 'Pending lab cases loaded', {
+        cases: [],
+        pagination: { total: 0, page, limit, pages: 0 }
+      });
+    }
+    const finalQuery = { ...branchScope, $or: orClauses };
+
+    if (search) {
+      const Patient = require('../models/Patient');
+      const matchedPatients = await Patient.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { registrationNumber: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      const patientIds = matchedPatients.map((p) => p._id);
+      finalQuery.$and = [{
+        $or: [
+          { billNumber: { $regex: search, $options: 'i' } },
+          ...(patientIds.length ? [{ patient: { $in: patientIds } }] : [])
+        ]
+      }];
+    }
 
     const bills = await Bill.find(finalQuery)
       .populate('patient', 'name registrationNumber age gender phone')

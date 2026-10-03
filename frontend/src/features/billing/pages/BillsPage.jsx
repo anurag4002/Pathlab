@@ -7,7 +7,7 @@ import { getAgents } from '../../../services/agentService';
 import { getTests } from '../../../services/testService';
 import { getPackages } from '../../../services/packageService';
 import { getPanels } from '../../../services/panelService';
-import { downloadBillPdf, fetchBillQr, printBillPdf } from '../../../services/publicService';
+import { downloadBillPdf, printBillPdf } from '../../../services/publicService';
 import {
   DataTable,
   PageHeader,
@@ -31,7 +31,7 @@ import { usePermissions } from '../../../hooks/usePermission';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
-import { Plus, Printer, CreditCard, Ban, QrCode, FileDown, Eye, RefreshCw, Tag } from 'lucide-react';
+import { Plus, Printer, CreditCard, Ban, FileDown, Eye, RefreshCw, Tag } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
@@ -432,15 +432,6 @@ const BillsPage = () => {
 
   const detailPatientName = details?.patient?.name || detailsTarget?.patient?.name || '';
 
-  const handleShowQr = async (bill) => {
-    try {
-      const res = await fetchBillQr(bill._id);
-      if (res.success) window.open(res.data.verifyUrl, '_blank', 'noopener');
-    } catch {
-      alert('Failed to load bill QR');
-    }
-  };
-
   if (isCreateView) {
     return (
       <div>
@@ -496,60 +487,57 @@ const BillsPage = () => {
       )}
 
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-        <Select
-          placeholder="All Payment Statuses"
-          value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); goToPage(1); }}
-          options={BILL_STATUS_OPTIONS}
-          style={{ maxWidth: '15rem' }}
-        />
-        <Select
-          placeholder="All Departments"
-          value={filterDept}
-          onChange={(e) => { setFilterDept(e.target.value); goToPage(1); }}
-          options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))}
-          style={{ maxWidth: '15rem' }}
-        />
-        <Select
-          placeholder="All Patients"
-          value={filterPatient}
-          onChange={(e) => { setFilterPatient(e.target.value); goToPage(1); }}
-          options={patients.map((p) => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` }))}
-          style={{ maxWidth: '15rem' }}
-        />
-        <Input
-          label="From"
-          type="date"
-          value={filterFrom}
-          onChange={(e) => { setFilterFrom(e.target.value); goToPage(1); }}
-          style={{ maxWidth: '10rem' }}
-        />
-        <Input
-          label="To"
-          type="date"
-          value={filterTo}
-          onChange={(e) => { setFilterTo(e.target.value); goToPage(1); }}
-          style={{ maxWidth: '10rem' }}
-        />
-        <Select
-          value={filterVoided}
-          onChange={(e) => { setFilterVoided(e.target.value); goToPage(1); }}
-          options={[
+      <AdvancedFilterBar
+        values={{
+          status: filterStatus,
+          dept: filterDept,
+          patient: filterPatient,
+          from: filterFrom,
+          to: filterTo,
+          voided: filterVoided,
+          branch: filterBranch,
+          ...adv
+        }}
+        onChange={(key, value) => {
+          const go = () => goToPage(1);
+          switch (key) {
+            case 'status': setFilterStatus(value); go(); break;
+            case 'dept': setFilterDept(value); go(); break;
+            case 'patient': setFilterPatient(value); go(); break;
+            case 'from': setFilterFrom(value); go(); break;
+            case 'to': setFilterTo(value); go(); break;
+            case 'voided': setFilterVoided(value); go(); break;
+            case 'branch': setFilterBranch(value); go(); fetchBillsList(); break;
+            default: setAdvKey(key, value); break;
+          }
+        }}
+        onSearch={() => { goToPage(1); fetchBillsList(); }}
+        onClear={() => {
+          setAdv({ duration: '', regNo: '', firstName: '', referredBy: '', collectionCentre: '', agent: '', hasDue: false, cancelled: false, caseType: '', uhid: '', dailyCaseNo: '' });
+          setSearch('');
+          setFilterStatus('');
+          setFilterDept('');
+          setFilterPatient('');
+          setFilterFrom('');
+          setFilterTo('');
+          setFilterVoided('');
+          setFilterBranch('');
+          goToPage(1);
+        }}
+        collapseAfter={7}
+        fields={[
+          { key: 'status', label: 'Payment status', type: 'select', options: BILL_STATUS_OPTIONS, placeholder: 'All Payment Statuses' },
+          { key: 'dept', label: 'Department', type: 'select', options: DEPARTMENTS.map((d) => ({ value: d.name, label: d.name })), placeholder: 'All Departments' },
+          { key: 'patient', label: 'Patient', type: 'select', size: 'lg', options: patients.map((p) => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` })), placeholder: 'All Patients' },
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' },
+          { key: 'voided', label: 'Voided bills', type: 'select', options: [
             { value: '', label: 'Exclude voided bills' },
             { value: 'true', label: 'Include voided bills' }
-          ]}
-          style={{ maxWidth: '14rem' }}
-        />
-        <BranchFilter value={filterBranch} onChange={(v) => { setFilterBranch(v); goToPage(1); fetchBillsList(); }} />
-      </div>
-
-      <AdvancedFilterBar
-        values={adv}
-        onChange={setAdvKey}
-        onSearch={() => { goToPage(1); fetchBillsList(); }}
-        onClear={() => { setAdv({ duration: '', regNo: '', firstName: '', referredBy: '', collectionCentre: '', agent: '', hasDue: false, cancelled: false, caseType: '', uhid: '', dailyCaseNo: '' }); setSearch(''); setFilterStatus(''); setFilterDept(''); goToPage(1); }}
-        fields={[
+          ] },
+          { key: 'branch', type: 'custom', size: 'md', render: ({ value, onChange }) => (
+            <BranchFilter value={value} onChange={onChange} />
+          ) },
           { key: 'duration', label: 'Duration', type: 'select', options: DURATION_OPTIONS },
           { key: 'regNo', label: 'Reg.no.', type: 'text', placeholder: 'Reg.no.' },
           { key: 'firstName', label: 'Patient first name', type: 'text', placeholder: 'First name' },
@@ -615,9 +603,6 @@ const BillsPage = () => {
                 </Button>
                     <Button variant="secondary" size="sm" onClick={() => handleDownloadPdf(bill)} icon={<FileDown size={14} />} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`}>
                   PDF
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleShowQr(bill)} icon={<QrCode size={14} />} data-testid="bill-qr" aria-label={`QR ${bill.billNumber}`}>
-                  QR
                 </Button>
                 <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />} data-testid="bill-labels" aria-label={`Labels ${bill.billNumber}`}>
                   Labels

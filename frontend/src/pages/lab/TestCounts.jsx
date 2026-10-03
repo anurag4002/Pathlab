@@ -3,6 +3,7 @@ import { getSummary } from '../../services/dashboardService';
 import { getTestCategories, getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import { PageHeader, StatCard, EmptyState, Button } from '../../components/common';
+import { SvgHBars } from '../../components/charts/SvgCharts';
 import { FlaskConical, Receipt, Hourglass, FolderOpen, Layers, ClipboardList, RefreshCw, AlertCircle } from 'lucide-react';
 import './TestCounts.css';
 
@@ -56,7 +57,6 @@ const TestCounts = () => {
     return rows.sort((a, b) => b.count - a.count);
   }, [categories, tests]);
 
-  const maxCount = Math.max(1, ...categoryCounts.map((c) => c.count));
   const totalActive = tests.length;
 
   if (loading) {
@@ -161,22 +161,14 @@ const TestCounts = () => {
               message="Test categories will appear here once configured in the catalog."
             />
           ) : (
-            <div className="test-counts-row">
-              {categoryCounts.map((cat) => (
-                <div key={cat.name} className="test-counts-cat">
-                  <div className="test-counts-cat-top">
-                    <span className="test-counts-cat-name" title={cat.name}>{cat.name}</span>
-                    <span className="test-counts-cat-count">{cat.count} test{cat.count === 1 ? '' : 's'}</span>
-                  </div>
-                  <div className="test-counts-bar" aria-hidden="true">
-                    <div
-                      className="test-counts-bar-fill"
-                      style={{ width: `${Math.round((cat.count / maxCount) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SvgHBars
+              data={categoryCounts.map((cat) => ({
+                label: cat.name,
+                value: cat.count
+              }))}
+              color="var(--color-primary, #2563eb)"
+              formatValue={(v) => `${v} test${v === 1 ? '' : 's'}`}
+            />
           )}
         </section>
 

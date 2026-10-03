@@ -4,12 +4,13 @@ import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Eye, FileSpreadsheet, Printer } from 'lucide-react';
-import { PageHeader, DataTable, DatePicker, Modal, Button } from '../../components/common';
+import { PageHeader, DataTable, Modal, Button, AdvancedFilterBar } from '../../components/common';
 
 const ReferralBusiness = () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
+  const [period, setPeriod] = useState('Today');
 
   const [report, setReport] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,7 @@ const ReferralBusiness = () => {
   }, [startDate, endDate]);
 
   const setPreset = (p) => {
+    setPeriod(p);
     const fmt = (d) => d.toISOString().split('T')[0];
     const now = new Date();
     if (p === 'Today') { setStartDate(fmt(now)); setEndDate(fmt(now)); }
@@ -91,29 +93,31 @@ const ReferralBusiness = () => {
         }
       />
 
-      <div className="card" style={{ display: 'flex', gap: '8px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Filter by period:</span>
-        {['Today', 'Yesterday', 'Last Week', 'September', 'August', 'July', 'Custom'].map((p) => (
-          <button key={p} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setPreset(p)}>{p}</button>
-        ))}
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Watch Video: referral reports = bills grouped by doctor in range</span>
-      </div>
-
-      {/* Date Filters */}
-      <div className="card" style={{ display: 'flex', gap: '16px', marginBottom: '2rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <DatePicker
-          label="From Date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          style={{ marginBottom: 0, minWidth: '180px' }}
-        />
-        <DatePicker
-          label="To Date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          style={{ marginBottom: 0, minWidth: '180px' }}
-        />
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton
+        onClear={() => setPreset('Today')}
+        values={{ period, from: startDate, to: endDate }}
+        onChange={(key, value) => {
+          if (key === 'period') setPreset(value);
+          else if (key === 'from') { setPeriod('Custom'); setStartDate(value); }
+          else if (key === 'to') { setPeriod('Custom'); setEndDate(value); }
+        }}
+        fields={[
+          {
+            key: 'period',
+            label: 'Period',
+            type: 'select',
+            placeholder: '',
+            options: ['Today', 'Yesterday', 'Last Week', 'September', 'August', 'July', 'Custom'].map((p) => ({
+              value: p,
+              label: p
+            }))
+          },
+          { key: 'from', label: 'From Date', type: 'date' },
+          { key: 'to', label: 'To Date', type: 'date' }
+        ]}
+      />
 
       <DataTable
         headers={['S.No.', 'Referrer ID', 'Name', 'Contact', 'Total Cases', 'Cases In Filter', 'Commission %', 'Gross', 'Share Payable', 'Case Details']}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getTestUsage } from '../../services/analysisService';
 import { toCsv, downloadCsvText } from '../../services/exportService';
 import formatCurrency from '../../utils/formatCurrency';
-import { PageHeader, Button, DatePicker, Select, DataTable, StatCard } from '../../components/common';
+import { PageHeader, Button, DatePicker, Select, DataTable, StatCard, AdvancedFilterBar } from '../../components/common';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { Download, ArrowUpDown, FlaskConical, Receipt, ShoppingCart, FileText } from 'lucide-react';
@@ -115,17 +115,32 @@ const TestUsage = () => {
         }
       />
 
-      <div className="test-usage-filters">
-        <DatePicker label="From" value={range.from} onChange={(e) => { setRange((r) => ({ ...r, from: e.target.value })); goToPage(1); }} />
-        <DatePicker label="To" value={range.to} onChange={(e) => { setRange((r) => ({ ...r, to: e.target.value })); goToPage(1); }} />
-        <Select
-          label="Sort by usage"
-          value={sortDir}
-          onChange={(e) => { setSortDir(e.target.value); goToPage(1); }}
-          options={[{ value: 'desc', label: 'Most used first' }, { value: 'asc', label: 'Least used first' }]}
-          placeholder=""
-        />
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={false}
+        values={{ from: range.from, to: range.to, sort: sortDir }}
+        onChange={(key, value) => {
+          goToPage(1);
+          if (key === 'from') setRange((r) => ({ ...r, from: value }));
+          else if (key === 'to') setRange((r) => ({ ...r, to: value }));
+          else if (key === 'sort') setSortDir(value);
+        }}
+        fields={[
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' },
+          {
+            key: 'sort',
+            label: 'Sort by usage',
+            type: 'select',
+            size: 'md',
+            placeholder: '',
+            options: [
+              { value: 'desc', label: 'Most used first' },
+              { value: 'asc', label: 'Least used first' }
+            ]
+          }
+        ]}
+      />
 
       {error && (
         <div className="test-usage-alert error" role="alert">{error}</div>

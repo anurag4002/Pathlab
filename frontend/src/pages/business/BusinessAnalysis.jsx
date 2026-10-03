@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getSummary, getMonthlyTrends, getDailyBusiness } from '../../services/dashboardService';
 import formatCurrency from '../../utils/formatCurrency';
-import { PageHeader, StatCard, EmptyState, Button } from '../../components/common';
+import { PageHeader, StatCard, EmptyState, Button, AdvancedFilterBar } from '../../components/common';
 import { TrendingUp, BarChart3, Wallet, Receipt, PiggyBank, Undo2, RefreshCw, Landmark, Users, Building2 } from 'lucide-react';
-import { SvgBars, SvgLine } from '../../components/charts/SvgCharts';
+import { SvgBars, SvgLine, SvgHBars } from '../../components/charts/SvgCharts';
 import './BusinessAnalysis.css';
 
 const toISODate = (d) => {
@@ -99,8 +99,6 @@ const BusinessAnalysis = () => {
       .map(([mode, value]) => ({ label: mode, value: Number(value) || 0 }))
       .sort((a, b) => b.value - a.value);
   }, [dailyData]);
-  const maxPay = Math.max(1, ...payModes.map((p) => p.value));
-
   const caseSplit = dailyData?.caseSplit || [];
   const cashiers = useMemo(() => {
     const list = dailyData?.cashierWise || [];
@@ -162,34 +160,26 @@ const BusinessAnalysis = () => {
         }
       />
 
-      <div className="bi-controls">
-        <div className="bi-presets" role="tablist" aria-label="Date range">
-          {PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              role="tab"
-              aria-selected={preset === p.value}
-              className={preset === p.value ? 'active' : ''}
-              onClick={() => setPreset(p.value)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {preset === 'custom' && (
-          <>
-            <label className="bi-date-field">
-              From
-              <input type="date" className="select-control" value={from} max={to || toISODate(new Date())} onChange={(e) => setFrom(e.target.value)} />
-            </label>
-            <label className="bi-date-field">
-              To
-              <input type="date" className="select-control" value={to} min={from || undefined} max={toISODate(new Date())} onChange={(e) => setTo(e.target.value)} />
-            </label>
-          </>
-        )}
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={preset !== '7d' || !!from || !!to}
+        onClear={() => { setPreset('7d'); setFrom(''); setTo(''); }}
+        values={{ preset, from, to }}
+        onChange={(key, value) => {
+          if (key === 'preset') setPreset(value);
+          else if (key === 'from') setFrom(value);
+          else if (key === 'to') setTo(value);
+        }}
+        fields={[
+          { key: 'preset', type: 'segmented', options: PRESETS },
+          ...(preset === 'custom'
+            ? [
+                { key: 'from', label: 'From', type: 'date' },
+                { key: 'to', label: 'To', type: 'date' }
+              ]
+            : [])
+        ]}
+      />
 
       <div className="bi-kpis">
         <StatCard
@@ -274,14 +264,11 @@ const BusinessAnalysis = () => {
           {payModes.length === 0 || payModes.every((p) => p.value === 0) ? (
             <EmptyState title="No mode data" message="Payment-mode split appears once collections are recorded." />
           ) : (
-            payModes.map((p) => (
-              <div className="bi-meter" key={p.label}>
-                <div className="bi-meter-top"><span>{p.label}</span><strong>{formatCurrency(p.value)}</strong></div>
-                <div className="bi-meter-track">
-                  <div className="bi-meter-fill" style={{ width: `${Math.round((p.value / maxPay) * 100)}%`, backgroundColor: 'var(--color-primary, #2563eb)' }} />
-                </div>
-              </div>
-            ))
+            <SvgHBars
+              data={payModes}
+              color="var(--color-primary, #2563eb)"
+              formatValue={(v) => formatCurrency(v)}
+            />
           )}
         </section>
       </div>

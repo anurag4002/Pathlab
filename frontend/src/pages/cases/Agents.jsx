@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getAgents, createAgent, updateAgent, deleteAgent } from '../../services/agentService';
 import useClientPagination from '../../hooks/useClientPagination';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'All statuses' },
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const Agents = () => {
   const [agents, setAgents] = useState([]);
@@ -15,12 +21,14 @@ const Agents = () => {
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Client-side pagination (GET /api/agents returns the full list).
-  const pg = useClientPagination(agents, 10);
+  const filtered = statusFilter ? agents.filter((a) => a.status === statusFilter) : agents;
+  const pg = useClientPagination(filtered, 10);
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -130,14 +138,27 @@ const Agents = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by agent name...' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Name', 'Phone', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No collection agent profiles matching your query."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search by agent name..."
         pagination={{
           total: pg.total,
           page: pg.page,

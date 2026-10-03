@@ -7,7 +7,7 @@ import formatDate from '../../utils/formatDate';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
-import { DataTable, PageHeader, Select, StatusBadge, Button } from '../../components/common';
+import { DataTable, PageHeader, Select, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
 
 const Transactions = () => {
   const [searchParams] = useSearchParams();
@@ -94,34 +94,37 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Filter Row */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <Select
-          placeholder="Filter by Type"
-          value={filterType}
-          onChange={(e) => {
-            setFilterType(e.target.value);
-            goToPage(1);
-          }}
-          options={[
-            { value: 'Income', label: 'Income' },
-            { value: 'Refund', label: 'Refund' },
-            { value: 'Expense', label: 'Expense' }
-          ]}
-          style={{ minWidth: '180px', marginBottom: 0 }}
-        />
-
-        <Select
-          placeholder="Filter by Method"
-          value={filterMethod}
-          onChange={(e) => {
-            setFilterMethod(e.target.value);
-            goToPage(1);
-          }}
-          options={PAYMENT_METHODS.map(m => ({ value: m, label: m }))}
-          style={{ minWidth: '180px', marginBottom: 0 }}
-        />
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(filterType || filterMethod)}
+        onClear={() => { setFilterType(''); setFilterMethod(''); goToPage(1); }}
+        values={{ type: filterType, method: filterMethod }}
+        onChange={(key, value) => {
+          goToPage(1);
+          if (key === 'type') setFilterType(value);
+          else if (key === 'method') setFilterMethod(value);
+        }}
+        fields={[
+          {
+            key: 'type',
+            label: 'Type',
+            type: 'select',
+            placeholder: 'All types',
+            options: [
+              { value: 'Income', label: 'Income' },
+              { value: 'Refund', label: 'Refund' },
+              { value: 'Expense', label: 'Expense' }
+            ]
+          },
+          {
+            key: 'method',
+            label: 'Payment mode',
+            type: 'select',
+            placeholder: 'All modes',
+            options: PAYMENT_METHODS.map((m) => ({ value: m, label: m }))
+          }
+        ]}
+      />
 
       <DataTable
         headers={['Date & Time', 'Patient Name', 'Related Invoice', 'Amount', 'Payment Mode', 'Received By']}

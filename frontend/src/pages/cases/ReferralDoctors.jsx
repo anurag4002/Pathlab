@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../services/doctorService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' }
+];
 
 const ReferralDoctors = () => {
   const [doctors, setDoctors] = useState([]);
@@ -17,13 +22,15 @@ const ReferralDoctors = () => {
 
   // Search
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Client-side pagination (GET /api/doctors returns the full list).
-  const pg = useClientPagination(doctors, 10);
+  const filtered = statusFilter ? doctors.filter((d) => d.status === statusFilter) : doctors;
+  const pg = useClientPagination(filtered, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
@@ -133,14 +140,27 @@ const ReferralDoctors = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || statusFilter)}
+        onClear={() => { setSearch(''); setStatusFilter(''); pg.reset(); }}
+        values={{ search, status: statusFilter }}
+        onChange={(key, value) => {
+          pg.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'status') setStatusFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by doctor name...' },
+          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+        ]}
+      />
+
       <DataTable
         headers={['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No referral doctor profiles matching your query."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search by doctor name..."
         pagination={{
           total: pg.total,
           page: pg.page,

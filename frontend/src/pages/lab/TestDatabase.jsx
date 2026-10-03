@@ -5,7 +5,7 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { SAMPLE_TYPES } from '../../constants/labConstants';
 import { TEST_UNITS } from '../../constants/testConstants';
 import { Plus, Edit2, Trash2, FlaskConical, IndianRupee, Ruler, Sigma, Stethoscope } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import RangeEditor, { validateRanges, normalizeRangePayload } from '../../components/lab/RangeEditor';
 import DerivedTestEditor from '../../components/lab/DerivedTestEditor';
 import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
@@ -24,18 +24,27 @@ const TestDatabase = () => {
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // Search
+  // Filters (merged quick-find + table search)
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Client-side pagination (GET /api/tests returns the full list).
   const filteredTests = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return tests;
-    return tests.filter((t) =>
-      String(t.name || '').toLowerCase().includes(q) ||
-      String(t.code || '').toLowerCase().includes(q)
-    );
-  }, [tests, search]);
+    return tests.filter((t) => {
+      if (categoryFilter) {
+        const catId = t.category?._id || t.category || '';
+        if (String(catId) !== String(categoryFilter)) return false;
+      }
+      if (statusFilter && String(t.status || '') !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        String(t.name || '').toLowerCase().includes(q) ||
+        String(t.code || '').toLowerCase().includes(q)
+      );
+    });
+  }, [tests, search, categoryFilter, statusFilter]);
   const pg = useClientPagination(filteredTests, 10);
 
   // Delete
@@ -72,7 +81,8 @@ const TestDatabase = () => {
   useEffect(() => {
     fetchTests();
     fetchCategories();
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenCreate = () => {
     setEditingTest(null);
@@ -189,31 +199,58 @@ const TestDatabase = () => {
         }
       />
 
-      <div style={{ marginBottom: '12px', maxWidth: '480px' }}>
-        <TestCombobox
-          label="Quick find test"
-          placeholder="Type to jump to a test…"
-          onSelect={(t) => {
-            const full = tests.find((x) => x._id === t._id);
-            handleOpenEdit(full || t);
-          }}
-          onCreateNew={(name) => {
-            setEditingTest(null);
-            setFormData({ ...EMPTY_FORM, name });
-            setErrors({});
-            setFormOpen(true);
-          }}
-        />
-      </div>
+      <AdvancedFilterBar
+        values={{ search, category: categoryFilter, status: statusFilter }}
+        onChange={(key, value) => {
+          if (key === 'search') setSearch(value);
+          else if (key === 'category') setCategoryFilter(value);
+          else if (key === 'status') setStatusFilter(value);
+          pg.reset();
+        }}
+        onSearch={() => {
+          fetchTests();
+          pg.reset();
+        }}
+        onClear={() => {
+          setSearch('');
+          setCategoryFilter('');
+          setStatusFilter('');
+          pg.reset();
+        }}
+        fields={[
+          {
+            key: 'search',
+            label: 'Find test',
+            type: 'text',
+            placeholder: 'Type to find by name or code…',
+            size: 'lg'
+          },
+          {
+            key: 'category',
+            label: 'Category',
+            type: 'select',
+            options: [{ value: '', label: 'All categories' }, ...categories],
+            placeholder: 'All categories'
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: '', label: 'All statuses' },
+              { value: 'Active', label: 'Active' },
+              { value: 'Inactive', label: 'Inactive' }
+            ],
+            placeholder: 'All statuses'
+          }
+        ]}
+      />
 
       <DataTable
         headers={['Code', 'Name', 'Category', 'Sample Type', 'Unit', 'Price', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No tests match your query."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search by test name or code..."
         pagination={{
           total: pg.total,
           page: pg.page,

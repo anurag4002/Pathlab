@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ChevronDown, LogOut } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import './Header.css';
 
 const UserDropdown = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -14,10 +20,15 @@ const UserDropdown = () => {
         setIsOpen(false);
       }
     };
+    const handleOverlay = () => setIsOpen(false);
     if (isOpen) {
       document.addEventListener('mousedown', handleOutsideClick);
+      window.addEventListener('app:overlay', handleOverlay);
     }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('app:overlay', handleOverlay);
+    };
   }, [isOpen]);
 
   if (!user) return null;

@@ -9,7 +9,9 @@ import {
   ConfirmDialog,
   TatTimeline,
   Select,
-  SignaturePreview
+  SignaturePreview,
+  AdvancedFilterBar,
+  DURATION_OPTIONS
 } from '../../components/common';
 import {
   getReports,
@@ -109,6 +111,10 @@ const ResultVerification = () => {
   const [pagination, setPagination] = useState(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Reported');
+  const [duration, setDuration] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const debouncedSearch = useDebounce(search, 500);
   const [reloadKey, setReloadKey] = useState(0);
   const [listLoading, setListLoading] = useState(true);
@@ -136,10 +142,8 @@ const ResultVerification = () => {
   const doctorReqRef = useRef(0); // stale referring-doctor response guard
   const signatureRequestRef = useRef(null); // reuse the initial request in StrictMode
 
-  // Load the queue (server is the source of truth). The backend exposes no
-  // status filter, so this is the report list with server pagination and
-  // server-side registration-number search; pending items are identified by
-  // the Status column and only `Reported` rows offer a Review action.
+  // Load the queue (server is the source of truth) with advanced filters.
+  // Only `Reported` rows offer a Review action.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -147,7 +151,11 @@ const ResultVerification = () => {
       try {
         const params = { page };
         const query = debouncedSearch.trim();
-        if (query) params.registrationNumber = query;
+        if (query) params.search = query;
+        if (statusFilter) params.status = statusFilter;
+        if (duration) params.duration = duration;
+        if (from) params.from = from;
+        if (to) params.to = to;
         const res = await getReports(params);
         if (!active) return;
         const data = res?.data ?? {};
@@ -173,7 +181,7 @@ const ResultVerification = () => {
     return () => {
       active = false;
     };
-  }, [page, debouncedSearch, reloadKey]);
+  }, [page, debouncedSearch, statusFilter, duration, from, to, reloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -361,9 +369,14 @@ const ResultVerification = () => {
     setReloadKey((key) => key + 1);
   };
 
-  const handleSearchChange = (event) => {
-    setSearch(event.target.value);
+  const handleFilterChange = (key, value) => {
+    if (key === 'search') setSearch(value);
+    else if (key === 'status') setStatusFilter(value);
+    else if (key === 'duration') { setDuration(value); setFrom(''); setTo(''); }
+    else if (key === 'from') { setFrom(value); setDuration(''); }
+    else if (key === 'to') { setTo(value); setDuration(''); }
     setPage(1);
+    setListLoading(true);
   };
 
   const renderQueueRow = (report) => {
@@ -456,7 +469,9 @@ const ResultVerification = () => {
     resultRows.length === 1 ? 'test' : 'tests'
   }`;
 
-  const isSearching = debouncedSearch.trim().length > 0;
+  const isSearching = Boolean(
+    debouncedSearch.trim() || statusFilter || duration || from || to
+  );
   const status = entry?.report?.status;
   const selectedSignature = selectedSignatureId
     ? signatures.find((signature) => String(signature._id) === selectedSignatureId)
@@ -492,34 +507,85 @@ const ResultVerification = () => {
             </Button>
           </div>
         ) : (
-          <DataTable
-            headers={[
-              'Registration No',
-              'Patient',
-              'Invoice',
-              'Reported On',
-              'Status',
-              'TAT',
-              'Action'
-            ]}
-            data={reports}
-            loading={listLoading}
-            emptyTitle={
-              isSearching ? 'No matching results' : 'No results pending verification.'
-            }
-            emptyMessage={
-              isSearching
-                ? 'No reports match your registration number search.'
-                : 'Submitted lab results will appear here for review and sign-off.'
-            }
-            searchValue={search}
-            onSearchChange={handleSearchChange}
-            searchPlaceholder="Search by registration number..."
-            pagination={
-              pagination ? { ...pagination, onPageChange: goToPage } : undefined
-            }
-            renderRow={renderQueueRow}
-          />
+          <>
+            <AdvancedFilterBar
+              values={{ search, status: statusFilter, duration, from, to }}
+              onChange={handleFilterChange}
+              onSearch={() => {
+                setPage(1);
+                setListLoading(true);
+                setReloadKey((k) => k + 1);
+              }}
+              onClear={() => {
+                setSearch('');
+                setStatusFilter('Reported');
+                setDuration('');
+                setFrom('');
+                setTo('');
+                setPage(1);
+                setListLoading(true);
+                setReloadKey((k) => k + 1);
+              }}
+              fields={[
+                {
+                  key: 'search',
+                  label: 'Search',
+                  type: 'text',
+                  placeholder: 'Reg. no, patient name, UHID…',
+                  size: 'lg'
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  type: 'select',
+                  options: [
+                    { value: '', label: 'All statuses' },
+                    { value: 'Reported', label: 'Reported' },
+                    { value: 'Verified', label: 'Verified' },
+                    { value: 'Signed', label: 'Signed' },
+                    { value: 'Completed', label: 'Completed' },
+                    { value: 'Draft', label: 'Draft' },
+                    { value: 'Registered', label: 'Registered' }
+                  ],
+                  placeholder: 'All statuses'
+                },
+                {
+                  key: 'duration',
+                  label: 'Duration',
+                  type: 'select',
+                  options: DURATION_OPTIONS,
+                  placeholder: 'All time'
+                },
+                { key: 'from', label: 'From', type: 'date' },
+                { key: 'to', label: 'To', type: 'date' }
+              ]}
+            />
+            <DataTable
+              headers={[
+                'Registration No',
+                'Patient',
+                'Invoice',
+                'Reported On',
+                'Status',
+                'TAT',
+                'Action'
+              ]}
+              data={reports}
+              loading={listLoading}
+              emptyTitle={
+                isSearching ? 'No matching results' : 'No results pending verification.'
+              }
+              emptyMessage={
+                isSearching
+                  ? 'No reports match your current filters.'
+                  : 'Submitted lab results will appear here for review and sign-off.'
+              }
+              pagination={
+                pagination ? { ...pagination, onPageChange: goToPage } : undefined
+              }
+              renderRow={renderQueueRow}
+            />
+          </>
         )
       ) : (
         <>

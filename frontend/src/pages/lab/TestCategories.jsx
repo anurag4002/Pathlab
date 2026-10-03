@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../../services/testService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog, AdvancedFilterBar } from '../../components/common';
 
 const TestCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -122,14 +122,24 @@ const TestCategories = () => {
         }
       />
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pg.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search categories…' }
+        ]}
+      />
+
       <DataTable
         headers={['Category Name', 'Description', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No clinical categories defined."
-        searchValue={search}
-        onSearchChange={(e) => { setSearch(e.target.value); pg.reset(); }}
-        searchPlaceholder="Search categories…"
         pagination={{
           total: pg.total,
           page: pg.page,

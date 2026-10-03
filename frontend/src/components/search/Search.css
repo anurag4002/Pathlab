@@ -188,3 +188,14 @@
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@media (max-width: 768px) {
+  .search-categories {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .search-result-item {
+    padding: var(--space-3);
+  }
+}

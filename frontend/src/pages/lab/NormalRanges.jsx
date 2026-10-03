@@ -10,7 +10,8 @@ import {
   Modal,
   Input,
   Select,
-  StatusBadge
+  StatusBadge,
+  AdvancedFilterBar
 } from '../../components/common';
 import '../../styles/NormalRanges.css';
 
@@ -403,32 +404,21 @@ const NormalRanges = () => {
         </div>
       ) : (
         <>
-          <div className="nr-filters">
-            <Select
-              label="Category"
-              name="categoryFilter"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              options={categories}
-              placeholder="All categories"
-            />
-            <Select
-              label="Status"
-              name="statusFilter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              options={TEST_STATUS_OPTIONS}
-              placeholder="All statuses"
-            />
-            <Select
-              label="Gender"
-              name="genderFilter"
-              value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value)}
-              options={SEX_APPLICABLE_OPTIONS}
-              placeholder="All genders"
-            />
-          </div>
+          <AdvancedFilterBar
+            showSearchButton={false}
+            showClearButton={false}
+            values={{ category: categoryFilter, status: statusFilter, gender: genderFilter }}
+            onChange={(key, value) => {
+              if (key === 'category') setCategoryFilter(value);
+              else if (key === 'status') setStatusFilter(value);
+              else if (key === 'gender') setGenderFilter(value);
+            }}
+            fields={[
+              { key: 'category', label: 'Category', type: 'select', options: categories, placeholder: 'All categories' },
+              { key: 'status', label: 'Status', type: 'select', options: TEST_STATUS_OPTIONS, placeholder: 'All statuses' },
+              { key: 'gender', label: 'Gender', type: 'select', options: SEX_APPLICABLE_OPTIONS, placeholder: 'All genders' }
+            ]}
+          />
 
           <DataTable
             headers={headers}

@@ -1,17 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill } from '../../../services/billService';
 import { createPatient, getPatientById } from '../../../services/patientService';
-import { PageHeader, Button, Select, TestCombobox } from '../../../components/common';
+import { getTests } from '../../../services/testService';
+import { PageHeader, Button, Select } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
 import DepartmentSelector from './DepartmentSelector';
 import BillItemsTable from './BillItemsTable';
 import PaymentSummarySection from './PaymentSummarySection';
 import ComboIndicator from './ComboIndicator';
 import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, ShoppingCart } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
+
+const matchesPickerQuery = (item, query) => {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const hay = `${item.name || ''} ${item.code || ''} ${item.price ?? ''}`.toLowerCase();
+  return q.split(/\s+/).every((tok) => hay.includes(tok));
+};
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
    only the backend's user-facing `message` field, never stack traces. */
@@ -115,15 +123,19 @@ const BillCreateForm = ({
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
   const [pickerType, setPickerType] = useState('Test');
-  // Instant client-side filter over the already-loaded catalog (no API round-trip).
+  // One search box: filter local catalog first, then fall back to server (tests).
   const [pickerQuery, setPickerQuery] = useState('');
+  const [serverResults, setServerResults] = useState([]);
+  const [serverSearching, setServerSearching] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [discountValue, setDiscountValue] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [discountValue, setDiscountValue] = useState('');
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const cartRef = useRef(null);
+  const flashTimerRef = useRef(null);
 
   const handlePatientSelect = (pat) => {
     if (!pat) {
@@ -148,12 +160,22 @@ const BillCreateForm = ({
     }));
   };
 
+  const revealCart = () => {
+    const el = cartRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    el.classList.add('bill-cart-flash');
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => el.classList.remove('bill-cart-flash'), 700);
+  };
+
   const handleAddItem = (item, type) => {
     const alreadyAdded = selectedItems.some(
       (si) => si.itemId === item._id && si.itemType === type
     );
     if (alreadyAdded) return;
     setSelectedItems((prev) => [...prev, { itemId: item._id, itemType: type, name: item.name, price: item.price }]);
+    requestAnimationFrame(revealCart);
   };
 
   // Phase 22 — package/panel selection at bundle pricing. The bundle is
@@ -183,6 +205,7 @@ const BillCreateForm = ({
         comboMembers: memberNames
       }];
     });
+    requestAnimationFrame(revealCart);
   };
 
   const selectedBundleIds = selectedItems
@@ -192,9 +215,11 @@ const BillCreateForm = ({
   const subtotal = selectedItems.reduce((s, item) => s + Number(item.price || 0), 0);
   // Discount supports two modes toggled by the %/₹ badge: percent (0–100%)
   // or flat amount (₹, clamped to subtotal).
+  const discountPercentNum = discountPercent === '' || discountPercent === null ? 0 : Number(discountPercent);
+  const discountValueNum = discountValue === '' || discountValue === null ? 0 : Number(discountValue);
   const discountAmount = discountMode === 'amount'
-    ? Math.max(0, Math.min(subtotal, Number(discountValue) || 0))
-    : Math.max(0, Math.min(subtotal, (subtotal * (Number(discountPercent) || 0)) / 100));
+    ? Math.max(0, Math.min(subtotal, discountValueNum || 0))
+    : Math.max(0, Math.min(subtotal, (subtotal * (discountPercentNum || 0)) / 100));
   const totalAmount = Math.max(0, subtotal - discountAmount);
   const dueAmount = Math.max(0, totalAmount - paidAmount);
 
@@ -301,8 +326,10 @@ const BillCreateForm = ({
     }
     if (selectedItems.length === 0) errs.items = 'Please select at least one test or package';
     if (discountMode === 'percent') {
-      if (discountPercent < 0 || discountPercent > 100) errs.discount = 'Discount must be between 0 and 100%.';
-    } else if ((Number(discountValue) || 0) < 0) {
+      if (discountPercent !== '' && (discountPercentNum < 0 || discountPercentNum > 100)) {
+        errs.discount = 'Discount must be between 0 and 100%.';
+      }
+    } else if (discountValue !== '' && discountValueNum < 0) {
       errs.discount = 'Discount amount cannot be negative.';
     }
     if (discountAmount > subtotal) errs.discount = 'Discount cannot exceed the subtotal.';
@@ -344,7 +371,7 @@ const BillCreateForm = ({
         caseType: DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
         collectionCentre: 'Main',
         onlineReportRequested: patientForm.onlineReportRequested,
-        discountPercent: discountMode === 'percent' && discountPercent > 0
+        discountPercent: discountMode === 'percent' && discountPercentNum > 0
       });
 
       if (res.success) {
@@ -374,17 +401,48 @@ const BillCreateForm = ({
     pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : deptTestList;
   const pickerItems = (Array.isArray(pickerSource) ? pickerSource : [])
     .filter((item) => !item.status || item.status === 'Active');
-  // Instant search across name + code + price (case-insensitive).
-  const pickerQ = pickerQuery.trim().toLowerCase();
-  const filteredPickerItems = pickerQ
-    ? pickerItems.filter((item) => {
-        const hay = `${item.name || ''} ${item.code || ''} ${item.price ?? ''}`.toLowerCase();
-        return pickerQ.split(/\s+/).every((tok) => hay.includes(tok));
-      })
+  // Local filter first; server results used only when local has no matches.
+  const pickerQ = pickerQuery.trim();
+  const localFiltered = pickerQ
+    ? pickerItems.filter((item) => matchesPickerQuery(item, pickerQ))
     : pickerItems;
-  const pickerEmptyText =
-    pickerQ
-      ? `No matches for “${pickerQuery.trim()}”.`
+  const usingServerResults =
+    pickerType === 'Test' && pickerQ.length > 0 && localFiltered.length === 0;
+  const filteredPickerItems = usingServerResults ? serverResults : localFiltered;
+
+  useEffect(() => {
+    if (!usingServerResults) {
+      setServerResults([]);
+      setServerSearching(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setServerSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await getTests({ search: pickerQ, status: 'Active' });
+        if (cancelled) return;
+        setServerResults(res?.success && Array.isArray(res.data) ? res.data : []);
+      } catch {
+        if (!cancelled) setServerResults([]);
+      } finally {
+        if (!cancelled) setServerSearching(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [usingServerResults, pickerQ]);
+
+  useEffect(() => () => {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+  }, []);
+
+  const pickerEmptyText = serverSearching
+    ? 'Searching catalog…'
+    : pickerQ
+      ? `No matches for “${pickerQ}”.`
       : pickerType === 'Test'
         ? (deptFallback
             ? 'No tests found.'
@@ -561,19 +619,7 @@ const BillCreateForm = ({
             {/* Department Selector */}
             <DepartmentSelector activeDepartment={activeDepartment} onSelect={(d) => { setActiveDepartment(d); setPickerQuery(''); }} />
 
-            {/* Smart test search complements the department-filtered picker below. */}
-            {pickerType === 'Test' && (
-              <div className="form-group" style={{ marginBottom: '12px' }}>
-                <TestCombobox
-                  label="Quick add test"
-                  placeholder="Type code / name / department / price…"
-                  onSelect={(test) => handleAddItem(test, 'Test')}
-                />
-              </div>
-            )}
-
-            {/* Service picker — department-filtered tests plus packages and
-                panels, all from the existing catalog APIs with server rates. */}
+            {/* Single search: local catalog first, server fallback for tests */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
                 Select services
@@ -591,7 +637,7 @@ const BillCreateForm = ({
               </div>
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
-                  type="text"
+                  type="search"
                   className="form-control"
                   value={pickerQuery}
                   onChange={(e) => setPickerQuery(e.target.value)}
@@ -601,11 +647,13 @@ const BillCreateForm = ({
                 />
                 {pickerQuery && (
                   <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                    {filteredPickerItems.length} match{filteredPickerItems.length === 1 ? '' : 'es'}
+                    {serverSearching
+                      ? 'Searching…'
+                      : `${filteredPickerItems.length} match${filteredPickerItems.length === 1 ? '' : 'es'}${usingServerResults ? ' (server)' : ''}`}
                   </span>
                 )}
               </div>
-              {deptFallback && pickerType === 'Test' && (
+              {deptFallback && pickerType === 'Test' && !pickerQ && (
                 <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '0 0 var(--space-2)' }}>
                   No dedicated {activeDepartment} tests — showing full catalog.
                 </p>
@@ -617,7 +665,9 @@ const BillCreateForm = ({
                   </p>
                 ) : (
                   filteredPickerItems.map((item) => {
-                    const alreadyAdded = pickerType !== 'Test' && selectedBundleIds.includes(item._id);
+                    const alreadyAdded = pickerType === 'Test'
+                      ? selectedItems.some((si) => si.itemId === item._id && si.itemType === 'Test')
+                      : selectedBundleIds.includes(item._id);
                     return (
                       <div
                         key={item._id}
@@ -643,8 +693,13 @@ const BillCreateForm = ({
           </div>
         </div>
 
-        {/* Right Column — sticky cart: stays visible while scrolling the picker */}
-        <div className="bill-summary-column" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        {/* Right column — sticky cart on desktop */}
+        <div
+          ref={cartRef}
+          id="bill-cart"
+          className="bill-summary-column"
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
+        >
           <div className="bill-form-card">
             <BillItemsTable
               items={selectedItems}
@@ -678,6 +733,21 @@ const BillCreateForm = ({
           />
         </div>
       </div>
+
+      {selectedItems.length > 0 && (
+        <button
+          type="button"
+          className="bill-cart-dock"
+          onClick={revealCart}
+          aria-label="View selected items in cart"
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShoppingCart size={16} />
+            {selectedItems.length} item{selectedItems.length === 1 ? '' : 's'} in cart
+          </span>
+          <strong>{formatCurrency(totalAmount)}</strong>
+        </button>
+      )}
     </div>
   );
 };

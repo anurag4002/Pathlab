@@ -15,7 +15,8 @@ import {
   PageHeader,
   Select,
   StatCard,
-  StatusBadge
+  StatusBadge,
+  AdvancedFilterBar
 } from '../../components/common';
 
 const hasValue = (value) =>
@@ -474,28 +475,36 @@ const TestAnalysis = () => {
           description="Actual test master data from the existing catalog API. Catalog rates are configuration values, not test-wise revenue."
         />
         {catalogError && <ErrorBanner message={catalogError} onRetry={handleRefresh} />}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-          <Select
-            name="test-analysis-category"
-            label="Category"
-            value={categoryFilter}
-            onChange={handleCategoryChange}
-            options={categories.map((category) => ({ value: category._id, label: category.name }))}
-            placeholder="All categories"
-            disabled={categories.length === 0}
-            style={{ minWidth: '200px', marginBottom: 0 }}
-          />
-          <Select
-            name="test-analysis-status"
-            label="Status"
-            value={statusFilter}
-            onChange={handleStatusChange}
-            options={statusOptions}
-            placeholder="All statuses"
-            disabled={statusOptions.length === 0}
-            style={{ minWidth: '160px', marginBottom: 0 }}
-          />
-        </div>
+        <AdvancedFilterBar
+          showSearchButton={false}
+          showClearButton={!!(categoryFilter || statusFilter)}
+          onClear={() => {
+            handleCategoryChange({ target: { value: '' } });
+            handleStatusChange({ target: { value: '' } });
+          }}
+          values={{ category: categoryFilter, status: statusFilter }}
+          onChange={(key, value) => {
+            if (key === 'category') handleCategoryChange({ target: { value } });
+            else if (key === 'status') handleStatusChange({ target: { value } });
+          }}
+          fields={[
+            {
+              key: 'category',
+              label: 'Category',
+              type: 'select',
+              placeholder: 'All categories',
+              options: categories.map((category) => ({ value: category._id, label: category.name }))
+            },
+            {
+              key: 'status',
+              label: 'Status',
+              type: 'select',
+              size: 'sm',
+              placeholder: 'All statuses',
+              options: statusOptions
+            }
+          ]}
+        />
         {!catalogError && (
           <DataTable
             headers={['Test name', 'Code', 'Category', 'Catalog rate', 'Status']}

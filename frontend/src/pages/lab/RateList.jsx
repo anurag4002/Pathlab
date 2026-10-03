@@ -5,7 +5,7 @@ import { getPanels } from '../../services/panelService';
 import { getPackages } from '../../services/packageService';
 import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
-import { PageHeader, Button, DataTable, Select, StatusBadge } from '../../components/common';
+import { PageHeader, Button, DataTable, Select, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import '../../styles/RateList.css';
 
 /* Option lists mirror existing backend enums — no business data lives here.
@@ -297,34 +297,23 @@ const RateList = () => {
         </div>
       ) : (
         <>
-          <div className="rl-filters">
-            <Select
-              label="Type"
-              name="typeFilter"
-              value={typeFilter}
-              onChange={handleTypeChange}
-              options={TYPE_OPTIONS}
-              placeholder=""
-            />
-            {categoryApplies ? (
-              <Select
-                label="Category"
-                name="categoryFilter"
-                value={categoryFilter}
-                onChange={handleCategoryChange}
-                options={categories}
-                placeholder="All categories"
-              />
-            ) : null}
-            <Select
-              label="Status"
-              name="statusFilter"
-              value={statusFilter}
-              onChange={handleStatusChange}
-              options={STATUS_OPTIONS}
-              placeholder="All statuses"
-            />
-          </div>
+          <AdvancedFilterBar
+            showSearchButton={false}
+            showClearButton={false}
+            values={{ type: typeFilter, category: categoryFilter, status: statusFilter }}
+            onChange={(key, value) => {
+              if (key === 'type') handleTypeChange({ target: { value } });
+              else if (key === 'category') handleCategoryChange({ target: { value } });
+              else if (key === 'status') handleStatusChange({ target: { value } });
+            }}
+            fields={[
+              { key: 'type', label: 'Type', type: 'select', options: TYPE_OPTIONS, placeholder: '' },
+              ...(categoryApplies
+                ? [{ key: 'category', label: 'Category', type: 'select', options: categories, placeholder: 'All categories' }]
+                : []),
+              { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
+            ]}
+          />
 
           <DataTable
             headers={headers}

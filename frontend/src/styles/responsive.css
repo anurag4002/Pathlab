@@ -1,21 +1,17 @@
-/* Responsive Breakpoints */
+/* Responsive Breakpoints — page content patterns (shell lives in shell.css) */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
 
 @media (max-width: 1024px) {
-  .main-content {
-    margin-left: 0 !important;
-  }
-
-  .sidebar {
-    transform: translateX(-100%);
-    z-index: 1001;
-  }
-
-  .sidebar.open,
-  .mobile-sidebar-drawer .sidebar {
-    transform: translateX(0) !important;
-    position: relative !important;
-    height: 100% !important;
-    width: 100% !important;
+  /* Common content grids collapse to a single column */
+  .dashboard-stats-grid,
+  .dashboard-split-grid,
+  .dashboard-section-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
@@ -24,9 +20,34 @@
     padding: var(--space-4);
   }
 
-  .form-row {
+  .user-menu-trigger {
+    padding: var(--space-1);
+  }
+
+  .page-header {
     flex-direction: column;
-    gap: 0;
+    align-items: stretch;
+  }
+
+  .page-header-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .page-header-actions {
+    width: 100%;
+  }
+
+  .page-header-actions .btn,
+  .page-header-actions button {
+    flex: 1 1 auto;
+  }
+
+  .form-row,
+  .form-grid,
+  [class$='-form-grid'],
+  [class*='-form-grid'] {
+    flex-direction: column;
+    grid-template-columns: 1fr !important;
   }
 
   .data-table-toolbar {
@@ -38,9 +59,62 @@
     max-width: 100%;
   }
 
-  .modal-content {
-    max-width: 95vw;
-    max-height: 95vh;
+  .data-table-toolbar-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--space-3);
+  }
+
+  .modal-overlay {
+    padding: var(--space-2);
+    align-items: flex-end;
+  }
+
+  .modal-content,
+  .modal-content.modal-lg,
+  .modal-content.modal-xl {
+    max-width: 100%;
+    max-height: 92vh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .modal-footer > * {
+    flex: 1 1 auto;
+  }
+
+  .search-overlay {
+    padding: var(--space-3);
+    padding-top: 8vh;
+    align-items: stretch;
+  }
+
+  .search-panel {
+    max-width: none;
+  }
+
+  .search-footer-hints {
+    display: none;
+  }
+
+  /* Prefer fluid grids that previously used fixed minmax widths */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
@@ -53,5 +127,19 @@
     flex-direction: column;
     gap: var(--space-3);
     align-items: center;
+  }
+
+  .dashboard-stats-grid,
+  .dashboard-inline-metrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  .data-table.dense th,
+  .data-table.dense td {
+    padding: var(--space-2);
+  }
+
+  .header {
+    padding: 0 var(--space-2);
   }
 }

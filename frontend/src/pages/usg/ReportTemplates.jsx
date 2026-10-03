@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getUSGTemplates } from '../../services/usgService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { PageHeader, DataTable, Button } from '../../components/common';
+import { PageHeader, DataTable, Button, AdvancedFilterBar } from '../../components/common';
 import '../../styles/USG.css';
 
 const getApiErrorMessage = (err, fallback) => {
@@ -86,17 +86,24 @@ const ReportTemplates = () => {
         </div>
       )}
 
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!search}
+        onClear={() => { setSearch(''); pg.reset(); }}
+        values={{ search }}
+        onChange={(key, value) => {
+          if (key === 'search') { setSearch(value); pg.reset(); }
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search templates…' }
+        ]}
+      />
+
       <DataTable
         headers={['Template Name', 'Default Findings Text']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No clinical templates defined."
-        searchValue={search}
-        onSearchChange={(event) => {
-          setSearch(event.target.value);
-          pg.reset();
-        }}
-        searchPlaceholder="Search templates…"
         pagination={{
           total: pg.total,
           page: pg.page,

@@ -32,14 +32,14 @@
 
 .dashboard-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
 
 .dashboard-split-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   gap: var(--space-6);
   margin-bottom: var(--space-6);
 }
@@ -178,9 +178,16 @@
   flex-wrap: wrap;
 }
 
+.dashboard-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
 .dashboard-inline-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   gap: var(--space-3);
   margin-bottom: var(--space-5);
 }

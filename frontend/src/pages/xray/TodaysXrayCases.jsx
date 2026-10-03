@@ -23,7 +23,8 @@ import {
   ImageUploader,
   StatusBadge,
   ConfirmDialog,
-  PatientPicker
+  PatientPicker,
+  AdvancedFilterBar
 } from '../../components/common';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import XrayImagePane from '../../components/xray/XrayImagePane';
@@ -406,66 +407,57 @@ const TodaysXrayCases = () => {
           </Button>
         </div>
       )}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }} role="tablist" aria-label="Date scope">
-          {[
-            { value: 'today', label: "Today's Cases" },
-            { value: 'all', label: 'All / Search' },
-          ].map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              role="tab"
-              aria-selected={dateScope === opt.value}
-              onClick={() => { setDateScope(opt.value); goToPage(1); }}
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.8rem',
-                fontWeight: dateScope === opt.value ? 700 : 500,
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: dateScope === opt.value ? 'var(--color-primary-light)' : 'var(--color-surface)',
-                color: dateScope === opt.value ? 'var(--color-primary)' : 'var(--color-text)',
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          Referring doctor
-          <select value={doctorFilter} onChange={(e) => { setDoctorFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 170 }}>
-            <option value="">Everyone</option>
-            {doctors.map((d) => (
-              <option key={d._id} value={d._id}>{d.name}</option>
-            ))}
-          </select>
-        </label>
-        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          Status
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); goToPage(1); }} className="select-control" style={{ minWidth: 140 }}>
-            <option value="">All statuses</option>
-            <option value="Pending">Pending Signature</option>
-            <option value="Completed">Completed Report</option>
-          </select>
-        </label>
-        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          From
-          <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); goToPage(1); }} className="select-control" />
-        </label>
-        <label style={{ fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          To
-          <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); goToPage(1); }} className="select-control" />
-        </label>
-        {(doctorFilter || statusFilter || search || fromDate || toDate || dateScope !== 'today') && (
-          <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.78rem' }} onClick={resetFilters}>
-            Clear filters
-          </button>
-        )}
-        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-          {filteredCases.length} case{filteredCases.length === 1 ? '' : 's'}
-        </span>
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(doctorFilter || statusFilter || search || fromDate || toDate || dateScope !== 'today')}
+        onClear={resetFilters}
+        trailing={`${filteredCases.length} case${filteredCases.length === 1 ? '' : 's'}`}
+        values={{
+          dateScope,
+          doctor: doctorFilter,
+          status: statusFilter,
+          from: fromDate,
+          to: toDate
+        }}
+        onChange={(key, value) => {
+          goToPage(1);
+          if (key === 'dateScope') setDateScope(value);
+          else if (key === 'doctor') setDoctorFilter(value);
+          else if (key === 'status') setStatusFilter(value);
+          else if (key === 'from') setFromDate(value);
+          else if (key === 'to') setToDate(value);
+        }}
+        fields={[
+          {
+            key: 'dateScope',
+            type: 'segmented',
+            options: [
+              { value: 'today', label: "Today's Cases" },
+              { value: 'all', label: 'All / Search' }
+            ]
+          },
+          {
+            key: 'doctor',
+            label: 'Referring doctor',
+            type: 'select',
+            size: 'lg',
+            placeholder: 'Everyone',
+            options: doctors.map((d) => ({ value: d._id, label: d.name }))
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            placeholder: 'All statuses',
+            options: [
+              { value: 'Pending', label: 'Pending Signature' },
+              { value: 'Completed', label: 'Completed Report' }
+            ]
+          },
+          { key: 'from', label: 'From', type: 'date' },
+          { key: 'to', label: 'To', type: 'date' }
+        ]}
+      />
 
       <DataTable
         headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Download Scan', 'Actions']}

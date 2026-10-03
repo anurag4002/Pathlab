@@ -7,7 +7,7 @@ import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { CreditCard } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 
 const DueReports = () => {
@@ -114,20 +114,25 @@ const DueReports = () => {
         </p>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Select
-          placeholder="All Departments"
-          value={deptFilter}
-          onChange={(e) => { setDeptFilter(e.target.value); goToPage(1); }}
-          options={DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))}
-          style={{ maxWidth: '15rem', marginBottom: 0 }}
-        />
-        {deptFilter && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Department filter applies to the loaded rows.
-          </span>
-        )}
-      </div>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!deptFilter}
+        onClear={() => { setDeptFilter(''); goToPage(1); }}
+        trailing={deptFilter ? 'Department filter applies to the loaded rows.' : null}
+        values={{ dept: deptFilter }}
+        onChange={(key, value) => {
+          if (key === 'dept') { setDeptFilter(value); goToPage(1); }
+        }}
+        fields={[
+          {
+            key: 'dept',
+            label: 'Department',
+            type: 'select',
+            placeholder: 'All Departments',
+            options: DEPARTMENTS.map((d) => ({ value: d.name, label: d.name }))
+          }
+        ]}
+      />
 
       <DataTable
         headers={['Patient', 'Bill Number', 'Date', 'Gross Amount', 'Paid', 'Outstanding Due', 'Status', 'Actions']}
