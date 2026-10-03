@@ -81,6 +81,8 @@ const Inquiries = () => {
   };
 
   // Confirm a booking and move the person's details into billing automatically.
+  // Handoff uses sessionStorage (not router state) so it survives the ledger's
+  // URL-mirroring replaces and page refreshes. BillCreateForm consumes + clears it.
   const confirmAndBill = async (inq) => {
     setUpdatingId(inq._id);
     try {
@@ -89,19 +91,20 @@ const Inquiries = () => {
         if (!res?.success) return;
         inq = res.data || { ...inq, status: 'Confirmed' };
       }
-      navigate('/cases/bills/new', {
-        state: {
-          booking: {
-            inquiryId: inq._id,
-            name: inq.name,
-            phone: inq.phone,
-            patientId: inq.patient?._id || inq.patient || null,
-            items: inq.items || [],
-            note: inq.note || '',
-            preferredDate: inq.preferredDate || null
-          }
-        }
-      });
+      try {
+        sessionStorage.setItem('billBookingPrefill', JSON.stringify({
+          inquiryId: inq._id,
+          name: inq.name,
+          phone: inq.phone,
+          patientId: inq.patient?._id || inq.patient || null,
+          items: inq.items || [],
+          note: inq.note || '',
+          preferredDate: inq.preferredDate || null
+        }));
+      } catch {
+        /* storage unavailable — billing opens unprefilled */
+      }
+      navigate('/cases/bills/new');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to confirm booking');
     } finally {

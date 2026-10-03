@@ -11,7 +11,7 @@ const DepartmentSelector = ({ activeDepartment, onSelect }) => {
       >
         Select Department
       </label>
-      <div className="department-selector-scroll">
+      <div className="department-selector-grid">
         {DEPARTMENTS.map((dept) => {
           const Icon = dept.icon;
           const isActive = activeDepartment === dept.name;

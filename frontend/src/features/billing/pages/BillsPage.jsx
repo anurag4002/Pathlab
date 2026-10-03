@@ -23,7 +23,7 @@ import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/bill
 const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
 import { BranchFilter } from '../../../components/common';
 import { DEPARTMENTS } from '../billingConstants';
-import BillCreateForm from '../components/BillCreateForm';
+import BillCreateForm, { clearBookingPrefill } from '../components/BillCreateForm';
 import PaymentCollectModal from '../components/PaymentCollectModal';
 import { LabelPrintSheet } from '../../../components/lab';
 import VoidReasonDialog from '../components/VoidReasonDialog';
@@ -384,10 +384,12 @@ const BillsPage = () => {
   };
 
   // Pop-up ↔ URL mirror + restore (runs once the ledger is loaded).
-  useEffect(() => { mirrorModal('pay', paymentModalOpen, paymentTargetBill?._id); }, [paymentModalOpen, paymentTargetBill?._id]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { mirrorModal('void', !!voidTarget, voidTarget?._id); }, [voidTarget]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { mirrorModal('details', !!detailsTarget, detailsTarget?._id); }, [detailsTarget]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Guarded: skip when closed and the param is already absent, so mounting
+  // never replaces the history entry (which would drop incoming router state).
+  useEffect(() => { if (paymentModalOpen || searchParams.get('pay')) mirrorModal('pay', paymentModalOpen, paymentTargetBill?._id); }, [paymentModalOpen, paymentTargetBill?._id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (voidTarget || searchParams.get('void')) mirrorModal('void', !!voidTarget, voidTarget?._id); }, [voidTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (detailsTarget || searchParams.get('details')) mirrorModal('details', !!detailsTarget, detailsTarget?._id); }, [detailsTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (labelTarget || searchParams.get('label')) mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isCreateView || !bills.length) return;
     const find = (id) => bills.find((b) => String(b._id) === String(id));
@@ -475,7 +477,7 @@ const BillsPage = () => {
               </span>
             )}
             {canBill && (
-              <Button variant="primary" onClick={() => navigate('/cases/bills/new')} icon={<Plus size={16} />}>
+              <Button variant="primary" onClick={() => { clearBookingPrefill(); navigate('/cases/bills/new'); }} icon={<Plus size={16} />}>
                 Create Bill
               </Button>
             )}

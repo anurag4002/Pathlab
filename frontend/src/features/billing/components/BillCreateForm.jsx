@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill } from '../../../services/billService';
-import { createPatient } from '../../../services/patientService';
+import { createPatient, getPatientById } from '../../../services/patientService';
 import { PageHeader, Button, Select, TestCombobox } from '../../../components/common';
 import PatientDetailsSection from './PatientDetailsSection';
 import DepartmentSelector from './DepartmentSelector';
@@ -33,6 +33,33 @@ const getApiErrorMessage = (err, fallback) => {
   if (err?.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
   if (err?.request) return 'Network error. Please check your connection and try again.';
   return err?.message || fallback;
+};
+
+// Module-scope booking handoff cache — survives StrictMode remounts within
+// the same page load (both mount passes share the module instance).
+let cachedBookingPrefill = null;
+let cachedBookingRead = false;
+const takeBookingPrefill = (fallback) => {
+  if (!cachedBookingRead) {
+    cachedBookingRead = true;
+    try {
+      const raw = sessionStorage.getItem('billBookingPrefill');
+      if (raw) cachedBookingPrefill = JSON.parse(raw);
+    } catch {
+      /* storage unavailable — ignore */
+    }
+    if (!cachedBookingPrefill && fallback) cachedBookingPrefill = fallback;
+  }
+  return cachedBookingPrefill;
+};
+// Clears a consumed handoff so a later manual "Create Bill" starts empty.
+export const clearBookingPrefill = () => {
+  cachedBookingPrefill = null;
+  try {
+    sessionStorage.removeItem('billBookingPrefill');
+  } catch {
+    /* ignore */
+  }
 };
 
 const EMPTY_PATIENT_FORM = {
@@ -69,8 +96,11 @@ const BillCreateForm = ({
   const navigate = useNavigate();
   const location = useLocation();
   // Prefill from a confirmed booking inquiry (Inquiries → "Confirm & Bill").
-  // Shape: location.state.booking = { inquiryId, name, phone, patientId, items, note }.
-  const bookingPrefill = location.state?.booking || null;
+  // Handoff arrives via sessionStorage (survives URL-mirroring replaces and
+  // refreshes); router state is accepted as a fallback. Read via the module
+  // cache so React StrictMode's dev double-mount sees the same value on both
+  // passes; cleared once the items are applied (see items effect below).
+  const [bookingPrefill] = useState(() => takeBookingPrefill(location.state?.booking || null));
 
   const [patientForm, setPatientForm] = useState(EMPTY_PATIENT_FORM);
   const [bookingBanner, setBookingBanner] = useState('');
@@ -85,6 +115,8 @@ const BillCreateForm = ({
   const [selectedAgent, setSelectedAgent] = useState('');
   const [activeDepartment, setActiveDepartment] = useState('LAB');
   const [pickerType, setPickerType] = useState('Test');
+  // Instant client-side filter over the already-loaded catalog (no API round-trip).
+  const [pickerQuery, setPickerQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountValue, setDiscountValue] = useState(0);
@@ -181,6 +213,14 @@ const BillCreateForm = ({
         selectedPatientId: b.patientId,
         patientPhone: b.phone || prev.patientPhone
       }));
+      // The linked profile may sit outside the preloaded first-100 list —
+      // fetch it so the picker displays the name immediately.
+      if (!patients.some((p) => String(p._id) === String(b.patientId))) {
+        getPatientById(b.patientId)
+          // GET /patients/:id returns { patient, bills, reports, transactions }
+          .then((res) => { const p = res?.data?.patient || res?.data; if (res?.success && p?._id) setPickedPatient(p); })
+          .catch(() => { /* picker stays searchable — non-fatal */ });
+      }
     } else {
       const parts = String(b.name || '').trim().split(/\s+/);
       setPatientForm((prev) => ({
@@ -237,6 +277,8 @@ const BillCreateForm = ({
     if (resolved.length) {
       setSelectedItems((prev) => {
         if (prev.length) return prev; // don't clobber user picks on re-renders
+        // Handoff consumed — later manual visits start empty.
+        clearBookingPrefill();
         return resolved;
       });
       setBookingBanner(
@@ -306,6 +348,7 @@ const BillCreateForm = ({
       });
 
       if (res.success) {
+        clearBookingPrefill();
         onBillCreated?.();
         navigate('/cases/bills');
       }
@@ -317,20 +360,38 @@ const BillCreateForm = ({
   };
 
   const departmentTests = filterTestsByDepartment(tests, activeDepartment);
+  // Never dead-end billing: departments with no dedicated tests (e.g.
+  // OUTSOURCE LAB) fall back to the full active catalog with a notice.
+  const deptFallback = activeDepartment !== 'LAB' && departmentTests.length === 0;
+  const deptTestList = deptFallback
+    ? tests.filter((t) => !t.status || t.status === 'Active')
+    : departmentTests;
 
   // Picker source per active tab — every price comes from the existing
   // catalog APIs (tests / packages / panels); nothing is priced in frontend
   // constants, and all three types are accepted by the bill validator.
   const pickerSource =
-    pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : departmentTests;
+    pickerType === 'TestPackage' ? packages : pickerType === 'TestPanel' ? panels : deptTestList;
   const pickerItems = (Array.isArray(pickerSource) ? pickerSource : [])
     .filter((item) => !item.status || item.status === 'Active');
+  // Instant search across name + code + price (case-insensitive).
+  const pickerQ = pickerQuery.trim().toLowerCase();
+  const filteredPickerItems = pickerQ
+    ? pickerItems.filter((item) => {
+        const hay = `${item.name || ''} ${item.code || ''} ${item.price ?? ''}`.toLowerCase();
+        return pickerQ.split(/\s+/).every((tok) => hay.includes(tok));
+      })
+    : pickerItems;
   const pickerEmptyText =
-    pickerType === 'Test'
-      ? `No tests mapped under ${activeDepartment}`
-      : pickerType === 'TestPackage'
-        ? 'No packages available.'
-        : 'No panels available.';
+    pickerQ
+      ? `No matches for “${pickerQuery.trim()}”.`
+      : pickerType === 'Test'
+        ? (deptFallback
+            ? 'No tests found.'
+            : `No tests mapped under ${activeDepartment}`)
+        : pickerType === 'TestPackage'
+          ? 'No packages available.'
+          : 'No panels available.';
 
   const handlePickerSelect = (item) => {
     if (pickerType === 'Test') {
@@ -498,7 +559,7 @@ const BillCreateForm = ({
             </div>
 
             {/* Department Selector */}
-            <DepartmentSelector activeDepartment={activeDepartment} onSelect={setActiveDepartment} />
+            <DepartmentSelector activeDepartment={activeDepartment} onSelect={(d) => { setActiveDepartment(d); setPickerQuery(''); }} />
 
             {/* Smart test search complements the department-filtered picker below. */}
             {pickerType === 'Test' && (
@@ -518,23 +579,44 @@ const BillCreateForm = ({
                 Select services
               </label>
               <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                <Button variant={pickerType === 'Test' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('Test')}>
+                <Button variant={pickerType === 'Test' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('Test'); setPickerQuery(''); }}>
                   Tests
                 </Button>
-                <Button variant={pickerType === 'TestPackage' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPackage')}>
+                <Button variant={pickerType === 'TestPackage' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('TestPackage'); setPickerQuery(''); }}>
                   Packages
                 </Button>
-                <Button variant={pickerType === 'TestPanel' ? 'primary' : 'secondary'} size="sm" onClick={() => setPickerType('TestPanel')}>
+                <Button variant={pickerType === 'TestPanel' ? 'primary' : 'secondary'} size="sm" onClick={() => { setPickerType('TestPanel'); setPickerQuery(''); }}>
                   Panels
                 </Button>
               </div>
+              <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={pickerQuery}
+                  onChange={(e) => setPickerQuery(e.target.value)}
+                  placeholder={`Search ${pickerType === 'Test' ? 'tests' : pickerType === 'TestPackage' ? 'packages' : 'panels'} by name or code…`}
+                  aria-label={`Search ${pickerType} list`}
+                  style={{ flex: 1 }}
+                />
+                {pickerQuery && (
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                    {filteredPickerItems.length} match{filteredPickerItems.length === 1 ? '' : 'es'}
+                  </span>
+                )}
+              </div>
+              {deptFallback && pickerType === 'Test' && (
+                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '0 0 var(--space-2)' }}>
+                  No dedicated {activeDepartment} tests — showing full catalog.
+                </p>
+              )}
               <div className="test-picker-list">
-                {pickerItems.length === 0 ? (
+                {filteredPickerItems.length === 0 ? (
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-5)' }}>
                     {pickerEmptyText}
                   </p>
                 ) : (
-                  pickerItems.map((item) => {
+                  filteredPickerItems.map((item) => {
                     const alreadyAdded = pickerType !== 'Test' && selectedBundleIds.includes(item._id);
                     return (
                       <div
@@ -561,8 +643,8 @@ const BillCreateForm = ({
           </div>
         </div>
 
-        {/* Right Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        {/* Right Column — sticky cart: stays visible while scrolling the picker */}
+        <div className="bill-summary-column" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
           <div className="bill-form-card">
             <BillItemsTable
               items={selectedItems}

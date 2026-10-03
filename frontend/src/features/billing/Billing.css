@@ -4,6 +4,22 @@
   gap: var(--space-6);
 }
 
+/* Sticky cart — the Selected-lines + Payment column stays pinned under the
+   fixed header while the left picker column scrolls. align-self:start keeps
+   the item at the top of its (stretched, row-tall) grid area so sticky has
+   room to travel. Falls back to normal flow where the grid stacks. */
+.bill-summary-column {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+  align-self: start;
+}
+
+@media (max-width: 70rem) {
+  .bill-summary-column {
+    position: static;
+  }
+}
+
 .bill-form-card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -49,7 +65,17 @@
   margin: 0;
 }
 
-/* Department Selector Pills */
+/* Department Selector Pills — wrapped grid so every department is visible
+   at once (no hidden horizontal scroll). */
+.department-selector-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Legacy horizontal-scroll variant (kept for other usages). */
 .department-selector-scroll {
   display: flex;
   gap: var(--space-2);
@@ -78,6 +104,12 @@
   transition: all var(--transition-fast);
 }
 
+.department-selector-grid .department-btn {
+  min-width: 5.25rem;
+  height: 3.75rem;
+  flex: 1 1 5.25rem;
+}
+
 .department-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
@@ -94,9 +126,13 @@
 .test-picker-list {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  max-height: 11.25rem;
+  max-height: 15rem;
   overflow-y: auto;
   background-color: var(--color-surface);
+}
+
+.test-picker-search {
+  margin-bottom: var(--space-2);
 }
 
 .test-picker-item {
