@@ -180,9 +180,14 @@ module.exports = {
 
 async function createResultReport(req, res, next) {
   try {
-    const { patient, bill } = req.body;
+    const { patient, bill, entryMode } = req.body;
     if (!patient || !bill) return errorResponse(res, 'Patient ID and Bill ID are required', 400);
-    const report = await reportService.createResultReport({ patient, bill, branch: resolveBranchForCreate(req, req.body) }, req.user);
+    const report = await reportService.createResultReport({
+      patient,
+      bill,
+      entryMode,
+      branch: resolveBranchForCreate(req, req.body)
+    }, req.user);
     await Activity.create({
       user: req.user._id, action: 'Create Result Report', module: 'Lab',
       description: `Registered result entry for ${report.registrationNumber}.`
@@ -379,7 +384,7 @@ async function getPendingLabCases(req, res, next) {
           localField: '_id',
           foreignField: 'billId',
           as: 'itemDocs',
-          pipeline: [{ $project: { name: 1, itemType: 1, price: 1 } }]
+          pipeline: [{ $project: { name: 1, itemType: 1, price: 1, itemId: 1 } }]
         }
       },
       {
@@ -398,7 +403,8 @@ async function getPendingLabCases(req, res, next) {
               in: {
                 _id: '$$r._id',
                 status: '$$r.status',
-                registrationNumber: '$$r.registrationNumber'
+                registrationNumber: '$$r.registrationNumber',
+                entryMode: { $ifNull: ['$$r.entryMode', 'all'] }
               }
             }
           }
@@ -411,7 +417,9 @@ async function getPendingLabCases(req, res, next) {
             $filter: {
               input: '$reportDocs',
               as: 'r',
-              cond: { $in: ['$$r.status', ['Registered', 'Draft']] }
+              cond: {
+                $in: ['$$r.status', ['Pending', 'Registered', 'Draft', 'Collected', 'Received', 'Reported']]
+              }
             }
           }
         }
@@ -481,8 +489,12 @@ async function getPendingLabCases(req, res, next) {
 
     const facet = rows[0] || { data: [], meta: [] };
     const total = facet.meta[0]?.total || 0;
-    const data = (facet.data || []).map((bill) => ({
-      bill: {
+    const { reportModesForItems } = require('../utils/billItemModality');
+
+    // One worklist row per open report shell (mixed bills → separate inhouse / outsource actions).
+    const data = [];
+    for (const bill of facet.data || []) {
+      const baseBill = {
         _id: bill._id,
         billNumber: bill.billNumber,
         date: bill.date,
@@ -490,15 +502,30 @@ async function getPendingLabCases(req, res, next) {
         department: bill.department || 'LAB',
         caseType: bill.caseType || 'LabCase',
         items: Array.isArray(bill.items) ? bill.items : []
-      },
-      report: bill.reportInfo?.status
-        ? {
-            _id: bill.reportInfo._id,
-            status: bill.reportInfo.status,
-            registrationNumber: bill.reportInfo.registrationNumber
-          }
-        : { status: 'Pending' }
-    }));
+      };
+      const openReports = Array.isArray(bill.entryReport) ? bill.entryReport : [];
+      if (openReports.length) {
+        for (const r of openReports) {
+          data.push({
+            bill: baseBill,
+            report: {
+              _id: r._id,
+              status: r.status || 'Registered',
+              registrationNumber: r.registrationNumber,
+              entryMode: r.entryMode || 'all'
+            }
+          });
+        }
+      } else {
+        const modes = reportModesForItems(baseBill.items, baseBill);
+        for (const mode of modes) {
+          data.push({
+            bill: baseBill,
+            report: { status: 'Pending', entryMode: mode }
+          });
+        }
+      }
+    }
 
     return successResponse(res, 'Pending lab cases loaded', {
       cases: data,
@@ -536,6 +563,15 @@ async function getReportForEntry(req, res, next) {
     // Fallback when bill.items refs are empty but BillItem rows exist by billId
     if ((!billItems.length || billItems.every((i) => !i || !i.name)) && report.bill?._id) {
       billItems = await BillItem.find({ billId: report.bill._id }).lean();
+    }
+
+    // Mixed bill: only lines for this shell's entryMode
+    const { isInhouseItem, isOutsourceItem } = require('../utils/billItemModality');
+    const mode = report.entryMode || 'all';
+    if (mode === 'inhouse') {
+      billItems = billItems.filter(isInhouseItem);
+    } else if (mode === 'outsource') {
+      billItems = billItems.filter(isOutsourceItem);
     }
 
     let allTests = [];
@@ -637,10 +673,12 @@ async function getReportForEntry(req, res, next) {
         _id: report._id,
         registrationNumber: report.registrationNumber,
         status: report.status,
+        entryMode: report.entryMode || 'all',
         tat: report.tat
       },
       patient: report.patient,
       bill: report.bill,
+      entryMode: report.entryMode || 'all',
       testEntries
     });
   } catch (error) {

@@ -108,53 +108,89 @@ const getPatientReports = async (req, res, next) => {
       .populate('referringDoctor', 'name')
       .sort({ date: -1 });
 
+    const portalDisplayStatus = (status) => {
+      const s = String(status || '').trim();
+      if (['Pending', 'Registered', 'Collected', 'Received', 'Draft', 'Reported'].includes(s)) {
+        return 'Processing';
+      }
+      if (s === 'Rejected') return 'Rejected';
+      if (['Signed', 'Verified', 'Completed'].includes(s)) return s;
+      return s || 'Processing';
+    };
+    const isDownloadable = (status, hasFile) => {
+      if (['Signed', 'Verified', 'Completed'].includes(String(status || ''))) return true;
+      return !!hasFile && String(status) === 'Completed';
+    };
+
     // Format into unified response list
     const reports = [
-      ...labReports.map(r => ({
-        id: r._id,
-        type: 'Pathology',
-        testName: r.test ? r.test.name : 'Laboratory Diagnostic Report',
-        testCode: r.test ? r.test.code : 'LAB',
-        patientName: r.patient ? r.patient.name : 'N/A',
-        registrationNumber: r.registrationNumber,
-        billNumber: r.bill ? r.bill.billNumber : 'N/A',
-        date: r.reportDate,
-        status: r.status || 'Completed',
-        hasFile: !!r.fileUrl,
-        resultValue: r.resultValue,
-        unit: r.unit || (r.test ? r.test.unit : ''),
-        referenceRange: r.referenceRange || (r.test ? r.test.referenceRange : ''),
-        interpretation: r.interpretation,
-        notes: r.notes
-      })),
-      ...usgReports.map(u => ({
-        id: u._id,
-        type: 'USG',
-        testName: u.templateName || 'Ultrasound (USG) Scan',
-        testCode: 'USG',
-        patientName: u.patient ? u.patient.name : 'N/A',
-        registrationNumber: u.patient ? u.patient.registrationNumber : 'N/A',
-        doctorName: u.referringDoctor ? u.referringDoctor.name : 'Self',
-        date: u.date,
-        status: u.status || 'Completed',
-        hasFile: false,
-        findings: u.findings,
-        impression: u.impression
-      })),
-      ...xrayReports.map(x => ({
-        id: x._id,
-        type: 'Digital X-Ray',
-        testName: 'Digital Radiography (X-Ray)',
-        testCode: 'XRAY',
-        patientName: x.patient ? x.patient.name : 'N/A',
-        registrationNumber: x.patient ? x.patient.registrationNumber : 'N/A',
-        doctorName: x.referringDoctor ? x.referringDoctor.name : 'Self',
-        date: x.date,
-        status: x.status || 'Completed',
-        hasFile: !!x.fileUrl,
-        findings: x.findings,
-        impression: x.impression
-      }))
+      ...labReports.map(r => {
+        const rawStatus = r.status || 'Registered';
+        const mode = r.entryMode || 'all';
+        const fallbackName = mode === 'outsource'
+          ? 'Outsourced Laboratory Report'
+          : mode === 'inhouse'
+            ? 'In-house Laboratory Report'
+            : 'Laboratory Diagnostic Report';
+        return {
+          id: r._id,
+          type: 'Pathology',
+          testName: r.test ? r.test.name : fallbackName,
+          testCode: r.test ? r.test.code : (mode === 'outsource' ? 'OUT' : 'LAB'),
+          patientName: r.patient ? r.patient.name : 'N/A',
+          registrationNumber: r.registrationNumber,
+          billNumber: r.bill ? r.bill.billNumber : 'N/A',
+          date: r.reportDate || r.createdAt || r.tat?.registered,
+          status: portalDisplayStatus(rawStatus),
+          statusRaw: rawStatus,
+          entryMode: mode,
+          downloadable: isDownloadable(rawStatus, !!r.fileUrl),
+          hasFile: !!r.fileUrl,
+          resultValue: r.resultValue,
+          unit: r.unit || (r.test ? r.test.unit : ''),
+          referenceRange: r.referenceRange || (r.test ? r.test.referenceRange : ''),
+          interpretation: r.interpretation,
+          notes: r.notes
+        };
+      }),
+      ...usgReports.map(u => {
+        const raw = u.status || 'Completed';
+        return {
+          id: u._id,
+          type: 'USG',
+          testName: u.templateName || 'Ultrasound (USG) Scan',
+          testCode: 'USG',
+          patientName: u.patient ? u.patient.name : 'N/A',
+          registrationNumber: u.patient ? u.patient.registrationNumber : 'N/A',
+          doctorName: u.referringDoctor ? u.referringDoctor.name : 'Self',
+          date: u.date,
+          status: portalDisplayStatus(raw),
+          statusRaw: raw,
+          downloadable: isDownloadable(raw, false),
+          hasFile: false,
+          findings: u.findings,
+          impression: u.impression
+        };
+      }),
+      ...xrayReports.map(x => {
+        const raw = x.status || 'Completed';
+        return {
+          id: x._id,
+          type: 'Digital X-Ray',
+          testName: 'Digital Radiography (X-Ray)',
+          testCode: 'XRAY',
+          patientName: x.patient ? x.patient.name : 'N/A',
+          registrationNumber: x.patient ? x.patient.registrationNumber : 'N/A',
+          doctorName: x.referringDoctor ? x.referringDoctor.name : 'Self',
+          date: x.date,
+          status: portalDisplayStatus(raw),
+          statusRaw: raw,
+          downloadable: isDownloadable(raw, !!x.fileUrl),
+          hasFile: !!x.fileUrl,
+          findings: x.findings,
+          impression: x.impression
+        };
+      })
     ];
 
     return successResponse(res, 'Patient reports loaded successfully', reports);

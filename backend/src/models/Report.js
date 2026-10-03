@@ -18,6 +18,14 @@ const ReportSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  // Mixed bills: separate shells for catalog value-entry vs outsource file upload.
+  // Legacy reports omit this (treated as 'all' / bill-level modality).
+  entryMode: {
+    type: String,
+    enum: ['inhouse', 'outsource', 'all'],
+    default: 'all',
+    index: true
+  },
   test: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Test',
@@ -139,5 +147,6 @@ const ReportSchema = new mongoose.Schema({
 // Speeds pending-cases distincts and status filters
 ReportSchema.index({ status: 1, bill: 1 });
 ReportSchema.index({ branch: 1, status: 1 });
+ReportSchema.index({ bill: 1, entryMode: 1 });
 
 module.exports = mongoose.model('Report', ReportSchema);

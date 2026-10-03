@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, FileEdit, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
   Button,
@@ -21,7 +21,8 @@ import {
   saveReportResultsDraft,
   submitReportResults,
   getReports,
-  uploadReport
+  uploadReport,
+  attachReportFile
 } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
@@ -35,9 +36,16 @@ const isOutsourceBill = (bill) => (
   || String(bill?.department || '').toUpperCase().includes('OUTSOURCE')
 );
 
+const isOutsourceWork = (report, bill) => {
+  const mode = report?.entryMode;
+  if (mode === 'outsource') return true;
+  if (mode === 'inhouse') return false;
+  return isOutsourceBill(bill);
+};
+
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
-  { value: 'Pending', label: 'Pending' },
+  { value: 'Pending', label: 'Pending (no shell yet)' },
   { value: 'Registered', label: 'Registered' },
   { value: 'Draft', label: 'Draft' }
 ];
@@ -250,14 +258,28 @@ const ResultEntry = () => {
     resolveReferrer(data.patient, data.bill);
   };
 
-  const openUploadForCase = (row) => {
+  const openUploadForCase = async (row) => {
     const bill = row?.bill || null;
     const patient = bill?.patient && typeof bill.patient === 'object' ? bill.patient : null;
     if (!bill?._id || !patient?._id) {
       setFeedback({ type: 'error', text: 'This case is missing patient or bill information.' });
       return;
     }
-    setUploadTarget({ bill, patient });
+    let reportId = row?.report?._id || null;
+    // Ensure an outsource shell exists before upload (mixed / legacy bills).
+    if (!reportId || row?.report?.entryMode === 'inhouse' || row?.report?.entryMode === 'all') {
+      try {
+        const created = await createResultReport({
+          patient: patient._id,
+          bill: bill._id,
+          entryMode: 'outsource'
+        });
+        reportId = created?.data?._id || reportId;
+      } catch {
+        /* fall back to patient+bill upload */
+      }
+    }
+    setUploadTarget({ bill, patient, reportId });
     setUploadPickBillId(String(bill._id));
     setUploadFile(null);
     setUploadError(null);
@@ -292,10 +314,15 @@ const ResultEntry = () => {
     setUploadError(null);
     try {
       const payload = new FormData();
-      payload.append('patient', patientId);
-      payload.append('bill', billId);
       payload.append('file', uploadFile);
-      const res = await uploadReport(payload);
+      let res;
+      if (uploadTarget?.reportId) {
+        res = await attachReportFile(uploadTarget.reportId, payload);
+      } else {
+        payload.append('patient', patientId);
+        payload.append('bill', billId);
+        res = await uploadReport(payload);
+      }
       if (res?.success) {
         setUploadOpen(false);
         setUploadFile(null);
@@ -318,8 +345,8 @@ const ResultEntry = () => {
 
   const openCase = async (row) => {
     if (inFlightRef.current) return;
-    // Outsource bills use PDF/image upload — not numeric result grids.
-    if (isOutsourceBill(row?.bill)) {
+    // Outsource shells use PDF/image upload — not numeric result grids.
+    if (isOutsourceWork(row?.report, row?.bill)) {
       openUploadForCase(row);
       return;
     }
@@ -343,7 +370,8 @@ const ResultEntry = () => {
         if (!patientId || !billId) {
           throw new Error('This case is missing patient or bill information.');
         }
-        const created = await createResultReport({ patient: patientId, bill: billId });
+        const entryMode = row?.report?.entryMode === 'outsource' ? 'outsource' : 'inhouse';
+        const created = await createResultReport({ patient: patientId, bill: billId, entryMode });
         reportId = created?.data?._id;
         if (!reportId) {
           throw new Error('Could not register this case for result entry.');
@@ -492,18 +520,54 @@ const ResultEntry = () => {
   // data-entry action (prevents "Enter/Submit persisting after submission").
   const isReportFinal = (status) =>
     ['Reported', 'Signed', 'Verified', 'Completed'].includes(status);
+
+  const itemsLabelForRow = (row) => {
+    let items = row?.bill?.items;
+    if (!Array.isArray(items) || !items.length) return '—';
+    const mode = row?.report?.entryMode;
+    if (mode === 'inhouse') {
+      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
+    } else if (mode === 'outsource') {
+      items = items.filter((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+    }
+    if (!items.length) {
+      return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';
+    }
+    const names = items.map((i) => i?.name || 'Item').filter(Boolean);
+    const label = names.join(', ');
+    return label.length > 48 ? `${label.slice(0, 48)}…` : label;
+  };
+
   const renderCaseRow = (row) => {
     const patient = row?.bill?.patient;
     const demographics = [patient?.age, patient?.gender]
       .filter((value) => value != null && value !== '')
       .join(' / ');
     const final = isReportFinal(row?.report?.status);
-    const outsource = isOutsourceBill(row?.bill);
+    const mode = row?.report?.entryMode;
+    const items = Array.isArray(row?.bill?.items) ? row.bill.items : [];
+    const hasInhouse = items.some((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
+    const hasOutsource = items.some((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+    // Legacy single "all" row on a mixed bill — offer both actions.
+    const showBoth = (!mode || mode === 'all') && hasInhouse && hasOutsource && !final;
+    const outsource = !showBoth && isOutsourceWork(row?.report, row?.bill);
+    const modeLabel = mode === 'outsource'
+      ? 'Outsource'
+      : mode === 'inhouse'
+        ? 'In-house'
+        : showBoth
+          ? 'Mixed'
+          : (outsource ? 'Outsource' : 'In-house');
+    const rowKey = row?.report?._id
+      ? `${row?.bill?._id}-${row.report._id}`
+      : `${row?.bill?._id}-${modeLabel}`;
     return (
-      <tr key={row?.bill?._id}>
+      <tr key={rowKey}>
+        <td style={{ whiteSpace: 'nowrap' }}>{row?.bill?.billNumber || '—'}</td>
         <td>
-          {row?.bill?.billNumber || '—'}
-          {outsource ? <div className="re-sub">Outsource</div> : null}
+          <span className="re-sub" style={{ fontWeight: 700, color: (outsource || showBoth) ? 'var(--color-primary)' : undefined }}>
+            {modeLabel}
+          </span>
         </td>
         <td>
           <div className="re-patient-name">{patient?.name || '—'}</div>
@@ -512,18 +576,45 @@ const ResultEntry = () => {
           ) : null}
         </td>
         <td>{demographics || '—'}</td>
+        <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}</td>
         <td>
           <StatusBadge status={row?.report?.status} />
         </td>
         <td>
           {final ? (
             <span className="re-sub">Submitted — no action</span>
+          ) : showBoth ? (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<FileEdit size={16} />}
+                onClick={() => openCase({
+                  ...row,
+                  report: { ...(row.report || {}), _id: undefined, entryMode: 'inhouse' }
+                })}
+              >
+                Enter Results
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                icon={<Upload size={16} />}
+                onClick={() => openUploadForCase({
+                  ...row,
+                  // Force a dedicated outsource shell (do not attach to legacy "all" report)
+                  report: { entryMode: 'outsource' }
+                })}
+              >
+                Upload Report
+              </Button>
+            </div>
           ) : outsource ? (
-            <Button size="sm" variant="primary" icon={<Upload size={14} />} onClick={() => openUploadForCase(row)}>
+            <Button size="sm" variant="primary" icon={<Upload size={16} />} onClick={() => openUploadForCase(row)}>
               Upload Report
             </Button>
           ) : (
-            <Button size="sm" variant="secondary" onClick={() => openCase(row)}>
+            <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
               {row?.report?.status === 'Draft' ? 'Edit Draft' : 'Enter Results'}
             </Button>
           )}
@@ -585,7 +676,9 @@ const ResultEntry = () => {
       !testEntry.isDerived && String(values[entryKey(testEntry)] ?? '').trim() !== ''
   ).length;
 
-  const outsourcePending = cases.filter((c) => isOutsourceBill(c?.bill) && !isReportFinal(c?.report?.status));
+  const outsourcePending = cases.filter(
+    (c) => isOutsourceWork(c?.report, c?.bill) && !isReportFinal(c?.report?.status)
+  );
 
   return (
     <div className="result-entry-page">
@@ -683,14 +776,14 @@ const ResultEntry = () => {
             {/* Status only: the pending-cases API returns report.status but no
                 tat/registeredAt, so Registered/TAT columns are omitted here. */}
             <DataTable
-              headers={['Invoice No', 'Patient', 'Age / Gender', 'Report Status', 'Action']}
+              headers={['Invoice No', 'Type', 'Patient', 'Age / Gender', 'Items', 'Report Status', 'Action']}
               data={cases}
               loading={listLoading}
               emptyTitle={debouncedSearch || statusFilter ? 'No matching cases' : 'No pending cases'}
               emptyMessage={
                 debouncedSearch || statusFilter
                   ? 'No lab cases match your current filters.'
-                  : 'There are no lab cases waiting for result entry right now.'
+                  : 'There are no lab cases waiting for result entry right now. New bills appear here as Registered (In-house / Outsource) right after invoicing.'
               }
               pagination={
                 pagination ? { ...pagination, onPageChange: goToPage } : undefined

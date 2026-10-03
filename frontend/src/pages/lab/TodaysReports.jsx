@@ -90,7 +90,16 @@ const isOutsourceBill = (bill) => (
   || String(bill?.department || '').toUpperCase().includes('OUTSOURCE')
 );
 
-const isOutsourceReport = (report) => isOutsourceBill(report?.bill);
+/** Prefer report.entryMode (mixed bills); fall back to bill-level modality. */
+const isOutsourceWork = (reportOrPending, bill) => {
+  const mode = reportOrPending?.entryMode || reportOrPending?.report?.entryMode;
+  if (mode === 'outsource') return true;
+  if (mode === 'inhouse') return false;
+  const b = bill || reportOrPending?.bill || reportOrPending;
+  return isOutsourceBill(b);
+};
+
+const isOutsourceReport = (report) => isOutsourceWork(report, report?.bill);
 
 const matchesSearch = (report, q) => {
   const query = String(q || '').trim().toLowerCase();
@@ -509,16 +518,27 @@ const TodaysReports = () => {
 
   // Start result entry directly from a pending sample (bill without a report).
   const handleStartPendingEntry = async (pendingCase) => {
-    if (isOutsourceBill(pendingCase?.bill)) {
+    if (isOutsourceWork(pendingCase?.report, pendingCase?.bill)) {
       handleUploadPendingOutsource(pendingCase);
       return;
     }
     const billId = pendingCase?.bill?._id || pendingCase?.bill;
     const patientId = pendingCase?.bill?.patient?._id || pendingCase?.bill?.patient;
     if (!billId || !patientId) { alert('Pending case is missing patient/bill linkage'); return; }
+    // Existing Registered shell from bill create — open it directly.
+    if (pendingCase?.report?._id) {
+      setTab('today');
+      openEntry({
+        ...pendingCase.report,
+        patient: pendingCase.bill?.patient,
+        bill: pendingCase.bill
+      });
+      return;
+    }
     setResultLoading(true);
     try {
-      const res = await createResultReport({ patient: patientId, bill: billId });
+      const entryMode = pendingCase?.report?.entryMode === 'outsource' ? 'outsource' : 'inhouse';
+      const res = await createResultReport({ patient: patientId, bill: billId, entryMode });
       if (res.success) {
         fetchReports();
         fetchPending();
@@ -537,14 +557,24 @@ const TodaysReports = () => {
     const bill = pendingCase?.bill || {};
     const patient = bill.patient && typeof bill.patient === 'object' ? bill.patient : null;
     const patientId = patient?._id || bill.patient;
+    const reportId = pendingCase?.report?._id;
     if (!bill._id || !patientId) {
       alert('Pending case is missing patient/bill linkage');
+      return;
+    }
+    // Prefer attaching to the Registered outsource shell when present.
+    if (reportId) {
+      openEntry({
+        ...pendingCase.report,
+        patient,
+        bill,
+        entryMode: pendingCase.report?.entryMode || 'outsource'
+      });
       return;
     }
     setFormData({ patient: patientId, bill: bill._id, test: '', file: null });
     setUploadPatient(patient);
     setFormErrors({});
-    // Ensure the Select has this bill even if the last-100 list omitted it.
     setBills((prev) => {
       const list = Array.isArray(prev) ? prev : [];
       if (list.some((b) => String(b._id) === String(bill._id))) return list;
@@ -566,14 +596,16 @@ const TodaysReports = () => {
     // Resolve bill/tests BEFORE opening the modal so outsource never flashes value fields.
     let nextReport = report;
     let testEntries = [];
+    let entryPayload = null;
     try {
       const entry = await getReportForEntry(report._id);
-      const billFromEntry = entry?.data?.bill;
-      const patientFromEntry = entry?.data?.patient;
-      testEntries = entry?.data?.testEntries || [];
+      entryPayload = entry?.data || null;
+      const billFromEntry = entryPayload?.bill;
+      const patientFromEntry = entryPayload?.patient;
+      testEntries = entryPayload?.testEntries || [];
       nextReport = {
         ...report,
-        ...(entry?.data?.report || {}),
+        ...(entryPayload?.report || {}),
         bill: billFromEntry || report.bill,
         patient: patientFromEntry || report.patient
       };
@@ -581,13 +613,15 @@ const TodaysReports = () => {
       /* list payload only */
     }
 
-    const items = nextReport?.bill?.items;
-    const billItemsCustomOnly = Array.isArray(items) && items.length > 0
-      && items.every((it) => it?.itemType === 'Custom' || (!it?.itemId && it?.name));
-    const entriesCustomOnly = testEntries.length > 0 && testEntries.every((t) => !t.testId);
-    const outsource = isOutsourceReport(nextReport) || isOutsourceBill(nextReport?.bill)
-      || billItemsCustomOnly || entriesCustomOnly
-      || String(inferDepartment(nextReport)).includes('OUTSOURCE');
+    // entryMode from API wins for mixed bills; only fall back to bill-level heuristics.
+    const mode = nextReport.entryMode || entryPayload?.entryMode || report.entryMode;
+    const outsource = mode === 'outsource'
+      || (mode !== 'inhouse' && (
+        isOutsourceWork(nextReport, nextReport?.bill)
+        || (Array.isArray(nextReport?.bill?.items) && nextReport.bill.items.length > 0
+          && nextReport.bill.items.every((it) => it?.itemType === 'Custom' || (!it?.itemId && it?.name)))
+        || (testEntries.length > 0 && testEntries.every((t) => !t.testId))
+      ));
 
     setActiveReport(nextReport);
     setTat({
@@ -910,8 +944,17 @@ const TodaysReports = () => {
   const billOptions = (patientId) => bills.filter(b => !patientId || b.patient?._id === patientId || b.patient === patientId).map(b => ({ value: b._id, label: `${b.billNumber} (${formatCurrency(b.totalAmount)})` }));
 
   const pendingItemsLabel = (pendingCase) => {
-    const items = pendingCase?.bill?.items;
+    let items = pendingCase?.bill?.items;
     if (!Array.isArray(items) || !items.length) return '—';
+    const mode = pendingCase?.report?.entryMode;
+    if (mode === 'inhouse') {
+      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
+    } else if (mode === 'outsource') {
+      items = items.filter((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+    }
+    if (!items.length) {
+      return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';
+    }
     const names = items.map((i) => (typeof i === 'object' ? i.name || i.testName || 'Item' : 'Item'));
     const label = names.join(', ');
     return label.length > 60 ? `${label.slice(0, 60)}…` : label;
@@ -1016,7 +1059,7 @@ const TodaysReports = () => {
           />
         ) : (
           <DataTable
-            headers={['Patient', 'Reg No', 'Bill Number', 'Items', 'Report Status', 'Actions']}
+            headers={['Patient', 'Reg No', 'Bill Number', 'Type', 'Items', 'Report Status', 'Actions']}
             data={pgPending.paged}
             loading={pendingLoading}
             emptyMessage="No pending samples — every lab / outsource bill already has a report."
@@ -1032,20 +1075,26 @@ const TodaysReports = () => {
             renderRow={(pendingCase) => {
               const bill = pendingCase?.bill || {};
               const patient = bill?.patient || {};
-              const outsource = isOutsourceBill(bill);
+              const outsource = isOutsourceWork(pendingCase?.report, bill);
+              const modeLabel = pendingCase?.report?.entryMode === 'outsource'
+                ? 'Outsource'
+                : pendingCase?.report?.entryMode === 'inhouse'
+                  ? 'In-house'
+                  : (outsource ? 'Outsource' : 'In-house');
+              const rowKey = pendingCase?.report?._id
+                ? `${bill._id}-${pendingCase.report._id}`
+                : `${bill._id}-${modeLabel}`;
               return (
-                <tr key={bill._id || pendingCase?.report?._id}>
-                  <td style={{ fontWeight: '600' }}>
-                    {patient?.name || 'Walk-in Patient'}
-                    {outsource && (
-                      <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>
-                        Outsource
-                      </span>
-                    )}
-                  </td>
+                <tr key={rowKey}>
+                  <td style={{ fontWeight: '600' }}>{patient?.name || 'Walk-in Patient'}</td>
                   <td>{patient?.registrationNumber || '—'}</td>
                   <td>{bill?.billNumber || 'N/A'}</td>
-                  <td style={{ maxWidth: '240px' }}>{pendingItemsLabel(pendingCase)}</td>
+                  <td>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: outsource ? 'var(--color-primary)' : 'var(--color-text-muted)' }}>
+                      {modeLabel}
+                    </span>
+                  </td>
+                  <td style={{ maxWidth: '220px' }}>{pendingItemsLabel(pendingCase)}</td>
                   <td>{pendingCase?.report?.status || 'Pending'}</td>
                   <td>
                     {outsource ? (
@@ -1053,7 +1102,7 @@ const TodaysReports = () => {
                         className="btn btn-primary"
                         style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                         onClick={() => handleUploadPendingOutsource(pendingCase)}
-                        disabled={submitLoading}
+                        disabled={submitLoading || entryLoading}
                       >
                         <Plus size={14} /> Upload report
                       </button>
@@ -1062,9 +1111,9 @@ const TodaysReports = () => {
                         className="btn btn-secondary"
                         style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                         onClick={() => handleStartPendingEntry(pendingCase)}
-                        disabled={resultLoading}
+                        disabled={resultLoading || entryLoading}
                       >
-                        <FileEdit size={14} /> Start entry
+                        <FileEdit size={14} /> Enter values
                       </button>
                     )}
                   </td>

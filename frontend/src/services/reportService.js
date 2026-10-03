@@ -38,8 +38,12 @@ export const deleteReport = async (id) => {
 
 // Result entry (Labsmart parity): register shell -> save values (auto
 // formula + flags server-side) -> e-sign.
-export const createResultReport = async ({ patient, bill }) => {
-  const response = await apiClient.post('/reports/result', { patient, bill });
+export const createResultReport = async ({ patient, bill, entryMode }) => {
+  const response = await apiClient.post('/reports/result', {
+    patient,
+    bill,
+    ...(entryMode ? { entryMode } : {})
+  });
   return response.data;
 };
 

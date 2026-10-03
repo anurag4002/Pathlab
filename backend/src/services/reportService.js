@@ -168,18 +168,87 @@ const deleteReport = async (id) => {
 
 // ---- Result entry (Labsmart parity) ----
 
+const { reportModesForItems } = require('../utils/billItemModality');
+
+/**
+ * Create Registered report shells right after billing so:
+ * - patients see Processing/Pending immediately
+ * - mixed bills get separate inhouse (values) + outsource (upload) actions
+ */
+const ensureReportsForBill = async (bill, items, userId) => {
+  if (!bill?._id || !userId) return [];
+  const patientRecord = await Patient.findById(bill.patient).select('registrationNumber branch');
+  if (!patientRecord) return [];
+
+  const modes = reportModesForItems(items, bill);
+  const shells = [];
+  for (const mode of modes) {
+    let existing = await Report.findOne({
+      bill: bill._id,
+      entryMode: mode,
+      status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received', 'Reported'] }
+    });
+    if (!existing) {
+      // Also reuse a finalised shell of the same mode (avoid duplicates on re-call)
+      existing = await Report.findOne({ bill: bill._id, entryMode: mode }).sort({ createdAt: -1 });
+    }
+    if (existing) {
+      shells.push(existing);
+      continue;
+    }
+    const report = await Report.create({
+      patient: bill.patient,
+      registrationNumber: patientRecord.registrationNumber,
+      bill: bill._id,
+      branch: bill.branch || patientRecord.branch || null,
+      entryMode: mode,
+      uhid: bill.uhid || '',
+      dailyCaseNo: bill.dailyCaseNo || '',
+      cc: bill.collectionCentre || 'Main',
+      test: null,
+      fileUrl: '',
+      uploadedBy: userId,
+      status: 'Registered',
+      tat: { registered: new Date(), collected: null, received: null, reported: null },
+      results: []
+    });
+    shells.push(report);
+  }
+  return shells;
+};
+
 // Register an empty result shell (status Registered, TAT started).
-const createResultReport = async ({ patient, bill, branch }, user) => {
+const createResultReport = async ({ patient, bill, branch, entryMode }, user) => {
   const patientRecord = await Patient.findById(patient);
   if (!patientRecord) throw Object.assign(new Error('Patient not found'), { statusCode: 404 });
   const billRecord = await Bill.findById(bill);
   if (!billRecord) throw Object.assign(new Error('Bill invoice not found'), { statusCode: 404 });
+
+  const BillItem = require('../models/BillItem');
+  const items = await BillItem.find({ billId: bill }).lean();
+  const modes = reportModesForItems(items, billRecord);
+  const mode = entryMode && modes.includes(entryMode)
+    ? entryMode
+    : (modes[0] || 'inhouse');
+
+  // Prefer existing open shell for this mode (idempotent).
+  const open = await Report.findOne({
+    bill,
+    entryMode: mode,
+    status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received'] }
+  }).sort({ createdAt: -1 });
+  if (open) return open;
+
   const effectiveBranch = branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null;
   const report = new Report({
     patient,
     registrationNumber: patientRecord.registrationNumber,
     bill,
     branch: effectiveBranch,
+    entryMode: mode,
+    uhid: billRecord.uhid || '',
+    dailyCaseNo: billRecord.dailyCaseNo || '',
+    cc: billRecord.collectionCentre || 'Main',
     test: null,
     fileUrl: '',
     uploadedBy: user._id,
@@ -476,6 +545,7 @@ module.exports = {
   createReport,
   attachReportFile,
   deleteReport,
+  ensureReportsForBill,
   createResultReport,
   saveResults,
   saveResultsDraft,

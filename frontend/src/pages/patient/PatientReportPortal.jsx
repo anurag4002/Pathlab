@@ -680,12 +680,12 @@ const PatientReportPortal = () => {
             fetchingReports ? (
               <div className="patient-empty-state">
                 <Clock size={28} className="spin" />
-                <p>Fetching your verified reports...</p>
+                <p>Fetching your reports...</p>
               </div>
             ) : reports.length === 0 ? (
               <div className="patient-empty-state">
                 <FileText size={32} />
-                <p>No reports currently found for this mobile number.</p>
+                <p>No reports yet for this mobile number. After you register at the lab, reports appear here as Processing until ready.</p>
                 <small>If you recently gave a sample, please check back in a few hours — or book your first test below.</small>
                 <button type="button" className="patient-btn patient-btn-narrow" onClick={() => openTab('book')}>
                   <Plus size={15} /> Book a Test
@@ -730,17 +730,25 @@ const PatientReportPortal = () => {
                         onClick={() => setSelectedReport(report)}
                       >
                         <Eye size={15} />
-                        <span>View Report</span>
+                        <span>{report.downloadable === false ? 'View status' : 'View Report'}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="patient-download-btn"
-                        data-testid="report-pdf-download"
-                        onClick={() => handleDownload(report)}
-                      >
-                        <Download size={15} />
-                        <span>Download PDF</span>
-                      </button>
+                      {report.downloadable !== false ? (
+                        <button
+                          type="button"
+                          className="patient-download-btn"
+                          data-testid="report-pdf-download"
+                          onClick={() => handleDownload(report)}
+                        >
+                          <Download size={15} />
+                          <span>Download PDF</span>
+                        </button>
+                      ) : (
+                        <span className="patient-report-pending-note">
+                          {report.status === 'Processing' || report.status === 'Pending'
+                            ? 'In progress — PDF available when ready'
+                            : 'PDF not ready yet'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1036,7 +1044,8 @@ const PatientReportPortal = () => {
                   </div>
                 )}
 
-                <button
+                {selectedReport.downloadable !== false ? (
+                  <button
                     type="button"
                     className="patient-download-btn modal-download-btn"
                     data-testid="report-pdf-download"
@@ -1045,6 +1054,11 @@ const PatientReportPortal = () => {
                     <Download size={16} />
                     <span>Download Official Signed PDF</span>
                   </button>
+                ) : (
+                  <p className="patient-report-pending-note" role="status">
+                    Your report is {selectedReport.status || 'Processing'}. The PDF will be available once the lab completes it.
+                  </p>
+                )}
                 {pdfNotice && (
                   <p role="status" data-testid="report-pdf-started">{pdfNotice}</p>
                 )}

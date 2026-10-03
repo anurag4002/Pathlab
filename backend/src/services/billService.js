@@ -111,6 +111,18 @@ const createBill = async (billData, createdByUserId) => {
     });
   }
 
+  // Lab / outsource bills: Registered report shells immediately so
+  // patients see Processing/Pending and mixed bills get separate actions.
+  const dept = String(department || bill.department || 'LAB').toUpperCase();
+  if (dept.includes('LAB') || String(bill.caseType || '').includes('Lab')) {
+    try {
+      const reportService = require('./reportService');
+      await reportService.ensureReportsForBill(bill, savedItems, createdByUserId);
+    } catch (e) {
+      console.warn('[createBill] ensureReportsForBill failed:', e.message);
+    }
+  }
+
   return await getBillById(bill._id);
 };
 
