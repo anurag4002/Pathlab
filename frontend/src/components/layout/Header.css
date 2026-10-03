@@ -15,7 +15,8 @@
   box-shadow: var(--shadow-xs);
   gap: var(--space-3);
   min-width: 0;
-  overflow: hidden;
+  /* Must stay visible so the user logout menu can render below the bar */
+  overflow: visible;
 }
 
 .header.collapsed {
@@ -35,6 +36,8 @@
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
+  position: relative;
+  z-index: 210;
 }
 
 /* Mobile/tablet brand — desktop logo lives in the sidebar */
@@ -88,6 +91,7 @@
 /* User Profile Menu */
 .user-menu-wrapper {
   position: relative;
+  z-index: 210;
 }
 
 .user-menu-trigger {
@@ -151,7 +155,7 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-1) 0;
-  z-index: 200;
+  z-index: 220;
   animation: dropdown-fade-in 0.15s ease;
 }
 
