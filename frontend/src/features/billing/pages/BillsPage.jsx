@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { getBills, collectPayment, getBillById, voidBill } from '../../../services/billService';
+import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { getBills, collectPayment, getBillById, voidBill, refundBill } from '../../../services/billService';
 import { getPatients } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
 import { getAgents } from '../../../services/agentService';
 import { getTests } from '../../../services/testService';
 import { getPackages } from '../../../services/packageService';
 import { getPanels } from '../../../services/panelService';
+import { getBranches } from '../../../services/branchService';
 import { downloadBillPdf, printBillPdf } from '../../../services/publicService';
 import {
   DataTable,
@@ -19,7 +20,7 @@ import {
   AdvancedFilterBar,
   DURATION_OPTIONS
 } from '../../../components/common';
-import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS } from '../../../constants/billConstants';
+import { BILL_TABLE_HEADERS, BILL_STATUS_OPTIONS, PAYMENT_METHODS } from '../../../constants/billConstants';
 const CASE_TYPE_OPTIONS = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'].map((v) => ({ value: v, label: v }));
 import { BranchFilter } from '../../../components/common';
 import { DEPARTMENTS } from '../billingConstants';
@@ -128,6 +129,8 @@ const BillsPage = () => {
   const [tests, setTests] = useState([]);
   const [packages, setPackages] = useState([]);
   const [panels, setPanels] = useState([]);
+  // Collection-centre dropdown source (branch names + Main fallback).
+  const [branches, setBranches] = useState([]);
 
   // List view
   const [bills, setBills] = useState([]);
@@ -180,6 +183,21 @@ const BillsPage = () => {
   const [voidTarget, setVoidTarget] = useState(null);
   const [voidLoading, setVoidLoading] = useState(false);
   const [voidError, setVoidError] = useState(null);
+
+  // Bill edit runs in the shared bill form (same component as Create Bill).
+  const params = useParams();
+  const editBillId = params.id || '';
+  const isEditView = !!editBillId;
+  const [editBill, setEditBill] = useState(null);
+  const [editBillLoading, setEditBillLoading] = useState(false);
+  const [editBillError, setEditBillError] = useState(null);
+
+  const [refundTarget, setRefundTarget] = useState(null);
+  const [refundAmount, setRefundAmount] = useState(0);
+  const [refundMethod, setRefundMethod] = useState('Cash');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [refundError, setRefundError] = useState(null);
 
   // Phase 8 + 11 — label / sticker printing per bill.
   const [labelTarget, setLabelTarget] = useState(null);
@@ -247,8 +265,31 @@ const BillsPage = () => {
     }
   };
 
+  // Edit view loads the bill + catalogs for the shared bill form.
   useEffect(() => {
-    if (!isCreateView) {
+    if (!isEditView) return;
+    let active = true;
+    setEditBillLoading(true);
+    setEditBillError(null);
+    (async () => {
+      try {
+        await fetchFormOptions();
+        const res = await getBillById(editBillId);
+        if (!active) return;
+        if (res?.success && res.data) setEditBill(res.data);
+        else setEditBillError('Invoice details are unavailable.');
+      } catch (err) {
+        if (active) setEditBillError(getApiErrorMessage(err, 'Failed to load invoice.'));
+      } finally {
+        if (active) setEditBillLoading(false);
+      }
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditView, editBillId]);
+
+  useEffect(() => {
+    if (!isCreateView && !isEditView) {
       fetchBillsList();
     }
   }, [
@@ -263,6 +304,7 @@ const BillsPage = () => {
     page,
     limit,
     isCreateView,
+    isEditView,
     adv.duration,
     adv.regNo,
     adv.firstName,
@@ -281,6 +323,28 @@ const BillsPage = () => {
     if (isCreateView) fetchFormOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCreateView]);
+
+  // Collection-centre dropdown source — branches drive the Edit-bill dropdown
+  // (and the ledger filter). Falls back to Main-only if the fetch fails.
+  useEffect(() => {
+    let active = true;
+    getBranches({ status: 'Active' })
+      .then((res) => {
+        if (!active) return;
+        const list = Array.isArray(res?.data) ? res.data : [];
+        setBranches(list);
+      })
+      .catch(() => { if (active) setBranches([]); });
+    return () => { active = false; };
+  }, []);
+
+  const collectionCentreOptions = (() => {
+    const names = branches
+      .map((b) => b?.name)
+      .filter((n) => typeof n === 'string' && n.trim())
+      .filter((n, i, arr) => arr.indexOf(n) === i);
+    return ['Main', ...names.filter((n) => n !== 'Main')].map((n) => ({ value: n, label: n }));
+  })();
 
   // Consume an incoming `?search=` deep-link (View Bill / global search).
   // Sanitized so a missing value can never show up as "undefined", and
@@ -361,6 +425,52 @@ const BillsPage = () => {
     } catch {
       setPdfNotice('');
       alert('Failed to download bill PDF');
+    }
+  };
+
+  const openEditBill = (bill) => {
+    if (!isAdmin || !bill?._id) return;
+    clearBookingPrefill();
+    navigate(`/cases/bills/edit/${bill._id}`);
+  };
+
+  const openRefund = (bill) => {
+    if (!isAdmin) return;
+    setRefundTarget(bill);
+    setRefundAmount(bill.paidAmount || 0);
+    setRefundMethod('Cash');
+    setRefundReason('');
+    setRefundError(null);
+  };
+
+  const handleRefundSubmit = async () => {
+    if (!refundTarget || !isAdmin) return;
+    const amount = Number(refundAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setRefundError('Amount must be greater than 0.');
+      return;
+    }
+    if (amount > Number(refundTarget.paidAmount || 0)) {
+      setRefundError(`Amount cannot exceed the paid balance (${refundTarget.paidAmount || 0}).`);
+      return;
+    }
+    setRefundError(null);
+    setRefundLoading(true);
+    try {
+      const res = await refundBill(refundTarget._id, {
+        amount,
+        method: refundMethod,
+        reason: refundReason,
+      });
+      if (res.success) {
+        setRefundTarget(null);
+        alert('Refund recorded.');
+        fetchBillsList();
+      }
+    } catch (err) {
+      setRefundError(getApiErrorMessage(err, 'Refund failed.'));
+    } finally {
+      setRefundLoading(false);
     }
   };
 
@@ -450,6 +560,53 @@ const BillsPage = () => {
     );
   }
 
+  // Edit view — the SAME bill form component, prefilled with this invoice.
+  // Items, doctor, agent, discount, centre and case type are editable; the
+  // server re-totals and syncs the lab records (queue + entry grid).
+  if (isEditView) {
+    if (!isAdmin) {
+      return (
+        <div>
+          <ErrorBanner message="Bill editing is restricted to Admin." onRetry={() => navigate('/cases/bills')} />
+          <Button variant="secondary" onClick={() => navigate('/cases/bills')}>
+            Back to Ledger
+          </Button>
+        </div>
+      );
+    }
+    if (editBillLoading) {
+      return <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>Loading invoice…</p>;
+    }
+    if (editBillError || !editBill) {
+      return (
+        <div>
+          <ErrorBanner message={editBillError || 'Invoice not found.'} onRetry={() => navigate('/cases/bills')} />
+          <Button variant="secondary" onClick={() => navigate('/cases/bills')}>
+            Back to Ledger
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div>
+        {optionsError && <ErrorBanner message={optionsError} onRetry={retryLoad} />}
+        <BillCreateForm
+          key={editBill._id}
+          patients={patients}
+          doctors={doctors}
+          agents={agents}
+          tests={tests}
+          packages={packages}
+          panels={panels}
+          branches={branches}
+          editBill={editBill}
+          onBillUpdated={fetchBillsList}
+          onCancelEdit={() => navigate('/cases/bills')}
+        />
+      </div>
+    );
+  }
+
   // Department filter is sent to the server AND applied client-side, so the
   // ledger stays correct even if the server ignores the param.
   const visibleBills = filterDept
@@ -476,9 +633,11 @@ const BillsPage = () => {
           </div>
         }
       />
-      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-        Refunds and post-payment bill edits are currently disabled.
-      </p>
+      {!isAdmin && (
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+          Bill edits and refunds are restricted to Admin.
+        </p>
+      )}
 
       {(listError || optionsError) && <ErrorBanner message={listError || optionsError} onRetry={retryLoad} />}
       {pdfNotice && (
@@ -545,7 +704,7 @@ const BillsPage = () => {
           { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
           { key: 'dailyCaseNo', label: 'Daily case no.', type: 'text', placeholder: 'DCN' },
           { key: 'referredBy', label: 'Referred by', type: 'select', options: doctors.map((d) => ({ value: d._id || d.id || d.value, label: d.name || d.label })) },
-          { key: 'collectionCentre', label: 'Collection centre', type: 'select', options: [{ value: 'Main', label: 'Main' }] },
+          { key: 'collectionCentre', label: 'Collection centre', type: 'select', options: collectionCentreOptions },
           { key: 'agent', label: 'Sample agent', type: 'select', options: agents.map((a) => ({ value: a._id || a.id || a.value, label: a.name || a.label })) },
           { key: 'caseType', label: 'Case type', type: 'select', options: CASE_TYPE_OPTIONS },
           { key: 'hasDue', label: 'Has due', type: 'toggle' },
@@ -618,12 +777,16 @@ const BillsPage = () => {
                     Void
                   </Button>
                 )}
-                <Button variant="secondary" size="sm" disabled title="Not available">
-                  Refund
-                </Button>
-                <Button variant="secondary" size="sm" disabled title="Not available">
-                  Edit
-                </Button>
+                {isAdmin && !bill.isVoided && (
+                  <Button variant="secondary" size="sm" onClick={() => openRefund(bill)} data-testid="bill-refund" aria-label={`Refund ${bill.billNumber}`}>
+                    Refund
+                  </Button>
+                )}
+                {isAdmin && !bill.isVoided && (
+                  <Button variant="secondary" size="sm" onClick={() => openEditBill(bill)} data-testid="bill-edit" aria-label={`Edit ${bill.billNumber}`}>
+                    Edit
+                  </Button>
+                )}
               </div>
             </td>
           </tr>
@@ -800,6 +963,51 @@ const BillsPage = () => {
         loading={voidLoading}
         error={voidError}
       />
+
+      <Modal
+        isOpen={!!refundTarget}
+        onClose={() => !refundLoading && setRefundTarget(null)}
+        title={`Refund invoice ${refundTarget?.billNumber || ''}`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRefundTarget(null)} disabled={refundLoading}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleRefundSubmit} loading={refundLoading}>
+              Record Refund
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+            Paid: <strong>{formatCurrency(refundTarget?.paidAmount || 0)}</strong>
+          </p>
+          {refundError && <div className="form-error">{refundError}</div>}
+          <Input
+            label="Refund amount"
+            type="number"
+            value={refundAmount}
+            min={1}
+            max={refundTarget?.paidAmount || 0}
+            onChange={(e) => setRefundAmount(e.target.value)}
+            required
+          />
+          <Select
+            label="Refund method"
+            value={refundMethod}
+            onChange={(e) => setRefundMethod(e.target.value)}
+            options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
+            required
+          />
+          <Input
+            label="Reason"
+            value={refundReason}
+            onChange={(e) => setRefundReason(e.target.value)}
+            placeholder="e.g. Overpayment returned"
+          />
+        </div>
+      </Modal>
     </div>
   );
 };

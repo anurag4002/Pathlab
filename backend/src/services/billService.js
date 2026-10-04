@@ -486,9 +486,12 @@ const refundBill = async (billId, { amount, method, reason }, userId) => {
   return await getBillById(bill._id);
 };
 
-// Edit: only unpaid/partial bills. Allows discount/paymentMethod/
-// collectionCentre/caseType; recalcs totals from items. Fully Paid or voided
-// bills are rejected unless adminOverride===true by an Admin.
+// Edit: only unpaid/partial bills. Allows items/discount/paymentMethod/
+// collectionCentre/caseType/referringDoctor/agent; recalcs totals from items.
+// Fully Paid or voided bills are rejected unless adminOverride===true by an
+// Admin. Item changes flow to the lab automatically: result entry rebuilds
+// its grid from live bill items, and report shells are re-synced (needed
+// modes ensured, untouched shells of dropped modes pruned).
 const updateBill = async (billId, updates = {}, user = null) => {
   const bill = await Bill.findById(billId).populate('items');
   if (!bill) {
@@ -503,12 +506,79 @@ const updateBill = async (billId, updates = {}, user = null) => {
     err.statusCode = 409;
     throw err;
   }
-  const ALLOWED = ['discount', 'paymentMethod', 'collectionCentre', 'caseType', 'centre', 'paidMethod'];
+  const ALLOWED = ['discount', 'paymentMethod', 'collectionCentre', 'caseType', 'centre', 'paidMethod', 'items', 'referringDoctor', 'agent'];
   const hasAllowed = ALLOWED.some((k) => updates[k] !== undefined);
   if (!hasAllowed) {
-    const err = new Error('No editable fields provided (discount/paymentMethod/collectionCentre/caseType)');
+    const err = new Error('No editable fields provided (items/discount/paymentMethod/collectionCentre/caseType/referringDoctor/agent)');
     err.statusCode = 400;
     throw err;
+  }
+  // Validate a replacement item set before touching anything.
+  let nextItems = null;
+  if (updates.items !== undefined) {
+    nextItems = updates.items;
+    const ITEM_TYPES = ['Test', 'TestPackage', 'TestPanel', 'Custom'];
+    if (!Array.isArray(nextItems) || nextItems.length === 0) {
+      const err = new Error('Invoice must contain at least one item (test, package, panel or outsource test)');
+      err.statusCode = 400;
+      throw err;
+    }
+    for (let i = 0; i < nextItems.length; i++) {
+      const it = nextItems[i] || {};
+      if (!it.itemType || !ITEM_TYPES.includes(it.itemType)) {
+        const err = new Error(`Item ${i + 1}: valid item type (Test/TestPackage/TestPanel/Custom) is required`);
+        err.statusCode = 400;
+        throw err;
+      }
+      if (it.itemType !== 'Custom' && !it.itemId) {
+        const err = new Error(`Item ${i + 1}: item ID is required`);
+        err.statusCode = 400;
+        throw err;
+      }
+      if (!it.name || String(it.name).trim() === '') {
+        const err = new Error(`Item ${i + 1}: item name is required`);
+        err.statusCode = 400;
+        throw err;
+      }
+      const p = Number(it.price);
+      if (it.price === undefined || it.price === null || it.price === '' || isNaN(p) || p < 0) {
+        const err = new Error(`Item ${i + 1}: item price must be a non-negative number`);
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+    // Guard: never drop a line that already has lab work recorded against it.
+    const Report = require('../models/Report');
+    const oldItems = bill.items || [];
+    const keptId = new Set(nextItems.filter((it) => it.itemId).map((it) => String(it.itemId)));
+    const keptName = new Set(nextItems.map((it) => String(it.name || '').trim().toLowerCase()).filter(Boolean));
+    const removed = oldItems.filter((it) => {
+      if (it.itemId && keptId.has(String(it.itemId))) return false;
+      if (keptName.has(String(it.name || '').trim().toLowerCase())) return false;
+      return true;
+    });
+    if (removed.length) {
+      const reports = await Report.find({ bill: bill._id }).select('results fileUrl status').lean();
+      const blocked = [];
+      for (const it of removed) {
+        const hit = reports.some((r) => {
+          if ((r.results || []).some((res) => {
+            const rid = res.test?._id || res.test;
+            if (rid && it.itemId && String(rid) === String(it.itemId)) return true;
+            if (!rid && res.testName && String(res.testName).trim().toLowerCase() === String(it.name || '').trim().toLowerCase()) return true;
+            return false;
+          })) return true;
+          if (r.fileUrl) return true; // outsource upload recorded
+          return false;
+        });
+        if (hit) blocked.push(it.name);
+      }
+      if (blocked.length) {
+        const err = new Error(`Cannot remove ${blocked.join(', ')}: lab results already recorded. Remove the report entry first or void the bill.`);
+        err.statusCode = 409;
+        throw err;
+      }
+    }
   }
   if (updates.discount !== undefined) {
     const d = Number(updates.discount);
@@ -538,21 +608,96 @@ const updateBill = async (billId, updates = {}, user = null) => {
     }
     bill.caseType = updates.caseType;
   }
+  const mongoose = require('mongoose');
+  if (updates.referringDoctor !== undefined) {
+    const doc = updates.referringDoctor;
+    if (doc) {
+      if (!mongoose.Types.ObjectId.isValid(String(doc))) {
+        const err = new Error('Invalid referring doctor');
+        err.statusCode = 400;
+        throw err;
+      }
+      bill.referringDoctor = String(doc);
+    } else {
+      bill.referringDoctor = null;
+    }
+  }
+  if (updates.agent !== undefined) {
+    const ag = updates.agent;
+    if (ag) {
+      if (!mongoose.Types.ObjectId.isValid(String(ag))) {
+        const err = new Error('Invalid agent');
+        err.statusCode = 400;
+        throw err;
+      }
+      bill.agent = String(ag);
+    } else {
+      bill.agent = null;
+    }
+  }
+  // Replace the billed lines (lab queue + entry grid read these live).
+  let savedItems = null;
+  if (nextItems) {
+    const BillItem = require('../models/BillItem');
+    await BillItem.deleteMany({ billId: bill._id });
+    const records = nextItems.map((it) => ({
+      billId: bill._id,
+      itemType: it.itemType,
+      itemId: it.itemType === 'Custom' ? null : it.itemId,
+      name: String(it.name).trim(),
+      price: Number(it.price) || 0
+    }));
+    savedItems = await BillItem.create(records);
+    bill.items = savedItems.map((it) => it._id);
+  }
   // Recalc totals from item prices minus discount.
-  const subtotal = (bill.items || []).reduce((s, it) => s + Number(it.price || 0), 0);
-  bill.totalAmount = Math.max(0, subtotal - Number(bill.discount || 0));
+  const subtotal = nextItems
+    ? nextItems.reduce((s, it) => s + (Number(it.price) || 0), 0)
+    : (bill.items || []).reduce((s, it) => s + Number(it.price || 0), 0);
+  const newTotal = Math.max(0, subtotal - Number(bill.discount || 0));
+  if (newTotal < Number(bill.paidAmount || 0)) {
+    const err = new Error('New bill total is less than the amount already paid. Issue a refund instead.');
+    err.statusCode = 400;
+    throw err;
+  }
+  bill.totalAmount = newTotal;
   bill.dueAmount = Math.max(0, bill.totalAmount - bill.paidAmount);
   bill.paymentStatus = bill.paidAmount >= bill.totalAmount && bill.totalAmount > 0
     ? 'Paid'
     : bill.paidAmount > 0 ? 'Partial' : 'Pending';
   await bill.save();
+  // Sync lab records: ensure shells for the modes the new lines need, drop
+  // untouched (Registered, no results) shells of modes no longer needed, and
+  // carry a changed collection centre onto still-open shells.
+  if (nextItems && (String(bill.department || '').toUpperCase().includes('LAB') || String(bill.caseType || '').includes('Lab'))) {
+    try {
+      const reportService = require('./reportService');
+      const { reportModesForItems } = require('../utils/billItemModality');
+      const modes = reportModesForItems(savedItems, bill);
+      await reportService.ensureReportsForBill(bill, savedItems, (user && user._id) || bill.createdBy);
+      const Report = require('../models/Report');
+      await Report.deleteMany({
+        bill: bill._id,
+        status: 'Registered',
+        results: { $size: 0 },
+        $and: [{ $or: [{ fileUrl: '' }, { fileUrl: { $exists: false } }] }],
+        entryMode: { $nin: modes.length ? modes : ['__none__'] }
+      });
+      if (updates.collectionCentre !== undefined || updates.centre !== undefined) {
+        await Report.updateMany(
+          { bill: bill._id, status: { $in: ['Registered', 'Pending', 'Draft'] } },
+          { $set: { cc: bill.collectionCentre || 'Main' } }
+        );
+      }
+    } catch (e) { /* lab sync best-effort — bill edit itself already saved */ }
+  }
   try {
     const Activity = require('../models/Activity');
     await Activity.create({
       user: user ? user._id : null,
       action: 'Edit Bill',
       module: 'Cases',
-      description: `Edited invoice ${bill.billNumber} (discount/method/centre/caseType).`
+      description: `Edited invoice ${bill.billNumber} (${[nextItems ? 'items' : null, updates.discount !== undefined ? 'discount' : null, (updates.paymentMethod || updates.paidMethod) ? 'method' : null, (updates.collectionCentre || updates.centre) ? 'centre' : null, updates.caseType ? 'caseType' : null, updates.referringDoctor !== undefined ? 'doctor' : null, updates.agent !== undefined ? 'agent' : null].filter(Boolean).join('/') || 'fields'}). Lab records synced.`
     });
   } catch (e) { /* audit best-effort */ }
   return await getBillById(bill._id);

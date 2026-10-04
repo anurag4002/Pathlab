@@ -215,3 +215,75 @@
 .re-flag-slot { height: 24px; display: flex; align-items: flex-start; }
 .re-interpretation { margin-top: 8px; font-size: 0.8rem; white-space: pre-wrap; }
 .re-interpretation summary { cursor: pointer; color: var(--color-primary); }
+
+/* Structured interpretation text (InterpretationText component):
+   headed sections with breathing room instead of a wall of text. */
+.interp-body { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.interp-head { font-weight: var(--font-weight-bold); font-size: 0.78rem; color: var(--color-text); }
+.interp-block { display: flex; flex-direction: column; gap: 2px; }
+.interp-p { margin: 0; font-size: 0.8rem; line-height: 1.55; color: var(--color-text-secondary); }
+
+/* Single-border value control: input + range flag share one bordered box
+   instead of a pill stacked over a separate input box. */
+.re-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding-right: 6px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.re-value-wrap:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+.re-value-wrap .form-group { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+.re-value-wrap .form-control { border: none; box-shadow: none; background: transparent; height: 36px; }
+.re-value-wrap .form-control:focus { border: none; box-shadow: none; outline: none; }
+.re-value-wrap .form-control:disabled { background: transparent; }
+.re-flag-inline {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.re-flag-inline[data-flag='NORMAL'] { background-color: #dcfce7; color: #166534; }
+.re-flag-inline[data-flag='LOW'],
+.re-flag-inline[data-flag='HIGH'] { background-color: #fef9c3; color: #854d0e; }
+.re-flag-inline[data-flag='CRITICAL_LOW'],
+.re-flag-inline[data-flag='CRITICAL_HIGH'] { background-color: #fee2e2; color: #991b1b; }
+.re-flag-text { font-size: 0.72rem; font-weight: 700; }
+.re-flag-text[data-flag='NORMAL'] { color: #166534; }
+.re-flag-text[data-flag='LOW'],
+.re-flag-text[data-flag='HIGH'] { color: #854d0e; }
+.re-flag-text[data-flag='CRITICAL_LOW'],
+.re-flag-text[data-flag='CRITICAL_HIGH'] { color: #991b1b; }
+
+/* Reports-popup grid only (re-grid-popup): fill the modal width instead of
+   the page grid's fixed 760px table — test names take the free space, value
+   inputs get a fixed lane, unit/range shrink to fit. Result-entry page rules
+   above are untouched. */
+/* Flat popup grid: no nested card/table boxes — row lines + inputs carry
+   the structure, so there are no redundant bordered boxes in the modal. */
+.re-grid-popup.re-card { background: transparent; border: none; box-shadow: none; padding: 0; }
+.re-grid-popup .data-table-container { background: transparent; border: none; border-radius: 0; box-shadow: none; }
+.re-grid-popup .data-table thead th { background: transparent; }
+/* Full-width interpretation row under its test. */
+.re-interp-row td { padding-top: 0; }
+.re-interp-row .re-interpretation { margin-top: 0; }
+.re-grid-popup .re-test-group { margin-top: 12px; }
+.re-grid-popup .re-test-group .data-table { table-layout: auto; min-width: 0; }
+.re-grid-popup .re-test-group .data-table th:nth-child(1),
+.re-grid-popup .re-test-group .data-table td:nth-child(1) { width: auto; }
+.re-grid-popup .re-test-group .data-table th:nth-child(2),
+.re-grid-popup .re-test-group .data-table td:nth-child(2) { width: 220px; }
+.re-grid-popup .re-test-group .data-table th:nth-child(3),
+.re-grid-popup .re-test-group .data-table td:nth-child(3),
+.re-grid-popup .re-test-group .data-table th:nth-child(4),
+.re-grid-popup .re-test-group .data-table td:nth-child(4) { width: 1%; white-space: nowrap; }
+.re-grid-popup .data-table td { padding: var(--space-3) var(--space-4); }
+.re-grid-popup .re-result-cell { min-width: 0; }

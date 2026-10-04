@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import useClientPagination from '../../hooks/useClientPagination';
 import {
@@ -9,7 +9,6 @@ import {
   attachReportFile,
   deleteReport,
   createResultReport,
-  saveReportResults,
   signReport,
   updateReportTat,
   verifyReport,
@@ -53,8 +52,7 @@ import RejectDialog from '../../components/lab/RejectDialog';
 import CommentThread from '../../components/lab/CommentThread';
 import VerificationTimeline from '../../components/lab/VerificationTimeline';
 import LabelPrintSheet from '../../components/lab/LabelPrintSheet';
-
-const emptyRow = () => ({ test: '', testName: '', value: '', unit: '' });
+import ResultEntryGrid from '../../components/lab/ResultEntryGrid';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -167,9 +165,13 @@ const TodaysReports = () => {
   const [entryMode, setEntryMode] = useState('values');
   const [entryUploadFile, setEntryUploadFile] = useState(null);
   const [entryUploadError, setEntryUploadError] = useState(null);
-  // Tests from getReportForEntry — ensures Edit results shows names even before catalog loads
-  const [entryTestOptions, setEntryTestOptions] = useState([]);
-  const [rows, setRows] = useState([emptyRow()]);
+  // Full getReportForEntry payload for the shared auto-calc entry grid
+  // (same UI as lab/result-entry: live formulas, flags, ranges, options).
+  const [entryData, setEntryData] = useState(null);
+  // Single Save lives in the modal footer and drives the grid via ref.
+  const gridRef = useRef(null);
+  const [gridBusy, setGridBusy] = useState(false);
+  const entryFinal = ['Signed', 'Verified', 'Completed'].includes(activeReport?.status);
   const [tat, setTat] = useState({ collected: '', received: '' });
   const [sigId, setSigId] = useState('');
   // Phase 3 — idempotent sign: guards double-click/double-submit.
@@ -583,10 +585,28 @@ const TodaysReports = () => {
     setUploadOpen(true);
   };
 
+  // Minimal entry payload when the /entry fetch fails, built from already
+  // saved rows so the grid still opens instead of dead-ending.
+  const fallbackEntry = (rep) => ({
+    testEntries: (rep.results || []).map((r, i) => ({
+      testId: r.test?._id || r.test || null,
+      resultKey: r.test?._id || r.test ? String(r.test?._id || r.test) : `name:${r.testName || `Test ${i + 1}`}`,
+      testName: r.testName || r.test?.name || `Test ${i + 1}`,
+      unit: r.unit || '',
+      existingValue: r.value ?? '',
+      existingUnit: r.unit || ''
+    })),
+    results: rep.results || [],
+    report: rep,
+    patient: rep.patient,
+    bill: rep.bill
+  });
+
   const openEntry = async (report) => {
     setSendResult(null);
     setDeliveryHistory(getDeliveryHistory(report._id));
-    setEntryTestOptions([]);
+    setEntryData(null);
+    setGridBusy(false);
     setEntryUploadFile(null);
     setEntryUploadError(null);
     setSigId('');
@@ -632,44 +652,33 @@ const TodaysReports = () => {
 
     if (outsource) {
       setEntryMode('upload');
-      setRows([]);
       setEntryOpen(true);
       setEntryLoading(false);
       return;
     }
 
     setEntryMode('values');
-    if (testEntries.length) {
-      setEntryTestOptions(testEntries.map((te) => ({
-        _id: te.testId ? String(te.testId) : `custom:${te.testName}`,
-        name: te.testName || 'Test',
-        code: te.testCode || '',
-        unit: te.unit || ''
-      })));
-      setRows(testEntries.map((testEntry) => ({
-        test: testEntry.testId ? String(testEntry.testId) : `custom:${testEntry.testName}`,
-        testName: testEntry.testName || '',
-        value: testEntry.existingValue || '',
-        unit: testEntry.existingUnit || testEntry.unit || ''
-      })));
-    } else if (report.results?.length) {
-      setEntryTestOptions(report.results.map((r, i) => ({
-        _id: String(r.test?._id || r.test || `saved:${i}`),
-        name: r.testName || r.test?.name || `Test ${i + 1}`,
-        code: r.test?.code || '',
-        unit: r.unit || ''
-      })));
-      setRows(report.results.map((r) => ({
-        test: r.test?._id || r.test || '',
-        testName: r.testName || r.test?.name || '',
-        value: r.value || '',
-        unit: r.unit || ''
-      })));
-    } else {
-      setRows([emptyRow()]);
-    }
+    // Same grid data as lab/result-entry — the shared grid renders auto-calc,
+    // flags, ranges and options from this payload.
+    setEntryData(entryPayload || fallbackEntry(nextReport));
     setEntryOpen(true);
     setEntryLoading(false);
+  };
+
+  // Refresh after the grid saves (authoritative report state).
+  const handleGridSaved = async (updated) => {
+    if (updated?._id) setActiveReport(updated);
+    fetchReports();
+    fetchPending();
+    try {
+      const entry = await getReportForEntry(activeReport._id);
+      if (entry?.data) {
+        setEntryData(entry.data);
+        setActiveReport((prev) => (prev ? { ...prev, ...(entry.data.report || {}) } : prev));
+      }
+    } catch {
+      /* grid already shows its own success state */
+    }
   };
 
   const handleEntryUploadSubmit = async () => {
@@ -699,59 +708,7 @@ const TodaysReports = () => {
     }
   };
 
-  // Merge entry-resolved tests with catalog so Select always has labels for row IDs.
-  const entrySelectOptions = (() => {
-    const byId = new Map();
-    for (const t of entryTestOptions) {
-      if (t?._id) byId.set(String(t._id), { value: String(t._id), label: t.code ? `${t.name} (${t.code})` : t.name });
-    }
-    for (const t of tests) {
-      const id = String(t._id);
-      if (!byId.has(id)) byId.set(id, { value: id, label: `${t.name}${t.code ? ` (${t.code})` : ''}` });
-    }
-    // Ensure every row's current value appears even if missing from both lists
-    for (const row of rows) {
-      const id = row.test != null && row.test !== '' ? String(row.test) : '';
-      if (id && !byId.has(id)) {
-        byId.set(id, { value: id, label: row.testName || id });
-      }
-    }
-    return [...byId.values()];
-  })();
 
-  const handleSaveResults = async () => {
-    const payload = rows
-      .filter((r) => r.test && String(r.value) !== '')
-      .map((r) => {
-        const isCustom = String(r.test).startsWith('custom:');
-        return {
-          ...(isCustom ? {} : { test: r.test }),
-          testName: r.testName || (isCustom ? String(r.test).slice('custom:'.length) : undefined),
-          value: r.value,
-          unit: r.unit
-        };
-      });
-    if (!payload.length) { alert('Add at least one result row'); return; }
-    setEntryLoading(true);
-    try {
-      const res = await saveReportResults(activeReport._id, payload);
-      if (res.success) {
-        setActiveReport(res.data);
-        setRows(res.data.results.map((r) => ({
-          test: r.test?._id || r.test || (r.testName ? `custom:${r.testName}` : ''),
-          testName: r.testName || r.test?.name || '',
-          value: r.value || '',
-          unit: r.unit || ''
-        })));
-        fetchReports();
-        fetchPending();
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to save results');
-    } finally {
-      setEntryLoading(false);
-    }
-  };
 
   const handleSaveTat = async () => {
     try {
@@ -1341,7 +1298,7 @@ const TodaysReports = () => {
             ? `Upload Report — ${activeReport?.registrationNumber || ''}`
             : `Enter Results — ${activeReport?.registrationNumber || ''}`
         }
-        size="lg"
+        size="xl"
         footer={
           entryMode === 'upload' ? (
             <>
@@ -1357,10 +1314,10 @@ const TodaysReports = () => {
               <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
               <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id)}><FileDown size={14} /> PDF</Button>
               <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
-              {['Signed', 'Verified', 'Completed'].includes(activeReport?.status) ? (
+              {entryFinal ? (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
               ) : (
-                <Button variant="primary" onClick={handleSaveResults} loading={entryLoading}>Save Results</Button>
+                <Button variant="primary" onClick={() => gridRef.current?.save('save')} loading={gridBusy} disabled={gridBusy}>Save Results</Button>
               )}
             </>
           )
@@ -1392,49 +1349,24 @@ const TodaysReports = () => {
           </div>
         ) : (
           <>
-        {rows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <Select
-              value={row.test != null ? String(row.test) : ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                const fromEntry = entryTestOptions.find((t) => String(t._id) === v);
-                const fromCatalog = tests.find((t) => String(t._id) === v);
-                setRows((prev) => prev.map((r, j) => (j === i ? {
-                  ...r,
-                  test: v,
-                  testName: fromEntry?.name || fromCatalog?.name || r.testName || '',
-                  unit: fromEntry?.unit || fromCatalog?.unit || r.unit
-                } : r)));
-              }}
-              options={entrySelectOptions}
-              placeholder="Select test"
-              style={{ flex: 2 }}
-            />
-            <Input value={row.value} onChange={(e) => setRows(prev => prev.map((r, j) => j === i ? { ...r, value: e.target.value } : r))} placeholder="Value" style={{ flex: 1 }} />
-            <Input value={row.unit} onChange={(e) => setRows(prev => prev.map((r, j) => j === i ? { ...r, unit: e.target.value } : r))} placeholder="Unit" style={{ flex: 1 }} />
-            <Button variant="secondary" size="sm" onClick={() => setRows(prev => prev.filter((_, j) => j !== i))}>×</Button>
-          </div>
-        ))}
-        <Button variant="secondary" size="sm" onClick={() => setRows(prev => [...prev, emptyRow()])}><Plus size={14} /> Add row</Button>
-
-        {(activeReport?.results?.length > 0) && (
-          <div style={{ marginTop: '12px' }}>
-            <strong style={{ fontSize: '0.8rem' }}>Saved rows (with flags):</strong>
-            <table style={{ width: '100%', fontSize: '0.8rem', marginTop: '4px' }}>
-              <thead><tr><th style={{ textAlign: 'left' }}>Test</th><th>Value</th><th>Unit</th><th>Flag</th></tr></thead>
-              <tbody>
-                {activeReport.results.map((r, i) => (
-                  <tr key={i}>
-                    <td>{r.testName || r.test?.name || '—'}{r.derived ? ' (derived)' : ''}</td>
-                    <td style={{ textAlign: 'center' }}>{r.value}</td>
-                    <td style={{ textAlign: 'center' }}>{r.unit}</td>
-                    <td style={{ textAlign: 'center', fontWeight: 700, color: r.flag === 'N' ? 'green' : 'red' }}>{r.flag}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {/* Same auto-calc entry grid as lab/result-entry — live formulas,
+            range flags, reference ranges, interpretations, result options. */}
+        {entryData ? (
+          <ResultEntryGrid
+            key={activeReport?._id}
+            ref={gridRef}
+            entry={entryData}
+            reportId={activeReport?._id}
+            actions={['save']}
+            readOnly={entryFinal}
+            hideActions
+            onBusyChange={setGridBusy}
+            onSaved={handleGridSaved}
+          />
+        ) : (
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+            {entryLoading ? 'Loading test list…' : 'Could not load the test list for this report.'}
+          </p>
         )}
 
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>

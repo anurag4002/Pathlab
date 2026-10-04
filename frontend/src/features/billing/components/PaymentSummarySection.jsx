@@ -22,7 +22,16 @@ const PaymentSummarySection = ({
   dueAmount,
   errors,
   onSubmit,
-  submitting
+  submitting,
+  // Edit mode: paid stays locked (Pay/Refund flows own it), submit relabelled,
+  // plus collection-centre + admin-override controls for bill edits.
+  isEditMode = false,
+  submitLabel = 'Create Invoice',
+  collectionCentreOptions = [],
+  collectionCentre,
+  setCollectionCentre,
+  adminOverride,
+  setAdminOverride
 }) => {
   return (
     <div className="bill-form-card">
@@ -57,12 +66,13 @@ const PaymentSummarySection = ({
 
       {/* Amount Received */}
       <Input
-        label="Amount Received"
+        label={isEditMode ? 'Amount Received (locked — use Pay / Refund)' : 'Amount Received'}
         type="number"
         value={paidAmount}
-        onChange={(e) => setPaidAmount(Math.max(0, Number(e.target.value)))}
+        onChange={(e) => !isEditMode && setPaidAmount(Math.max(0, Number(e.target.value)))}
         placeholder="0"
         error={errors?.paidAmount}
+        disabled={isEditMode}
       />
 
       {/* Balance Row */}
@@ -104,6 +114,27 @@ const PaymentSummarySection = ({
         options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
       />
 
+      {/* Collection centre + admin override (bill edits only) */}
+      {isEditMode && setCollectionCentre && (
+        <Select
+          label="Collection centre"
+          value={collectionCentre}
+          onChange={(e) => setCollectionCentre(e.target.value)}
+          options={collectionCentreOptions}
+          required
+        />
+      )}
+      {isEditMode && setAdminOverride && (
+        <label style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.875rem' }}>
+          <input
+            type="checkbox"
+            checked={!!adminOverride}
+            onChange={(e) => setAdminOverride(e.target.checked)}
+          />
+          Admin override (allow editing Paid / locked bill)
+        </label>
+      )}
+
       {/* Submit */}
       <Button
         variant="primary"
@@ -113,7 +144,7 @@ const PaymentSummarySection = ({
         disabled={submitting}
         style={{ height: '2.625rem', fontWeight: 'var(--font-weight-bold)' }}
       >
-        Create Invoice
+        {submitLabel}
       </Button>
     </div>
   );

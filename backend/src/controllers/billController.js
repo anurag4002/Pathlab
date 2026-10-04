@@ -206,6 +206,9 @@ async function billBarcode(req, res, next) {
 
 async function refundBill(req, res, next) {
   try {
+    if (!req.user || req.user.role !== 'Admin') {
+      return errorResponse(res, 'Only Admin can issue refunds', 403);
+    }
     const existing = await Bill.findById(req.params.id).select('branch');
     if (!existing) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
     try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
@@ -218,6 +221,9 @@ async function refundBill(req, res, next) {
 
 async function updateBill(req, res, next) {
   try {
+    if (!req.user || req.user.role !== 'Admin') {
+      return errorResponse(res, 'Only Admin can edit bills', 403);
+    }
     const existing = await Bill.findById(req.params.id).select('branch');
     if (!existing) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
     try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }

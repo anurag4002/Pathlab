@@ -17,7 +17,7 @@ export const getRangeFlag = (value, test = {}) => {
   return null;
 };
 
-const FLAG_STYLES = {
+export const FLAG_STYLES = {
   NORMAL: { bg: '#dcfce7', fg: '#166534', label: 'Normal' },
   LOW: { bg: '#fef9c3', fg: '#854d0e', label: 'Low' },
   HIGH: { bg: '#fef9c3', fg: '#854d0e', label: 'High' },

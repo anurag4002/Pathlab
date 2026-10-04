@@ -16,8 +16,8 @@ router.get('/:id/qr', billController.billQr);
 router.get('/:id/barcode.svg', billController.billBarcode);
 router.post('/', requirePermission('billing'), billController.createBill);
 router.post('/:id/payment', requirePermission('billing'), billController.collectPayment);
-router.post('/:id/refund', requirePermission('billing'), billController.refundBill);
-router.put('/:id', requirePermission('billing'), billController.updateBill);
+router.post('/:id/refund', authorize('Admin'), billController.refundBill);
+router.put('/:id', authorize('Admin'), billController.updateBill);
 router.post('/:id/void', authorize('Admin'), billController.voidBill);
 
 module.exports = router;

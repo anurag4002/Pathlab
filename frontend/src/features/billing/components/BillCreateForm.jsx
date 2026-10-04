@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createBill } from '../../../services/billService';
+import { createBill, updateBill } from '../../../services/billService';
 import { createPatient, getPatientById, updatePatient } from '../../../services/patientService';
 import { getTests } from '../../../services/testService';
 import { PageHeader, Button, Select } from '../../../components/common';
@@ -167,20 +167,39 @@ const BillCreateForm = ({
   tests = [],
   packages = [],
   panels = [],
-  onBillCreated
+  onBillCreated,
+  // Edit mode: reuse this same form to edit an existing bill. The parent
+  // fetches the full bill first and mounts with key={bill._id}, so lazy
+  // initialisers below can safely read editBill on first render.
+  editBill = null,
+  branches = [],
+  onBillUpdated = null,
+  onCancelEdit = null
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isEditMode = !!editBill;
+  const editPatient = editBill?.patient && typeof editBill.patient === 'object' ? editBill.patient : null;
+  const editPatientId = editPatient?._id || (typeof editBill?.patient === 'string' ? editBill.patient : '');
+  const idOf = (ref) => (ref && ref._id ? String(ref._id) : (ref ? String(ref) : ''));
   // Prefill from a confirmed booking inquiry (Inquiries → "Confirm & Bill").
   // Handoff arrives via sessionStorage (survives URL-mirroring replaces and
   // refreshes); router state is accepted as a fallback. Read via the module
   // cache so React StrictMode's dev double-mount sees the same value on both
   // passes; cleared once the items are applied (see items effect below).
-  const [bookingPrefill] = useState(() => takeBookingPrefill(location.state?.booking || null));
+  // Skipped entirely in edit mode (a bill is already loaded).
+  const [bookingPrefill] = useState(() => (editBill ? null : takeBookingPrefill(location.state?.booking || null)));
 
   // Prefill Register New immediately so unregistered inquiry details show even
   // if a later effect is skipped (StrictMode / navigation timing).
   const [patientForm, setPatientForm] = useState(() => {
+    if (editBill) {
+      return {
+        ...applyPatientToForm(editPatient || {}, EMPTY_PATIENT_FORM),
+        isExistingPatient: true,
+        selectedPatientId: editPatientId
+      };
+    }
     const b = takeBookingPrefill(null);
     if (!b) return EMPTY_PATIENT_FORM;
     const linkedId = b.patientId && String(b.patientId) !== 'null' ? b.patientId : null;
@@ -207,26 +226,39 @@ const BillCreateForm = ({
   const [bookingBanner, setBookingBanner] = useState('');
   const [unmatchedBookingItems, setUnmatchedBookingItems] = useState([]);
   const [outsourceOpen, setOutsourceOpen] = useState(false);
-  // Discount mode: 'percent' (0–100%) or 'amount' (flat ₹). The %/₹ badge
-  // in DiscountRow toggles between them; both values are preserved.
-  const [discountMode, setDiscountMode] = useState('percent');
   // Full picked patient object (may come from server search beyond the
   // preloaded first-100 list, so it can't be re-derived from `patients`).
-  const [pickedPatient, setPickedPatient] = useState(null);
-  const [selectedDoctor, setSelectedDoctor] = useState('');
-  const [selectedAgent, setSelectedAgent] = useState('');
-  const [activeDepartment, setActiveDepartment] = useState('LAB');
+  const [pickedPatient, setPickedPatient] = useState(() => editPatient || null);
+  const [selectedDoctor, setSelectedDoctor] = useState(() => idOf(editBill?.referringDoctor));
+  const [selectedAgent, setSelectedAgent] = useState(() => idOf(editBill?.agent));
+  const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || 'LAB');
+  // Bill-edit extras: collection centre dropdown + Paid/locked override.
+  const [editCollectionCentre, setEditCollectionCentre] = useState(() => editBill?.collectionCentre || 'Main');
+  const [editAdminOverride, setEditAdminOverride] = useState(false);
   // 'All' | 'Test' | 'TestPackage' | 'TestPanel'
   const [pickerType, setPickerType] = useState('All');
   // One search box: filter local catalog first, then fall back to server (tests).
   const [pickerQuery, setPickerQuery] = useState('');
   const [serverResults, setServerResults] = useState([]);
   const [serverSearching, setServerSearching] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState(() => (
+    editBill && Array.isArray(editBill.items)
+      ? editBill.items.map((it, i) => ({
+        itemId: it.itemId && it.itemId._id ? String(it.itemId._id) : (it.itemId ? String(it.itemId) : null),
+        itemType: it.itemType || 'Custom',
+        name: it.name || '',
+        price: Number(it.price || 0),
+        _key: String(it._id || it.id || `bill-item-${i}`)
+      }))
+      : []
+  ));
   const [discountPercent, setDiscountPercent] = useState('');
-  const [discountValue, setDiscountValue] = useState('');
-  const [paidAmount, setPaidAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [discountValue, setDiscountValue] = useState(() => (editBill?.discount != null ? String(editBill.discount) : ''));
+  // Edit mode starts on flat-₹ discount (the bill stores a flat amount) and
+  // locks the already-collected amount (Pay/Refund flows own it).
+  const [discountMode, setDiscountMode] = useState(() => (editBill ? 'amount' : 'percent'));
+  const [paidAmount, setPaidAmount] = useState(() => (editBill ? Number(editBill.paidAmount || 0) : 0));
+  const [paymentMethod, setPaymentMethod] = useState(() => editBill?.paymentMethod || 'Cash');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const cartRef = useRef(null);
@@ -454,6 +486,16 @@ const BillCreateForm = ({
 
   const validate = () => {
     const errs = {};
+    if (isEditMode) {
+      // Patient is locked to the original invoice in edit mode.
+      if (selectedItems.length === 0) errs.items = 'Please select at least one test or package';
+      if (discountAmount > subtotal) errs.discount = 'Discount cannot exceed the subtotal.';
+      if (totalAmount < Number(editBill.paidAmount || 0)) {
+        errs.discount = 'New total is less than the amount already paid. Issue a refund instead.';
+      }
+      setErrors(errs);
+      return Object.keys(errs).length === 0;
+    }
     if (patientForm.isExistingPatient && !patientForm.selectedPatientId) {
       errs.patient = 'Please choose a patient profile';
     }
@@ -480,6 +522,30 @@ const BillCreateForm = ({
     if (!validate()) return;
     setSubmitting(true);
     try {
+      if (isEditMode) {
+        // Same bill, new lines — the server re-totals, re-syncs lab report
+        // shells/queue, and blocks lines that already have results recorded.
+        const billItems = selectedItems.map(({ itemId, itemType, name, price }) => {
+          const row = { itemType, name, price: Number(price) || 0 };
+          if (itemType !== 'Custom' && itemId) row.itemId = itemId;
+          return row;
+        });
+        const res = await updateBill(editBill._id, {
+          items: billItems,
+          discount: discountAmount,
+          paymentMethod,
+          collectionCentre: editCollectionCentre,
+          caseType: DEPT_TO_CASE_TYPE[activeDepartment] || editBill.caseType,
+          referringDoctor: selectedDoctor || null,
+          agent: selectedAgent || null,
+          ...(editAdminOverride ? { adminOverride: true } : {})
+        });
+        if (res.success) {
+          onBillUpdated?.(res.data);
+          navigate('/cases/bills');
+        }
+        return;
+      }
       let patientId = patientForm.selectedPatientId;
       const profilePayload = {
         title: patientForm.patientTitle || '',
@@ -654,11 +720,21 @@ const BillCreateForm = ({
     return selectedBundleIds.includes(item._id);
   };
 
+  const formCollectionCentreOptions = (() => {
+    const names = (branches || [])
+      .map((b) => b?.name)
+      .filter((n) => typeof n === 'string' && n.trim())
+      .filter((n, i, arr) => arr.indexOf(n) === i);
+    const base = ['Main', ...names.filter((n) => n !== 'Main')];
+    const list = base.includes(editCollectionCentre) ? base : [...base, editCollectionCentre];
+    return list.map((n) => ({ value: n, label: n }));
+  })();
+
   return (
     <div>
       <Button
         variant="secondary"
-        onClick={() => navigate('/cases/bills')}
+        onClick={() => (isEditMode && onCancelEdit ? onCancelEdit() : navigate('/cases/bills'))}
         icon={<ArrowLeft size={16} />}
         style={{ marginBottom: 'var(--space-5)' }}
       >
@@ -666,8 +742,8 @@ const BillCreateForm = ({
       </Button>
 
       <PageHeader
-        title="Create Bill Invoice"
-        subtitle="Record diagnostic orders and invoice payments"
+        title={isEditMode ? `Edit Bill Invoice ${editBill.billNumber || ''}` : 'Create Bill Invoice'}
+        subtitle={isEditMode ? 'Update billed services — lab records sync automatically' : 'Record diagnostic orders and invoice payments'}
       />
 
       {bookingBanner && (
@@ -718,6 +794,31 @@ const BillCreateForm = ({
       <div className="bill-form-grid">
         {/* Left Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          {isEditMode ? (
+            <div className="bill-form-card">
+              <div className="bill-card-header">
+                <div className="bill-card-header-left">
+                  <span className="bill-card-step-badge">1</span>
+                  <h3 className="bill-card-title">Patient (locked to this invoice)</h3>
+                </div>
+              </div>
+              <div className="payment-summary-row">
+                <span>Patient</span>
+                <strong>
+                  {editPatient?.name || '—'}
+                  {editPatient?.registrationNumber ? ` (${editPatient.registrationNumber})` : ''}
+                </strong>
+              </div>
+              <div className="payment-summary-row">
+                <span>Phone</span>
+                <strong>{editPatient?.phone || '—'}</strong>
+              </div>
+              <div className="payment-summary-row">
+                <span>Already paid</span>
+                <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(Number(editBill.paidAmount || 0))}</strong>
+              </div>
+            </div>
+          ) : (
           <PatientDetailsSection
             isExistingPatient={patientForm.isExistingPatient}
             setIsExistingPatient={(v) => setPatientForm((p) => ({ ...p, isExistingPatient: typeof v === 'function' ? v(p.isExistingPatient) : v }))}
@@ -761,6 +862,7 @@ const BillCreateForm = ({
             setPatientHistory={(v) => setPatientForm((p) => ({ ...p, patientHistory: v }))}
             errors={errors}
           />
+          )}
 
           {/* Case Details Card */}
           <div className="bill-form-card">
@@ -973,6 +1075,13 @@ const BillCreateForm = ({
             errors={errors}
             onSubmit={handleSubmit}
             submitting={submitting}
+            isEditMode={isEditMode}
+            submitLabel={isEditMode ? 'Save Bill' : 'Create Invoice'}
+            collectionCentreOptions={formCollectionCentreOptions}
+            collectionCentre={editCollectionCentre}
+            setCollectionCentre={setEditCollectionCentre}
+            adminOverride={editAdminOverride}
+            setAdminOverride={setEditAdminOverride}
           />
         </div>
       </div>

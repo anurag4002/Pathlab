@@ -30,14 +30,18 @@ function getBranchFilter(req, field = 'branch') {
   if (isAdmin(user)) {
     const q = req.query && (req.query.branch || req.query.branchId);
     if (q && mongoose.Types.ObjectId.isValid(String(q))) {
-      return { [field]: String(q) };
+      // Return a real ObjectId so both find() and aggregate $match compare
+      // correctly against ObjectId-typed branch fields (aggregate has no casting).
+      return { [field]: new mongoose.Types.ObjectId(String(q)) };
     }
     return {};
   }
   const bid = getUserBranchId(user);
   if (!bid) return {};
   if (mongoose.Types.ObjectId.isValid(bid)) {
-    return { [field]: bid };
+    // ObjectId (not string): aggregate pipelines match ObjectId branches for
+    // Employee/Doctor queues such as GET /reports/pending-cases.
+    return { [field]: new mongoose.Types.ObjectId(String(bid)) };
   }
   // Legacy string branch (pre-migration): match legacy text fields via caller.
   // Return a marker so callers can also filter legacy centre fields.
