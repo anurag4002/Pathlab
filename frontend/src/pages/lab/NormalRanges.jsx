@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Edit2, RefreshCw } from 'lucide-react';
 import { getTests, getCategories, updateTest } from '../../services/testService';
 import useAuth from '../../hooks/useAuth';
@@ -14,6 +14,9 @@ import {
   AdvancedFilterBar
 } from '../../components/common';
 import '../../styles/NormalRanges.css';
+import AgeReferenceEditor from '../../components/lab/AgeReferenceEditor';
+import { normalizeAgeRanges, formatAgeRanges } from '../../utils/ageReferenceRanges';
+const ReferenceDataReview = lazy(() => import('../../components/lab/ReferenceDataReview'));
 
 /* Option lists mirror existing backend enums on the Test model — no business
    data lives here. sexApplicable: Any | Male | Female. status: Active | Inactive. */
@@ -38,7 +41,8 @@ const EMPTY_FORM = {
   criticalHigh: '',
   ageMin: '',
   ageMax: '',
-  sexApplicable: 'Any'
+  sexApplicable: 'Any',
+  referenceRanges: []
 };
 
 const NUMERIC_FIELDS = [
@@ -74,6 +78,7 @@ const getApiErrorMessage = (err, fallback) => {
 
 /* Range display — backend-provided strings/numbers only, never computed here. */
 const formatTextRange = (test) => {
+  if (test.referenceRanges?.length) return formatAgeRanges(test.referenceRanges);
   if (test.referenceRange) return test.referenceRange;
   const parts = [];
   if (test.maleReferenceRange) parts.push(`Male: ${test.maleReferenceRange}`);
@@ -115,6 +120,7 @@ const NormalRanges = () => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   // Load the range list from the backend (server-side search/filter).
   useEffect(() => {
@@ -178,7 +184,8 @@ const NormalRanges = () => {
       criticalHigh: test.criticalHigh ?? '',
       ageMin: test.ageMin ?? '',
       ageMax: test.ageMax ?? '',
-      sexApplicable: test.sexApplicable || 'Any'
+      sexApplicable: test.sexApplicable || 'Any',
+      referenceRanges: test.referenceRanges || []
     });
     setFormErrors({});
     setFeedback(null);
@@ -255,7 +262,7 @@ const NormalRanges = () => {
 
     // Identity fields are carried over unchanged (the backend's test
     // validation requires them); only the range fields below are edited.
-    const payload = {
+    let payload = {
       name: editing.name,
       code: editing.code,
       category: editing.category?._id || editing.category || null,
@@ -270,8 +277,14 @@ const NormalRanges = () => {
       criticalHigh: numbers.criticalHigh,
       ageMin: numbers.ageMin,
       ageMax: numbers.ageMax,
-      sexApplicable: formData.sexApplicable
+      sexApplicable: formData.sexApplicable,
+      referenceRanges: normalizeAgeRanges(formData.referenceRanges),
     };
+    if (payload.referenceRanges.length) payload.referenceRange = formatAgeRanges(payload.referenceRanges);
+    if (editing.parameterCode) {
+      const ranges = Object.fromEntries(Object.entries(payload).filter(([key]) => !['name', 'code', 'category', 'sampleType', 'price'].includes(key)));
+      payload = { parameters: editing.parent.parameters.map((parameter) => parameter.code === editing.parameterCode ? { ...parameter, ...ranges } : parameter) };
+    }
 
     try {
       const res = await updateTest(editing._id, payload);
@@ -316,11 +329,18 @@ const NormalRanges = () => {
     debouncedSearch.trim() || categoryFilter || statusFilter || genderFilter
   );
 
-  // The API has no sex filter parameter, so this filter runs client-side on
-  // the already-fetched (server-filtered) list.
-  const visibleTests = genderFilter
-    ? tests.filter((test) => (test.sexApplicable || 'Any') === genderFilter)
-    : tests;
+  // Edit individual parameters as well as standalone tests using the same ranges.
+  const rangeTests = tests.flatMap((test) => test.parameters?.length ? test.parameters.map((parameter) => ({
+    ...test, ...parameter, name: `${test.name}: ${parameter.name}`, parent: test, parameterCode: parameter.code,
+    normalLow: parameter.normalLow ?? null, normalHigh: parameter.normalHigh ?? null,
+    criticalLow: parameter.criticalLow ?? null, criticalHigh: parameter.criticalHigh ?? null,
+    ageMin: parameter.ageMin ?? null, ageMax: parameter.ageMax ?? null,
+    maleReferenceRange: parameter.maleReferenceRange || '', femaleReferenceRange: parameter.femaleReferenceRange || '',
+    sexApplicable: parameter.sexApplicable || 'Any', referenceRanges: parameter.referenceRanges || []
+  })) : [test]);
+  const visibleTests = genderFilter ? rangeTests.filter((test) => test.referenceRanges?.length
+    ? test.referenceRanges.some((band) => band.sex === 'Any' || band.sex === genderFilter)
+    : test.sexApplicable === 'Any' || test.sexApplicable === genderFilter) : rangeTests;
 
   const headers = [
     'Test',
@@ -336,20 +356,20 @@ const NormalRanges = () => {
   ];
 
   const renderRow = (test) => (
-    <tr key={test._id}>
+    <tr key={`${test._id}:${test.parameterCode || ''}`}>
       <td>
         <div className="nr-test-name">{test.name}</div>
         <div className="nr-sub">{test.code}</div>
       </td>
       <td>{test.category?.name || 'Uncategorized'}</td>
       <td className="nr-range">{test.unit || '—'}</td>
-      <td className="nr-range" title={formatTextRange(test)}>
+      <td className="nr-reference" title={formatTextRange(test)}>
         {formatTextRange(test)}
       </td>
-      <td className="nr-range">{formatNumericRange(test.normalLow, test.normalHigh)}</td>
-      <td className="nr-range">{formatNumericRange(test.criticalLow, test.criticalHigh)}</td>
-      <td className="nr-range">{formatNumericRange(test.ageMin, test.ageMax)}</td>
-      <td>{test.sexApplicable || '—'}</td>
+      <td className="nr-range">{test.referenceRanges?.length ? 'By age / sex' : formatNumericRange(test.normalLow, test.normalHigh)}</td>
+      <td className="nr-range">{test.referenceRanges?.length ? test.referenceRanges.some(band => band.criticalLow != null || band.criticalHigh != null) ? 'By age / sex' : '—' : formatNumericRange(test.criticalLow, test.criticalHigh)}</td>
+      <td className="nr-range">{test.referenceRanges?.length ? `${test.referenceRanges.length} age / sex bands` : `${formatNumericRange(test.ageMin, test.ageMax)}${test.ageMin != null || test.ageMax != null ? ' years' : ''}`}</td>
+      <td>{test.referenceRanges?.length ? [...new Set(test.referenceRanges.map((band) => band.sex))].join(', ') : test.sexApplicable || 'Any'}</td>
       <td>
         <StatusBadge status={test.status} />
       </td>
@@ -421,6 +441,8 @@ const NormalRanges = () => {
           />
 
           <DataTable
+            stickyActions={canEdit}
+            toolbarActions={<Button size="sm" variant="secondary" onClick={() => setReviewOpen(true)}>Review reference data</Button>}
             headers={headers}
             data={visibleTests}
             loading={loading}
@@ -438,6 +460,9 @@ const NormalRanges = () => {
         </>
       )}
 
+      {reviewOpen && <Suspense fallback={<p role="status">Loading reference review…</p>}>
+        <ReferenceDataReview open onClose={() => setReviewOpen(false)} tests={tests} />
+      </Suspense>}
       <Modal
         isOpen={!!editing}
         onClose={closeEdit}
@@ -492,6 +517,13 @@ const NormalRanges = () => {
               </div>
             )}
 
+            <AgeReferenceEditor ranges={formData.referenceRanges} disabled={saving} error={formErrors.referenceRanges}
+              onChange={(referenceRanges) => setFormData((prev) => ({ ...prev, referenceRanges,
+                ...(referenceRanges.length || prev.referenceRanges.length ? { referenceRange: formatAgeRanges(referenceRanges) } : {}),
+                ...(prev.referenceRanges.length && !referenceRanges.length ? { normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', maleReferenceRange: '', femaleReferenceRange: '' } : {})
+              }))} />
+
+            {!formData.referenceRanges.length && <>
             <section className="nr-form-section" aria-labelledby="nr-text-ranges-heading">
               <h3 id="nr-text-ranges-heading" className="nr-form-section-title">
                 Reference range (text)
@@ -582,7 +614,7 @@ const NormalRanges = () => {
               </h3>
               <div className="nr-form-grid">
                 <Input
-                  label="Age From"
+                  label="Age From (years)"
                   name="ageMin"
                   type="number"
                   step="any"
@@ -591,7 +623,7 @@ const NormalRanges = () => {
                   error={formErrors.ageMin}
                 />
                 <Input
-                  label="Age To"
+                  label="Age To (years)"
                   name="ageMax"
                   type="number"
                   step="any"
@@ -610,6 +642,7 @@ const NormalRanges = () => {
                 />
               </div>
             </section>
+            </>}
           </form>
         )}
       </Modal>

@@ -1,0 +1,2580 @@
+{
+ "3775508": {
+  "name": "Hemoglobin",
+  "fields": [
+   {
+    "field_id": "5714541",
+    "field_name": "Hemoglobin",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775509": {
+  "name": "Total Leukocyte Count",
+  "fields": [
+   {
+    "field_id": "5714542",
+    "field_name": "Total Leukocyte Count",
+    "unit": "cumm"
+   }
+  ]
+ },
+ "3775510": {
+  "name": "Differential Leucocyte Count",
+  "fields": [
+   {
+    "field_id": "5714543",
+    "field_name": "Neutrophils",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714544",
+    "field_name": "Lymphocyte",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714545",
+    "field_name": "Eosinophils",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714546",
+    "field_name": "Monocytes",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714547",
+    "field_name": "Basophils",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775511": {
+  "name": "Differential Leukocyte Count (Absolute count)",
+  "fields": [
+   {
+    "field_id": "5714548",
+    "field_name": "Neutrophils",
+    "unit": "x10^3/μL"
+   },
+   {
+    "field_id": "5714549",
+    "field_name": "Lymphocytes",
+    "unit": "x10^3/μL"
+   },
+   {
+    "field_id": "5714550",
+    "field_name": "Eosinophils",
+    "unit": "x10^3/μL"
+   },
+   {
+    "field_id": "5714551",
+    "field_name": "Monocytes",
+    "unit": "x10^3/μL"
+   },
+   {
+    "field_id": "5714552",
+    "field_name": "Basophils",
+    "unit": "x10^3/μL"
+   }
+  ]
+ },
+ "3775512": {
+  "name": "Erythrocyte sedimentation rate (Westergren)",
+  "fields": [
+   {
+    "field_id": "5714553",
+    "field_name": "Erythrocyte sedimentation rate (Westergren)",
+    "unit": "mm for 1st hour"
+   }
+  ]
+ },
+ "3775513": {
+  "name": "Erythrocyte Sedimentation Rate (Wintrobe)",
+  "fields": [
+   {
+    "field_id": "5714554",
+    "field_name": "Erythrocyte Sedimentation Rate (Wintrobe)",
+    "unit": "mm for 1st hour"
+   }
+  ]
+ },
+ "3775514": {
+  "name": "Platelet Count",
+  "fields": [
+   {
+    "field_id": "5714555",
+    "field_name": "Platelet Count",
+    "unit": "lakhs/cumm"
+   }
+  ]
+ },
+ "3775515": {
+  "name": "Absolute Eosinophil Count",
+  "fields": [
+   {
+    "field_id": "5714556",
+    "field_name": "Absolute Eosinophil Count",
+    "unit": "cumm"
+   }
+  ]
+ },
+ "3775516": {
+  "name": "Blood Group & Rh.",
+  "fields": [
+   {
+    "field_id": "5714557",
+    "field_name": "ABO",
+    "unit": ""
+   },
+   {
+    "field_id": "5714558",
+    "field_name": "Rh (ANTI -D)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775517": {
+  "name": "Bleeding Time",
+  "fields": [
+   {
+    "field_id": "5714559",
+    "field_name": "Bleeding Time",
+    "unit": "min"
+   }
+  ]
+ },
+ "3775518": {
+  "name": "Clotting Time",
+  "fields": [
+   {
+    "field_id": "5714560",
+    "field_name": "Clotting Time",
+    "unit": "min"
+   }
+  ]
+ },
+ "3775519": {
+  "name": "Peripheral Blood Smear",
+  "fields": []
+ },
+ "3775520": {
+  "name": "Malaria Parasite (Card Test)",
+  "fields": [
+   {
+    "field_id": "5714562",
+    "field_name": "Plasmodium falciparum \"Pf\"",
+    "unit": ""
+   },
+   {
+    "field_id": "5714563",
+    "field_name": "Plasmodium vivax \"Pv\"",
+    "unit": ""
+   }
+  ]
+ },
+ "3775521": {
+  "name": "Malaria Parasite (Microscopic)",
+  "fields": [
+   {
+    "field_id": "5714564",
+    "field_name": "Malaria Parasite (Microscopic)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775522": {
+  "name": "Filarial Parasite (Card Test)",
+  "fields": [
+   {
+    "field_id": "5714565",
+    "field_name": "Filarial Parasite (Card Test)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775523": {
+  "name": "Total RBC Count",
+  "fields": [
+   {
+    "field_id": "5714566",
+    "field_name": "Total RBC Count",
+    "unit": "million/cumm"
+   }
+  ]
+ },
+ "3775524": {
+  "name": "Hematocrit Value, Hct",
+  "fields": [
+   {
+    "field_id": "5714567",
+    "field_name": "Hematocrit Value, Hct",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775525": {
+  "name": "Mean Corpuscular Volume, MCV",
+  "fields": [
+   {
+    "field_id": "5714568",
+    "field_name": "Mean Corpuscular Volume, MCV",
+    "unit": "fL"
+   }
+  ]
+ },
+ "3775526": {
+  "name": "Mean Cell Haemoglobin, MCH",
+  "fields": [
+   {
+    "field_id": "5714569",
+    "field_name": "Mean Cell Haemoglobin, MCH",
+    "unit": "Pg"
+   }
+  ]
+ },
+ "3775527": {
+  "name": "Mean Cell Haemoglobin CON, MCHC",
+  "fields": [
+   {
+    "field_id": "5714570",
+    "field_name": "Mean Cell Haemoglobin CON, MCHC",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775528": {
+  "name": "Mean Platelet Volume, MPV",
+  "fields": [
+   {
+    "field_id": "5714571",
+    "field_name": "Mean Platelet Volume, MPV",
+    "unit": "fL"
+   }
+  ]
+ },
+ "3775529": {
+  "name": "Reticulocyte Count",
+  "fields": [
+   {
+    "field_id": "5714572",
+    "field_name": "Reticulocyte Count",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775530": {
+  "name": "Glucose-6-phosphate dehydrogenase",
+  "fields": [
+   {
+    "field_id": "5714573",
+    "field_name": "Glucose-6-phosphate dehydrogenase",
+    "unit": "g"
+   }
+  ]
+ },
+ "3775531": {
+  "name": "Prothrombin time, PT/INR",
+  "fields": [
+   {
+    "field_id": "5714574",
+    "field_name": "Patient Value",
+    "unit": "seconds"
+   },
+   {
+    "field_id": "5714575",
+    "field_name": "Control Value",
+    "unit": "seconds"
+   },
+   {
+    "field_id": "5714576",
+    "field_name": "ISI (International sensitivity index)",
+    "unit": ""
+   },
+   {
+    "field_id": "5714577",
+    "field_name": "INR Value",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775532": {
+  "name": "Activated partial thromboplastin time, APTT",
+  "fields": [
+   {
+    "field_id": "5714578",
+    "field_name": "Patient Value",
+    "unit": "seconds"
+   },
+   {
+    "field_id": "5714579",
+    "field_name": "Control Value",
+    "unit": ""
+   }
+  ]
+ },
+ "3775533": {
+  "name": "WBC Count",
+  "fields": [
+   {
+    "field_id": "5714580",
+    "field_name": "WBC Count",
+    "unit": "mcL"
+   }
+  ]
+ },
+ "3775534": {
+  "name": "P-LCR",
+  "fields": [
+   {
+    "field_id": "5714581",
+    "field_name": "P-LCR",
+    "unit": ""
+   }
+  ]
+ },
+ "3775535": {
+  "name": "R.D.W. - CV",
+  "fields": [
+   {
+    "field_id": "5714582",
+    "field_name": "R.D.W. - CV",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775536": {
+  "name": "P.D.W.",
+  "fields": [
+   {
+    "field_id": "5714583",
+    "field_name": "P.D.W.",
+    "unit": "fL"
+   }
+  ]
+ },
+ "3775537": {
+  "name": "R.D.W. - SD",
+  "fields": [
+   {
+    "field_id": "5714584",
+    "field_name": "R.D.W. - SD",
+    "unit": "fL"
+   }
+  ]
+ },
+ "3775538": {
+  "name": "Neutrophil Lymphocyte Ratio",
+  "fields": [
+   {
+    "field_id": "5714585",
+    "field_name": "Neutrophil Lymphocyte Ratio",
+    "unit": ""
+   }
+  ]
+ },
+ "3775539": {
+  "name": "Lupus Anticoagulant (DRVVT)",
+  "fields": [
+   {
+    "field_id": "5714586",
+    "field_name": "Patient Value",
+    "unit": "seconds"
+   },
+   {
+    "field_id": "5714587",
+    "field_name": "Control Value",
+    "unit": "seconds"
+   },
+   {
+    "field_id": "5714588",
+    "field_name": "Screen Ratio",
+    "unit": ""
+   },
+   {
+    "field_id": "5714589",
+    "field_name": "DRVVT Screening",
+    "unit": ""
+   }
+  ]
+ },
+ "4861175": {
+  "name": "ADA , SERUM",
+  "fields": [
+   {
+    "field_id": "7344361",
+    "field_name": "ADA , SERUM",
+    "unit": "cumm"
+   }
+  ]
+ },
+ "3775634": {
+  "name": "Widal (Tube Method)",
+  "fields": []
+ },
+ "3775635": {
+  "name": "Widal (Slide Method)",
+  "fields": []
+ },
+ "3775636": {
+  "name": "Widal Test (Slide Method)",
+  "fields": [
+   {
+    "field_id": "5714704",
+    "field_name": "Salmonella Typhi 'O'",
+    "unit": ""
+   },
+   {
+    "field_id": "5714705",
+    "field_name": "Salmonella Typhi 'H'",
+    "unit": ""
+   },
+   {
+    "field_id": "5714706",
+    "field_name": "Salmonella Typhi 'AH'",
+    "unit": ""
+   },
+   {
+    "field_id": "5714707",
+    "field_name": "Salmonella Typhi 'BH'",
+    "unit": ""
+   }
+  ]
+ },
+ "3775637": {
+  "name": "Malaria Antigen",
+  "fields": [
+   {
+    "field_id": "5714708",
+    "field_name": "IgG",
+    "unit": ""
+   },
+   {
+    "field_id": "5714709",
+    "field_name": "IgM",
+    "unit": ""
+   }
+  ]
+ },
+ "3775638": {
+  "name": "HIV (Card Test)",
+  "fields": [
+   {
+    "field_id": "5714710",
+    "field_name": "HIV - 1",
+    "unit": ""
+   },
+   {
+    "field_id": "5714711",
+    "field_name": "HIV - 2",
+    "unit": ""
+   }
+  ]
+ },
+ "3775639": {
+  "name": "Hepatitis C Virus, HCV",
+  "fields": [
+   {
+    "field_id": "5714712",
+    "field_name": "Hepatitis C Virus, HCV",
+    "unit": ""
+   }
+  ]
+ },
+ "3775640": {
+  "name": "VDRL",
+  "fields": [
+   {
+    "field_id": "5714713",
+    "field_name": "VDRL",
+    "unit": ""
+   }
+  ]
+ },
+ "3775641": {
+  "name": "HBsAg",
+  "fields": [
+   {
+    "field_id": "5714714",
+    "field_name": "HBsAg",
+    "unit": ""
+   }
+  ]
+ },
+ "3775642": {
+  "name": "Occult Blood, Stool",
+  "fields": [
+   {
+    "field_id": "5714715",
+    "field_name": "Occult Blood, Stool",
+    "unit": ""
+   }
+  ]
+ },
+ "3775643": {
+  "name": "Typhidot Antibodies",
+  "fields": [
+   {
+    "field_id": "5714716",
+    "field_name": "IgG",
+    "unit": ""
+   },
+   {
+    "field_id": "5714717",
+    "field_name": "IgM",
+    "unit": ""
+   }
+  ]
+ },
+ "3775644": {
+  "name": "Rubella",
+  "fields": [
+   {
+    "field_id": "5714718",
+    "field_name": "IgG",
+    "unit": "U/mL"
+   },
+   {
+    "field_id": "5714719",
+    "field_name": "IgM",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775645": {
+  "name": "Chikungunya",
+  "fields": [
+   {
+    "field_id": "5714720",
+    "field_name": "Chikungunya",
+    "unit": ""
+   }
+  ]
+ },
+ "3775646": {
+  "name": "Antistreptolysin O, ASO Titer",
+  "fields": [
+   {
+    "field_id": "5714721",
+    "field_name": "Antistreptolysin O, ASO Titer",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775647": {
+  "name": "Rheumatoid Factor, RA (Quantitative)",
+  "fields": [
+   {
+    "field_id": "5714722",
+    "field_name": "Rheumatoid Factor, RA (Quantitative)",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775648": {
+  "name": "Rheumatoid Factor, RA (Qualitative)",
+  "fields": [
+   {
+    "field_id": "5714723",
+    "field_name": "Rheumatoid Factor, RA (Qualitative)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775649": {
+  "name": "C-Reactive Protein, CRP (Quantitative)",
+  "fields": [
+   {
+    "field_id": "5714724",
+    "field_name": "C-Reactive Protein, CRP (Quantitative)",
+    "unit": "mg/L"
+   }
+  ]
+ },
+ "3775650": {
+  "name": "C-Reactive Protein, CRP (Qualitative)",
+  "fields": [
+   {
+    "field_id": "5714725",
+    "field_name": "C-Reactive Protein, CRP (Qualitative)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775651": {
+  "name": "Dengue NS1 Antigen",
+  "fields": [
+   {
+    "field_id": "5714726",
+    "field_name": "Dengue NS1 Antigen",
+    "unit": ""
+   }
+  ]
+ },
+ "3775652": {
+  "name": "Dengue (Card Method)",
+  "fields": [
+   {
+    "field_id": "5714727",
+    "field_name": "NS1 Antigen",
+    "unit": ""
+   },
+   {
+    "field_id": "5714728",
+    "field_name": "IgM",
+    "unit": ""
+   },
+   {
+    "field_id": "5714729",
+    "field_name": "IgG",
+    "unit": ""
+   }
+  ]
+ },
+ "3775653": {
+  "name": "Beta Human Chorionic Gonodotropin (HCG)",
+  "fields": [
+   {
+    "field_id": "5714730",
+    "field_name": "Beta Human Chorionic Gonodotropin (HCG)",
+    "unit": "mIU/mL"
+   }
+  ]
+ },
+ "3775654": {
+  "name": "Free PSA",
+  "fields": [
+   {
+    "field_id": "5714731",
+    "field_name": "Free PSA",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775655": {
+  "name": "IgA (Urine)",
+  "fields": [
+   {
+    "field_id": "5714732",
+    "field_name": "IgA (Urine)",
+    "unit": "μg/mL"
+   }
+  ]
+ },
+ "3775656": {
+  "name": "Total PSA",
+  "fields": [
+   {
+    "field_id": "5714733",
+    "field_name": "Total PSA",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775657": {
+  "name": "Anti-HBc",
+  "fields": [
+   {
+    "field_id": "5714734",
+    "field_name": "Anti-HBc",
+    "unit": "index/mL"
+   }
+  ]
+ },
+ "3775658": {
+  "name": "Anti-HBs",
+  "fields": [
+   {
+    "field_id": "5714735",
+    "field_name": "Anti-HBs",
+    "unit": "mIU/mL"
+   }
+  ]
+ },
+ "3775659": {
+  "name": "Anti-HBe",
+  "fields": [
+   {
+    "field_id": "5714736",
+    "field_name": "Anti-HBe",
+    "unit": "index/mL"
+   }
+  ]
+ },
+ "3775660": {
+  "name": "HBeAg",
+  "fields": [
+   {
+    "field_id": "5714737",
+    "field_name": "HBeAg",
+    "unit": "index/mL"
+   }
+  ]
+ },
+ "3775661": {
+  "name": "Anti-HAV",
+  "fields": [
+   {
+    "field_id": "5714738",
+    "field_name": "Anti-HAV",
+    "unit": "mIU/mL"
+   }
+  ]
+ },
+ "3775662": {
+  "name": "HAV IgM",
+  "fields": [
+   {
+    "field_id": "5714739",
+    "field_name": "HAV IgM",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775663": {
+  "name": "Anti Nuclear Antibody (ANA) by ELISA",
+  "fields": [
+   {
+    "field_id": "5714740",
+    "field_name": "Anti Nuclear Antibody (ANA) by ELISA",
+    "unit": "Units"
+   }
+  ]
+ },
+ "3775664": {
+  "name": "Insulin Random",
+  "fields": [
+   {
+    "field_id": "5714741",
+    "field_name": "Insulin Random",
+    "unit": "µU/mL"
+   }
+  ]
+ },
+ "3775665": {
+  "name": "Testosterone Free",
+  "fields": [
+   {
+    "field_id": "5714742",
+    "field_name": "Testosterone Free",
+    "unit": "pg/mL"
+   }
+  ]
+ },
+ "3775666": {
+  "name": "Testosterone Total",
+  "fields": [
+   {
+    "field_id": "5714743",
+    "field_name": "Testosterone Total",
+    "unit": "ng/dl"
+   }
+  ]
+ },
+ "3775667": {
+  "name": "Progesterone",
+  "fields": [
+   {
+    "field_id": "5714744",
+    "field_name": "Progesterone",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775668": {
+  "name": "Myoglobin",
+  "fields": [
+   {
+    "field_id": "5714745",
+    "field_name": "Myoglobin",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775669": {
+  "name": "Beta 2 Glycoprotein 1, IgG",
+  "fields": [
+   {
+    "field_id": "5714746",
+    "field_name": "Beta 2 Glycoprotein 1, IgG",
+    "unit": "SGU"
+   }
+  ]
+ },
+ "3775670": {
+  "name": "Beta 2 Glycoprotein 1, IgM",
+  "fields": [
+   {
+    "field_id": "5714747",
+    "field_name": "Beta 2 Glycoprotein 1, IgM",
+    "unit": "SMU"
+   }
+  ]
+ },
+ "3775671": {
+  "name": "Anti Phospholipid IgG",
+  "fields": [
+   {
+    "field_id": "5714748",
+    "field_name": "Anti Phospholipid IgG",
+    "unit": "GPL U/mL"
+   }
+  ]
+ },
+ "3775672": {
+  "name": "Anti Phospholipid IgM",
+  "fields": [
+   {
+    "field_id": "5714749",
+    "field_name": "Anti Phospholipid IgM",
+    "unit": "MPL U/mL"
+   }
+  ]
+ },
+ "3775673": {
+  "name": "Anti Cardiolipin IgG",
+  "fields": [
+   {
+    "field_id": "5714750",
+    "field_name": "Anti Cardiolipin IgG",
+    "unit": "GPL"
+   }
+  ]
+ },
+ "3775674": {
+  "name": "Anti Cardiolipin IgM",
+  "fields": [
+   {
+    "field_id": "5714751",
+    "field_name": "Anti Cardiolipin IgM",
+    "unit": "MPL"
+   }
+  ]
+ },
+ "3775675": {
+  "name": "WEIL FELIX TEST, SERUM",
+  "fields": [
+   {
+    "field_id": "5714752",
+    "field_name": "Proteus Antigen OX 19",
+    "unit": "Titre"
+   },
+   {
+    "field_id": "5714753",
+    "field_name": "Proteus Antigen OX 2",
+    "unit": "Titre"
+   },
+   {
+    "field_id": "5714754",
+    "field_name": "Proteus Antigen OX K",
+    "unit": "Titre"
+   }
+  ]
+ },
+ "3775676": {
+  "name": "Dengue IgG",
+  "fields": [
+   {
+    "field_id": "5714755",
+    "field_name": "Dengue IgG",
+    "unit": ""
+   }
+  ]
+ },
+ "3775677": {
+  "name": "Dengue IgM",
+  "fields": [
+   {
+    "field_id": "5714756",
+    "field_name": "Dengue IgM",
+    "unit": ""
+   }
+  ]
+ },
+ "3775678": {
+  "name": "Dengue IgG & IgM",
+  "fields": [
+   {
+    "field_id": "5714757",
+    "field_name": "IgG",
+    "unit": ""
+   },
+   {
+    "field_id": "5714758",
+    "field_name": "IgM",
+    "unit": ""
+   }
+  ]
+ },
+ "3775679": {
+  "name": "Urine for creatinine",
+  "fields": [
+   {
+    "field_id": "5714759",
+    "field_name": "Urine for creatinine",
+    "unit": ""
+   }
+  ]
+ },
+ "3775680": {
+  "name": "Urine for ELISA (Pregnancy)",
+  "fields": [
+   {
+    "field_id": "5714760",
+    "field_name": "Urine for ELISA (Pregnency)",
+    "unit": ""
+   }
+  ]
+ },
+ "3775681": {
+  "name": "Urine for Fungal",
+  "fields": [
+   {
+    "field_id": "5714761",
+    "field_name": "Urine for Fungal",
+    "unit": ""
+   }
+  ]
+ },
+ "3775682": {
+  "name": "Urine for Ketone",
+  "fields": [
+   {
+    "field_id": "5714762",
+    "field_name": "Urine for Ketone",
+    "unit": ""
+   }
+  ]
+ },
+ "3775683": {
+  "name": "Urine for Microalbumin",
+  "fields": [
+   {
+    "field_id": "5714763",
+    "field_name": "Urine for Microalbumin",
+    "unit": ""
+   }
+  ]
+ },
+ "3775684": {
+  "name": "Urine for Protein",
+  "fields": [
+   {
+    "field_id": "5714764",
+    "field_name": "Urine for Protein",
+    "unit": ""
+   }
+  ]
+ },
+ "3775685": {
+  "name": "Urine Pregnancy Test",
+  "fields": [
+   {
+    "field_id": "5714765",
+    "field_name": "Urine Pregnancy Test",
+    "unit": ""
+   }
+  ]
+ },
+ "3775686": {
+  "name": "Urine for AFB 24 hours",
+  "fields": [
+   {
+    "field_id": "5714766",
+    "field_name": "Urine for AFB 24 hours",
+    "unit": ""
+   }
+  ]
+ },
+ "3775687": {
+  "name": "Urine for Chyle",
+  "fields": [
+   {
+    "field_id": "5714767",
+    "field_name": "Urine for Chyle",
+    "unit": ""
+   }
+  ]
+ },
+ "3775688": {
+  "name": "Semen Examination",
+  "fields": [
+   {
+    "field_id": "5714768",
+    "field_name": "Quantity",
+    "unit": "ml"
+   },
+   {
+    "field_id": "5714769",
+    "field_name": "Colour",
+    "unit": ""
+   },
+   {
+    "field_id": "5714770",
+    "field_name": "Ph",
+    "unit": ""
+   },
+   {
+    "field_id": "5714771",
+    "field_name": "Collection At",
+    "unit": ""
+   },
+   {
+    "field_id": "5714772",
+    "field_name": "Liquefaction Time",
+    "unit": "min"
+   },
+   {
+    "field_id": "5714773",
+    "field_name": "Semen Fructose",
+    "unit": ""
+   },
+   {
+    "field_id": "5714774",
+    "field_name": "Total Sperm Count",
+    "unit": "million/cumm"
+   },
+   {
+    "field_id": "5714775",
+    "field_name": "Rapid Progressive",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714776",
+    "field_name": "Sluggish Progressive",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714777",
+    "field_name": "Non Progressive",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714778",
+    "field_name": "Immotile",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714779",
+    "field_name": "Abnormal Forms",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714780",
+    "field_name": "Epithelial Cells",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714781",
+    "field_name": "R.B.C.",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714782",
+    "field_name": "Pus cell",
+    "unit": "/HPF"
+   }
+  ]
+ },
+ "3775689": {
+  "name": "Urine Sugar Fasting",
+  "fields": [
+   {
+    "field_id": "5714783",
+    "field_name": "Urine Sugar Fasting",
+    "unit": ""
+   }
+  ]
+ },
+ "3775690": {
+  "name": "Stool Routine Examination",
+  "fields": [
+   {
+    "field_id": "5714784",
+    "field_name": "Colour",
+    "unit": ""
+   },
+   {
+    "field_id": "5714785",
+    "field_name": "Consistency",
+    "unit": ""
+   },
+   {
+    "field_id": "5714786",
+    "field_name": "Mucus",
+    "unit": ""
+   },
+   {
+    "field_id": "5714787",
+    "field_name": "Blood",
+    "unit": ""
+   },
+   {
+    "field_id": "5714788",
+    "field_name": "Occult Blood",
+    "unit": ""
+   },
+   {
+    "field_id": "5714789",
+    "field_name": "Parasites",
+    "unit": ""
+   },
+   {
+    "field_id": "5714790",
+    "field_name": "Undigested Food Particles",
+    "unit": ""
+   },
+   {
+    "field_id": "5714791",
+    "field_name": "OVA",
+    "unit": ""
+   },
+   {
+    "field_id": "5714792",
+    "field_name": "Cysts",
+    "unit": ""
+   },
+   {
+    "field_id": "5714793",
+    "field_name": "Pus Cells",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714794",
+    "field_name": "Red Blood Cells",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714795",
+    "field_name": "Macrophages",
+    "unit": ""
+   }
+  ]
+ },
+ "3775691": {
+  "name": "Urine Sugar PP",
+  "fields": [
+   {
+    "field_id": "5714796",
+    "field_name": "Urine Sugar PP",
+    "unit": ""
+   }
+  ]
+ },
+ "3775692": {
+  "name": "Urine Sugar Random",
+  "fields": [
+   {
+    "field_id": "5714797",
+    "field_name": "Urine Sugar Random",
+    "unit": ""
+   }
+  ]
+ },
+ "3775693": {
+  "name": "Urine Routine Examination",
+  "fields": [
+   {
+    "field_id": "5714798",
+    "field_name": "Quantity",
+    "unit": "ml"
+   },
+   {
+    "field_id": "5714799",
+    "field_name": "Colour",
+    "unit": ""
+   },
+   {
+    "field_id": "5714800",
+    "field_name": "Transparency",
+    "unit": ""
+   },
+   {
+    "field_id": "5714801",
+    "field_name": "Specific Gravity",
+    "unit": ""
+   },
+   {
+    "field_id": "5714802",
+    "field_name": "pH",
+    "unit": ""
+   },
+   {
+    "field_id": "5714815",
+    "field_name": "Leukocytes",
+    "unit": ""
+   },
+   {
+    "field_id": "5714816",
+    "field_name": "Blood",
+    "unit": ""
+   },
+   {
+    "field_id": "5714803",
+    "field_name": "Protein / Albumin",
+    "unit": ""
+   },
+   {
+    "field_id": "5714804",
+    "field_name": "Sugar / Glucose",
+    "unit": ""
+   },
+   {
+    "field_id": "5714805",
+    "field_name": "Ketone Bodies",
+    "unit": ""
+   },
+   {
+    "field_id": "5714806",
+    "field_name": "Bilirubin",
+    "unit": ""
+   },
+   {
+    "field_id": "5714814",
+    "field_name": "Nitrite",
+    "unit": ""
+   },
+   {
+    "field_id": "5714807",
+    "field_name": "R.B.C.",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714808",
+    "field_name": "Pus Cells",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714809",
+    "field_name": "Epithilial Cells",
+    "unit": "/HPF"
+   },
+   {
+    "field_id": "5714810",
+    "field_name": "Casts",
+    "unit": ""
+   },
+   {
+    "field_id": "5714811",
+    "field_name": "Crystals",
+    "unit": ""
+   },
+   {
+    "field_id": "5714812",
+    "field_name": "Bacteria",
+    "unit": ""
+   },
+   {
+    "field_id": "5714813",
+    "field_name": "Others",
+    "unit": ""
+   }
+  ]
+ },
+ "3775694": {
+  "name": "Fluid Examination",
+  "fields": [
+   {
+    "field_id": "5714817",
+    "field_name": "Sample Type",
+    "unit": ""
+   },
+   {
+    "field_id": "5714818",
+    "field_name": "Coagulum",
+    "unit": ""
+   },
+   {
+    "field_id": "5714819",
+    "field_name": "Volume",
+    "unit": "ml"
+   },
+   {
+    "field_id": "5714820",
+    "field_name": "Appearance",
+    "unit": ""
+   },
+   {
+    "field_id": "5714821",
+    "field_name": "Colour",
+    "unit": ""
+   },
+   {
+    "field_id": "5714822",
+    "field_name": "pH (Reaction)",
+    "unit": ""
+   },
+   {
+    "field_id": "5714823",
+    "field_name": "Protein",
+    "unit": "mg%"
+   },
+   {
+    "field_id": "5714824",
+    "field_name": "Glucose",
+    "unit": "mg%"
+   },
+   {
+    "field_id": "5714825",
+    "field_name": "Total Leukocyte Count",
+    "unit": "cumm"
+   },
+   {
+    "field_id": "5714826",
+    "field_name": "Neutrophils",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714827",
+    "field_name": "Lymphocyte",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714828",
+    "field_name": "RBCs",
+    "unit": ""
+   },
+   {
+    "field_id": "5714829",
+    "field_name": "Others",
+    "unit": ""
+   }
+  ]
+ },
+ "3775695": {
+  "name": "Urine Cotinine",
+  "fields": [
+   {
+    "field_id": "5714830",
+    "field_name": "Urine Cotinine",
+    "unit": ""
+   }
+  ]
+ },
+ "3775696": {
+  "name": "Urine Cortisol",
+  "fields": [
+   {
+    "field_id": "5714831",
+    "field_name": "Urine Cortisol",
+    "unit": "μg/24 hrs"
+   }
+  ]
+ },
+ "3775697": {
+  "name": "FNAC (Fine Needle Aspiration)",
+  "fields": []
+ },
+ "3775698": {
+  "name": "PAP Smear",
+  "fields": []
+ },
+ "3775699": {
+  "name": "Skin test for Leprosy",
+  "fields": [
+   {
+    "field_id": "5714834",
+    "field_name": "Skin test for Leprosy",
+    "unit": ""
+   }
+  ]
+ },
+ "3775700": {
+  "name": "Gram's Stain",
+  "fields": [
+   {
+    "field_id": "5714835",
+    "field_name": "Sample Type",
+    "unit": ""
+   },
+   {
+    "field_id": "5714836",
+    "field_name": "Result",
+    "unit": ""
+   }
+  ]
+ },
+ "3775701": {
+  "name": "Acid - Fast Bacilli",
+  "fields": [
+   {
+    "field_id": "5714837",
+    "field_name": "Sample Type",
+    "unit": ""
+   },
+   {
+    "field_id": "5714838",
+    "field_name": "Result",
+    "unit": ""
+   }
+  ]
+ },
+ "3775702": {
+  "name": "Skin smear for AFB",
+  "fields": [
+   {
+    "field_id": "5714839",
+    "field_name": "Skin smear for AFB",
+    "unit": ""
+   }
+  ]
+ },
+ "3775703": {
+  "name": "Fungal scraping smear",
+  "fields": [
+   {
+    "field_id": "5714840",
+    "field_name": "Fungal scraping smear",
+    "unit": ""
+   }
+  ]
+ },
+ "3775704": {
+  "name": "Culture and Sensitivity",
+  "fields": []
+ },
+ "3775705": {
+  "name": "Serum Triiodothyronine, T3",
+  "fields": [
+   {
+    "field_id": "5714842",
+    "field_name": "Serum Triiodothyronine, T3",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775706": {
+  "name": "Serum thyroxine, T4",
+  "fields": [
+   {
+    "field_id": "5714843",
+    "field_name": "Serum thyroxine, T4",
+    "unit": "ug/dL"
+   }
+  ]
+ },
+ "3775707": {
+  "name": "Thyroid-Stimulating Hormone, TSH",
+  "fields": [
+   {
+    "field_id": "5714844",
+    "field_name": "Thyroid-Stimulating Hormone, TSH",
+    "unit": "µIU/mL"
+   }
+  ]
+ },
+ "3775708": {
+  "name": "Free Triiodothyronine l, FT3",
+  "fields": [
+   {
+    "field_id": "5714845",
+    "field_name": "Free Triiodothyronine l, FT3",
+    "unit": "pg/mL"
+   }
+  ]
+ },
+ "3775709": {
+  "name": "Free Thyroxine, FT4",
+  "fields": [
+   {
+    "field_id": "5714846",
+    "field_name": "Free Thyroxine, FT4",
+    "unit": "pg/mL"
+   }
+  ]
+ },
+ "3775710": {
+  "name": "Alfa Fetoprotein, AFP",
+  "fields": [
+   {
+    "field_id": "5714847",
+    "field_name": "Alfa Fetoprotein, AFP",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775711": {
+  "name": "Prolactin",
+  "fields": [
+   {
+    "field_id": "5714848",
+    "field_name": "Prolactin",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775712": {
+  "name": "Luteinising Hormone, LH",
+  "fields": [
+   {
+    "field_id": "5714849",
+    "field_name": "Luteinising Hormone, LH",
+    "unit": "mIU/mL"
+   }
+  ]
+ },
+ "3775713": {
+  "name": "Follicle Stimulating Hormone, FSH",
+  "fields": [
+   {
+    "field_id": "5714850",
+    "field_name": "Follicle Stimulating Hormone, FSH",
+    "unit": "mIU/mL"
+   }
+  ]
+ },
+ "3775714": {
+  "name": "Folic Acid",
+  "fields": [
+   {
+    "field_id": "5714851",
+    "field_name": "Folic Acid",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775540": {
+  "name": "Serum Phosphorus",
+  "fields": [
+   {
+    "field_id": "5714590",
+    "field_name": "Serum Phosphorus",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775541": {
+  "name": "Serum Creatinine",
+  "fields": [
+   {
+    "field_id": "5714591",
+    "field_name": "Serum Creatinine",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775542": {
+  "name": "Serum Urea",
+  "fields": [
+   {
+    "field_id": "5714592",
+    "field_name": "Serum Urea",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775543": {
+  "name": "Fasting Blood Sugar",
+  "fields": [
+   {
+    "field_id": "5714593",
+    "field_name": "Fasting Blood Sugar",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775544": {
+  "name": "Blood Sugar PP",
+  "fields": [
+   {
+    "field_id": "5714594",
+    "field_name": "Blood Sugar PP",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775545": {
+  "name": "Serum Bilirubin (Total)",
+  "fields": [
+   {
+    "field_id": "5714595",
+    "field_name": "Serum Bilirubin (Total)",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775546": {
+  "name": "Serum Bilirubin (Direct)",
+  "fields": [
+   {
+    "field_id": "5714596",
+    "field_name": "Serum Bilirubin (Direct)",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775547": {
+  "name": "Serum Bilirubin (Indirect)",
+  "fields": [
+   {
+    "field_id": "5714597",
+    "field_name": "Serum Bilirubin (Indirect)",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775548": {
+  "name": "Serum Uric Acid",
+  "fields": [
+   {
+    "field_id": "5714598",
+    "field_name": "Serum Uric Acid",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775549": {
+  "name": "SGPT (ALT)",
+  "fields": [
+   {
+    "field_id": "5714599",
+    "field_name": "SGPT (ALT)",
+    "unit": "U/I"
+   }
+  ]
+ },
+ "3775550": {
+  "name": "SGOT (AST)",
+  "fields": [
+   {
+    "field_id": "5714600",
+    "field_name": "SGOT (AST)",
+    "unit": "U/I"
+   }
+  ]
+ },
+ "3775551": {
+  "name": "Serum Protein",
+  "fields": [
+   {
+    "field_id": "5714601",
+    "field_name": "Serum Protein",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775552": {
+  "name": "Serum Albumin",
+  "fields": [
+   {
+    "field_id": "5714602",
+    "field_name": "Serum Albumin",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775553": {
+  "name": "Serum Alkaline Phosphatase",
+  "fields": [
+   {
+    "field_id": "5714603",
+    "field_name": "Serum Alkaline Phosphatase",
+    "unit": "U/I"
+   }
+  ]
+ },
+ "3775554": {
+  "name": "Total Cholesterol",
+  "fields": [
+   {
+    "field_id": "5714604",
+    "field_name": "Total Cholesterol",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775555": {
+  "name": "Triglycerides",
+  "fields": [
+   {
+    "field_id": "5714605",
+    "field_name": "Triglycerides",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775556": {
+  "name": "HDL Cholesterol",
+  "fields": [
+   {
+    "field_id": "5714606",
+    "field_name": "HDL Cholesterol",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775557": {
+  "name": "LDL Cholesterol",
+  "fields": [
+   {
+    "field_id": "5714607",
+    "field_name": "LDL Cholesterol",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775558": {
+  "name": "VLDL Cholesterol",
+  "fields": [
+   {
+    "field_id": "5714608",
+    "field_name": "VLDL Cholesterol",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775559": {
+  "name": "LDL / HDL",
+  "fields": [
+   {
+    "field_id": "5714609",
+    "field_name": "LDL / HDL",
+    "unit": ""
+   }
+  ]
+ },
+ "3775560": {
+  "name": "Total Cholesterol / HDL",
+  "fields": [
+   {
+    "field_id": "5714610",
+    "field_name": "Total Cholesterol / HDL",
+    "unit": ""
+   }
+  ]
+ },
+ "3775561": {
+  "name": "TG / HDL",
+  "fields": [
+   {
+    "field_id": "5714611",
+    "field_name": "TG / HDL",
+    "unit": ""
+   }
+  ]
+ },
+ "3775562": {
+  "name": "Total Lipid",
+  "fields": [
+   {
+    "field_id": "5714612",
+    "field_name": "Total Lipid",
+    "unit": "mg%"
+   }
+  ]
+ },
+ "3775563": {
+  "name": "Serum Sodium",
+  "fields": [
+   {
+    "field_id": "5714613",
+    "field_name": "Serum Sodium",
+    "unit": "mmol/L"
+   }
+  ]
+ },
+ "3775564": {
+  "name": "BUN",
+  "fields": [
+   {
+    "field_id": "5714614",
+    "field_name": "BUN",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775565": {
+  "name": "BUN / Creatinine Ratio",
+  "fields": [
+   {
+    "field_id": "5714615",
+    "field_name": "BUN / Creatinine Ratio",
+    "unit": ""
+   }
+  ]
+ },
+ "3775566": {
+  "name": "Urea / Creatinine Ratio",
+  "fields": [
+   {
+    "field_id": "5714616",
+    "field_name": "Urea / Creatinine Ratio",
+    "unit": ""
+   }
+  ]
+ },
+ "3775567": {
+  "name": "Serum Potassium",
+  "fields": [
+   {
+    "field_id": "5714617",
+    "field_name": "Serum Potassium",
+    "unit": "mmol/L"
+   }
+  ]
+ },
+ "3775568": {
+  "name": "iCalcium",
+  "fields": [
+   {
+    "field_id": "5714618",
+    "field_name": "iCalcium",
+    "unit": "mmol/l"
+   }
+  ]
+ },
+ "3775569": {
+  "name": "Serum Calcium",
+  "fields": [
+   {
+    "field_id": "5714619",
+    "field_name": "Serum Calcium",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775570": {
+  "name": "Total Calcium",
+  "fields": [
+   {
+    "field_id": "5714620",
+    "field_name": "Total Calcium",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775571": {
+  "name": "Glucose Tolerance Test, GTT",
+  "fields": [
+   {
+    "field_id": "5714621",
+    "field_name": "Fasting",
+    "unit": "mg/dl"
+   },
+   {
+    "field_id": "5714622",
+    "field_name": "1 Hour",
+    "unit": "mg/dl"
+   },
+   {
+    "field_id": "5714623",
+    "field_name": "2 Hour",
+    "unit": "mg/dl"
+   },
+   {
+    "field_id": "5714624",
+    "field_name": "3 Hour",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775572": {
+  "name": "Random Blood Sugar",
+  "fields": [
+   {
+    "field_id": "5714625",
+    "field_name": "Random Blood Sugar",
+    "unit": "mg/dl"
+   }
+  ]
+ },
+ "3775573": {
+  "name": "Serum Chloride",
+  "fields": [
+   {
+    "field_id": "5714626",
+    "field_name": "Serum Chloride",
+    "unit": "mmol/l"
+   }
+  ]
+ },
+ "3775574": {
+  "name": "Serum Amylase",
+  "fields": [
+   {
+    "field_id": "5714627",
+    "field_name": "Serum Amylase",
+    "unit": "IU/L"
+   }
+  ]
+ },
+ "3775575": {
+  "name": "HbA1c (Glycosylated Hemoglobin)",
+  "fields": [
+   {
+    "field_id": "5714628",
+    "field_name": "HbA1c",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714629",
+    "field_name": "Estimated average glucose",
+    "unit": "mg/dL"
+   }
+  ]
+ },
+ "3775576": {
+  "name": "A/G Ratio",
+  "fields": [
+   {
+    "field_id": "5714630",
+    "field_name": "A/G Ratio",
+    "unit": ""
+   }
+  ]
+ },
+ "3775577": {
+  "name": "Globulin",
+  "fields": [
+   {
+    "field_id": "5714631",
+    "field_name": "Globulin",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775578": {
+  "name": "Lipase",
+  "fields": [
+   {
+    "field_id": "5714632",
+    "field_name": "Lipase",
+    "unit": "U/I"
+   }
+  ]
+ },
+ "3775579": {
+  "name": "Ferritin",
+  "fields": [
+   {
+    "field_id": "5714633",
+    "field_name": "Ferritin",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775580": {
+  "name": "Microalbumin Creatinine Ratio, Urine Random",
+  "fields": [
+   {
+    "field_id": "5714634",
+    "field_name": "Microalbuminuria",
+    "unit": "mg/L"
+   },
+   {
+    "field_id": "5714635",
+    "field_name": "Urinary creatinine",
+    "unit": "mg/dL"
+   },
+   {
+    "field_id": "5714636",
+    "field_name": "Urinary Albumin Creatinine Ratio (UACR)",
+    "unit": "mg/g"
+   }
+  ]
+ },
+ "3775581": {
+  "name": "CPK-MB",
+  "fields": [
+   {
+    "field_id": "5714637",
+    "field_name": "CPK-MB",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775582": {
+  "name": "Stool reducing substances",
+  "fields": [
+   {
+    "field_id": "5714638",
+    "field_name": "Stool reducing substances",
+    "unit": ""
+   }
+  ]
+ },
+ "3775583": {
+  "name": "25 Hydroxy (OH) Vitamin D",
+  "fields": [
+   {
+    "field_id": "5714639",
+    "field_name": "25 Hydroxy (OH) Vitamin D",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775584": {
+  "name": "Vitamin B12",
+  "fields": [
+   {
+    "field_id": "5714640",
+    "field_name": "Vitamin B12",
+    "unit": "pg/ml"
+   }
+  ]
+ },
+ "3775585": {
+  "name": "Gamma Glutamyl Transferase, GGT",
+  "fields": [
+   {
+    "field_id": "5714641",
+    "field_name": "Gamma Glutamyl Transferase, GGT",
+    "unit": "IU/L"
+   }
+  ]
+ },
+ "3775586": {
+  "name": "Serum IgE",
+  "fields": [
+   {
+    "field_id": "5714642",
+    "field_name": "Serum IgE",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775587": {
+  "name": "Serum IgG",
+  "fields": [
+   {
+    "field_id": "5714643",
+    "field_name": "Serum IgG",
+    "unit": "mg/mL"
+   }
+  ]
+ },
+ "3775588": {
+  "name": "Serum IgM",
+  "fields": [
+   {
+    "field_id": "5714644",
+    "field_name": "Serum IgM",
+    "unit": "μg/mL"
+   }
+  ]
+ },
+ "3775589": {
+  "name": "Serum IgA",
+  "fields": [
+   {
+    "field_id": "5714645",
+    "field_name": "Serum IgA",
+    "unit": "μg/mL"
+   }
+  ]
+ },
+ "3775590": {
+  "name": "HSV-1/2 IgG",
+  "fields": [
+   {
+    "field_id": "5714646",
+    "field_name": "HSV-1/2 IgG",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775591": {
+  "name": "HSV-1/2 IgM",
+  "fields": [
+   {
+    "field_id": "5714647",
+    "field_name": "HSV-1/2 IgM",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775592": {
+  "name": "HSV-2 IgG",
+  "fields": [
+   {
+    "field_id": "5714648",
+    "field_name": "HSV-2 IgG",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775593": {
+  "name": "CMV IgG",
+  "fields": [
+   {
+    "field_id": "5714649",
+    "field_name": "CMV IgG",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775594": {
+  "name": "CMV IgM",
+  "fields": [
+   {
+    "field_id": "5714650",
+    "field_name": "CMV IgM",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775595": {
+  "name": "Rubella IgG",
+  "fields": [
+   {
+    "field_id": "5714651",
+    "field_name": "Rubella IgG",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775596": {
+  "name": "Rubella IgM",
+  "fields": [
+   {
+    "field_id": "5714652",
+    "field_name": "Rubella IgM",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775597": {
+  "name": "Anti TPO",
+  "fields": [
+   {
+    "field_id": "5714653",
+    "field_name": "Anti TPO",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775598": {
+  "name": "Thyroglobulin (TG)",
+  "fields": [
+   {
+    "field_id": "5714654",
+    "field_name": "Thyroglobulin (TG)",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775599": {
+  "name": "Thyroglobulin Antibody (TgAb)",
+  "fields": [
+   {
+    "field_id": "5714655",
+    "field_name": "Thyroglobulin Antibody (TgAb)",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775600": {
+  "name": "Toxo IgG",
+  "fields": [
+   {
+    "field_id": "5714656",
+    "field_name": "Toxo IgG",
+    "unit": "IU/mL"
+   }
+  ]
+ },
+ "3775601": {
+  "name": "Toxo IgM",
+  "fields": [
+   {
+    "field_id": "5714657",
+    "field_name": "Toxo IgM",
+    "unit": "AU/mL"
+   }
+  ]
+ },
+ "3775602": {
+  "name": "Estradiol",
+  "fields": [
+   {
+    "field_id": "5714658",
+    "field_name": "Estradiol",
+    "unit": "pg/mL"
+   }
+  ]
+ },
+ "3775603": {
+  "name": "DHEA",
+  "fields": [
+   {
+    "field_id": "5714659",
+    "field_name": "DHEA",
+    "unit": "μg/dl"
+   }
+  ]
+ },
+ "3775604": {
+  "name": "Troponin I",
+  "fields": [
+   {
+    "field_id": "5714660",
+    "field_name": "Troponin I",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775605": {
+  "name": "Creatine Kinase",
+  "fields": [
+   {
+    "field_id": "5714661",
+    "field_name": "Creatine Kinase",
+    "unit": "IU/L"
+   }
+  ]
+ },
+ "3775606": {
+  "name": "CK-MB",
+  "fields": [
+   {
+    "field_id": "5714662",
+    "field_name": "CK-MB",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775607": {
+  "name": "D-Dimer",
+  "fields": [
+   {
+    "field_id": "5714663",
+    "field_name": "D-Dimer",
+    "unit": "μg FEU/mL"
+   }
+  ]
+ },
+ "3775608": {
+  "name": "Calcitonin",
+  "fields": [
+   {
+    "field_id": "5714664",
+    "field_name": "Calcitonin",
+    "unit": "pg/mL"
+   }
+  ]
+ },
+ "3775609": {
+  "name": "Indirect Coomb's Test",
+  "fields": [
+   {
+    "field_id": "5714665",
+    "field_name": "Indirect Coomb's Test",
+    "unit": ""
+   }
+  ]
+ },
+ "3775610": {
+  "name": "Direct Coomb's Test",
+  "fields": [
+   {
+    "field_id": "5714666",
+    "field_name": "Direct Coomb's Test",
+    "unit": ""
+   }
+  ]
+ },
+ "3775611": {
+  "name": "CA 125",
+  "fields": [
+   {
+    "field_id": "5714667",
+    "field_name": "CA 125",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775612": {
+  "name": "CA 15-3",
+  "fields": [
+   {
+    "field_id": "5714668",
+    "field_name": "CA 15-3",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775613": {
+  "name": "CA 19-9",
+  "fields": [
+   {
+    "field_id": "5714669",
+    "field_name": "CA 19-9",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775614": {
+  "name": "CA 50",
+  "fields": [
+   {
+    "field_id": "5714670",
+    "field_name": "CA 50",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775615": {
+  "name": "CA 242",
+  "fields": [
+   {
+    "field_id": "5714671",
+    "field_name": "CA 242",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775616": {
+  "name": "CA 72-4",
+  "fields": [
+   {
+    "field_id": "5714672",
+    "field_name": "CA 72-4",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775617": {
+  "name": "H-ALB",
+  "fields": [
+   {
+    "field_id": "5714673",
+    "field_name": "H-ALB",
+    "unit": "μg/mL"
+   }
+  ]
+ },
+ "3775618": {
+  "name": "Anti cyclic-citrullinated-peptide",
+  "fields": [
+   {
+    "field_id": "5714674",
+    "field_name": "Anti cyclic-citrullinated-peptide",
+    "unit": "U/mL"
+   }
+  ]
+ },
+ "3775619": {
+  "name": "Arterial Blood Gas",
+  "fields": [
+   {
+    "field_id": "5714675",
+    "field_name": "pH",
+    "unit": ""
+   },
+   {
+    "field_id": "5714676",
+    "field_name": "PCO2",
+    "unit": "mmHg"
+   },
+   {
+    "field_id": "5714677",
+    "field_name": "Bicarbonate (HCO3",
+    "unit": "mEq/L"
+   },
+   {
+    "field_id": "5714678",
+    "field_name": "Total CO2 Contents (TCO2)",
+    "unit": "mmol/L"
+   },
+   {
+    "field_id": "5714679",
+    "field_name": "Standard Bicarbonate (SBC)",
+    "unit": "mEq/L"
+   },
+   {
+    "field_id": "5714680",
+    "field_name": "Base Excess",
+    "unit": "mEq/L"
+   },
+   {
+    "field_id": "5714681",
+    "field_name": "PO2",
+    "unit": "mmHg"
+   },
+   {
+    "field_id": "5714682",
+    "field_name": "Oxygen saturation capacity",
+    "unit": "%"
+   },
+   {
+    "field_id": "5714683",
+    "field_name": "Base Excess - Extracellular fluid",
+    "unit": "mEq/L"
+   },
+   {
+    "field_id": "5714684",
+    "field_name": "Hemoglobin",
+    "unit": "g/dl"
+   }
+  ]
+ },
+ "3775620": {
+  "name": "Iron",
+  "fields": [
+   {
+    "field_id": "5714685",
+    "field_name": "Iron",
+    "unit": "μg/dl"
+   }
+  ]
+ },
+ "3775621": {
+  "name": "Total Iron Binding Capacity (TIBC)",
+  "fields": [
+   {
+    "field_id": "5714686",
+    "field_name": "Total Iron Binding Capacity (TIBC)",
+    "unit": "μg/dl"
+   }
+  ]
+ },
+ "3775622": {
+  "name": "Transferrin Saturation",
+  "fields": [
+   {
+    "field_id": "5714687",
+    "field_name": "Transferrin Saturation",
+    "unit": "%"
+   }
+  ]
+ },
+ "3775623": {
+  "name": "Non-HDL cholesterol",
+  "fields": [
+   {
+    "field_id": "5714688",
+    "field_name": "Non-HDL cholesterol",
+    "unit": ""
+   }
+  ]
+ },
+ "3775624": {
+  "name": "UIBC",
+  "fields": [
+   {
+    "field_id": "5714689",
+    "field_name": "UIBC",
+    "unit": "μg/dl"
+   }
+  ]
+ },
+ "3775625": {
+  "name": "eGFR",
+  "fields": [
+   {
+    "field_id": "5714690",
+    "field_name": "eGFR",
+    "unit": "ml/min/1.73m^2"
+   }
+  ]
+ },
+ "3775626": {
+  "name": "eGFR Category",
+  "fields": [
+   {
+    "field_id": "5714691",
+    "field_name": "eGFR Category",
+    "unit": ""
+   }
+  ]
+ },
+ "3775627": {
+  "name": "C3 Complement",
+  "fields": [
+   {
+    "field_id": "5714692",
+    "field_name": "C3 Complement",
+    "unit": "mg/dL"
+   }
+  ]
+ },
+ "3775628": {
+  "name": "High-Sensitivity C-Reactive Protein",
+  "fields": [
+   {
+    "field_id": "5714693",
+    "field_name": "High-Sensitivity C-Reactive Protein",
+    "unit": "mg/L"
+   }
+  ]
+ },
+ "3775629": {
+  "name": "ANTI MULLERIAN HORMONE",
+  "fields": [
+   {
+    "field_id": "5714694",
+    "field_name": "ANTI MULLERIAN HORMONE",
+    "unit": "ng/mL"
+   }
+  ]
+ },
+ "3775630": {
+  "name": "Ammonia",
+  "fields": [
+   {
+    "field_id": "5714695",
+    "field_name": "Ammonia",
+    "unit": "µmol/L"
+   }
+  ]
+ },
+ "3775631": {
+  "name": "Magnesium",
+  "fields": [
+   {
+    "field_id": "5714696",
+    "field_name": "Magnesium",
+    "unit": "mg/dL"
+   }
+  ]
+ },
+ "3775632": {
+  "name": "Glucose Tolerance Test, GTT (Pregnancy)",
+  "fields": [
+   {
+    "field_id": "5714697",
+    "field_name": "Fasting",
+    "unit": "mg/dL"
+   },
+   {
+    "field_id": "5714698",
+    "field_name": "1 hour",
+    "unit": "mg/dL"
+   },
+   {
+    "field_id": "5714699",
+    "field_name": "2 hour",
+    "unit": "mg/dL"
+   },
+   {
+    "field_id": "5714700",
+    "field_name": "3 hour",
+    "unit": "mg/dL"
+   }
+  ]
+ },
+ "3775633": {
+  "name": "SGOT/SGPT",
+  "fields": [
+   {
+    "field_id": "5714701",
+    "field_name": "SGOT/SGPT",
+    "unit": ""
+   }
+  ]
+ },
+ "6172046": {
+  "name": "PH Inactive",
+  "fields": [
+   {
+    "field_id": "9355994",
+    "field_name": "PH",
+    "unit": ""
+   }
+  ]
+ },
+ "3775715": {
+  "name": "Mantoux test",
+  "fields": []
+ }
+}

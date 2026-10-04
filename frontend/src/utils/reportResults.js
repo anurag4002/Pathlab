@@ -1,10 +1,4 @@
-/* Formula/calculated result display — presentation-only mapping over data
-   the API already returns. The backend stores formula rows in
-   `report.results` with `test: null, derived: true`, so a billed formula test
-   (Test.isDerived) has no `existingValue` in the /entry payload. This maps
-   those server-calculated rows (matched by test name, the same convention the
-   verification queue already uses) onto the billed test entries, keyed by
-   testId. No formula logic or value is computed here — API values only. */
+/* Map saved formula results to their test/parameter fields for report display. */
 
 /* Reference range display — backend-provided strings/numbers only, never
    computed here. Shared by the result screens (Result Entry / Result
@@ -28,7 +22,7 @@ export const dedupeTestEntries = (list) => {
   const seen = new Set();
   const out = [];
   (list || []).forEach((testEntry) => {
-    const key = testEntry.testId ?? `name:${testEntry.testName}`;
+    const key = testEntry.resultKey || testEntry.testId || `name:${testEntry.testName}`;
     if (seen.has(key)) return;
     seen.add(key);
     out.push(testEntry);
@@ -38,16 +32,22 @@ export const dedupeTestEntries = (list) => {
 
 export const buildCalculatedResults = (testEntries, results) => {
   const byName = new Map();
+  const byId = new Map();
   (results || []).forEach((row) => {
     if (row?.derived === true && row.testName) byName.set(row.testName, row);
+    if (row?.derived === true && row.test) {
+      const id = String(row.test?._id || row.test);
+      byId.set(row.parameterCode ? `${id}:${row.parameterCode}` : id, row);
+    }
   });
 
   const calculated = {};
   (testEntries || []).forEach((testEntry) => {
     if (!testEntry?.isDerived || !testEntry.testId) return;
-    const row = byName.get(testEntry.testName);
+    const key = testEntry.resultKey || String(testEntry.testId);
+    const row = byId.get(key) || byName.get(testEntry.testName) || byName.get(testEntry.testCode);
     if (!row) return;
-    calculated[testEntry.testId] = {
+    calculated[key] = {
       value: row.value != null ? String(row.value) : '',
       unit: row.unit || '',
       flag: row.flag || ''

@@ -14,6 +14,7 @@ router.get('/pending-cases', requirePermission('reports'), reportController.getP
 router.get('/:id/entry', requirePermission('reports'), reportController.getReportForEntry);
 router.post('/result', requirePermission('reports'), reportController.createResultReport);
 router.put('/:id/results', requirePermission('reports'), reportController.saveResults);
+router.post('/:id/results/preview', requirePermission('reports'), reportController.previewResults);
 router.put('/:id/results/draft', requirePermission('reports'), reportController.saveResultsDraft);
 router.put('/:id/results/submit', requirePermission('reports'), reportController.submitResults);
 router.post('/:id/sign', requirePermission('reports'), reportController.signReport);

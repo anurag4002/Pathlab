@@ -4,9 +4,10 @@
 // `values` keys are matched case-insensitively against each rule's aliases,
 // so "Hb", "HB", "haemoglobin" all resolve. All numeric parsing is safe
 // (non-numeric -> rule skipped, never throws).
+const { resolveReferenceRange } = require('./referenceRangeService');
 
 function num(v) {
-  if (v === null || v === undefined || v === '') return null;
+  if (v === null || v === undefined || String(v).trim() === '') return null;
   const n = Number(String(v).replace(/,/g, '').trim());
   return Number.isFinite(n) ? n : null;
 }
@@ -184,10 +185,12 @@ function derive(values, patient) {
 // test: { normalLow, normalHigh, criticalLow, criticalHigh, ageMin, ageMax, sexApplicable }
 // Returns { flag: N|L|H|C|'', critical, outOfRange, restricted, restrictionReason }
 function evaluateResult(rawValue, test, patient) {
+  test = resolveReferenceRange(test, patient);
   const v = num(rawValue);
   const out = { flag: '', critical: false, outOfRange: false, restricted: false, restrictionReason: '' };
   if (v === null) return out;
-  const age = num(patient && patient.age);
+  const rawAge = num(patient && patient.age);
+  const age = rawAge == null ? null : rawAge * ({ days: 1 / 365.25, months: 1 / 12, years: 1 }[patient?.ageUnit] || 1);
   const gender = String((patient && patient.gender) || '').toLowerCase();
   if (test) {
     if (test.ageMin !== null && test.ageMin !== undefined && age !== null && age < test.ageMin) {
@@ -211,14 +214,14 @@ function evaluateResult(rawValue, test, patient) {
     if (test.criticalHigh !== null && test.criticalHigh !== undefined && v >= test.criticalHigh) {
       out.flag = 'C'; out.critical = true; out.outOfRange = true; return out;
     }
-    if (test.normalLow !== null && test.normalLow !== undefined && v < test.normalLow) {
+    if (test.normalLow !== null && test.normalLow !== undefined && (v < test.normalLow || (test.lowInclusive === false && v === test.normalLow))) {
       out.flag = 'L'; out.outOfRange = true; return out;
     }
-    if (test.normalHigh !== null && test.normalHigh !== undefined && v > test.normalHigh) {
+    if (test.normalHigh !== null && test.normalHigh !== undefined && (v > test.normalHigh || (test.highInclusive === false && v === test.normalHigh))) {
       out.flag = 'H'; out.outOfRange = true; return out;
     }
   }
-  out.flag = 'N';
+  out.flag = test.rangeMissing ? '' : 'N';
   return out;
 }
 

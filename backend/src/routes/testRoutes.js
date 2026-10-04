@@ -6,6 +6,7 @@ const { authorize } = require('../middleware/roleMiddleware');
 
 // Publicly read tests, categories, packages, panels
 router.get('/', testController.getTests);
+router.get('/formula-templates', testController.getFormulaTemplates);
 router.get('/categories', testController.getCategories);
 router.get('/panels', testController.getPanels);
 router.get('/packages', testController.getPackages);

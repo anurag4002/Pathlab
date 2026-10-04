@@ -1,0 +1,2102 @@
+[
+ {
+  "labsmart_id": "3775508",
+  "order": "1",
+  "name": "Hemoglobin",
+  "test_type": "Single parameter",
+  "short_name": "Hb",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775509",
+  "order": "2",
+  "name": "Total Leukocyte Count",
+  "test_type": "Single parameter",
+  "short_name": "TLC",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775510",
+  "order": "3",
+  "name": "Differential Leucocyte Count",
+  "test_type": "Multi parameter",
+  "short_name": "DLC",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775511",
+  "order": "4",
+  "name": "Differential Leukocyte Count (Absolute count)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775512",
+  "order": "5",
+  "name": "Erythrocyte sedimentation rate (Westergren)",
+  "test_type": "Single parameter",
+  "short_name": "ESR (Westergren)",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775513",
+  "order": "6",
+  "name": "Erythrocyte Sedimentation Rate (Wintrobe)",
+  "test_type": "Single parameter",
+  "short_name": "ESR (Wintrobe)",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775514",
+  "order": "7",
+  "name": "Platelet Count",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775515",
+  "order": "8",
+  "name": "Absolute Eosinophil Count",
+  "test_type": "Single parameter",
+  "short_name": "AEC",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775516",
+  "order": "9",
+  "name": "Blood Group & Rh.",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775517",
+  "order": "10",
+  "name": "Bleeding Time",
+  "test_type": "Single parameter",
+  "short_name": "BT",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775518",
+  "order": "11",
+  "name": "Clotting Time",
+  "test_type": "Single parameter",
+  "short_name": "CT",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775519",
+  "order": "12",
+  "name": "Peripheral Blood Smear",
+  "test_type": "Document",
+  "short_name": "PBS / GBP",
+  "category": "Haematology",
+  "fee": 350.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775520",
+  "order": "13",
+  "name": "Malaria Parasite (Card Test)",
+  "test_type": "Multi parameter",
+  "short_name": "MP (Card Test)",
+  "category": "Haematology",
+  "fee": 450.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775521",
+  "order": "14",
+  "name": "Malaria Parasite (Microscopic)",
+  "test_type": "Single parameter",
+  "short_name": "MP (Microscopic)",
+  "category": "Haematology",
+  "fee": 300.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775522",
+  "order": "15",
+  "name": "Filarial Parasite (Card Test)",
+  "test_type": "Single parameter",
+  "short_name": "MF",
+  "category": "Haematology",
+  "fee": 600.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775523",
+  "order": "16",
+  "name": "Total RBC Count",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775524",
+  "order": "17",
+  "name": "Hematocrit Value, Hct",
+  "test_type": "Single parameter",
+  "short_name": "Hct",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775525",
+  "order": "18",
+  "name": "Mean Corpuscular Volume, MCV",
+  "test_type": "Single parameter",
+  "short_name": "MCV",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775526",
+  "order": "19",
+  "name": "Mean Cell Haemoglobin, MCH",
+  "test_type": "Single parameter",
+  "short_name": "MCH",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775527",
+  "order": "20",
+  "name": "Mean Cell Haemoglobin CON, MCHC",
+  "test_type": "Single parameter",
+  "short_name": "MCHC",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775528",
+  "order": "21",
+  "name": "Mean Platelet Volume, MPV",
+  "test_type": "Single parameter",
+  "short_name": "MPV",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775529",
+  "order": "22",
+  "name": "Reticulocyte Count",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775530",
+  "order": "23",
+  "name": "Glucose-6-phosphate dehydrogenase",
+  "test_type": "Single parameter",
+  "short_name": "G6PD",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775531",
+  "order": "24",
+  "name": "Prothrombin time, PT/INR",
+  "test_type": "Multi parameter",
+  "short_name": "PT/INR",
+  "category": "Haematology",
+  "fee": 800.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775532",
+  "order": "25",
+  "name": "Activated partial thromboplastin time, APTT",
+  "test_type": "Multi parameter",
+  "short_name": "APTT",
+  "category": "Haematology",
+  "fee": 650.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775533",
+  "order": "26",
+  "name": "WBC Count",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775534",
+  "order": "27",
+  "name": "P-LCR",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775535",
+  "order": "28",
+  "name": "R.D.W. - CV",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775536",
+  "order": "29",
+  "name": "P.D.W.",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775537",
+  "order": "30",
+  "name": "R.D.W. - SD",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775538",
+  "order": "31",
+  "name": "Neutrophil Lymphocyte Ratio",
+  "test_type": "Single parameter",
+  "short_name": "NLR",
+  "category": "Haematology",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775539",
+  "order": "32",
+  "name": "Lupus Anticoagulant (DRVVT)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Haematology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "4861175",
+  "order": "33",
+  "name": "ADA , SERUM",
+  "test_type": "Single parameter",
+  "short_name": "ADA",
+  "category": "Haematology",
+  "fee": 600.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775634",
+  "order": "34",
+  "name": "Widal (Tube Method)",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775635",
+  "order": "35",
+  "name": "Widal (Slide Method)",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 250.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775636",
+  "order": "36",
+  "name": "Widal Test (Slide Method)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 250.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775637",
+  "order": "37",
+  "name": "Malaria Antigen",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 450.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775638",
+  "order": "38",
+  "name": "HIV (Card Test)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775639",
+  "order": "39",
+  "name": "Hepatitis C Virus, HCV",
+  "test_type": "Single parameter",
+  "short_name": "HCV",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775640",
+  "order": "40",
+  "name": "VDRL",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775641",
+  "order": "41",
+  "name": "HBsAg",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775642",
+  "order": "42",
+  "name": "Occult Blood, Stool",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775643",
+  "order": "43",
+  "name": "Typhidot Antibodies",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 600.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775644",
+  "order": "44",
+  "name": "Rubella",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775645",
+  "order": "45",
+  "name": "Chikungunya",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 600.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775646",
+  "order": "46",
+  "name": "Antistreptolysin O, ASO Titer",
+  "test_type": "Single parameter",
+  "short_name": "ASO Titer",
+  "category": "Serology & Immunology",
+  "fee": 300.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775647",
+  "order": "47",
+  "name": "Rheumatoid Factor, RA (Quantitative)",
+  "test_type": "Single parameter",
+  "short_name": "RA (Quantitative)",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775648",
+  "order": "48",
+  "name": "Rheumatoid Factor, RA (Qualitative)",
+  "test_type": "Single parameter",
+  "short_name": "RA (Qualitative)",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775649",
+  "order": "49",
+  "name": "C-Reactive Protein, CRP (Quantitative)",
+  "test_type": "Single parameter",
+  "short_name": "CRP (Quantitative)",
+  "category": "Serology & Immunology",
+  "fee": 600.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775650",
+  "order": "50",
+  "name": "C-Reactive Protein, CRP (Qualitative)",
+  "test_type": "Single parameter",
+  "short_name": "CRP (Qualitative)",
+  "category": "Serology & Immunology",
+  "fee": 350.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775651",
+  "order": "51",
+  "name": "Dengue NS1 Antigen",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 1400.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775652",
+  "order": "52",
+  "name": "Dengue (Card Method)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 1500.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775653",
+  "order": "53",
+  "name": "Beta Human Chorionic Gonodotropin (HCG)",
+  "test_type": "Single parameter",
+  "short_name": "Beta hCG",
+  "category": "Serology & Immunology",
+  "fee": 800.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775654",
+  "order": "54",
+  "name": "Free PSA",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775655",
+  "order": "55",
+  "name": "IgA (Urine)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775656",
+  "order": "56",
+  "name": "Total PSA",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 700.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775657",
+  "order": "57",
+  "name": "Anti-HBc",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775658",
+  "order": "58",
+  "name": "Anti-HBs",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775659",
+  "order": "59",
+  "name": "Anti-HBe",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775660",
+  "order": "60",
+  "name": "HBeAg",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775661",
+  "order": "61",
+  "name": "Anti-HAV",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775662",
+  "order": "62",
+  "name": "HAV IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775663",
+  "order": "63",
+  "name": "Anti Nuclear Antibody (ANA) by ELISA",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775664",
+  "order": "64",
+  "name": "Insulin Random",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775665",
+  "order": "65",
+  "name": "Testosterone Free",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775666",
+  "order": "66",
+  "name": "Testosterone Total",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775667",
+  "order": "67",
+  "name": "Progesterone",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775668",
+  "order": "68",
+  "name": "Myoglobin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775669",
+  "order": "69",
+  "name": "Beta 2 Glycoprotein 1, IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775670",
+  "order": "70",
+  "name": "Beta 2 Glycoprotein 1, IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775671",
+  "order": "71",
+  "name": "Anti Phospholipid IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775672",
+  "order": "72",
+  "name": "Anti Phospholipid IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775673",
+  "order": "73",
+  "name": "Anti Cardiolipin IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775674",
+  "order": "74",
+  "name": "Anti Cardiolipin IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775675",
+  "order": "75",
+  "name": "WEIL FELIX TEST, SERUM",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775676",
+  "order": "76",
+  "name": "Dengue IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775677",
+  "order": "77",
+  "name": "Dengue IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775678",
+  "order": "78",
+  "name": "Dengue IgG & IgM",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Serology & Immunology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775679",
+  "order": "79",
+  "name": "Urine for creatinine",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775680",
+  "order": "80",
+  "name": "Urine for ELISA (Pregnancy)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775681",
+  "order": "81",
+  "name": "Urine for Fungal",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775682",
+  "order": "82",
+  "name": "Urine for Ketone",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775683",
+  "order": "83",
+  "name": "Urine for Microalbumin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775684",
+  "order": "84",
+  "name": "Urine for Protein",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775685",
+  "order": "85",
+  "name": "Urine Pregnancy Test",
+  "test_type": "Single parameter",
+  "short_name": "UPT",
+  "category": "Clinical Pathology",
+  "fee": 200.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775686",
+  "order": "86",
+  "name": "Urine for AFB 24 hours",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775687",
+  "order": "87",
+  "name": "Urine for Chyle",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775688",
+  "order": "88",
+  "name": "Semen Examination",
+  "test_type": "Multi parameter nested",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775689",
+  "order": "89",
+  "name": "Urine Sugar Fasting",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 50.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775690",
+  "order": "90",
+  "name": "Stool Routine Examination",
+  "test_type": "Multi parameter nested",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775691",
+  "order": "91",
+  "name": "Urine Sugar PP",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 50.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775692",
+  "order": "92",
+  "name": "Urine Sugar Random",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 50.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775693",
+  "order": "93",
+  "name": "Urine Routine Examination",
+  "test_type": "Multi parameter nested",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 250.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775694",
+  "order": "94",
+  "name": "Fluid Examination",
+  "test_type": "Multi parameter nested",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775695",
+  "order": "95",
+  "name": "Urine Cotinine",
+  "test_type": "Single parameter",
+  "short_name": "UCT",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775696",
+  "order": "96",
+  "name": "Urine Cortisol",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Clinical Pathology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775697",
+  "order": "97",
+  "name": "FNAC (Fine Needle Aspiration)",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Cytology",
+  "fee": 1500.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775698",
+  "order": "98",
+  "name": "PAP Smear",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Cytology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775699",
+  "order": "99",
+  "name": "Skin test for Leprosy",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Cytology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775700",
+  "order": "100",
+  "name": "Gram's Stain",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Microbiology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775701",
+  "order": "101",
+  "name": "Acid - Fast Bacilli",
+  "test_type": "Multi parameter",
+  "short_name": "AFB",
+  "category": "Microbiology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775702",
+  "order": "102",
+  "name": "Skin smear for AFB",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Microbiology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775703",
+  "order": "103",
+  "name": "Fungal scraping smear",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Microbiology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775704",
+  "order": "104",
+  "name": "Culture and Sensitivity",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Microbiology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775705",
+  "order": "105",
+  "name": "Serum Triiodothyronine, T3",
+  "test_type": "Single parameter",
+  "short_name": "T3",
+  "category": "Endocrinology",
+  "fee": 150.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775706",
+  "order": "106",
+  "name": "Serum thyroxine, T4",
+  "test_type": "Single parameter",
+  "short_name": "T4",
+  "category": "Endocrinology",
+  "fee": 150.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775707",
+  "order": "107",
+  "name": "Thyroid-Stimulating Hormone, TSH",
+  "test_type": "Single parameter",
+  "short_name": "TSH",
+  "category": "Endocrinology",
+  "fee": 400.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775708",
+  "order": "108",
+  "name": "Free Triiodothyronine l, FT3",
+  "test_type": "Single parameter",
+  "short_name": "FT3",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775709",
+  "order": "109",
+  "name": "Free Thyroxine, FT4",
+  "test_type": "Single parameter",
+  "short_name": "FT4",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775710",
+  "order": "110",
+  "name": "Alfa Fetoprotein, AFP",
+  "test_type": "Single parameter",
+  "short_name": "AFP",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775711",
+  "order": "111",
+  "name": "Prolactin",
+  "test_type": "Single parameter",
+  "short_name": "PRL",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775712",
+  "order": "112",
+  "name": "Luteinising Hormone, LH",
+  "test_type": "Single parameter",
+  "short_name": "LH",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775713",
+  "order": "113",
+  "name": "Follicle Stimulating Hormone, FSH",
+  "test_type": "Single parameter",
+  "short_name": "FSH",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775714",
+  "order": "114",
+  "name": "Folic Acid",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Endocrinology",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775540",
+  "order": "115",
+  "name": "Serum Phosphorus",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 250.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775541",
+  "order": "116",
+  "name": "Serum Creatinine",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775542",
+  "order": "117",
+  "name": "Serum Urea",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775543",
+  "order": "118",
+  "name": "Fasting Blood Sugar",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775544",
+  "order": "119",
+  "name": "Blood Sugar PP",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775545",
+  "order": "120",
+  "name": "Serum Bilirubin (Total)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775546",
+  "order": "121",
+  "name": "Serum Bilirubin (Direct)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 150.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775547",
+  "order": "122",
+  "name": "Serum Bilirubin (Indirect)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 150.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775548",
+  "order": "123",
+  "name": "Serum Uric Acid",
+  "test_type": "Single parameter",
+  "short_name": "Uric Acid",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775549",
+  "order": "124",
+  "name": "SGPT (ALT)",
+  "test_type": "Single parameter",
+  "short_name": "SGPT",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775550",
+  "order": "125",
+  "name": "SGOT (AST)",
+  "test_type": "Single parameter",
+  "short_name": "SGOT",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775551",
+  "order": "126",
+  "name": "Serum Protein",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775552",
+  "order": "127",
+  "name": "Serum Albumin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775553",
+  "order": "128",
+  "name": "Serum Alkaline Phosphatase",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 200.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775554",
+  "order": "129",
+  "name": "Total Cholesterol",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775555",
+  "order": "130",
+  "name": "Triglycerides",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775556",
+  "order": "131",
+  "name": "HDL Cholesterol",
+  "test_type": "Single parameter",
+  "short_name": "HDL Cholesterol",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775557",
+  "order": "132",
+  "name": "LDL Cholesterol",
+  "test_type": "Single parameter",
+  "short_name": "LDL Cholesterol",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775558",
+  "order": "133",
+  "name": "VLDL Cholesterol",
+  "test_type": "Single parameter",
+  "short_name": "VLDL Cholesterol",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775559",
+  "order": "134",
+  "name": "LDL / HDL",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775560",
+  "order": "135",
+  "name": "Total Cholesterol / HDL",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775561",
+  "order": "136",
+  "name": "TG / HDL",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775562",
+  "order": "137",
+  "name": "Total Lipid",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775563",
+  "order": "138",
+  "name": "Serum Sodium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 150.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775564",
+  "order": "139",
+  "name": "BUN",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775565",
+  "order": "140",
+  "name": "BUN / Creatinine Ratio",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775566",
+  "order": "141",
+  "name": "Urea / Creatinine Ratio",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775567",
+  "order": "142",
+  "name": "Serum Potassium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 150.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775568",
+  "order": "143",
+  "name": "iCalcium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775569",
+  "order": "144",
+  "name": "Serum Calcium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775570",
+  "order": "145",
+  "name": "Total Calcium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775571",
+  "order": "146",
+  "name": "Glucose Tolerance Test, GTT",
+  "test_type": "Multi parameter",
+  "short_name": "GTT",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775572",
+  "order": "147",
+  "name": "Random Blood Sugar",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 50.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775573",
+  "order": "148",
+  "name": "Serum Chloride",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775574",
+  "order": "149",
+  "name": "Serum Amylase",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 700.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775575",
+  "order": "150",
+  "name": "HbA1c (Glycosylated Hemoglobin)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 800.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775576",
+  "order": "151",
+  "name": "A/G Ratio",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775577",
+  "order": "152",
+  "name": "Globulin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775578",
+  "order": "153",
+  "name": "Lipase",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 700.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775579",
+  "order": "154",
+  "name": "Ferritin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775580",
+  "order": "155",
+  "name": "Microalbumin Creatinine Ratio, Urine Random",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 500.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775581",
+  "order": "156",
+  "name": "CPK-MB",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775582",
+  "order": "157",
+  "name": "Stool reducing substances",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775583",
+  "order": "158",
+  "name": "25 Hydroxy (OH) Vitamin D",
+  "test_type": "Single parameter",
+  "short_name": "Vitamin D3",
+  "category": "Biochemistry",
+  "fee": 1200.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775584",
+  "order": "159",
+  "name": "Vitamin B12",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 1600.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775585",
+  "order": "160",
+  "name": "Gamma Glutamyl Transferase, GGT",
+  "test_type": "Single parameter",
+  "short_name": "GGT",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775586",
+  "order": "161",
+  "name": "Serum IgE",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 1000.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775587",
+  "order": "162",
+  "name": "Serum IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775588",
+  "order": "163",
+  "name": "Serum IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775589",
+  "order": "164",
+  "name": "Serum IgA",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775590",
+  "order": "165",
+  "name": "HSV-1/2 IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775591",
+  "order": "166",
+  "name": "HSV-1/2 IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775592",
+  "order": "167",
+  "name": "HSV-2 IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775593",
+  "order": "168",
+  "name": "CMV IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775594",
+  "order": "169",
+  "name": "CMV IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775595",
+  "order": "170",
+  "name": "Rubella IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775596",
+  "order": "171",
+  "name": "Rubella IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775597",
+  "order": "172",
+  "name": "Anti TPO",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 1500.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775598",
+  "order": "173",
+  "name": "Thyroglobulin (TG)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775599",
+  "order": "174",
+  "name": "Thyroglobulin Antibody (TgAb)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775600",
+  "order": "175",
+  "name": "Toxo IgG",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775601",
+  "order": "176",
+  "name": "Toxo IgM",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775602",
+  "order": "177",
+  "name": "Estradiol",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775603",
+  "order": "178",
+  "name": "DHEA",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775604",
+  "order": "179",
+  "name": "Troponin I",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775605",
+  "order": "180",
+  "name": "Creatine Kinase",
+  "test_type": "Single parameter",
+  "short_name": "CPK-Total",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775606",
+  "order": "181",
+  "name": "CK-MB",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775607",
+  "order": "182",
+  "name": "D-Dimer",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775608",
+  "order": "183",
+  "name": "Calcitonin",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775609",
+  "order": "184",
+  "name": "Indirect Coomb's Test",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775610",
+  "order": "185",
+  "name": "Direct Coomb's Test",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775611",
+  "order": "186",
+  "name": "CA 125",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775612",
+  "order": "187",
+  "name": "CA 15-3",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775613",
+  "order": "188",
+  "name": "CA 19-9",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775614",
+  "order": "189",
+  "name": "CA 50",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775615",
+  "order": "190",
+  "name": "CA 242",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775616",
+  "order": "191",
+  "name": "CA 72-4",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775617",
+  "order": "192",
+  "name": "H-ALB",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775618",
+  "order": "193",
+  "name": "Anti cyclic-citrullinated-peptide",
+  "test_type": "Single parameter",
+  "short_name": "CCP",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775619",
+  "order": "194",
+  "name": "Arterial Blood Gas",
+  "test_type": "Multi parameter",
+  "short_name": "ABG",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775620",
+  "order": "195",
+  "name": "Iron",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 300.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775621",
+  "order": "196",
+  "name": "Total Iron Binding Capacity (TIBC)",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775622",
+  "order": "197",
+  "name": "Transferrin Saturation",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775623",
+  "order": "198",
+  "name": "Non-HDL cholesterol",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775624",
+  "order": "199",
+  "name": "UIBC",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775625",
+  "order": "200",
+  "name": "eGFR",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775626",
+  "order": "201",
+  "name": "eGFR Category",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "3775627",
+  "order": "202",
+  "name": "C3 Complement",
+  "test_type": "Single parameter",
+  "short_name": "C3",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775628",
+  "order": "203",
+  "name": "High-Sensitivity C-Reactive Protein",
+  "test_type": "Single parameter",
+  "short_name": "HsCRP",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775629",
+  "order": "204",
+  "name": "ANTI MULLERIAN HORMONE",
+  "test_type": "Single parameter",
+  "short_name": "AMH",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775630",
+  "order": "205",
+  "name": "Ammonia",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775631",
+  "order": "206",
+  "name": "Magnesium",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775632",
+  "order": "207",
+  "name": "Glucose Tolerance Test, GTT (Pregnancy)",
+  "test_type": "Multi parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": 100.0,
+  "fee_via": "name"
+ },
+ {
+  "labsmart_id": "3775633",
+  "order": "208",
+  "name": "SGOT/SGPT",
+  "test_type": "Single parameter",
+  "short_name": "",
+  "category": "Biochemistry",
+  "fee": null,
+  "fee_via": null
+ },
+ {
+  "labsmart_id": "6172046",
+  "order": "209",
+  "name": "PH Inactive",
+  "test_type": "Single parameter",
+  "short_name": "PH",
+  "category": "Biochemistry",
+  "fee": 300.0,
+  "fee_via": "short"
+ },
+ {
+  "labsmart_id": "3775715",
+  "order": "210",
+  "name": "Mantoux test",
+  "test_type": "Document",
+  "short_name": "",
+  "category": "Miscellaneous",
+  "fee": 200.0,
+  "fee_via": "name"
+ }
+]

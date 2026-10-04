@@ -434,9 +434,9 @@ const ResultVerification = () => {
   // is stored with test: null) — pull value/unit/flag from that API row.
   const calculatedResults = buildCalculatedResults(billEntries, activeRow?.results);
   const billRows = billEntries.map((testEntry) => {
-    const calculated = calculatedResults[testEntry.testId] ?? null;
+    const calculated = calculatedResults[testEntry.resultKey || testEntry.testId] ?? null;
     return {
-      key: `test-${testEntry.testId ?? testEntry.testName}`,
+      key: `test-${testEntry.resultKey || testEntry.testId || testEntry.testName}`,
       name: testEntry.testName || '—',
       sub: [
         testEntry.testCode,
@@ -659,7 +659,7 @@ const ResultVerification = () => {
                       <dt>Age</dt>
                       <dd>
                         {entry.patient?.age != null && entry.patient.age !== ''
-                          ? entry.patient.age
+                          ? `${entry.patient.age} ${entry.patient.ageUnit || 'years'}`
                           : '—'}
                       </dd>
                     </div>

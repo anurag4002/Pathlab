@@ -5,6 +5,7 @@ import { GENDER_OPTIONS } from '../../../constants/patientConstants';
 const EMPTY_FORM = {
   name: '',
   age: '',
+  ageUnit: 'years',
   gender: '',
   phone: '',
   address: '',
@@ -76,14 +77,19 @@ const PatientFormModal = ({
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
           <Input
-            label="Age (Years)"
+            label="Age"
             name="age"
             type="number"
+            step="any"
+            min="0"
             value={formData.age}
             onChange={handleChange('age')}
             error={errors.age}
             required
           />
+          <Select label="Age unit" name="ageUnit" value={formData.ageUnit || 'years'}
+            onChange={handleChange('ageUnit')} options={[{ value: 'years', label: 'Years' }, { value: 'months', label: 'Months' }, { value: 'days', label: 'Days' }]}
+            placeholder="" error={errors.ageUnit} />
           <Select
             label="Gender"
             name="gender"

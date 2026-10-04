@@ -47,6 +47,13 @@ test('long interpretation paragraphs paginate without losing text', async () => 
   const text = textOf(pdf);
   for (let i = 1; i <= 250; i++) assert.ok(text.includes(`Note${i}:`), `missing interpretation line ${i}`);
 });
+
+test('saved patient-specific reference range takes precedence over generic catalog bounds', async () => {
+  const pdf = await reportPdf({ ...context, testMap: { Creatinine: { normalLow: 0.72, normalHigh: 1.43 } },
+    report: { ...context.report, results: [{ testName: 'Creatinine', value: '1.0', referenceRange: '0.55 - 1.13' }] } });
+  assert.ok(textOf(pdf).includes('0.55 - 1.13'));
+  assert.ok(!textOf(pdf).includes('0.72 - 1.43'));
+});
 test('disabled barcode, QR, footer and page numbers are honored on bills', async () => {
   const qrPng = await require('qrcode').toBuffer('sample');
   const pdf = await billPdf({ ...context, profile: { ...context.profile, showBarcode: false, showQR: false, showFooterByDefault: false, showPageNumber: false } }, { qrPng });
@@ -67,4 +74,14 @@ test('reference assets survive missing temporary uploads after a deployment', as
   assert.equal(images.length, 4, 'bundled header, watermark, footer and corner must render');
   assert.match(textOf(pdf), /Test Patient/);
   assert.ok(!textOf(pdf).includes('Test Lab'));
+});
+
+test('older reports without a range snapshot print only the matching patient range', async () => {
+  const testDefinition = { referenceRange: 'Any (age 0d–3d): UP TO 10\nAny (age 12mo–100y): 0.2 - 1.2', normalLow: 0.2, normalHigh: 1.2 };
+  const report = { ...context.report, results: [{ test: 'bilirubin', testName: 'Bilirubin', value: 8 }] };
+  const pdf = await reportPdf({ ...context, patient: { ...context.patient, age: 2, ageUnit: 'days', gender: 'Female' }, report, testMap: { bilirubin: testDefinition } });
+  const text = textOf(pdf);
+  assert.ok(text.includes('UP TO 10'));
+  assert.ok(!text.includes('0.2 - 1.2'));
+  assert.ok(!text.includes('age 12mo'));
 });

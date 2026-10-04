@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, FileEdit, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
@@ -20,15 +20,16 @@ import {
   createResultReport,
   saveReportResultsDraft,
   submitReportResults,
-  getReports,
   uploadReport,
   attachReportFile
 } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
 import formatDate from '../../utils/formatDate';
 import { buildCalculatedResults } from '../../utils/reportResults';
+import { compileReportFormulas, calculateLocalResults } from '../../utils/localReportCalculations';
 import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
+import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 import '../../styles/ResultEntry.css';
 
 const isOutsourceBill = (bill) => (
@@ -92,7 +93,7 @@ const dedupeTestEntries = (list) => {
   const seen = new Set();
   const out = [];
   (list || []).forEach((testEntry) => {
-    const key = testEntry.testId ?? `name:${testEntry.testName}`;
+    const key = testEntry.resultKey || testEntry.testId || `name:${testEntry.testName}`;
     if (seen.has(key)) return;
     seen.add(key);
     out.push(testEntry);
@@ -102,7 +103,7 @@ const dedupeTestEntries = (list) => {
 
 /* Payload mirrors the backend row builder: non-derived tests only,
    trimmed non-empty values, unit carried from the test master. */
-const entryKey = (testEntry) => testEntry?.testId ?? `name:${testEntry?.testName || ''}`;
+const entryKey = (testEntry) => testEntry?.resultKey || testEntry?.testId || `name:${testEntry?.testName || ''}`;
 
 const buildResultsPayload = (testEntries, values) =>
   (testEntries || [])
@@ -111,12 +112,15 @@ const buildResultsPayload = (testEntries, values) =>
       const key = entryKey(testEntry);
       return {
         ...(testEntry.testId ? { test: testEntry.testId } : {}),
+        ...(testEntry.parameterCode ? { parameterCode: testEntry.parameterCode } : {}),
         testName: testEntry.testName,
         value: String(values[key] ?? '').trim(),
-        unit: testEntry.unit || testEntry.existingUnit || ''
+        unit: testEntry.testId ? testEntry.unit || '' : testEntry.unit || testEntry.existingUnit || ''
       };
     })
     .filter((row) => row.value !== '');
+
+const isReportFinal = (status) => ['Reported', 'Signed', 'Verified', 'Completed'].includes(status);
 
 const ResultEntry = () => {
   // Server state — pending case list
@@ -145,9 +149,7 @@ const ResultEntry = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [entryError, setEntryError] = useState(null);
   const [referrerName, setReferrerName] = useState('');
-  // Server-calculated (formula) results for billed formula tests, keyed by
-  // testId — API values only, never computed in the frontend.
-  const [calculated, setCalculated] = useState({});
+  const [customResultKeys, setCustomResultKeys] = useState({});
 
   // Local form state — draft copy; the server stays the source of truth
   const [values, setValues] = useState({});
@@ -160,7 +162,6 @@ const ResultEntry = () => {
 
   const inFlightRef = useRef(false); // synchronous re-entry guard
   const doctorReqRef = useRef(0); // stale referring-doctor response guard
-  const calcReqRef = useRef(0); // stale calculated-results response guard
 
   // Load pending cases (server is the source of truth).
   useEffect(() => {
@@ -221,28 +222,15 @@ const ResultEntry = () => {
       });
   };
 
-  // Optional enrichment (mirrors resolveReferrer): the /entry payload omits
-  // `report.results`, so billed formula tests read their server-calculated
-  // value from the existing report document endpoint. Never throws, and is
-  // only queried when the case actually has formula tests — no extra request
-  // for normal cases.
-  const loadCalculatedResults = async (reportId, data) => {
-    const testEntries = dedupeTestEntries(data?.testEntries);
-    if (!testEntries.some((testEntry) => testEntry.isDerived)) return;
-    const billId = data?.bill?._id;
-    if (!billId) return;
-    const reqId = ++calcReqRef.current;
-    try {
-      const res = await getReports({ billId });
-      if (calcReqRef.current !== reqId) return;
-      const doc = (res?.data?.reports ?? []).find((r) => r._id === reportId);
-      setCalculated(buildCalculatedResults(testEntries, doc?.results));
-    } catch {
-      // Optional display detail only — rows keep the "calculated on save"
-      // placeholder until the next save/submit response provides the value.
-      if (calcReqRef.current === reqId) setCalculated({});
-    }
-  };
+  const compiledFormulas = useMemo(() => compileReportFormulas(entry?.testEntries), [entry?.testEntries]);
+  const localResults = useMemo(() => calculateLocalResults(
+    entry?.testEntries, compiledFormulas, values, entry?.patient
+  ), [entry?.testEntries, compiledFormulas, values, entry?.patient]);
+  // Submitted reports keep the saved results; editable reports calculate locally.
+  const calculated = isReportFinal(entry?.report?.status)
+    ? buildCalculatedResults(entry?.testEntries, entry?.results)
+    : localResults.calculated;
+  const calculationErrors = localResults.errors;
 
   const applyEntry = (data) => {
     const testEntries = dedupeTestEntries(data.testEntries);
@@ -254,6 +242,7 @@ const ResultEntry = () => {
     });
     setEntry({ ...data, testEntries });
     setValues(initial);
+    setCustomResultKeys({});
     setDirty(false);
     resolveReferrer(data.patient, data.bill);
   };
@@ -359,8 +348,6 @@ const ResultEntry = () => {
     setValues({});
     setDirty(false);
     setReferrerName('');
-    setCalculated({});
-    calcReqRef.current += 1; // drop any in-flight calculated-results lookup
     setActiveRow(row);
     try {
       let reportId = row?.report?._id;
@@ -389,7 +376,6 @@ const ResultEntry = () => {
       }
       const res = await getReportForEntry(reportId);
       applyEntry(res.data);
-      await loadCalculatedResults(reportId, res.data);
     } catch (err) {
       setEntryError(getApiErrorMessage(err, 'Failed to open this case.'));
     } finally {
@@ -431,6 +417,7 @@ const ResultEntry = () => {
         prev
           ? {
               ...prev,
+              results: updated?.results ?? prev.results,
               report: {
                 ...prev.report,
                 status: updated?.status ?? prev.report.status,
@@ -441,13 +428,6 @@ const ResultEntry = () => {
             }
           : prev
       );
-      // The mutation response is authoritative for formula results too —
-      // refresh the displayed calculated values without another request.
-      if (updated?.results) {
-        setCalculated(
-          buildCalculatedResults(entry.testEntries, updated.results)
-        );
-      }
       setFeedback({
         type: 'success',
         text:
@@ -479,12 +459,10 @@ const ResultEntry = () => {
   const performBack = () => {
     setDiscardOpen(false);
     doctorReqRef.current += 1; // drop any in-flight referrer lookup
-    calcReqRef.current += 1; // drop any in-flight calculated-results lookup
     setView('list');
     setEntry(null);
     setActiveRow(null);
     setValues({});
-    setCalculated({});
     setDirty(false);
     setFeedback(null);
     setEntryError(null);
@@ -518,8 +496,6 @@ const ResultEntry = () => {
 
   // Terminal report states — results are already in, so the row offers no
   // data-entry action (prevents "Enter/Submit persisting after submission").
-  const isReportFinal = (status) =>
-    ['Reported', 'Signed', 'Verified', 'Completed'].includes(status);
 
   const itemsLabelForRow = (row) => {
     let items = row?.bill?.items;
@@ -626,45 +602,60 @@ const ResultEntry = () => {
   const renderTestRow = (testEntry, index) => {
     const isDerived = Boolean(testEntry.isDerived);
     const key = entryKey(testEntry);
-    // Billed formula test: show the server-calculated value (read-only).
-    const calcRow = isDerived ? calculated[testEntry.testId] || calculated[key] : null;
-    const subLine = [testEntry.testCode, testEntry.packageName, testEntry.panelName]
+    // Show the locally calculated value immediately (read-only).
+    const calcRow = isDerived ? calculated[key] : null;
+    const displayValue = isDerived ? calcRow?.value ?? '' : values[key] ?? '';
+    const subLine = [testEntry.testCode, testEntry.packageName, testEntry.panelName, testEntry.formulaInput ? 'Formula input' : '']
       .filter(Boolean)
       .join(' · ');
     return (
       <tr key={key || index}>
         <td>
-          <div className="re-test-name">{testEntry.testName || 'Test'}</div>
+          <div className="re-test-name">{testEntry.testName || 'Test'}
+            {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
+          </div>
           {subLine ? <div className="re-sub">{subLine}</div> : null}
-        </td>
-        <td className="re-range">{formatReferenceRange(testEntry)}</td>
-        <td className="re-unit">
-          {testEntry.unit || testEntry.existingUnit || calcRow?.unit || '—'}
+          {testEntry.interpretation && <details className="re-interpretation"><summary>Interpretation</summary><p>{testEntry.interpretation}</p></details>}
         </td>
         <td className="re-result-cell">
-          <Input
+          <div className="re-flag-slot"><RangeFlagBadge value={String(displayValue).replace(/,/g, '')} test={testEntry} /></div>
+          {!isDerived && testEntry.resultOptions?.length > 0 && <Select
+            name={`result-option-${key}`} aria-label={`Result option for ${testEntry.testName || 'test'}`}
+            value={customResultKeys[key] || (displayValue && !testEntry.resultOptions.includes(displayValue)) ? '__other__' : displayValue}
+            options={[...testEntry.resultOptions.map((option) => ({ value: option, label: option })), { value: '__other__', label: 'Other / enter value' }]}
+            placeholder="Select result (optional)"
+            disabled={busy !== null || isReportFinal(entry?.report?.status)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setCustomResultKeys((prev) => ({ ...prev, [key]: next === '__other__' }));
+              handleValueChange(key, next === '__other__' ? '' : next);
+            }} />}
+          {!isDerived && testEntry.sourceType === 'Document' ? <textarea
+            id={`result-${key}`} name={`result-${key}`} className="form-control re-document-result" rows={4}
+            aria-label={`Result value for ${testEntry.testName || 'test'}`} placeholder="Enter report findings"
+            value={displayValue} onChange={event => handleValueChange(key, event.target.value)}
+            disabled={busy !== null || isReportFinal(entry?.report?.status)} /> :
+          (isDerived || !testEntry.resultOptions?.length || customResultKeys[key] || (displayValue && !testEntry.resultOptions.includes(displayValue))) && <Input
             id={`result-${key}`}
             name={`result-${key}`}
             type="text"
             aria-label={`Result value for ${testEntry.testName || 'test'}`}
-            placeholder="Enter value"
-            value={
-              isDerived
-                ? calcRow?.value || values[key] || ''
-                : values[key] ?? ''
-            }
+            placeholder={isDerived ? 'Calculated value' : 'Enter value'}
+            value={displayValue}
             onChange={(event) => handleValueChange(key, event.target.value)}
-            disabled={isDerived || busy !== null || isReportFinal(entry?.report?.status)}
+            disabled={isDerived || testEntry.legacyScalar || busy !== null || isReportFinal(entry?.report?.status)}
             helperText={
               isDerived
                 ? calcRow
                   ? 'Calculated automatically from entered results.'
-                  : 'Calculated automatically on save.'
-                : undefined
+                  : calculationErrors[key] || 'Enter the required input results to calculate.'
+                : testEntry.legacyScalar ? 'Previous entry retained. Use the separate parameter fields for new results.' : undefined
             }
             autoComplete="off"
-          />
+          />}
         </td>
+        <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || '—'}</td>
+        <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
     );
   };
@@ -864,7 +855,7 @@ const ResultEntry = () => {
                       <dt>Age</dt>
                       <dd>
                         {entry.patient?.age != null && entry.patient.age !== ''
-                          ? entry.patient.age
+                          ? `${entry.patient.age} ${entry.patient.ageUnit || 'years'}`
                           : '—'}
                       </dd>
                     </div>
@@ -944,13 +935,14 @@ const ResultEntry = () => {
                       : `${testEntries.length} tests`}
                   </span>
                 </div>
-                <DataTable
-                  headers={['Test', 'Reference Range', 'Unit', 'Result']}
-                  data={testEntries}
-                  emptyTitle="No tests to enter"
-                  emptyMessage="This case has no lab tests to report."
-                  renderRow={renderTestRow}
-                />
+                {testEntries.length ? Object.entries(testEntries.reduce((groups, test) => {
+                  const group = test.panelName || test.packageName || test.parentName || test.categoryName || 'Tests';
+                  (groups[group] ||= []).push(test);
+                  return groups;
+                }, Object.create(null))).map(([name, tests]) => <div key={name} className="re-test-group">
+                  <h3>{name}</h3>
+                  <DataTable headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
+                </div>) : <p className="re-sub">This case has no lab tests to report.</p>}
                 {isReportFinal(entry?.report?.status) ? (
                   <p className="re-sub" role="status">Results already submitted — no further action. Go back to pick another case.</p>
                 ) : (

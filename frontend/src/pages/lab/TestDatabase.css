@@ -76,3 +76,10 @@
     grid-template-columns: 1fr;
   }
 }
+.formula-editor { border: 1px solid var(--color-border); border-radius: 8px; padding: 12px; }
+.formula-editor legend { font-size: 0.8rem; font-weight: 700; padding: 0 6px; }
+.formula-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; margin-bottom: 12px; cursor: pointer; }
+.formula-test-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 150px; overflow-y: auto; }
+.formula-test-button { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 6px; padding: 6px 8px; font-size: 0.8rem; cursor: pointer; }
+.formula-test-button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.age-range-row { margin: 12px 0; padding: 12px; border: 1px solid var(--color-border); border-radius: 6px; }

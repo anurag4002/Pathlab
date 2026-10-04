@@ -1,0 +1,3307 @@
+{
+ "5714541": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "21",
+    "gender": "any",
+    "lower": "17",
+    "upper": "23",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "21",
+    "max_age_days": "3650",
+    "gender": "any",
+    "lower": "11.2",
+    "upper": "16.5",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "3650",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "12",
+    "upper": "15",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "3650",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "13",
+    "upper": "17",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714542": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "14",
+    "gender": "any",
+    "lower": "9000",
+    "upper": "30000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "15",
+    "max_age_days": "60",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "21000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "61",
+    "max_age_days": "2190",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "19000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "2190",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "4800",
+    "upper": "10800",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714543": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "40",
+    "upper": "80",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714544": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "20",
+    "upper": "40",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714545": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1",
+    "upper": "6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714546": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2",
+    "upper": "10",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714547": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714548": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2",
+    "upper": "7",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714549": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1",
+    "upper": "3",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714550": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.02",
+    "upper": "0.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714551": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.1",
+    "upper": "1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714552": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.02",
+    "upper": "0.1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714553": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "10",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714554": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "0",
+    "upper": "20",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0",
+    "upper": "15",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714555": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.5",
+    "upper": "4.1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714556": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "440",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714557": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714558": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714559": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2",
+    "upper": "7",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714560": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "4",
+    "upper": "9",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714562": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714563": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714564": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714565": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714566": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "4.5",
+    "upper": "5.5",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "3.9",
+    "upper": "4.8",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714567": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "40",
+    "upper": "50",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "36",
+    "upper": "46",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714568": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "83",
+    "upper": "101",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714569": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "27",
+    "upper": "32",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714570": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "31.5",
+    "upper": "34.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714571": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "6.5",
+    "upper": "12",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714572": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "365",
+    "gender": "any",
+    "lower": "2",
+    "upper": "6",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.5",
+    "upper": "2.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714573": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "5.5",
+    "upper": "20.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714574": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "10",
+    "upper": "16.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714575": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714576": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714577": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1",
+    "upper": "1.3",
+    "in_words": "1.00-1.30"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714578": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "22",
+    "upper": "39",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714579": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714580": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "1",
+    "max_age_days": "7",
+    "gender": "any",
+    "lower": "9400",
+    "upper": "34000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "8",
+    "max_age_days": "14",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "21000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "15",
+    "max_age_days": "30",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "20000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "60",
+    "max_age_days": "153",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "15000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "184",
+    "max_age_days": "365",
+    "gender": "any",
+    "lower": "6000",
+    "upper": "11000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "730",
+    "gender": "any",
+    "lower": "5000",
+    "upper": "12000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "1095",
+    "max_age_days": "1825",
+    "gender": "any",
+    "lower": "4000",
+    "upper": "12000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "2190",
+    "max_age_days": "4015",
+    "gender": "any",
+    "lower": "3400",
+    "upper": "10000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "5475",
+    "gender": "any",
+    "lower": "3500",
+    "upper": "9000",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "5840",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "3500",
+    "upper": "10500",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714581": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "19.7",
+    "upper": "42.4",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714582": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "11.6",
+    "upper": "14",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714583": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "9.6",
+    "upper": "15.2",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714584": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "39",
+    "upper": "46",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714585": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714586": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714587": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714588": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714589": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714590": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "1",
+    "max_age_days": "4380",
+    "gender": "any",
+    "lower": "4",
+    "upper": "7",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2.5",
+    "upper": "4.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714591": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0.72",
+    "upper": "1.43",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "0.55",
+    "upper": "1.13",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714592": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "1",
+    "max_age_days": "1460",
+    "gender": "any",
+    "lower": "11",
+    "upper": "36",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "1460",
+    "max_age_days": "5110",
+    "gender": "any",
+    "lower": "15",
+    "upper": "36",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "5110",
+    "max_age_days": "7300",
+    "gender": "any",
+    "lower": "18",
+    "upper": "45",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "7300",
+    "max_age_days": "18250",
+    "gender": "F",
+    "lower": "13",
+    "upper": "40",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "7300",
+    "max_age_days": "18250",
+    "gender": "M",
+    "lower": "19",
+    "upper": "45",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "18250",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "18",
+    "upper": "55",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "18250",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "21",
+    "upper": "43",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714593": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "1",
+    "gender": "any",
+    "lower": "40",
+    "upper": "60",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "1",
+    "max_age_days": "364",
+    "gender": "any",
+    "lower": "50",
+    "upper": "80",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "4380",
+    "gender": "any",
+    "lower": "60",
+    "upper": "100",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4745",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "70",
+    "upper": "100",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714594": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "7300",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "70",
+    "upper": "140",
+    "in_words": "< 180 mg/dl"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714595": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "3",
+    "gender": "any",
+    "lower": "1.5",
+    "upper": "12",
+    "in_words": "UP TO 10"
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.2",
+    "upper": "1.2",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714596": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "0.3",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714597": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.2",
+    "upper": "1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714598": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "3.5",
+    "upper": "7.2",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "2.6",
+    "upper": "6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714599": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "7",
+    "upper": "32",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "13",
+    "upper": "40",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714600": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "0",
+    "upper": "31",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0",
+    "upper": "37",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714601": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "210",
+    "max_age_days": "365",
+    "gender": "any",
+    "lower": "5.1",
+    "upper": "7.3",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "730",
+    "gender": "any",
+    "lower": "5.6",
+    "upper": "7.5",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "730",
+    "max_age_days": "4380",
+    "gender": "any",
+    "lower": "6",
+    "upper": "8",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "6.4",
+    "upper": "8.3",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714602": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "4",
+    "gender": "any",
+    "lower": "2.8",
+    "upper": "4.4",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4",
+    "max_age_days": "5110",
+    "gender": "any",
+    "lower": "3.8",
+    "upper": "5.4",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "5110",
+    "max_age_days": "6935",
+    "gender": "any",
+    "lower": "3.2",
+    "upper": "4.5",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "6935",
+    "max_age_days": "21900",
+    "gender": "any",
+    "lower": "3.5",
+    "upper": "5.2",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "21900",
+    "max_age_days": "32850",
+    "gender": "any",
+    "lower": "3.5",
+    "upper": "4.6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714603": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "365",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "44",
+    "upper": "147",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714604": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "125",
+    "upper": "200",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714605": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "25",
+    "upper": "200",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714606": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "35",
+    "upper": "80",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714607": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "85",
+    "upper": "130",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714608": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "5",
+    "upper": "40",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714609": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.5",
+    "upper": "3.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714610": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "3.5",
+    "upper": "5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714611": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714612": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "600",
+    "in_words": "< 600 mg%"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714613": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "136",
+    "upper": "146",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714614": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "7.9",
+    "upper": "20",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714615": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714616": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714617": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "3.5",
+    "upper": "5.1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714618": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.13",
+    "upper": "1.33",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714619": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "8.8",
+    "upper": "10.6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714620": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "9",
+    "upper": "10.5",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714621": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "100",
+    "in_words": "< 100"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714622": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "190",
+    "in_words": "< 190"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714623": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "165",
+    "in_words": "< 165"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714624": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "145",
+    "in_words": "< 145"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714625": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "70",
+    "upper": "140",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714626": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "30",
+    "gender": "any",
+    "lower": "98",
+    "upper": "113",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "98",
+    "upper": "107",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714627": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "120",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714628": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "4",
+    "upper": "6.5",
+    "in_words": "<5.7 :Non diabetic\n5.7 - 6.4 :Pre diabetic\n>= 6.5 :Diabetic\n7.0 : ADA Target\n> 8.0 : Action Suggested %"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714629": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "70",
+    "upper": "120",
+    "in_words": "< 116 mg/dl"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714630": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.1",
+    "upper": "2.1",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714631": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.8",
+    "upper": "3.6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714632": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "365",
+    "gender": "any",
+    "lower": "0",
+    "upper": "8",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "3285",
+    "gender": "any",
+    "lower": "5",
+    "upper": "31",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "3650",
+    "max_age_days": "6570",
+    "gender": "any",
+    "lower": "7",
+    "upper": "39",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "6570",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "67",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714633": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "30",
+    "gender": "any",
+    "lower": "25",
+    "upper": "200",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "30",
+    "max_age_days": "60",
+    "gender": "any",
+    "lower": "200",
+    "upper": "600",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "180",
+    "max_age_days": "5475",
+    "gender": "any",
+    "lower": "7",
+    "upper": "140",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "5475",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "10",
+    "upper": "291",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "5475",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "22",
+    "upper": "332",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714634": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "25",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714635": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "28",
+    "upper": "217",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714636": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "30",
+    "in_words": "<30"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714637": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "5",
+    "in_words": "< 5 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714638": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714639": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "30",
+    "upper": "100",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714640": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "185",
+    "upper": "911",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714641": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "9",
+    "upper": "52",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714642": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1",
+    "upper": "190",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714643": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "5",
+    "upper": "17",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714644": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "400",
+    "upper": "2500",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714645": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "200",
+    "upper": "3000",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714646": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2.0 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714647": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "4",
+    "in_words": "Neg. < 2 AU/mL\nGrey Zone 2 - 4 AU/mL\nPos. >= 4 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714648": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2.0 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714649": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714650": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "4.2",
+    "in_words": "Neg. < 2.0 AU/mL\nGrey Zone 2 - 4.2 AU/mL\nPos. > 4.2 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714651": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2 IU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714652": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "3",
+    "in_words": "Neg. < 2 AU/mL\nGrey Zone 2-3 AU/mL\nPos. > 3 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714653": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "30",
+    "in_words": "< 30 IU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714654": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "55",
+    "in_words": "< 55 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714655": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "95",
+    "in_words": "< 95 IU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714656": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2 IU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714657": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2.6",
+    "in_words": "Neg. < 2 AU/mL\nGrey Zone 2 - 2.6 AU/mL\nPos. > 2.6 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714658": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714659": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714660": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "0.1",
+    "in_words": "< 0.1 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714661": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714662": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "5",
+    "in_words": "< 5.0 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714663": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "0.5",
+    "in_words": "< 0.5 μg FEU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714664": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "18",
+    "in_words": "< 18 pg/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714665": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714666": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714667": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "35",
+    "in_words": "< 35 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714668": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "25",
+    "in_words": "< 25 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714669": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "37",
+    "in_words": "< 37 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714670": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "25",
+    "in_words": "< 25 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714671": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "20",
+    "in_words": "< 20 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714672": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "6",
+    "in_words": "< 6 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714673": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "10",
+    "in_words": "< 10 μg/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714674": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "5",
+    "in_words": "< 5 U/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714675": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714676": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714677": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714678": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714679": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714680": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714681": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714682": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714683": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714684": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714685": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "28",
+    "gender": "any",
+    "lower": "100",
+    "upper": "250",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "28",
+    "max_age_days": "365",
+    "gender": "any",
+    "lower": "40",
+    "upper": "100",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "365",
+    "max_age_days": "4380",
+    "gender": "any",
+    "lower": "50",
+    "upper": "120",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "50",
+    "upper": "170",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "65",
+    "upper": "175",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714686": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "240",
+    "upper": "450",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714687": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "20",
+    "upper": "55",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714688": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714689": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "155",
+    "upper": "355",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714690": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "7300",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "90",
+    "upper": "300",
+    "in_words": "> 90"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714691": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714692": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714693": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714694": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714695": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "11",
+    "upper": "32",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714696": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.8",
+    "upper": "2.6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714697": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "65",
+    "upper": "92",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714698": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "100",
+    "upper": "180",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714699": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "65",
+    "upper": "153",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714700": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "70",
+    "upper": "125",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714701": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714704": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714705": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714706": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714707": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714708": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714709": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714710": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714711": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714712": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714713": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714714": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714715": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714716": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714717": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714718": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "8",
+    "in_words": "< 8.00"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714719": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "8",
+    "in_words": "< 8.00"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714720": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714721": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "4380",
+    "gender": "any",
+    "lower": "0",
+    "upper": "150",
+    "in_words": "< 150"
+   },
+   {
+    "min_age_days": "4380",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "200",
+    "in_words": "< 200"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714722": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "20",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714723": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714724": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "6",
+    "in_words": "< 6 mg/L"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714725": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714726": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714727": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714728": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714729": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714730": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714731": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0",
+    "upper": "1.5",
+    "in_words": "< 1.5 ng/mL"
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "0",
+    "upper": "0.1",
+    "in_words": "< 0.1 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714732": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "6",
+    "in_words": "< 6.0 μg/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714733": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0",
+    "upper": "4",
+    "in_words": "< 4 ng/mL"
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "0",
+    "upper": "0.5",
+    "in_words": "< 0.5 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714734": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "100",
+    "in_words": "< 100 index/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714735": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "10",
+    "in_words": "< 10 mIU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714736": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "100",
+    "in_words": "< 100 index/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714737": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "15",
+    "in_words": "< 15 index/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714738": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "20",
+    "in_words": "< 20 mIU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714739": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "2",
+    "in_words": "< 2 AU/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714740": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714741": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714742": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714743": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714744": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714745": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714746": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714747": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714748": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714749": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714750": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714751": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714752": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714753": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714754": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714755": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714756": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714757": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714758": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714759": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714760": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714761": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714762": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714763": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714764": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714765": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714766": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714767": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714768": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2",
+    "upper": "3",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714769": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714770": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714771": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714772": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714773": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714774": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "60",
+    "upper": "200",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714775": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714776": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714777": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714778": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714779": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714780": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714781": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714782": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714783": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714784": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714785": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714786": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714787": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714788": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714789": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714790": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714791": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714792": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714793": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714794": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714795": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714796": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714797": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714798": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714799": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Pale Yellow"
+ },
+ "5714800": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Clear"
+ },
+ "5714801": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "1.005",
+    "upper": "1.03",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714802": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "5",
+    "upper": "7",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714803": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714804": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714805": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714806": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714807": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714808": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714809": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714810": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714811": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714812": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714813": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714814": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714815": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714816": {
+  "type": "text",
+  "rows": [],
+  "normal_value": "Absent"
+ },
+ "5714817": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714818": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714819": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714820": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714821": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714822": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714823": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714824": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714825": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714826": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714827": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714828": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714829": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714830": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714831": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714834": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714835": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714836": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714837": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714838": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714839": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714840": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714842": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.87",
+    "upper": "1.78",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714843": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "6.09",
+    "upper": "12.23",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714844": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0.34",
+    "upper": "5.6",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714845": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "2",
+    "upper": "4.2",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714846": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "8.9",
+    "upper": "17.2",
+    "in_words": ""
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714847": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "any",
+    "lower": "0",
+    "upper": "10",
+    "in_words": "< 10"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714848": {
+  "type": "numeric_range",
+  "rows": [
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "F",
+    "lower": "34",
+    "upper": "386",
+    "in_words": ""
+   },
+   {
+    "min_age_days": "0",
+    "max_age_days": "36500",
+    "gender": "M",
+    "lower": "0",
+    "upper": "15",
+    "in_words": "< 15 ng/mL"
+   }
+  ],
+  "normal_value": ""
+ },
+ "5714849": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714850": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "5714851": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "7344361": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ },
+ "9355994": {
+  "type": "numeric_range",
+  "rows": [],
+  "normal_value": ""
+ }
+}

@@ -5,14 +5,15 @@ import React from 'react';
  * Pure client-side; returns null when no ranges/value are present (never blocks entry).
  */
 export const getRangeFlag = (value, test = {}) => {
-  const num = Number(value);
-  if (value === undefined || value === null || value === '' || isNaN(num)) return null;
+  const raw = String(value ?? '').replace(/,/g, '').trim();
+  const num = Number(raw);
+  if (!raw || !Number.isFinite(num) || test.rangeMissing) return null;
   const { normalLow, normalHigh, criticalLow, criticalHigh } = test;
   if (criticalLow !== undefined && criticalLow !== null && criticalLow !== '' && num <= Number(criticalLow)) return 'CRITICAL_LOW';
   if (criticalHigh !== undefined && criticalHigh !== null && criticalHigh !== '' && num >= Number(criticalHigh)) return 'CRITICAL_HIGH';
-  if (normalLow !== undefined && normalLow !== null && normalLow !== '' && num < Number(normalLow)) return 'LOW';
-  if (normalHigh !== undefined && normalHigh !== null && normalHigh !== '' && num > Number(normalHigh)) return 'HIGH';
-  if (normalLow !== null && normalLow !== undefined && normalLow !== '' && normalHigh !== null && normalHigh !== undefined && normalHigh !== '') return 'NORMAL';
+  if (normalLow !== undefined && normalLow !== null && normalLow !== '' && (num < Number(normalLow) || (test.lowInclusive === false && num === Number(normalLow)))) return 'LOW';
+  if (normalHigh !== undefined && normalHigh !== null && normalHigh !== '' && (num > Number(normalHigh) || (test.highInclusive === false && num === Number(normalHigh)))) return 'HIGH';
+  if ((normalLow !== null && normalLow !== undefined && normalLow !== '') || (normalHigh !== null && normalHigh !== undefined && normalHigh !== '')) return 'NORMAL';
   return null;
 };
 

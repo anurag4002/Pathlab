@@ -70,7 +70,9 @@ const ReportSchema = new mongoose.Schema({
     unit: { type: String, trim: true },
     // L = low, H = high, C = critical, N = normal
     flag: { type: String, enum: ['N', 'L', 'H', 'C', ''], default: '' },
-    derived: { type: Boolean, default: false }
+    derived: { type: Boolean, default: false },
+    parameterCode: { type: String, default: '' },
+    referenceRange: { type: String, default: '' }
   }],
   // Turnaround-time tracking (4 dates).
   tat: {

@@ -8,6 +8,8 @@ import { Plus, Edit2, Trash2, FlaskConical, IndianRupee, Ruler, Sigma, Stethosco
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import RangeEditor, { validateRanges, normalizeRangePayload } from '../../components/lab/RangeEditor';
 import DerivedTestEditor from '../../components/lab/DerivedTestEditor';
+import AgeReferenceEditor from '../../components/lab/AgeReferenceEditor';
+import { normalizeAgeRanges, formatAgeRanges } from '../../utils/ageReferenceRanges';
 import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 import './TestDatabase.css';
 
@@ -20,7 +22,7 @@ const TestDatabase = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const EMPTY_FORM = { name: '', code: '', category: '', sampleType: '', unit: '', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active', normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', ageMin: '', ageMax: '', sexApplicable: 'Any', isDerived: false, formula: '' };
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useState({ ...EMPTY_FORM, referenceRanges: [], parameters: [] });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -50,13 +52,11 @@ const TestDatabase = () => {
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  // Phase 2 — child-test checklist selection (UI helper for the formula)
-  const [derivedChildIds, setDerivedChildIds] = useState([]);
 
   const fetchTests = async () => {
     setLoading(true);
     try {
-      const res = await getTests({ search });
+      const res = await getTests();
       if (res.success) {
         setTests(res.data);
       }
@@ -86,15 +86,13 @@ const TestDatabase = () => {
 
   const handleOpenCreate = () => {
     setEditingTest(null);
-    setDerivedChildIds([]);
-    setFormData({ ...EMPTY_FORM, sampleType: 'Blood (EDTA)', unit: 'g/dL' });
+    setFormData({ ...EMPTY_FORM, referenceRanges: [], parameters: [], sampleType: 'Blood (EDTA)', unit: 'g/dL' });
     setErrors({});
     setFormOpen(true);
   };
 
   const handleOpenEdit = (test) => {
     setEditingTest(test);
-    setDerivedChildIds([]);
     setFormData({
       name: test.name,
       code: test.code,
@@ -116,7 +114,10 @@ const TestDatabase = () => {
       ageMax: test.ageMax ?? '',
       sexApplicable: test.sexApplicable || 'Any',
       isDerived: !!test.isDerived,
-      formula: test.formula || ''
+      formula: test.formula || '',
+      referenceRanges: test.referenceRanges || [],
+      parameters: test.parameters || [],
+      resultOptions: test.resultOptions || []
     });
     setErrors({});
     setFormOpen(true);
@@ -150,8 +151,15 @@ const TestDatabase = () => {
         ...formData,
         price: Number(formData.price),
         ...normalizeRangePayload(formData),
+        referenceRanges: normalizeAgeRanges(formData.referenceRanges),
+        referenceRange: formData.referenceRanges?.length ? formatAgeRanges(formData.referenceRanges) : formData.referenceRange,
         isDerived: !!formData.isDerived,
-        formula: formData.isDerived ? String(formData.formula || '').trim() : ''
+        formula: formData.isDerived ? String(formData.formula || '').trim() : '',
+        resultOptions: (formData.resultOptions || []).map((choice) => choice.trim()).filter(Boolean),
+        parameters: (formData.parameters || []).map((parameter) => ({ ...parameter,
+          referenceRanges: normalizeAgeRanges(parameter.referenceRanges),
+          referenceRange: parameter.referenceRanges?.length ? formatAgeRanges(parameter.referenceRanges) : parameter.referenceRange,
+          resultOptions: (parameter.resultOptions || []).map((choice) => choice.trim()).filter(Boolean) }))
       };
 
       if (editingTest) {
@@ -165,7 +173,7 @@ const TestDatabase = () => {
         fetchTests();
       }
     } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to update test record' });
+      setErrors({ ...err.response?.data?.errors, api: err.response?.data?.message || 'Failed to update test record' });
     } finally {
       setSubmitLoading(false);
     }
@@ -264,7 +272,7 @@ const TestDatabase = () => {
             <td style={{ fontWeight: '600', color: 'var(--color-primary)' }}>{test.code}</td>
             <td style={{ fontWeight: '600' }}>
               {test.name}
-              {test.isDerived && (
+              {(test.isDerived || test.parameters?.some((p) => p.isDerived)) && (
                 <span style={{ marginLeft: '6px', fontSize: '0.65rem', fontWeight: 700, backgroundColor: '#e0e7ff', color: '#3730a3', padding: '1px 6px', borderRadius: '999px' }}>
                   DERIVED
                 </span>
@@ -453,20 +461,49 @@ const TestDatabase = () => {
 
           <section className="test-form-section" aria-label="Derived test">
             <h4 className="test-form-section-title"><Sigma size={15} /> Derived Test</h4>
-            <DerivedTestEditor
+            {!formData.parameters?.length && <DerivedTestEditor
+              key={editingTest?._id || 'new-test'}
               isDerived={formData.isDerived}
               formula={formData.formula}
-              tests={tests.filter((t) => !editingTest || t._id !== editingTest._id)}
-              childIds={derivedChildIds}
+              tests={tests.filter((t) => !editingTest || t._id !== editingTest._id).flatMap((t) => t.parameters?.length ? t.parameters.map((p) => ({ ...p, _id: `${t._id}:${p.code}`, name: `${t.name}: ${p.name}` })) : [t])}
               error={errors.formula}
               onChange={(patch) => {
-                if (patch.childIds !== undefined) setDerivedChildIds(patch.childIds);
-                else setFormData(prev => ({ ...prev, ...patch }));
+                setFormData(prev => ({ ...prev, ...patch }));
               }}
-            />
+            />}
           </section>
 
           <section className="test-form-section" aria-label="Clinical notes">
+            <Input label="Result dropdown choices (one per comma)" name="resultOptions"
+              value={(formData.resultOptions || []).join(', ')} placeholder="e.g. Negative, Positive"
+              helperText="Set choices for qualitative results. Other allows free-text entry; numeric tests use a value field."
+              onChange={(e) => setFormData((prev) => ({ ...prev, resultOptions: e.target.value.split(',').map((choice) => choice.trim()) }))} />
+            <AgeReferenceEditor ranges={formData.referenceRanges || []} error={errors.referenceRanges}
+              onChange={(referenceRanges) => setFormData((prev) => ({ ...prev, referenceRanges,
+                ...(referenceRanges.length || prev.referenceRanges.length ? { referenceRange: formatAgeRanges(referenceRanges) } : {}),
+                ...(prev.referenceRanges.length && !referenceRanges.length ? { normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', maleReferenceRange: '', femaleReferenceRange: '' } : {})
+              }))} />
+            {formData.parameters?.length > 0 && <div>
+              <h4>Parameters and calculations</h4>
+              {formData.parameters.map((parameter, index) => <div className="age-range-row" key={parameter.code}>
+                <h5>{parameter.name} ({parameter.code})</h5>
+                <Input label="Unit" name={`parameter-unit-${index}`} value={parameter.unit || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, unit: e.target.value } : p) }))} />
+                <Input label="Reference range" name={`parameter-range-${index}`} value={parameter.referenceRange || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, referenceRange: e.target.value, normalLow: null, normalHigh: null } : p) }))} />
+                <AgeReferenceEditor idPrefix={`parameter-${index}-range`} ranges={parameter.referenceRanges || []} error={errors.parameters}
+                  onChange={(referenceRanges) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, referenceRanges,
+                    ...(referenceRanges.length || p.referenceRanges?.length ? { referenceRange: formatAgeRanges(referenceRanges) } : {}),
+                    ...(p.referenceRanges?.length && !referenceRanges.length ? { normalLow: null, normalHigh: null, criticalLow: null, criticalHigh: null } : {})
+                  } : p) }))} />
+                <Input label="Result dropdown choices (comma separated)" name={`parameter-options-${index}`} value={(parameter.resultOptions || []).join(', ')}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, resultOptions: e.target.value.split(',').map((choice) => choice.trim()) } : p) }))} />
+                <label className="formula-toggle"><input type="checkbox" checked={!!parameter.isDerived}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, isDerived: e.target.checked } : p) }))} />Calculated parameter (fx)</label>
+                {parameter.isDerived && <Input label="Parameter formula" name={`parameter-formula-${index}`} value={parameter.formula || ''}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, parameters: prev.parameters.map((p, i) => i === index ? { ...p, formula: e.target.value } : p) }))} />}
+              </div>)}
+            </div>}
             <h4 className="test-form-section-title"><Stethoscope size={15} /> Clinical Notes</h4>
             <Input
               label="Brief Description"

@@ -3,6 +3,7 @@ const TestCategory = require('../models/TestCategory');
 const TestPanel = require('../models/TestPanel');
 const TestPackage = require('../models/TestPackage');
 const Interpretation = require('../models/Interpretation');
+const { parseAgeRanges } = require('./referenceRangeService');
 
 // Test Categories
 const getCategories = async () => {
@@ -32,10 +33,14 @@ const getTests = async (filters = {}) => {
       { code: { $regex: filters.search, $options: 'i' } }
     ];
   }
-  return await Test.find(query)
+  const tests = await Test.find(query)
     .populate('category', 'name')
     .sort({ name: 1 })
     .lean();
+  const withRanges = (definition) => ({ ...definition,
+    referenceRanges: definition.referenceRanges?.length ? definition.referenceRanges : parseAgeRanges(definition.referenceRange)
+  });
+  return tests.map((test) => ({ ...withRanges(test), parameters: (test.parameters || []).map(withRanges) }));
 };
 
 const createTest = async (data) => {

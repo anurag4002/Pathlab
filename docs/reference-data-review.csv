@@ -1,0 +1,636 @@
+﻿"Code","Test","Current unit","Existing reference","Coverage","Review status","Proposal kind","Proposed unit","Proposed sex / age / context / range","Source","Lab review notes"
+"VITAMIN_D3","25 Hydroxy (OH) Vitamin D","ng/mL","Any (age 0d–100y): 30 - 100","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"A_G_RATIO","A/G Ratio","","Any (age 0d–100y): 1.1 - 2.1","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ADA","ADA , SERUM","cumm","","Reference text missing","User source imported; external proposal pending review","Numeric","U/L","Any; Source does not split ages; ; 0 - 15","https://ltd.aruplab.com/Tests/Pub/3002976","Stored unit cumm is incompatible with enzyme activity. Confirm serum/plasma assay and correct the unit before adopting.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"AMH","ANTI MULLERIAN HORMONE","ng/mL","","Reference text missing","User source imported; external proposal pending review","Numeric","ng/mL","Male; <2y; ; 18 - 283
+Male; 2–12y; ; 8.9 - 109
+Male; >12y; ; <13
+Female; <3y; ; 0.11 - 4.2
+Female; 3–6y; ; 0.21 - 4.9
+Female; 7–11y; ; 0.36 - 5.9
+Female; 12–14y; ; 0.49 - 6.9
+Female; 15–19y; ; 0.62 - 7.8
+Female; 20–24y; ; 1.2 - 12
+Female; 25–29y; ; 0.89 - 9.9
+Female; 30–34y; ; 0.58 - 8.1
+Female; 35–39y; ; 0.15 - 7.5
+Female; 40–44y; ; 0.03 - 5.5
+Female; 45–50y; ; <2.6
+Female; 51–55y; ; <0.88
+Female; >55y; ; <0.03","https://www.mayocliniclabs.com/test-catalog/overview/608824","Confirm assay compatibility. Preserve exact source age boundaries; age labels are not automatically converted to report rules.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"AEC","Absolute Eosinophil Count","cumm","Any (age 0d–100y): 0 - 440","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"AFB","Acid - Fast Bacilli","","Sample Type: 
+Result:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"APTT","Activated partial thromboplastin time, APTT","","Patient Value (seconds): Any (age 0d–100y): 22 - 39
+Control Value:","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"AFP","Alfa Fetoprotein, AFP","ng/mL","Any (age 0d–100y): < 10","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"AMMONIA","Ammonia","µmol/L","Any (age 0d–100y): 11 - 32","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ANTI_CARDIOLIPIN_IGG","Anti Cardiolipin IgG","GPL","","Reference text missing","User source imported; external proposal pending review","Interpretive thresholds","GPL","Any; All ages; Negative; <15.0
+Any; All ages; Weak positive; 15.0 - 39.9
+Any; All ages; Positive; 40.0 - 79.9
+Any; All ages; Strong positive; >=80.0","https://www.mayocliniclabs.com/test-catalog/overview/82976","These are assay-specific interpretive thresholds. No separate age/sex bands in this source.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ANTI_CARDIOLIPIN_IGM","Anti Cardiolipin IgM","MPL","","Reference text missing","User source imported; external proposal pending review","Interpretive thresholds","MPL","Any; All ages; Negative; <15.0
+Any; All ages; Weak positive; 15.0 - 39.9
+Any; All ages; Positive; 40.0 - 79.9
+Any; All ages; Strong positive; >=80.0","https://www.mayocliniclabs.com/test-catalog/overview/82976","These are assay-specific interpretive thresholds. No separate age/sex bands in this source.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ANTI_NUCLEAR_ANTIBOD","Anti Nuclear Antibody (ANA) by ELISA","Units","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ANTI_PHOSPHOLIPID_IG","Anti Phospholipid IgG","GPL U/mL","","Reference text missing","User source imported; external proposal pending review","Assay identity required","GPL","Any; All ages if cardiolipin assay confirmed; Negative; <15.0","https://www.mayocliniclabs.com/test-catalog/overview/82976","Only adopt the cardiolipin thresholds if this catalog entry is confirmed to measure cardiolipin. The name Anti Phospholipid alone does not identify the antigen.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ANTI_PHOSPHOLIPID_IG_2","Anti Phospholipid IgM","MPL U/mL","","Reference text missing","User source imported; external proposal pending review","Assay identity required","MPL","Any; All ages if cardiolipin assay confirmed; Negative; <15.0","https://www.mayocliniclabs.com/test-catalog/overview/82976","Only adopt the cardiolipin thresholds if this catalog entry is confirmed to measure cardiolipin. The name Anti Phospholipid alone does not identify the antigen.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ANTI_TPO","Anti TPO","IU/mL","Any (age 0d–100y): < 30 IU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CCP","Anti cyclic-citrullinated-peptide","U/mL","Any (age 0d–100y): < 5 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ANTI_HAV","Anti-HAV","mIU/mL","Any (age 0d–100y): < 20 mIU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ANTI_HBC","Anti-HBc","index/mL","Any (age 0d–100y): < 100 index/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ANTI_HBE","Anti-HBe","index/mL","Any (age 0d–100y): < 100 index/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ANTI_HBS","Anti-HBs","mIU/mL","Any (age 0d–100y): < 10 mIU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ASO_TITER","Antistreptolysin O, ASO Titer","IU/mL","Any (age 0d–12y): < 150
+Any (age 12y–100y): < 200","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ABG","Arterial Blood Gas","","pH: 
+PCO2 (mmHg): 
+Bicarbonate (HCO3 (mEq/L): 
+Total CO2 Contents (TCO2) (mmol/L): 
+Standard Bicarbonate (SBC) (mEq/L): 
+Base Excess (mEq/L): 
+PO2 (mmHg): 
+Oxygen saturation capacity (%): 
+Base Excess - Extracellular fluid (mEq/L): 
+Hemoglobin (g/dl):","Reference text missing","User source imported; external proposal pending review","Multiple parameters","","Any; 0–1mo; Arterial pH; 7.32 - 7.42
+Any; >1mo; Arterial pH; 7.35 - 7.45
+Any; 0–18y; Arterial pCO2; 30 - 40 mmHg
+Any; 0–1mo; Arterial pO2; 60 - 80 mmHg
+Any; >1mo; Arterial pO2; 80 - 100 mmHg","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Arterial specimen only. Add distinct measured pH, pCO2 and pO2 parameters, with their units. Venous/capillary values cannot use these intervals; calculated bicarbonate depends on analyzer convention.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BUN","BUN","mg/dl","Any (age 0d–100y): 7.9 - 20","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"BUN_CREATININE_RATIO","BUN / Creatinine Ratio","","","Reference text missing","User source imported; external proposal pending review","Calculated ratio","","","Existing test database","The configured formula calculates this ratio. The existing database does not supply a universal normal range; laboratory SOP and clinical context must define any decision limits. No numeric normal is invented.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BETA_2_GLYCOPROTEIN_","Beta 2 Glycoprotein 1, IgG","SGU","","Reference text missing","User source imported; external proposal pending review","Interpretive thresholds","SGU","Any; All ages; Negative; <15.0
+Any; All ages; Weak positive; 15.0 - 39.9
+Any; All ages; Positive; 40.0 - 79.9
+Any; All ages; Strong positive; >=80.0","https://hematology.testcatalog.org/show/B2GMG","Mayo ELISA thresholds; confirm kit and calibration. Source applies to all ages.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BETA_2_GLYCOPROTEIN__2","Beta 2 Glycoprotein 1, IgM","SMU","","Reference text missing","User source imported; external proposal pending review","Interpretive thresholds","SMU","Any; All ages; Negative; <15.0
+Any; All ages; Weak positive; 15.0 - 39.9
+Any; All ages; Positive; 40.0 - 79.9
+Any; All ages; Strong positive; >=80.0","https://hematology.testcatalog.org/show/B2GMG","Mayo ELISA thresholds; confirm kit and calibration. Source applies to all ages.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BETA_HCG","Beta Human Chorionic Gonodotropin (HCG)","mIU/mL","","Reference text missing","User source imported; external proposal pending review","Context required","mIU/mL","Female; Reproductive assessment; Negative pregnancy result; <5","https://www.mayocliniclabs.com/test-catalog/overview/80678","1 IU/L = 1 mIU/mL. This negative pregnancy threshold is not a gestational reference interval. Confirm intact hCG versus free beta assay; do not apply it to pregnancy monitoring or tumor assays.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BT","Bleeding Time","min","Any (age 0d–100y): 2 - 7","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"BLOOD_GROUP_RH","Blood Group & Rh.","","ABO: 
+Rh (ANTI -D):","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","ABO and Rh typing are categorical identities. Offer A+, A-, B+, B-, AB+, AB-, O+, O- with Other/discrepancy; no group is a normal age/sex value.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"BLOOD_SUGAR_PP","Blood Sugar PP","mg/dl","Any (age 20y–100y): < 180 mg/dl","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CRP_QUALITATIVE","C-Reactive Protein, CRP (Qualitative)","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"CRP_QUANTITATIVE","C-Reactive Protein, CRP (Quantitative)","mg/L","Any (age 0d–100y): < 6 mg/L","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"C3","C3 Complement","mg/dL","","Reference text missing","User source imported; external proposal pending review","Numeric","mg/dL","Any; Source does not split ages; ; 75 - 175","https://www.mayocliniclabs.com/test-catalog/overview/8174","Confirm quantitative complement C3 assay; functional C3 is a different test with different units.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"CA_125","CA 125","U/mL","Any (age 0d–100y): < 35 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CA_15_3","CA 15-3","U/mL","Any (age 0d–100y): < 25 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CA_19_9","CA 19-9","U/mL","Any (age 0d–100y): < 37 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CA_242","CA 242","U/mL","Any (age 0d–100y): < 20 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CA_50","CA 50","U/mL","Any (age 0d–100y): < 25 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CA_72_4","CA 72-4","U/mL","Any (age 0d–100y): < 6 U/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CK_MB","CK-MB","ng/mL","Any (age 0d–100y): < 5.0 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CMV_IGG","CMV IgG","AU/mL","Any (age 0d–100y): < 2 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CMV_IGM","CMV IgM","AU/mL","Any (age 0d–100y): Neg. < 2.0 AU/mL
+Grey Zone 2 - 4.2 AU/mL
+Pos. > 4.2 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CPK_MB","CPK-MB","ng/mL","Any (age 0d–100y): < 5 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CALCITONIN","Calcitonin","pg/mL","Any (age 0d–100y): < 18 pg/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CHIKUNGUNYA","Chikungunya","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"CT","Clotting Time","min","Any (age 0d–100y): 4 - 9","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"CPK_TOTAL","Creatine Kinase","IU/L","","Reference text missing","User source imported; external proposal pending review","Numeric","IU/L","Male; >3mo; ; 39 - 308
+Female; >3mo; ; 26 - 192","https://www.mayocliniclabs.com/test-catalog/overview/8336","Reference not established at <=3 months. Exercise and intramuscular injections can increase CK.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"CULTURE_AND_SENSITIV","Culture and Sensitivity","","","Reference text missing","User source imported; external proposal pending review","Narrative / specimen context","","Any; Specimen-specific; Routine aerobic culture example; No growth","https://mhc.testcatalog.org/show/RTN","Routine aerobic culture example only. Specimen, organism identification and susceptibility determine the report; no universal numeric or sex/age range.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"D_DIMER","D-Dimer","μg FEU/mL","Any (age 0d–100y): < 0.5 μg FEU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"DHEA","DHEA","μg/dl","","Reference text missing","User source imported; external proposal pending review","Assay identity required","ng/mL","Any; Premature; ; <40
+Any; 0–1d; ; <11
+Any; 2–6d; ; <8.7
+Any; 7d–1mo; ; <5.8
+Any; >1–23mo; ; <2.9
+Any; 2–5y; ; <2.3
+Any; 6–10y; ; <3.4
+Any; 11–14y; ; <5.0
+Any; 15–18y; ; <6.6
+Any; 19–30y; ; <13
+Any; 31–40y; ; <10
+Any; 41–50y; ; <8.0
+Any; 51–60y; ; <6.0
+Any; >=61y; ; <5.0","https://www.mayocliniclabs.com/test-catalog/overview/81405","Confirm unconjugated DHEA versus DHEA-S first: existing unit microgram/dL can indicate DHEA-S. These DHEA values must not be used for DHEA-S. If unconjugated DHEA is confirmed, 1 ng/mL = 0.1 microgram/dL.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DENGUE_CARD_METHOD","Dengue (Card Method)","","NS1 Antigen: 
+IgM: 
+IgG:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DENGUE_IGG","Dengue IgG","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DENGUE_IGG_IGM","Dengue IgG & IgM","","IgG: 
+IgM:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DENGUE_IGM","Dengue IgM","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DENGUE_NS1_ANTIGEN","Dengue NS1 Antigen","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"DLC","Differential Leucocyte Count","","Neutrophils (%): Any (age 0d–100y): 40 - 80
+Lymphocyte (%): Any (age 0d–100y): 20 - 40
+Eosinophils (%): Any (age 0d–100y): 1 - 6
+Monocytes (%): Any (age 0d–100y): 2 - 10
+Basophils (%): Any (age 0d–100y): < 2","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"DIFFERENTIAL_LEUKOCY","Differential Leukocyte Count (Absolute count)","","Neutrophils (x10^3/μL): Any (age 0d–100y): 2 - 7
+Lymphocytes (x10^3/μL): Any (age 0d–100y): 1 - 3
+Eosinophils (x10^3/μL): Any (age 0d–100y): 0.02 - 0.5
+Monocytes (x10^3/μL): Any (age 0d–100y): 0.1 - 1
+Basophils (x10^3/μL): Any (age 0d–100y): 0.02 - 0.1","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"DIRECT_COOMB_S_TEST","Direct Coomb's Test","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ESR_WINTROBE","Erythrocyte Sedimentation Rate (Wintrobe)","mm for 1st hour","Female (age 0d–100y): 0 - 20
+Male (age 0d–100y): 0 - 15","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ESR_WESTERGREN","Erythrocyte sedimentation rate (Westergren)","mm for 1st hour","Any (age 0d–100y): 0 - 10","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"ESTRADIOL","Estradiol","pg/mL","","Reference text missing","User source imported; external proposal pending review","Context required","pg/mL","Male; Adult; ; 10 - 40
+Female; Adult; Premenopausal; cycle dependent; 15 - 350
+Female; Adult; Postmenopausal; <10
+Male; Prepubertal >14d; Tanner I; Undetectable - 13
+Male; Puberty; Tanner II; Undetectable - 16
+Male; Puberty; Tanner III; Undetectable - 26
+Male; Puberty; Tanner IV; Undetectable - 38","https://www.mayocliniclabs.com/test-catalog/overview/81816","Adult and Tanner-stage data are method dependent. Menopause cannot be inferred from age; pediatric Tanner bands require pubertal context.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FNAC_FINE_NEEDLE_ASP","FNAC (Fine Needle Aspiration)","","","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Pathologist cytology narrative and specimen/site-specific diagnosis; a numeric age/sex range is not applicable.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FASTING_BLOOD_SUGAR","Fasting Blood Sugar","mg/dl","Any (age 0d–1d): 40 - 60
+Any (age 1d–364d): 50 - 80
+Any (age 1y–12y): 60 - 100
+Any (age 13y–100y): 70 - 100","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"FERRITIN","Ferritin","ng/mL","Any (age 0d–30d): 25 - 200
+Any (age 30d–60d): 200 - 600
+Any (age 180d–15y): 7 - 140
+Female (age 15y–100y): 10 - 291
+Male (age 15y–100y): 22 - 332","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MF","Filarial Parasite (Card Test)","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FLUID_EXAMINATION","Fluid Examination","","Sample Type: 
+Coagulum: 
+Volume (ml): 
+Appearance: 
+Colour: 
+pH (Reaction): 
+Protein (mg%): 
+Glucose (mg%): 
+Total Leukocyte Count (cumm): 
+Neutrophils (%): 
+Lymphocyte (%): 
+RBCs: 
+Others:","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Specify CSF, pleural, ascitic, synovial or other fluid and measured parameters; reference limits cannot be shared across fluids.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FOLIC_ACID","Folic Acid","ng/mL","","Reference text missing","User source imported; external proposal pending review","Numeric","ng/mL","Any; Source does not split ages; ; >=4.0","https://www.mayocliniclabs.com/test-catalog/overview/9198","1 microgram/L = 1 ng/mL. Confirm serum folate, not RBC folate.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FSH","Follicle Stimulating Hormone, FSH","mIU/mL","","Reference text missing","User source imported; external proposal pending review","Context required","mIU/mL","Male; <12mo; ; <=3.3
+Male; 12mo–5y; ; <=1.9
+Male; >5–10y; ; <=2.3
+Male; >10–15y; ; 0.6 - 6.9
+Male; >15–18y; ; 0.7 - 9.6
+Male; >18y; ; 1.2 - 15.8
+Female; <12mo; ; 1.2 - 12.5
+Female; 12mo–10y; ; 0.5 - 6.0
+Female; >10–15y; ; 0.9 - 8.9
+Female; >15–18y; ; 0.7 - 9.6
+Female; Adult; Follicular; 2.9 - 14.6
+Female; Adult; Midcycle; 4.7 - 23.2
+Female; Adult; Luteal; 1.4 - 8.9
+Female; Adult; Postmenopausal; 16.0 - 157.0","https://www.mayocliniclabs.com/test-catalog/overview/602753","1 IU/L = 1 mIU/mL. Female adult intervals require cycle/menopausal context; do not select them using age alone.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"FREE_PSA","Free PSA","ng/mL","Male (age 0d–100y): < 1.5 ng/mL
+Female (age 0d–100y): < 0.1 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"FT4","Free Thyroxine, FT4","pg/mL","Any (age 0d–100y): 8.9 - 17.2","Existing age / sex bands","User source imported; external proposal pending review","Age supplement","pg/mL","Any; 0–5d; ; 9 - 25
+Any; 6d–2mo; ; 9 - 22
+Any; 3–11mo; ; 9 - 20
+Any; 1–5y; ; 10 - 18
+Any; 6–10y; ; 10 - 17
+Any; 11–19y; ; 10 - 16
+Any; >=20y; ; 9 - 17","https://www.mayocliniclabs.com/test-catalog/overview/800463","Source ng/dL converted to catalog pg/mL by multiplying by 10. Confirm method and pregnancy context.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"FT3","Free Triiodothyronine l, FT3","pg/mL","Any (age 0d–100y): 2 - 4.2","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"FUNGAL_SCRAPING_SMEA","Fungal scraping smear","","","Reference text missing","User source imported; external proposal pending review","Qualitative / method review","","Any; Source does not split ages; Fungal smear; Negative","https://www.mayocliniclabs.com/test-catalog/overview/84390","Fungal smear reference only. If the ordered test is culture, use a specimen-specific culture report instead.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"GGT","Gamma Glutamyl Transferase, GGT","IU/L","Any (age 0d–100y): 9 - 52","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"GLOBULIN","Globulin","g/dl","Any (age 0d–100y): 1.8 - 3.6","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"GTT","Glucose Tolerance Test, GTT","","Fasting (mg/dl): Any (age 0d–100y): < 100
+1 Hour (mg/dl): Any (age 0d–100y): < 190
+2 Hour (mg/dl): Any (age 0d–100y): < 165
+3 Hour (mg/dl): Any (age 0d–100y): < 145","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"GLUCOSE_TOLERANCE_TE","Glucose Tolerance Test, GTT (Pregnancy)","","Fasting (mg/dL): Any (age 0d–100y): 65 - 92
+1 hour (mg/dL): Any (age 0d–100y): 100 - 180
+2 hour (mg/dL): Any (age 0d–100y): 65 - 153
+3 hour (mg/dL): Any (age 0d–100y): 70 - 125","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"G6PD","Glucose-6-phosphate dehydrogenase","g","Any (age 0d–100y): 5.5 - 20.5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"GRAM_S_STAIN","Gram's Stain","","Sample Type: 
+Result:","Reference text missing","User source imported; external proposal pending review","Narrative / specimen context","","Any; Specimen-specific; Normally sterile site; see source; No WBCs / no organisms seen","https://sfmc.testcatalog.org/show/SOFT-GRAM","Specimen source matters: normal flora may be present. Retain organisms/cells and pathologist findings; do not auto-classify every stain as negative.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"H_ALB","H-ALB","μg/mL","Any (age 0d–100y): < 10 μg/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HAV_IGM","HAV IgM","AU/mL","Any (age 0d–100y): < 2 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HBEAG","HBeAg","index/mL","Any (age 0d–100y): < 15 index/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HBSAG","HBsAg","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"HDL_CHOLESTEROL","HDL Cholesterol","mg/dl","Any (age 0d–100y): 35 - 80","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HIV_CARD_TEST","HIV (Card Test)","","HIV - 1: 
+HIV - 2:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"HSV_1_2_IGG","HSV-1/2 IgG","AU/mL","Any (age 0d–100y): < 2.0 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HSV_1_2_IGM","HSV-1/2 IgM","AU/mL","Any (age 0d–100y): Neg. < 2 AU/mL
+Grey Zone 2 - 4 AU/mL
+Pos. >= 4 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HSV_2_IGG","HSV-2 IgG","AU/mL","Any (age 0d–100y): < 2.0 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HBA1C_GLYCOSYLATED_H","HbA1c (Glycosylated Hemoglobin)","","HbA1c (%): Any (age 0d–100y): <5.7 :Non diabetic
+5.7 - 6.4 :Pre diabetic
+>= 6.5 :Diabetic
+7.0 : ADA Target
+> 8.0 : Action Suggested %
+Estimated average glucose (mg/dL): Any (age 0d–100y): < 116 mg/dl","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"HCT","Hematocrit Value, Hct","%","Male (age 0d–100y): 40 - 50
+Female (age 0d–100y): 36 - 46","Existing age / sex bands","User source imported; external proposal pending review","Pediatric supplement","%","Any; 0–1mo; ; 42 - 65
+Any; 1–2mo; ; 33 - 55
+Any; 2–3mo; ; 28 - 41
+Any; 3–6mo; ; 29 - 41
+Any; 6–12mo; ; 31 - 41","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Supplemental pediatric candidates. Reconcile source age boundaries and overlapping existing ranges before adopting; existing database values remain primary.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HB","Hemoglobin","g/dl","Any (age 0d–21d): 17 - 23
+Any (age 21d–10y): 11.2 - 16.5
+Female (age 10y–100y): 12 - 15
+Male (age 10y–100y): 13 - 17","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"HCV","Hepatitis C Virus, HCV","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"HSCRP","High-Sensitivity C-Reactive Protein","mg/L","","Reference text missing","User source imported; external proposal pending review","Numeric","mg/L","Any; >=18y; Cardiovascular risk; <2.0","https://www.mayocliniclabs.com/test-catalog/overview/606909","Adult cardiovascular risk threshold, not a universal inflammation range. Source does not establish pediatric intervals.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"IGA_URINE","IgA (Urine)","μg/mL","Any (age 0d–100y): < 6.0 μg/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"INDIRECT_COOMB_S_TES","Indirect Coomb's Test","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"INSULIN_RANDOM","Insulin Random","µU/mL","","Reference text missing","User source imported; external proposal pending review","Sampling context required","microIU/mL","Any; Source does not split ages; Fasting only; not applicable to random insulin; 2.6 - 24.9","https://www.mayocliniclabs.com/test-catalog/overview/800257","Source requires an 8-hour fast. Its 2.6–24.9 range cannot govern this RANDOM test; retain a context warning until the lab specifies a random-sampling protocol.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"IRON","Iron","μg/dl","Any (age 0d–28d): 100 - 250
+Any (age 28d–1y): 40 - 100
+Any (age 1y–12y): 50 - 120
+Female (age 12y–100y): 50 - 170
+Male (age 12y–100y): 65 - 175","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"LDL_HDL","LDL / HDL","","Any (age 0d–100y): 1.5 - 3.5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"LDL_CHOLESTEROL","LDL Cholesterol","mg/dl","Any (age 0d–100y): 85 - 130","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"LIPASE","Lipase","U/I","Any (age 0d–1y): 0 - 8
+Any (age 1y–9y): 5 - 31
+Any (age 10y–18y): 7 - 39
+Any (age 18y–100y): 0 - 67","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"LUPUS_ANTICOAGULANT_","Lupus Anticoagulant (DRVVT)","","Patient Value (seconds): 
+Control Value (seconds): 
+Screen Ratio: 
+DRVVT Screening:","Reference text missing","User source imported; external proposal pending review","Unit / assay review","ratio","Any; Adults; pediatric validation required; DRVVT screen ratio only; <1.20","https://www.mayocliniclabs.com/test-catalog/overview/602179","Source screen-ratio threshold is dimensionless; stored seconds is not compatible. A seconds-based screen requires kit-specific controls, confirm and mix testing. Pediatric reference not clearly established.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"LH","Luteinising Hormone, LH","mIU/mL","","Reference text missing","User source imported; external proposal pending review","Context required","mIU/mL","Male; >1–12mo; ; <=0.4
+Male; >12mo–6y; ; <=1.3
+Male; >6–11y; ; <=1.4
+Male; >11–14y; ; 0.1 - 7.8
+Male; >14–18y; ; 1.3 - 9.8
+Male; >18y; ; 1.3 - 9.6
+Female; >1–12mo; ; <=0.4
+Female; >12mo–6y; ; <=0.5
+Female; >6–11y; ; <=3.1
+Female; >11–14y; ; <=11.9
+Female; >14–18y; ; 0.5 - 41.7
+Female; Adult; Follicular; 1.9 - 14.6
+Female; Adult; Midcycle; 12.2 - 118.0
+Female; Adult; Luteal; 0.7 - 12.9
+Female; Adult; Postmenopausal; 5.3 - 65.4","https://www.mayocliniclabs.com/test-catalog/overview/602752","1 IU/L = 1 mIU/mL. Source does not establish ranges at <=4 weeks. Female adult intervals require cycle/menopausal context.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"MAGNESIUM","Magnesium","mg/dL","Any (age 0d–100y): 1.8 - 2.6","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MALARIA_ANTIGEN","Malaria Antigen","","IgG: 
+IgM:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"MP_CARD_TEST","Malaria Parasite (Card Test)","","Plasmodium falciparum ""Pf"": 
+Plasmodium vivax ""Pv"":","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"MP_MICROSCOPIC","Malaria Parasite (Microscopic)","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"MANTOUX_TEST","Mantoux test","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"MCHC","Mean Cell Haemoglobin CON, MCHC","g/dl","Any (age 0d–100y): 31.5 - 34.5","Existing age / sex bands","User source imported; external proposal pending review","Pediatric supplement","g/dL","Any; 0–6mo; ; 28 - 36
+Any; 6–12mo; ; 32 - 36","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Supplemental pediatric candidates. Reconcile source age boundaries and overlapping existing ranges before adopting; existing database values remain primary.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MCH","Mean Cell Haemoglobin, MCH","Pg","Any (age 0d–100y): 27 - 32","Existing age / sex bands","User source imported; external proposal pending review","Pediatric supplement","pg","Any; 0–1mo; ; 31 - 37
+Any; 1–3mo; ; 27 - 36
+Any; 3–6mo; ; 25 - 35
+Any; 6–12mo; ; 23 - 31","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Supplemental pediatric candidates. Reconcile source age boundaries and overlapping existing ranges before adopting; existing database values remain primary.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MCV","Mean Corpuscular Volume, MCV","fL","Any (age 0d–100y): 83 - 101","Existing age / sex bands","User source imported; external proposal pending review","Pediatric supplement","fL","Any; 0–1mo; ; 88 - 123
+Any; 1–3mo; ; 91 - 112
+Any; 3–6mo; ; 74 - 108
+Any; 6–12mo; ; 70 - 85","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Supplemental pediatric candidates. Reconcile source age boundaries and overlapping existing ranges before adopting; existing database values remain primary.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MPV","Mean Platelet Volume, MPV","fL","Any (age 0d–100y): 6.5 - 12","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"MICROALBUMIN_CREATIN","Microalbumin Creatinine Ratio, Urine Random","","Microalbuminuria (mg/L): Any (age 0d–100y): 0 - 25
+Urinary creatinine (mg/dL): Any (age 0d–100y): 28 - 217
+Urinary Albumin Creatinine Ratio (UACR) (mg/g): Any (age 0d–100y): <30","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"MYOGLOBIN","Myoglobin","ng/mL","","Reference text missing","User source imported; external proposal pending review","Numeric","ng/mL","Male; Source does not split ages; ; 0 - 72
+Female; Source does not split ages; ; 0 - 58","https://www.mayocliniclabs.com/test-catalog/overview/621090","1 microgram/L = 1 ng/mL. Confirm serum assay and laboratory validation.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"NLR","Neutrophil Lymphocyte Ratio","","","Reference text missing","User source imported; external proposal pending review","Calculated ratio","","","Existing test database","The configured formula calculates this ratio. The existing database does not supply a universal normal range; laboratory SOP and clinical context must define any decision limits. No numeric normal is invented.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"NON_HDL_CHOLESTEROL","Non-HDL cholesterol","","","Reference text missing","User source imported; external proposal pending review","Decision limits","mg/dL","Any; 2–17y; Acceptable; <120
+Any; >=18y; Desirable; <130","https://www.mayocliniclabs.com/test-catalog/overview/616727","Desirable/acceptable clinical decision limits, not a statistical healthy-population interval. Lower treatment targets depend on cardiovascular risk.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"OCCULT_BLOOD_STOOL","Occult Blood, Stool","","Absent","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","A single existing interval does not establish pediatric, pregnancy or method-specific coverage. Retain it as the lab source; validate applicability before extending it."
+"P_LCR","P-LCR","","Any (age 0d–100y): 19.7 - 42.4","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"P_D_W","P.D.W.","fL","Any (age 0d–100y): 9.6 - 15.2","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"PAP_SMEAR","PAP Smear","","","Reference text missing","User source imported; external proposal pending review","Narrative","","Female; Cervical cytology context; Satisfactory specimen; Negative for intraepithelial lesion or malignancy","https://www.mayocliniclabs.com/test-catalog/overview/70338","Bethesda cytology reporting and specimen adequacy required; neither a numeric interval nor a result to prefill.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"PH","PH Inactive","","","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Catalog name is PH Inactive, with Active status in the snapshot. Confirm purpose/status before adding a range; do not assume blood or urine pH.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"PBS_GBP","Peripheral Blood Smear","","","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Morphology report; separate RBC, WBC, platelet and parasite findings. A universal numeric normal is not applicable.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"PLATELET_COUNT","Platelet Count","lakhs/cumm","Any (age 0d–100y): 1.5 - 4.1","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"PROGESTERONE","Progesterone","ng/mL","","Reference text missing","User source imported; external proposal pending review","Context required","ng/mL","Male; 4wk–<12mo; ; <=0.66
+Male; 12mo–9y; ; <=0.35
+Male; >=18y; ; <0.20
+Female; 4d–<12mo; ; <=1.3
+Female; 12mo–9y; ; <=0.35
+Female; >=18y; Follicular; <=0.89
+Female; >=18y; Ovulation; <=12
+Female; >=18y; Luteal; 1.8 - 24
+Female; >=18y; Postmenopausal; <=0.20
+Female; Pregnancy; First trimester; 11 - 44
+Female; Pregnancy; Second trimester; 25 - 83
+Female; Pregnancy; Third trimester; 58 - 214","https://www.mayocliniclabs.com/test-catalog/overview/800241","Source notes puberty-dependent adolescent concentrations and unestablished neonatal intervals. Female adult bands require reproductive context.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"PRL","Prolactin","ng/mL","Female (age 0d–100y): 34 - 386
+Male (age 0d–100y): < 15 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing female interval 34–386 is stored with ng/mL. Verify the original unit and assay before treating this as a universal female interval."
+"PT_INR","Prothrombin time, PT/INR","","Patient Value (seconds): Any (age 0d–100y): 10 - 16.5
+Control Value (seconds): 
+ISI (International sensitivity index): 
+INR Value (%): Any (age 0d–100y): 1.00-1.30","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"R_D_W_CV","R.D.W. - CV","%","Any (age 0d–100y): 11.6 - 14","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"R_D_W_SD","R.D.W. - SD","fL","Any (age 0d–100y): 39 - 46","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"RANDOM_BLOOD_SUGAR","Random Blood Sugar","mg/dl","Any (age 0d–100y): 70 - 140","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"RETICULOCYTE_COUNT","Reticulocyte Count","%","Any (age 0d–1y): 2 - 6
+Any (age 1y–100y): 0.5 - 2.5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"RA_QUALITATIVE","Rheumatoid Factor, RA (Qualitative)","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"RA_QUANTITATIVE","Rheumatoid Factor, RA (Quantitative)","IU/mL","Any (age 0d–100y): 0 - 20","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"RUBELLA","Rubella","","IgG (U/mL): Any (age 0d–100y): < 8.00
+IgM (U/mL): Any (age 0d–100y): < 8.00","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"RUBELLA_IGG","Rubella IgG","IU/mL","Any (age 0d–100y): < 2 IU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"RUBELLA_IGM","Rubella IgM","AU/mL","Any (age 0d–100y): Neg. < 2 AU/mL
+Grey Zone 2-3 AU/mL
+Pos. > 3 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SGOT","SGOT (AST)","U/I","Female (age 0d–100y): 0 - 31
+Male (age 0d–100y): 0 - 37","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SGOT_SGPT","SGOT/SGPT","","","Reference text missing","User source imported; external proposal pending review","Calculated ratio","","","Existing test database","The configured formula calculates this ratio. The existing database does not supply a universal normal range; laboratory SOP and clinical context must define any decision limits. No numeric normal is invented.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"SGPT","SGPT (ALT)","U/I","Female (age 0d–100y): 7 - 32
+Male (age 0d–100y): 13 - 40","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SEMEN_EXAMINATION","Semen Examination","","Quantity (ml): Any (age 0d–100y): 2 - 3
+Colour: 
+Ph: 
+Collection At: 
+Liquefaction Time (min): 
+Semen Fructose: 
+Total Sperm Count (million/cumm): Any (age 0d–100y): 60 - 200
+Rapid Progressive (%): 
+Sluggish Progressive (%): 
+Non Progressive (%): 
+Immotile (%): 
+Abnormal Forms (%): 
+Epithelial Cells (/HPF): 
+R.B.C. (/HPF): 
+Pus cell (/HPF):","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"SERUM_ALBUMIN","Serum Albumin","g/dl","Any (age 0d–4d): 2.8 - 4.4
+Any (age 4d–14y): 3.8 - 5.4
+Any (age 14y–19y): 3.2 - 4.5
+Any (age 19y–60y): 3.5 - 5.2
+Any (age 60y–90y): 3.5 - 4.6","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_ALKALINE_PHOSP","Serum Alkaline Phosphatase","U/I","Any (age 1y–100y): 44 - 147","Existing age / sex bands","User source imported; external proposal pending review","Age supplement","U/L","Male; 0–14d; ; 83 - 248
+Male; 15d–<1y; ; 122 - 469
+Male; 1–<10y; ; 142 - 335
+Male; 10–<13y; ; 129 - 417
+Male; 13–<15y; ; 116 - 468
+Male; 15–<17y; ; 82 - 331
+Male; 17–<19y; ; 55 - 149
+Male; >=19y; ; 40 - 129
+Female; 0–14d; ; 83 - 248
+Female; 15d–<1y; ; 122 - 469
+Female; 1–<10y; ; 142 - 335
+Female; 10–<13y; ; 129 - 417
+Female; 13–<15y; ; 57 - 254
+Female; 15–<17y; ; 50 - 117
+Female; >=17y; ; 35 - 104","https://www.mayocliniclabs.com/test-catalog/overview/8340","Age and sex-specific alkaline phosphatase candidates. Confirm method before replacing the current single interval.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_AMYLASE","Serum Amylase","IU/L","Any (age 0d–100y): 0 - 120","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_BILIRUBIN_DIRE","Serum Bilirubin (Direct)","mg/dl","Any (age 0d–100y): 0 - 0.3","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_BILIRUBIN_INDI","Serum Bilirubin (Indirect)","mg/dl","Any (age 0d–100y): 0.2 - 1","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_BILIRUBIN_TOTA","Serum Bilirubin (Total)","mg/dl","Any (age 0d–3d): UP TO 10
+Any (age 1y–100y): 0.2 - 1.2","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_CALCIUM","Serum Calcium","mg/dl","Any (age 0d–100y): 8.8 - 10.6","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_CHLORIDE","Serum Chloride","mmol/l","Any (age 0d–30d): 98 - 113
+Any (age 12y–100y): 98 - 107","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_CREATININE","Serum Creatinine","mg/dl","Male (age 0d–100y): 0.72 - 1.43
+Female (age 0d–100y): 0.55 - 1.13","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_IGA","Serum IgA","μg/mL","Any (age 0d–100y): 200 - 3000","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_IGE","Serum IgE","IU/mL","Any (age 0d–100y): 1 - 190","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_IGG","Serum IgG","mg/mL","Any (age 0d–100y): 5 - 17","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_IGM","Serum IgM","μg/mL","Any (age 0d–100y): 400 - 2500","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_PHOSPHORUS","Serum Phosphorus","mg/dl","Any (age 1d–12y): 4 - 7
+Any (age 12y–100y): 2.5 - 4.5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_POTASSIUM","Serum Potassium","mmol/L","Any (age 0d–100y): 3.5 - 5.1","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_PROTEIN","Serum Protein","g/dl","Any (age 210d–1y): 5.1 - 7.3
+Any (age 1y–2y): 5.6 - 7.5
+Any (age 2y–12y): 6 - 8
+Any (age 12y–100y): 6.4 - 8.3","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_SODIUM","Serum Sodium","mmol/L","Any (age 0d–100y): 136 - 146","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"T3","Serum Triiodothyronine, T3","ng/mL","Any (age 0d–100y): 0.87 - 1.78","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SERUM_UREA","Serum Urea","mg/dl","Any (age 1d–4y): 11 - 36
+Any (age 4y–14y): 15 - 36
+Any (age 14y–20y): 18 - 45
+Female (age 20y–50y): 13 - 40
+Male (age 20y–50y): 19 - 45
+Male (age 50y–100y): 18 - 55
+Female (age 50y–100y): 21 - 43","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"URIC_ACID","Serum Uric Acid","mg/dl","Male (age 0d–100y): 3.5 - 7.2
+Female (age 0d–100y): 2.6 - 6","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"T4","Serum thyroxine, T4","ug/dL","Any (age 0d–100y): 6.09 - 12.23","Existing age / sex bands","User source imported; external proposal pending review","Age supplement","microgram/dL","Any; 0–5d; ; 5 - 18.5
+Any; 6d–2mo; ; 5.4 - 17
+Any; 3–11mo; ; 5.7 - 16
+Any; 1–5y; ; 6 - 14.7
+Any; 6–10y; ; 6 - 13.8
+Any; 11–19y; ; 5.9 - 13.2
+Any; >=20y; ; 4.5 - 11.7","https://www.mayocliniclabs.com/test-catalog/overview/36108","Total thyroxine candidates; binding-protein changes and pregnancy affect interpretation. Preserve current ranges until assay review.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"SKIN_SMEAR_FOR_AFB","Skin smear for AFB","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"SKIN_TEST_FOR_LEPROS","Skin test for Leprosy","","","Reference text missing","User source imported; external proposal pending review","Test identity required","","","https://www.cdc.gov/leprosy/hcp/diagnosis-testing/index.html","Clarify lepromin test versus diagnostic biopsy/stain. Do not invent a negative normal or diagnostic cutoff from this ambiguous name.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"STOOL_ROUTINE_EXAMIN","Stool Routine Examination","","Colour: 
+Consistency: 
+Mucus: 
+Blood: 
+Occult Blood: 
+Parasites: 
+Undigested Food Particles: 
+OVA: 
+Cysts: 
+Pus Cells (/HPF): 
+Red Blood Cells (/HPF): 
+Macrophages:","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Create physical, microscopy and parasite fields using the lab SOP. Existing catalog has no parameter definitions; /HPF cannot be assigned to every finding.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"STOOL_REDUCING_SUBST","Stool reducing substances","","","Reference text missing","User source imported; external proposal pending review","Qualitative","","Any; Source does not split ages; Normal; Negative or trace","https://ltd.aruplab.com/Tests/Pub/3002514","Qualitative colorimetry. Negative or trace is normal; 1+ through 4+ is abnormal. Not a numeric age/sex range.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"TG_HDL","TG / HDL","","","Reference text missing","User source imported; external proposal pending review","Calculated ratio","","","Existing test database","The configured formula calculates this ratio. The existing database does not supply a universal normal range; laboratory SOP and clinical context must define any decision limits. No numeric normal is invented.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"TESTOSTERONE_FREE","Testosterone Free","pg/mL","","Reference text missing","User source imported; external proposal pending review","Numeric","pg/mL","Male; 20–<25y; ; 52.5 - 207
+Male; 25–<30y; ; 50.5 - 198
+Male; 30–<35y; ; 48.5 - 190
+Male; 35–<40y; ; 46.5 - 181
+Male; 40–<45y; ; 44.6 - 171
+Male; 45–<50y; ; 42.6 - 164
+Male; 50–<55y; ; 40.6 - 156
+Male; 55–<60y; ; 38.7 - 147
+Male; 60–<65y; ; 36.7 - 139
+Male; 65–<70y; ; 34.7 - 130
+Male; 70–<75y; ; 32.8 - 122
+Male; 75–<80y; ; 30.8 - 113
+Male; 80–<85y; ; 28.8 - 105
+Male; 85–<90y; ; 26.9 - 96.1
+Male; 90–<95y; ; 24.9 - 87.6
+Male; 95–100+y; ; 22.9 - 79.1
+Female; 20–<25y; ; <1.3 - 10.8
+Female; 25–<30y; ; <1.3 - 10.6
+Female; 30–<35y; ; <1.3 - 10.3
+Female; 35–<40y; ; <1.3 - 10
+Female; 40–<45y; ; <1.3 - 9.8
+Female; 45–<50y; ; <1.3 - 9.5
+Female; 50–<55y; ; <1.3 - 9.2
+Female; 55–<60y; ; <1.3 - 9
+Female; 60–<65y; ; <1.3 - 8.7
+Female; 65–<70y; ; <1.3 - 8.4
+Female; 70–<75y; ; <1.3 - 8.2
+Female; 75–<80y; ; <1.3 - 7.9
+Female; 80–<85y; ; <1.3 - 7.6
+Female; 85–<90y; ; <1.3 - 7.3
+Female; 90–<95y; ; <1.3 - 7.1
+Female; 95–100+y; ; <1.3 - 6.8","https://www.mayocliniclabs.com/test-catalog/overview/8508","Source ng/dL converted to catalog pg/mL by multiplying by 10 (dimensional conversion only). Confirm equilibrium-dialysis method; these intervals must not be used for a direct analog assay. Adult bands below; pediatric bands require separate method review.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"TESTOSTERONE_TOTAL","Testosterone Total","ng/dl","","Reference text missing","User source imported; external proposal pending review","Numeric","ng/dL","Male; 0–5mo; ; 75 - 400
+Male; 6mo–9y; ; <7 - 20
+Male; 10–11y; ; <7 - 130
+Male; 12–13y; ; <7 - 800
+Male; 14y; ; <7 - 1200
+Male; 15–16y; ; 100 - 1200
+Male; 17–18y; ; 300 - 1200
+Male; >=19y; ; 240 - 950
+Female; 0–5mo; ; 20 - 80
+Female; 6mo–9y; ; <7 - 20
+Female; 10–11y; ; <7 - 44
+Female; 12–16y; ; <7 - 75
+Female; 17–18y; ; 20 - 75
+Female; >=19y; ; 8 - 60","https://www.mayocliniclabs.com/test-catalog/overview/83686","Morning serum LC-MS/MS candidates; confirm method. Source below-quantification lower bounds (<7) are preserved as text, not turned into zero. Tanner stage cannot be inferred from age.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"THYROGLOBULIN_TG","Thyroglobulin (TG)","ng/mL","Any (age 0d–100y): < 55 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"THYROGLOBULIN_ANTIBO","Thyroglobulin Antibody (TgAb)","IU/mL","Any (age 0d–100y): < 95 IU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TSH","Thyroid-Stimulating Hormone, TSH","µIU/mL","Any (age 0d–100y): 0.34 - 5.6","Existing age / sex bands","User source imported; external proposal pending review","Age supplement","microIU/mL","Any; 0–5d; ; 0.7 - 15.2
+Any; 6d–2mo; ; 0.7 - 11
+Any; 3–11mo; ; 0.7 - 8.4
+Any; 1–5y; ; 0.7 - 6
+Any; 6–10y; ; 0.6 - 4.8
+Any; 11–19y; ; 0.5 - 4.3
+Any; >=20y; ; 0.3 - 4.2","https://www.mayocliniclabs.com/test-catalog/overview/800096","1 mIU/L = 1 microIU/mL. Method-specific pediatric/adult candidates; pregnancy requires separate validated interpretation.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_CALCIUM","Total Calcium","mg/dl","Any (age 0d–100y): 9 - 10.5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_CHOLESTEROL","Total Cholesterol","mg/dl","Any (age 0d–100y): 125 - 200","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_CHOLESTEROL_HD","Total Cholesterol / HDL","","Any (age 0d–100y): 3.5 - 5","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_IRON_BINDING_C","Total Iron Binding Capacity (TIBC)","μg/dl","Any (age 0d–100y): 240 - 450","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TLC","Total Leukocyte Count","cumm","Any (age 0d–14d): 9000 - 30000
+Any (age 15d–60d): 5000 - 21000
+Any (age 61d–6y): 5000 - 19000
+Any (age 6y–100y): 4800 - 10800","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_LIPID","Total Lipid","mg%","Any (age 0d–100y): < 600 mg%","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_PSA","Total PSA","ng/mL","Male (age 0d–100y): < 4 ng/mL
+Female (age 0d–100y): < 0.5 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOTAL_RBC_COUNT","Total RBC Count","million/cumm","Male (age 0d–100y): 4.5 - 5.5
+Female (age 0d–100y): 3.9 - 4.8","Existing age / sex bands","User source imported; external proposal pending review","Pediatric supplement","million/cumm","Any; 0–1mo; ; 3.90 - 5.90
+Any; 1–2mo; ; 3.10 - 5.30
+Any; 2–3mo; ; 2.70 - 4.50
+Any; 3–6mo; ; 3.10 - 5.10
+Any; 6–12mo; ; 3.90 - 5.50","https://www.healthcare.uiowa.edu/path_handbook/appendix/heme/pediatric_normals.html","Supplemental pediatric candidates. Reconcile source age boundaries and overlapping existing ranges before adopting; existing database values remain primary.
+Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOXO_IGG","Toxo IgG","IU/mL","Any (age 0d–100y): < 2 IU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TOXO_IGM","Toxo IgM","AU/mL","Any (age 0d–100y): Neg. < 2 AU/mL
+Grey Zone 2 - 2.6 AU/mL
+Pos. > 2.6 AU/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TRANSFERRIN_SATURATI","Transferrin Saturation","%","Any (age 0d–100y): 20 - 55","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TRIGLYCERIDES","Triglycerides","mg/dl","Any (age 0d–100y): 25 - 200","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TROPONIN_I","Troponin I","ng/mL","Any (age 0d–100y): < 0.1 ng/mL","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"TYPHIDOT_ANTIBODIES","Typhidot Antibodies","","IgG: 
+IgM:","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"UIBC","UIBC","μg/dl","Any (age 0d–100y): 155 - 355","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"UREA_CREATININE_RATI","Urea / Creatinine Ratio","","","Reference text missing","User source imported; external proposal pending review","Calculated ratio","","","Existing test database","The configured formula calculates this ratio. The existing database does not supply a universal normal range; laboratory SOP and clinical context must define any decision limits. No numeric normal is invented.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_CORTISOL","Urine Cortisol","μg/24 hrs","","Reference text missing","User source imported; external proposal pending review","Numeric","microgram/24 h","Any; 3–8y; ; 1.4 - 20
+Any; 9–12y; ; 2.6 - 37
+Any; 13–17y; ; 4.0 - 56
+Any; >=18y; ; 3.5 - 45","https://www.mayocliniclabs.com/test-catalog/overview/8546","24-hour collection and LC-MS/MS method required. Source does not establish intervals at age 0–2 years.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"UCT","Urine Cotinine","","","Reference text missing","User source imported; external proposal pending review","Method / exposure context","ng/mL","Any; Exposure context required; Non-user; no passive exposure; <5.0","https://www.mayocliniclabs.com/test-catalog/overview/82510","Quantitative urine cotinine only. Source describes non-tobacco users without passive exposure; qualitative card cutoffs differ and require the kit insert.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"UPT","Urine Pregnancy Test","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_ROUTINE_EXAMIN","Urine Routine Examination","","Quantity (ml): 
+Colour: Pale Yellow
+Transparency: Clear
+Specific Gravity: Any (age 0d–100y): 1.005 - 1.03
+pH: Any (age 0d–100y): 5 - 7
+Leukocytes: Absent
+Blood: Absent
+Protein / Albumin: Absent
+Sugar / Glucose: Absent
+Ketone Bodies: Absent
+Bilirubin: Absent
+Nitrite: Absent
+R.B.C. (/HPF): Absent
+Pus Cells (/HPF): Absent
+Epithilial Cells (/HPF): Absent
+Casts: Absent
+Crystals: 
+Bacteria: Absent
+Others: Absent","Existing reference; age coverage needs lab validation","User source imported","","","","Existing test database","Existing parameter references are retained. Check age, sex and assay applicability for each parameter."
+"URINE_SUGAR_FASTING","Urine Sugar Fasting","","","Reference text missing","User source imported; external proposal pending review","Qualitative","","Any; Source does not split ages; Dipstick; Negative","https://www.healthcare.uiowa.edu/path_handbook/handbook/test2590.html","Qualitative dipstick reference; quantitative glucose/ketones require their own assay limits. Source does not split age or sex.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_SUGAR_PP","Urine Sugar PP","","","Reference text missing","User source imported; external proposal pending review","Qualitative","","Any; Source does not split ages; Dipstick; Negative","https://www.healthcare.uiowa.edu/path_handbook/handbook/test2590.html","Qualitative dipstick reference; quantitative glucose/ketones require their own assay limits. Source does not split age or sex.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_SUGAR_RANDOM","Urine Sugar Random","","","Reference text missing","User source imported; external proposal pending review","Qualitative","","Any; Source does not split ages; Dipstick; Negative","https://www.healthcare.uiowa.edu/path_handbook/handbook/test2590.html","Qualitative dipstick reference; quantitative glucose/ketones require their own assay limits. Source does not split age or sex.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_AFB_24_HOU","Urine for AFB 24 hours","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_CHYLE","Urine for Chyle","","","Reference text missing","User source imported; external proposal pending review","Lab definition required","","","Existing test database","Specify qualitative chyle/chylomicron method and lab-approved normal finding; no arbitrary numeric age/sex range.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_ELISA_PREG","Urine for ELISA (Pregnancy)","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_FUNGAL","Urine for Fungal","","","Reference text missing","User source imported; external proposal pending review","Qualitative / method review","","Any; Source does not split ages; Fungal smear; Negative","https://www.mayocliniclabs.com/test-catalog/overview/84390","Fungal smear reference only. If the ordered test is culture, use a specimen-specific culture report instead.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_KETONE","Urine for Ketone","","","Reference text missing","User source imported; external proposal pending review","Qualitative","","Any; Source does not split ages; Dipstick; Negative","https://www.healthcare.uiowa.edu/path_handbook/handbook/test2590.html","Qualitative dipstick reference; quantitative glucose/ketones require their own assay limits. Source does not split age or sex.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_MICROALBUM","Urine for Microalbumin","","","Reference text missing","User source imported; external proposal pending review","Unit / assay review","mg/g creatinine","Male; Source does not split ages; ACR only; <17
+Female; Source does not split ages; ACR only; <25","https://www.mayocliniclabs.com/test-catalog/overview/609731","These are urine albumin/creatinine ratio thresholds, not a raw albumin concentration. Confirm specimen, reporting units and whether a separate creatinine measurement is part of this test.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_PROTEIN","Urine for Protein","","","Reference text missing","User source imported; external proposal pending review","Qualitative / method review","","Any; Source does not split ages; Dipstick; Negative","https://www.healthcare.uiowa.edu/path_handbook/handbook/test2590.html","Dipstick proposal only. Quantitative random protein and 24-hour excretion need distinct units and validated ranges.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"URINE_FOR_CREATININE","Urine for creatinine","","","Reference text missing","User source imported; external proposal pending review","Sampling context required","mg/dL","Any; >=18y; ; 16 - 326","https://www.mayocliniclabs.com/test-catalog/overview/610603","Random urine only; source has no pediatric range. Confirm this catalog entry is random, not 24-hour excretion.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"VDRL","VDRL","","","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"VLDL_CHOLESTEROL","VLDL Cholesterol","mg/dl","Any (age 0d–100y): 5 - 40","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"VITAMIN_B12","Vitamin B12","pg/ml","Any (age 0d–100y): 185 - 911","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"WBC_COUNT","WBC Count","mcL","Any (age 1d–7d): 9400 - 34000
+Any (age 8d–14d): 5000 - 21000
+Any (age 15d–30d): 5000 - 20000
+Any (age 60d–153d): 5000 - 15000
+Any (age 184d–1y): 6000 - 11000
+Any (age 1y–2y): 5000 - 12000
+Any (age 3y–5y): 4000 - 12000
+Any (age 6y–11y): 3400 - 10000
+Any (age 12y–15y): 3500 - 9000
+Any (age 16y–100y): 3500 - 10500","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"WEIL_FELIX_TEST_SERU","WEIL FELIX TEST, SERUM","","Proteus Antigen OX 19 (Titre): 
+Proteus Antigen OX 2 (Titre): 
+Proteus Antigen OX K (Titre):","Reference text missing","User source imported","","","","Existing test database","No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"WIDAL_SLIDE_METHOD","Widal (Slide Method)","","","Reference text missing","User source imported; external proposal pending review","Local baseline required","titre","","https://www.cdc.gov/yellow-book/hcp/travel-associated-infections-diseases/typhoid-and-paratyphoid-fever.html","No universal age/sex normal titre is proposed. Define O/H/AH/BH and reagent/local baseline thresholds in the lab SOP; CDC describes Widal as unreliable for diagnosis.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"WIDAL_TUBE_METHOD","Widal (Tube Method)","","","Reference text missing","User source imported; external proposal pending review","Local baseline required","titre","","https://www.cdc.gov/yellow-book/hcp/travel-associated-infections-diseases/typhoid-and-paratyphoid-fever.html","No universal age/sex normal titre is proposed. Define O/H/AH/BH and reagent/local baseline thresholds in the lab SOP; CDC describes Widal as unreliable for diagnosis.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"WIDAL_TEST_SLIDE_MET","Widal Test (Slide Method)","","Salmonella Typhi 'O': 
+Salmonella Typhi 'H': 
+Salmonella Typhi 'AH': 
+Salmonella Typhi 'BH':","Reference text missing","User source imported; external proposal pending review","Local baseline required","titre","","https://www.cdc.gov/yellow-book/hcp/travel-associated-infections-diseases/typhoid-and-paratyphoid-fever.html","No universal age/sex normal titre is proposed. Define O/H/AH/BH and reagent/local baseline thresholds in the lab SOP; CDC describes Widal as unreliable for diagnosis.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"EGFR","eGFR","ml/min/1.73m^2","Any (age 20y–100y): > 90","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."
+"EGFR_CATEGORY","eGFR Category","","","Reference text missing","User source imported; external proposal pending review","Calculated category","","Any; Adults; mL/min/1.73m2; G1 >=90; G2 60–89; G3a 45–59; G3b 30–44; G4 15–29; G5 <15","https://kdigo.org/wp-content/uploads/2024/07/07232024-KDIGO-CKD.pdf","Calculated KDIGO G category describes kidney function; CKD diagnosis also needs chronicity and other markers. Existing calculation already returns G1–G5.
+No existing reference is configured. Review the proposal or lab configuration decision before adding approved reference data."
+"ICALCIUM","iCalcium","mmol/l","Any (age 0d–100y): 1.13 - 1.33","Existing age / sex bands","User source imported","","","","Existing test database","Existing bands are retained; check gaps and source age boundaries in the range audit."

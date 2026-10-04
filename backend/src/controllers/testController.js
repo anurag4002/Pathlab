@@ -2,6 +2,10 @@ const testService = require('../services/testService');
 const { successResponse, errorResponse } = require('../utils/response');
 const { validateTest } = require('../validators/testValidator');
 const Activity = require('../models/Activity');
+const { validateFormula } = require('../services/formulaExpression');
+const { catalogSetupPlan } = require('../services/formulaCatalogService');
+const { expandTests } = require('../services/testDefinitions');
+const { parseFormula } = require('../services/formulaExpression');
 
 // Whitelisted fields for POST/PUT /api/tests (backward compatible:
 // legacy string ranges kept, numeric ranges/derived fields added Phase 2).
@@ -10,7 +14,7 @@ const ALLOWED_TEST_FIELDS = [
   'referenceRange', 'maleReferenceRange', 'femaleReferenceRange',
   'price', 'description', 'interpretation', 'status',
   'normalLow', 'normalHigh', 'criticalLow', 'criticalHigh',
-  'ageMin', 'ageMax', 'sexApplicable', 'isDerived', 'formula'
+  'ageMin', 'ageMax', 'sexApplicable', 'isDerived', 'formula', 'referenceRanges', 'parameters', 'resultOptions'
 ];
 
 const sanitizeTestPayload = (body = {}) => {
@@ -71,6 +75,19 @@ const deleteCategory = async (req, res, next) => {
 };
 
 // Tests
+const getFormulaTemplates = async (req, res, next) => {
+  try {
+    const definitions = expandTests(catalogSetupPlan(await testService.getTests({})));
+    const templates = definitions.filter((t) => t.isDerived && t.formula).map((test) => ({
+      code: test.code, label: test.name, expression: test.formula,
+      inputs: parseFormula(test.formula).references.map((code) => ({ key: code,
+        label: definitions.find((t) => t.code.toUpperCase() === code)?.name || code,
+        aliases: [code], names: [] }))
+    }));
+    return successResponse(res, 'Formula templates loaded', templates);
+  } catch (error) { next(error); }
+};
+
 const getTests = async (req, res, next) => {
   try {
     const filters = {
@@ -90,6 +107,9 @@ const createTest = async (req, res, next) => {
     const payload = sanitizeTestPayload(req.body);
     const { errors, isValid } = validateTest({ ...req.body, ...payload });
     if (!isValid) return errorResponse(res, 'Validation failed', 400, errors);
+
+    const formulaError = validateFormula(payload, await testService.getTests({}));
+    if (formulaError) return errorResponse(res, formulaError, 400, { formula: formulaError });
 
     const test = await testService.createTest(payload);
     
@@ -115,9 +135,13 @@ const updateTest = async (req, res, next) => {
     // pass required-field validation (backward compat).
     const existing = await testService.getTests({});
     const current = existing.find((t) => String(t._id) === String(id));
-    const merged = { ...(current ? current.toObject() : {}), ...payload };
+    if (!current) return errorResponse(res, 'Test not found', 404);
+    const merged = { ...current, ...payload };
     const { errors, isValid } = validateTest(merged);
     if (!isValid) return errorResponse(res, 'Validation failed', 400, errors);
+
+    const formulaError = validateFormula(merged, existing);
+    if (formulaError) return errorResponse(res, formulaError, 400, { formula: formulaError });
 
     const test = await testService.updateTest(id, payload);
     if (!test) return errorResponse(res, 'Test not found', 404);
@@ -345,6 +369,7 @@ const bulkUpdateTestRates = async (req, res, next) => {
 };
 
 module.exports = {
+  getFormulaTemplates,
   getCategories,
   createCategory,
   updateCategory,

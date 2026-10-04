@@ -1,6 +1,8 @@
 const path = require('path');
 const { resolveFormat } = require('./documentTemplateService');
 const { encode } = require('./code39Service');
+const { resolveReferenceRange } = require('./referenceRangeService');
+const { expandTests } = require('./testDefinitions');
 const assets = path.join(__dirname, '../assets/document-formats');
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
 const date = value => {
@@ -183,7 +185,9 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     else {
       const groups = [];
       (report.results || []).forEach(result => {
-        const test = context.testMap?.[String(result.test?._id || result.test)] || context.testMap?.[result.testName] || (typeof result.test === 'object' ? result.test : {});
+        const parent = context.testMap?.[String(result.test?._id || result.test)] || context.testMap?.[result.testName] || (typeof result.test === 'object' ? result.test : {});
+        const definition = result.parameterCode && parent ? expandTests([parent]).find((test) => test.parameterCode === result.parameterCode) : parent;
+        const test = resolveReferenceRange(definition || {}, context.patient || report.patient || {});
         const category = options.dept ? test.category?.name || test.categoryName || '' : '';
         if (!groups.length || groups[groups.length - 1].category !== category) groups.push({ category, items: [] });
         groups[groups.length - 1].items.push({ result, test });
@@ -193,7 +197,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       if (options.flags) columns.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { label: format.flagPlacement === 'last' ? 'FLAG' : '', width: flag, align: 'center' });
       groups.forEach(group => table(columns, group.items.map(({ result: r, test: t }) => {
         const bold = ['H', 'L', 'C'].includes(r.flag);
-        const range = t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : r.referenceRange || t.referenceRange || '-';
+        const range = r.referenceRange || t.referenceRange || (t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : '-');
         const cells = [{ text: `${r.testName || t.name || ''}${r.derived ? ' *' : ''}`, bold }, { text: r.value ?? '', bold }, { text: r.unit || t.unit || '-', bold }, { text: range, bold }];
         if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: r.flag && r.flag !== 'N' ? r.flag : '', bold });
         return cells;

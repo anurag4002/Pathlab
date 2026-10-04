@@ -3,7 +3,7 @@ const Patient = require('../models/Patient');
 const Bill = require('../models/Bill');
 const Test = require('../models/Test');
 const storageService = require('./storageService');
-const { derive, evaluateResult } = require('./formulaService');
+const { calculateReportResults } = require('./reportCalculationService');
 const { newPublicToken } = require('./qrService');
 const { JWT_SECRET } = require('../config/environment');
 
@@ -265,46 +265,8 @@ const saveResults = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
 
-  const patient = report.patient || {};
-  const testIds = entries
-    .map((e) => e.test)
-    .filter((id) => id && /^[a-fA-F0-9]{24}$/.test(String(id)));
-  const tests = await Test.find({ _id: { $in: testIds } });
-  const byId = {};
-  tests.forEach((t) => { byId[String(t._id)] = t; });
-
-  // Entered values keyed by test name/code for the formula engine.
-  const valueMap = {};
-  entries.forEach((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    const key = (t && (t.code || t.name)) || e.testName;
-    if (key) valueMap[key] = e.value;
-    if (t && t.name) valueMap[t.name] = e.value;
-  });
-
-  const { derived } = derive(valueMap, { age: patient.age, gender: patient.gender });
-
-  const buildRow = (test, testName, value, unit, isDerived) => {
-    const ev = evaluateResult(value, test, { age: patient.age, gender: patient.gender });
-    return {
-      test: test ? test._id : null,
-      testName: testName || (test && test.name) || '',
-      value: value === undefined || value === null ? '' : String(value),
-      unit: unit || (test && test.unit) || '',
-      flag: ev.flag,
-      derived: !!isDerived
-    };
-  };
-
-  const rows = entries.map((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    return buildRow(t, e.testName, e.value, e.unit, false);
-  });
-  derived.forEach((d) => {
-    rows.push(buildRow(null, d.testName, d.value, d.unit, true));
-  });
-
-  report.results = rows;
+  const { results } = await calculateReportResults(report, entries);
+  report.results = results;
   report.tat = report.tat || {};
   // Same collected-before-received invariant as submitResults.
   if (!report.tat.received && report.tat.collected) report.tat.received = new Date();
@@ -359,43 +321,8 @@ const saveResultsDraft = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
 
-  const patient = report.patient || {};
-  const testIds = entries.map((e) => e.test).filter(Boolean);
-  const tests = await Test.find({ _id: { $in: testIds } });
-  const byId = {};
-  tests.forEach((t) => { byId[String(t._id)] = t; });
-
-  const valueMap = {};
-  entries.forEach((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    const key = (t && (t.code || t.name)) || e.testName;
-    if (key) valueMap[key] = e.value;
-    if (t && t.name) valueMap[t.name] = e.value;
-  });
-
-  const { derived } = derive(valueMap, { age: patient.age, gender: patient.gender });
-
-  const buildRow = (test, testName, value, unit, isDerived) => {
-    const ev = evaluateResult(value, test, { age: patient.age, gender: patient.gender });
-    return {
-      test: test ? test._id : null,
-      testName: testName || (test && test.name) || '',
-      value: value === undefined || value === null ? '' : String(value),
-      unit: unit || (test && test.unit) || '',
-      flag: ev.flag,
-      derived: !!isDerived
-    };
-  };
-
-  const rows = entries.map((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    return buildRow(t, e.testName, e.value, e.unit, false);
-  });
-  derived.forEach((d) => {
-    rows.push(buildRow(null, d.testName, d.value, d.unit, true));
-  });
-
-  report.results = rows;
+  const { results } = await calculateReportResults(report, entries);
+  report.results = results;
   report.tat = report.tat || {};
   // Draft is data entry, not sample receipt — never stamp `received` here.
   // `received` is set only by an explicit collection/receipt event (updateTat)
@@ -411,43 +338,8 @@ const submitResults = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
 
-  const patient = report.patient || {};
-  const testIds = entries.map((e) => e.test).filter(Boolean);
-  const tests = await Test.find({ _id: { $in: testIds } });
-  const byId = {};
-  tests.forEach((t) => { byId[String(t._id)] = t; });
-
-  const valueMap = {};
-  entries.forEach((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    const key = (t && (t.code || t.name)) || e.testName;
-    if (key) valueMap[key] = e.value;
-    if (t && t.name) valueMap[t.name] = e.value;
-  });
-
-  const { derived } = derive(valueMap, { age: patient.age, gender: patient.gender });
-
-  const buildRow = (test, testName, value, unit, isDerived) => {
-    const ev = evaluateResult(value, test, { age: patient.age, gender: patient.gender });
-    return {
-      test: test ? test._id : null,
-      testName: testName || (test && test.name) || '',
-      value: value === undefined || value === null ? '' : String(value),
-      unit: unit || (test && test.unit) || '',
-      flag: ev.flag,
-      derived: !!isDerived
-    };
-  };
-
-  const rows = entries.map((e) => {
-    const t = e.test ? byId[String(e.test)] : null;
-    return buildRow(t, e.testName, e.value, e.unit, false);
-  });
-  derived.forEach((d) => {
-    rows.push(buildRow(null, d.testName, d.value, d.unit, true));
-  });
-
-  report.results = rows;
+  const { results } = await calculateReportResults(report, entries);
+  report.results = results;
   report.tat = report.tat || {};
   // Only backfill `received` when the sample was actually collected —
   // otherwise the timeline would show "received" for never-collected samples.

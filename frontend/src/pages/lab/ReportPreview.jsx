@@ -389,9 +389,9 @@ const ReportPreview = () => {
   const billEntries = dedupeTestEntries(entry?.testEntries ?? []);
   const calculatedResults = buildCalculatedResults(billEntries, reportDoc?.results);
   const billRows = billEntries.map((testEntry) => {
-    const calculated = calculatedResults[testEntry.testId] ?? null;
+    const calculated = calculatedResults[testEntry.resultKey || testEntry.testId] ?? null;
     return {
-      key: `test-${testEntry.testId ?? testEntry.testName}`,
+      key: `test-${testEntry.resultKey || testEntry.testId || testEntry.testName}`,
       name: testEntry.testName || '—',
       sub: [
         testEntry.testCode,
@@ -582,7 +582,7 @@ const ReportPreview = () => {
                 {renderField(
                   'Age',
                   entry.patient?.age != null && entry.patient.age !== ''
-                    ? String(entry.patient.age)
+                    ? `${entry.patient.age} ${entry.patient.ageUnit || 'years'}`
                     : ''
                 )}
                 {renderField('Gender', entry.patient?.gender)}

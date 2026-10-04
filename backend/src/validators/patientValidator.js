@@ -1,14 +1,16 @@
 const GENDERS = ['Male', 'Female', 'Other'];
 const PHONE_RE = /^\+?[0-9\s-]{7,15}$/;
 
-const validateAge = (age, errors) => {
+const validateAge = (age, errors, ageUnit = 'years') => {
+  const scales = { years: 1, months: 1 / 12, days: 1 / 365.25 };
+  if (!scales[ageUnit]) errors.ageUnit = 'Age unit must be years, months or days';
   if (age === undefined || age === null || age === '') {
     errors.age = 'Age is required';
     return;
   }
   const ageNum = Number(age);
-  if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
-    errors.age = 'Age must be a number between 0 and 150';
+  if (!Number.isFinite(ageNum) || ageNum < 0 || ageNum * (scales[ageUnit] || 1) > 150) {
+    errors.age = 'Age must be a non-negative number of at most 150 years';
   }
 };
 
@@ -35,7 +37,7 @@ const validatePatient = (data) => {
   if (!data.name || String(data.name).trim() === '') {
     errors.name = 'Patient name is required';
   }
-  validateAge(data.age, errors);
+  validateAge(data.age, errors, data.ageUnit || 'years');
   validateGender(data.gender, errors);
   validatePhone(data.phone, errors);
 
@@ -56,11 +58,9 @@ const validatePatientUpdate = (data) => {
     errors.name = 'Patient name is required';
   }
   if (data.age !== undefined && data.age !== null && data.age !== '') {
-    const ageNum = Number(data.age);
-    if (Number.isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
-      errors.age = 'Age must be a number between 0 and 150';
-    }
+    validateAge(data.age, errors, data.ageUnit || 'years');
   }
+  if (data.ageUnit !== undefined && !['years', 'months', 'days'].includes(data.ageUnit)) errors.ageUnit = 'Age unit must be years, months or days';
   if (data.gender !== undefined) {
     if (!data.gender || !GENDERS.includes(data.gender)) {
       errors.gender = 'Gender must be Male, Female, or Other';

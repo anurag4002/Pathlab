@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  min-width: 0;
 }
 
 /* Feedback banners (error / success) */
@@ -55,7 +56,8 @@
 .nr-test-name {
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .nr-sub {
@@ -73,11 +75,28 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.nr-reference { white-space: pre-line; overflow-wrap: break-word; font-size: var(--font-size-sm); }
 
-/* Keep this wide table inside the content column instead of forcing
-   page-level horizontal scroll: wrap headers and tighten cell padding.
-   (The shared DataTable header is nowrap, which propagates the table's
-   min-content width up to the app shell.) */
+/* Reserve space for every column. Smaller screens scroll within the table;
+   a long reference range must never squeeze the test name into letters. */
+.normal-ranges-page .data-table-container { min-width: 0; }
+.normal-ranges-page .data-table { table-layout: fixed; min-width: 1420px; }
+.normal-ranges-page .data-table th:nth-child(1) { width: 240px; }
+.normal-ranges-page .data-table th:nth-child(2) { width: 135px; }
+.normal-ranges-page .data-table th:nth-child(3) { width: 100px; }
+.normal-ranges-page .data-table th:nth-child(4) { width: 330px; }
+.normal-ranges-page .data-table th:nth-child(5),
+.normal-ranges-page .data-table th:nth-child(6) { width: 125px; }
+.normal-ranges-page .data-table th:nth-child(7) { width: 150px; }
+.normal-ranges-page .data-table th:nth-child(8) { width: 115px; }
+.normal-ranges-page .data-table th:nth-child(9) { width: 95px; }
+.normal-ranges-page .data-table th:nth-child(10) { width: 100px; }
+.normal-ranges-page .data-table td { overflow-wrap: break-word; }
+.normal-ranges-page .data-table .nr-range {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
 .normal-ranges-page .data-table th {
   white-space: normal;
 }
@@ -124,8 +143,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  max-height: 70vh;
-  overflow-y: auto;
   padding-right: var(--space-2);
 }
 
@@ -154,8 +171,18 @@
   margin-bottom: 0;
 }
 
+.nr-review { display: flex; flex-direction: column; gap: var(--space-4); }
+.nr-review p { margin: 0; }
+.nr-review-section { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.nr-review-section h3 { margin: 0; font-size: var(--font-size-sm); }
+.nr-review-text { white-space: pre-line; overflow-wrap: break-word; }
+.nr-proposal-scroll { overflow-x: auto; }
+.nr-proposal-table { border-collapse: collapse; width: 100%; min-width: 440px; font-size: var(--font-size-sm); }
+.nr-proposal-table th, .nr-proposal-table td { padding: var(--space-2); border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+
 /* Responsive */
 @media (max-width: 768px) {
+  .nr-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nr-filters,
   .nr-form-grid {
     grid-template-columns: 1fr;

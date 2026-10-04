@@ -84,3 +84,7 @@ export const deleteInterpretation = async (id) => {
   const response = await apiClient.delete(`/tests/interpretations/${id}`);
   return response.data;
 };
+export const getFormulaTemplates = async () => {
+  const response = await apiClient.get('/tests/formula-templates');
+  return response.data;
+};

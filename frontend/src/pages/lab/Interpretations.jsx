@@ -277,6 +277,7 @@ const Interpretations = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, normalAbnormalGuidance: e.target.value }))}
               options={[
                 { value: 'Normal', label: 'Normal Reference Guidance' },
+                { value: 'General', label: 'General Test Interpretation' },
                 { value: 'Abnormal', label: 'Abnormal Flag Advice' }
               ]}
               required

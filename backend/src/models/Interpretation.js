@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const InterpretationSchema = new mongoose.Schema({
+  sourceTestId: { type: String, index: true },
   test: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Test',
@@ -19,7 +20,7 @@ const InterpretationSchema = new mongoose.Schema({
   },
   normalAbnormalGuidance: {
     type: String,
-    enum: ['Normal', 'Abnormal'],
+    enum: ['Normal', 'Abnormal', 'General'],
     default: 'Normal'
   },
   status: {

@@ -11,6 +11,9 @@ const LabProfile = require('../models/LabProfile');
 const Signature = require('../models/Signature');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
+const { expandTests, resultKey, includeFormulaDependencies } = require('../services/testDefinitions');
+const { resolveReferenceRange } = require('../services/referenceRangeService');
+const { getResultOptions } = require('../services/resultOptionsService');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
@@ -167,6 +170,7 @@ module.exports = {
   reportQr,
   getPendingLabCases,
   getReportForEntry,
+  previewResults,
   saveResultsDraft,
   submitResults,
   verifyReport,
@@ -541,7 +545,7 @@ async function getReportForEntry(req, res, next) {
   try {
     await assertReportAccess(req, req.params.id);
     const report = await Report.findById(req.params.id)
-      .populate('patient', 'name registrationNumber age gender phone address referringDoctor')
+      .populate('patient', 'name registrationNumber age ageUnit gender phone address referringDoctor')
       .populate({
         path: 'bill',
         populate: {
@@ -597,7 +601,7 @@ async function getReportForEntry(req, res, next) {
       const tname = r.testName || r.test?.name;
       if (tid && !allTests.some((t) => String(t.itemId) === String(tid))) {
         allTests.push({ type: 'Test', itemId: tid, name: tname || 'Test' });
-      } else if (!tid && tname && !allTests.some((t) => t.name === tname && !t.itemId)) {
+      } else if (!tid && !r.derived && tname && !allTests.some((t) => t.name === tname && !t.itemId)) {
         allTests.push({ type: 'Custom', itemId: null, name: tname });
       }
     }
@@ -623,7 +627,13 @@ async function getReportForEntry(req, res, next) {
 
     // Get full test details
     const testIds = [...new Set(allTests.map(t => t.itemId).filter(Boolean))];
-    const tests = await Test.find({ _id: { $in: testIds } }).lean();
+    const catalog = await Test.find().populate('category', 'name').lean();
+    const tests = includeFormulaDependencies(catalog.filter((t) => testIds.some((id) => String(id) === String(t._id))), catalog);
+    for (const test of tests) {
+      if (!allTests.some((t) => String(t.itemId) === String(test._id))) {
+        allTests.push({ type: 'Test', itemId: test._id, name: test.name, formulaInput: true });
+      }
+    }
     const testMap = {};
     tests.forEach(t => { testMap[String(t._id)] = t; });
 
@@ -631,12 +641,17 @@ async function getReportForEntry(req, res, next) {
     const existingResults = report.results || [];
     const existingResultMap = {};
     existingResults.forEach(r => {
-      if (r.test) existingResultMap[String(r.test)] = r;
+      if (r.test) existingResultMap[resultKey(r.test, r.parameterCode)] = r;
     });
 
-    const testEntries = allTests.map(t => {
-      const test = t.itemId ? testMap[String(t.itemId)] : null;
-      const existing = t.itemId ? existingResultMap[String(t.itemId)] : null;
+    const testEntries = allTests.flatMap((t) => {
+      const parent = t.itemId ? testMap[String(t.itemId)] : null;
+      const definitions = parent ? expandTests([parent]) : [null];
+      if (parent?.parameters?.length && existingResultMap[resultKey(parent._id)]) definitions.unshift({ ...parent, legacyScalar: true });
+      return definitions.map((definition, definitionIndex) => {
+      const test = definition ? resolveReferenceRange(definition, report.patient) : null;
+      const key = resultKey(t.itemId, test?.parameterCode);
+      const existing = t.itemId ? existingResultMap[key] : null;
       // Match name-only saved results for Custom lines
       const existingByName = !existing && t.name
         ? (report.results || []).find((r) => !r.test && r.testName === t.name)
@@ -644,11 +659,22 @@ async function getReportForEntry(req, res, next) {
       const row = existing || existingByName;
       return {
         testId: t.itemId || null,
-        testName: test?.name || t.name || 'Test',
+        resultKey: t.itemId ? key : `name:${t.name}`,
+        parameterCode: test?.parameterCode || '',
+        testName: test?.legacyScalar ? `${test.name} (previous entry)` : test?.name || t.name || 'Test',
         testCode: test?.code || '',
+        sourceType: test?.sourceType || '',
+        displayOrder: test?.displayOrder ?? null,
         category: test?.category,
+        categoryName: test?.category?.name || '',
+        interpretation: definitionIndex === 0 ? test?.interpretation || '' : '',
         unit: test?.unit || '',
-        referenceRange: test?.referenceRange || '',
+        resultOptions: getResultOptions(test || {}),
+        referenceRange: ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status)
+          ? row?.referenceRange || test?.referenceRange || '' : test?.referenceRange || '',
+        rangeMissing: test?.rangeMissing || false,
+        lowInclusive: test?.lowInclusive,
+        highInclusive: test?.highInclusive,
         maleReferenceRange: test?.maleReferenceRange || '',
         femaleReferenceRange: test?.femaleReferenceRange || '',
         normalLow: test?.normalLow,
@@ -659,13 +685,18 @@ async function getReportForEntry(req, res, next) {
         ageMax: test?.ageMax,
         sexApplicable: test?.sexApplicable,
         isDerived: test?.isDerived,
+        legacyScalar: !!test?.legacyScalar,
+        formula: test?.formula || '',
         packageName: t.packageName,
         panelName: t.panelName,
+        parentName: test?.parentName || '',
+        formulaInput: !!t.formulaInput,
         existingValue: row?.value || '',
         existingUnit: row?.unit || '',
         existingFlag: row?.flag || '',
         existingRemark: row?.remark || ''
       };
+      });
     });
 
     return successResponse(res, 'Report loaded for entry', {
@@ -679,11 +710,27 @@ async function getReportForEntry(req, res, next) {
       patient: report.patient,
       bill: report.bill,
       entryMode: report.entryMode || 'all',
-      testEntries
+      results: report.results || [],
+      testEntries: [...new Map(testEntries.map((test) => [test.resultKey, test])).values()].sort((a,b)=>(a.displayOrder ?? Infinity)-(b.displayOrder ?? Infinity))
     });
   } catch (error) {
     next(error);
   }
+}
+
+// Preview uses the same calculation path as save, without changing report state.
+async function previewResults(req, res, next) {
+  try {
+    await assertReportAccess(req, req.params.id);
+    const report = await Report.findById(req.params.id).populate('patient');
+    if (!report) return errorResponse(res, 'Report not found', 404);
+    const entries = req.body?.results;
+    if (!Array.isArray(entries) || entries.length > 500 || entries.some((e) => !e || typeof e !== 'object')) {
+      return errorResponse(res, 'Results must be an array of at most 500 entries', 400);
+    }
+    const { calculateReportResults } = require('../services/reportCalculationService');
+    return successResponse(res, 'Results calculated', await calculateReportResults(report, entries));
+  } catch (error) { next(error); }
 }
 
 // PUT /reports/:id/results/draft - Save results as draft (status stays Registered)

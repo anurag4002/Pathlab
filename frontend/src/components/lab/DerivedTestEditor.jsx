@@ -1,65 +1,90 @@
-import React from 'react';
-import { Input } from '../common';
+import React, { useEffect, useRef, useState } from 'react';
+import { Select } from '../common';
+import { FORMULA_TEMPLATES, buildTemplateFormula, formulaReferences } from '../../utils/testFormulas';
+import { getFormulaTemplates } from '../../services/testService';
 
-/**
- * Phase 2 — derived-test editor: isDerived checkbox + formula + child-test list.
- * `tests` = all available tests for the child checklist (optional).
- * `childIds` = array of selected child test ids (stored alongside formula; the
- * backend keeps `formula` text — childIds are a UI helper, also embedded as
- * `FORMULA_CHILD_IDS` comment-free metadata only if the caller sends them).
- */
-const DerivedTestEditor = ({
-  isDerived = false,
-  formula = '',
-  childIds = [],
-  tests = [],
-  onChange,
-  error = ''
-}) => {
-  const toggleChild = (id) => {
-    const next = childIds.includes(id) ? childIds.filter((c) => c !== id) : [...childIds, id];
-    onChange({ childIds: next });
+const DerivedTestEditor = ({ isDerived = false, formula = '', tests = [], onChange, error = '' }) => {
+  const [template, setTemplate] = useState('');
+  const [inputs, setInputs] = useState({});
+  const [templates, setTemplates] = useState(FORMULA_TEMPLATES);
+  const inputRef = useRef(null);
+  const references = formulaReferences(formula);
+  const selected = templates.find((t) => t.code === template);
+  useEffect(() => {
+    let active = true;
+    getFormulaTemplates().then((response) => {
+      if (active && response.data?.length) setTemplates(response.data);
+    }).catch(() => { /* keep the basic CBC templates available */ });
+    return () => { active = false; };
+  }, []);
+
+  const chooseTemplate = (code) => {
+    setTemplate(code);
+    const preset = templates.find((t) => t.code === code);
+    if (!preset) return;
+    const next = {};
+    preset.inputs.forEach((input) => {
+      const test = tests.find((t) => input.aliases.includes(t.code.toUpperCase()))
+        || tests.find((t) => input.names.some((name) => t.name.toLowerCase().includes(name)));
+      next[input.key] = test?.code || '';
+    });
+    setInputs(next);
+    onChange({ formula: buildTemplateFormula(preset, next) });
+  };
+
+  const insertCode = (code) => {
+    const element = inputRef.current;
+    const start = element?.selectionStart ?? formula.length;
+    const end = element?.selectionEnd ?? start;
+    const token = `[${code}]`;
+    onChange({ formula: formula.slice(0, start) + token + formula.slice(end) });
+    setTemplate('');
+    requestAnimationFrame(() => {
+      element?.focus();
+      element?.setSelectionRange(start + token.length, start + token.length);
+    });
   };
 
   return (
-    <fieldset style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px' }}>
-      <legend style={{ fontSize: '0.8rem', fontWeight: 700, padding: '0 6px' }}>Derived Test</legend>
-
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', cursor: 'pointer', marginBottom: '8px' }}>
-        <input
-          type="checkbox"
-          checked={!!isDerived}
-          onChange={(e) => onChange({ isDerived: e.target.checked })}
-        />
-        <span style={{ fontWeight: 600 }}>This is a derived (calculated) test</span>
+    <fieldset className="formula-editor">
+      <legend>Automatic calculation</legend>
+      <label className="formula-toggle">
+        <input type="checkbox" checked={!!isDerived} onChange={(e) => onChange({ isDerived: e.target.checked })} />
+        <span>This is a calculated test (fx)</span>
       </label>
-
-      {isDerived && (
-        <>
-          <Input
-            label="Formula"
-            name="formula"
-            value={formula}
-            onChange={(e) => onChange({ formula: e.target.value })}
-            error={error}
-            placeholder="e.g. (HGB / HCT) * 100  — use test codes"
-            helperText="Use test codes as variables. Evaluated client-side only until a server endpoint exists."
-          />
-          {tests.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Child tests used in formula</label>
-              <div style={{ border: '1px solid var(--border-color)', borderRadius: '6px', maxHeight: '140px', overflowY: 'auto', padding: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                {tests.map((t) => (
-                  <label key={t._id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={childIds.includes(t._id)} onChange={() => toggleChild(t._id)} />
-                    <span>{t.code} — {t.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
+      {isDerived && <>
+        <Select label="Formula template" name="formulaTemplate" value={template}
+          placeholder="Custom formula / choose a template"
+          options={templates.map((t) => ({ value: t.code, label: t.label }))}
+          onChange={(e) => chooseTemplate(e.target.value)} />
+        {selected && <div className="test-form-grid">
+          {selected.inputs.map((input) => <Select key={input.key}
+            name={`formula-input-${input.key}`} label={input.label} value={inputs[input.key] || ''}
+            options={tests.map((t) => ({ value: t.code, label: `${t.code} — ${t.name}` }))}
+            onChange={(e) => {
+              const next = { ...inputs, [input.key]: e.target.value };
+              setInputs(next);
+              onChange({ formula: buildTemplateFormula(selected, next) });
+            }} />)}
+        </div>}
+        <div className="form-group">
+          <label className="form-label" htmlFor="formula">Formula</label>
+          <input ref={inputRef} id="formula" name="formula" className={`form-control ${error ? 'has-error' : ''}`}
+            value={formula} onChange={(e) => { setTemplate(''); onChange({ formula: e.target.value }); }}
+            aria-invalid={!!error} aria-describedby={error ? 'formula-error' : 'formula-help'}
+            placeholder="e.g. ROUND(([HCT] * 10) / [RBC], 1)" />
+          {error ? <p className="form-error" id="formula-error">{error}</p>
+            : <p className="form-helper" id="formula-help">Use test codes, + − * / ^ and parentheses. ROUND, MIN, MAX, ABS and POW are supported. Calculates automatically during result entry and on save.</p>}
+        </div>
+        <p className="form-helper">Click an input test to insert its code at the cursor.</p>
+        <div className="formula-test-list">
+          {tests.map((t) => <button key={t._id} type="button" className="formula-test-button"
+            onClick={() => insertCode(t.code)} title={`Insert ${t.code}`}>
+            {t.code} — {t.name}
+          </button>)}
+        </div>
+        <p className="form-helper" aria-live="polite">Inputs in this formula: {references.length ? references.join(', ') : 'None selected'}</p>
+      </>}
     </fieldset>
   );
 };

@@ -12,7 +12,7 @@ import { FolderOpen, Edit2, Trash2, UserPlus } from 'lucide-react';
 const validatePatient = (formData) => {
   const errs = {};
   if (!formData.name.trim()) errs.name = 'Patient name is required';
-  if (!formData.age || isNaN(formData.age) || Number(formData.age) < 0) {
+  if (formData.age === '' || formData.age == null || isNaN(formData.age) || Number(formData.age) < 0) {
     errs.age = 'Valid age is required';
   }
   if (!formData.gender) errs.gender = 'Gender is required';
@@ -124,6 +124,7 @@ const PatientsPage = () => {
     setFormData({
       name: patient.name,
       age: patient.age,
+      ageUnit: patient.ageUnit || 'years',
       gender: patient.gender,
       phone: patient.phone,
       address: patient.address || '',
@@ -240,7 +241,7 @@ const PatientsPage = () => {
               {patient.registrationNumber}
             </td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{patient.name}</td>
-            <td>{patient.age != null && patient.age !== '' ? patient.age : '—'}</td>
+            <td>{patient.age != null && patient.age !== '' ? `${patient.age} ${patient.ageUnit || 'years'}` : '—'}</td>
             <td>{patient.gender || '—'}</td>
             <td style={{ whiteSpace: 'nowrap' }}>{patient.phone}</td>
             <td>{patient.referringDoctor?.name || 'Self'}</td>
