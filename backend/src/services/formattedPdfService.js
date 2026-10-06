@@ -31,8 +31,10 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   // standard fonts. Bundle the Unicode font so production needs no download.
   doc.registerFont('ClinicalUnicode', path.join(assets, 'fonts/NotoSans-Regular.ttf'));
   doc.registerFont('ClinicalUnicodeBold', path.join(assets, 'fonts/NotoSans-Bold.ttf'));
-  const textFont = (value, bold) => /[^\x00-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u2026]/.test(String(value))
-    ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
+  doc.registerFont('ClinicalMath', path.join(assets, 'fonts/NotoSansMath-Regular.ttf'));
+  const textFont = (value, bold) => /[↑↓≤≥]/.test(String(value)) ? 'ClinicalMath'
+    : /[^\x00-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u2026]/.test(String(value))
+      ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
   const limit = doc.page.height - (options.footer ? format.footerHeight + 26 : 30) - m;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
