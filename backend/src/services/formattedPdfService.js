@@ -3,6 +3,7 @@ const { resolveFormat } = require('./documentTemplateService');
 const { encode } = require('./code39Service');
 const { resolveReferenceRange } = require('./referenceRangeService');
 const { expandTests } = require('./testDefinitions');
+const { reportNoteBlocks } = require('./interpretationLayout');
 const assets = path.join(__dirname, '../assets/document-formats');
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
 const date = value => {
@@ -26,6 +27,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   });
   const m = format.pageMargin, width = doc.page.width - m * 2;
   const font = bold => bold ? ({ Helvetica: 'Helvetica-Bold', 'Times-Roman': 'Times-Bold', Courier: 'Courier-Bold' }[format.fontFamily]) : format.fontFamily;
+  // Preserve Greek letters and other clinical symbols absent from PDF's
+  // standard fonts. Bundle the Unicode font so production needs no download.
+  doc.registerFont('ClinicalUnicode', path.join(assets, 'fonts/NotoSans-Regular.ttf'));
+  doc.registerFont('ClinicalUnicodeBold', path.join(assets, 'fonts/NotoSans-Bold.ttf'));
+  const textFont = (value, bold) => /[^\x00-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u2026]/.test(String(value))
+    ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
   const limit = doc.page.height - (options.footer ? format.footerHeight + 26 : 30) - m;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
@@ -36,23 +43,23 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     catch (_) { doc.restore(); return false; }
   }
   function text(value, x, top, w, { bold = false, size = format.fontSize, color = '#111111', align = 'left' } = {}) {
-    doc.font(font(bold)).fontSize(size).fillColor(color).text(String(value ?? ''), x, top, { width: w, align, lineBreak: false });
+    doc.font(textFont(value, bold)).fontSize(size).fillColor(color).text(String(value ?? ''), x, top, { width: w, align, lineBreak: false });
   }
   function lines(value, w, bold = false, size = format.fontSize) {
-    doc.font(font(bold)).fontSize(size);
+    const measure = value => doc.font(textFont(value, bold)).fontSize(size).widthOfString(value);
     const output = [];
     for (const paragraph of String(value ?? '').split('\n')) {
       let line = '';
       for (const word of paragraph.split(/\s+/)) {
         // Split a single oversized token too (IDs and unbroken imported text).
         let rest = word;
-        while (doc.widthOfString(rest) > w) {
+        while (measure(rest) > w) {
           if (line) { output.push(line); line = ''; }
           let end = 1;
-          while (end < rest.length && doc.widthOfString(rest.slice(0, end + 1)) <= w) end++;
+          while (end < rest.length && measure(rest.slice(0, end + 1)) <= w) end++;
           output.push(rest.slice(0, end)); rest = rest.slice(end);
         }
-        if (line && doc.widthOfString(`${line} ${rest}`) > w) { output.push(line); line = rest; }
+        if (line && measure(`${line} ${rest}`) > w) { output.push(line); line = rest; }
         else line = line ? `${line} ${rest}` : rest;
       }
       output.push(line);
@@ -122,32 +129,27 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   }
   function newPage() { doc.addPage(); header(); }
   function space(height) { if (y + height > limit) { newPage(); return true; } return false; }
-  function paragraph(value, { bold = false, size = format.fontSize, align = 'left', shaded = false } = {}) {
-    const rowHeight = size + 4;
+  function paragraph(value, { bold = false, size = format.fontSize, align = 'left', shaded = false, leading = size + 4, gap = 5 } = {}) {
+    const rowHeight = leading;
     for (const line of lines(value, width - (shaded ? 12 : 0), bold, size)) {
       space(rowHeight);
       if (shaded) doc.save().fillColor('#f3f7fa').rect(m, y - 2, width, rowHeight).fill().restore();
       text(line, m + (shaded ? 6 : 0), y, width - (shaded ? 12 : 0), { bold, size, align }); y += rowHeight;
     }
-    y += 5;
+    y += gap;
   }
-  function heading(value) { if (value) paragraph(value, { bold: true, size: 11, align: 'center' }); }
-  function explanation(value) {
-    // Preserve the headings and line breaks in saved clinical guidance.
-    for (const block of String(value || '').replace(/\r\n?/g, '\n').split('\n').map(line => line.trim()).filter(Boolean)) {
-      const isHeading = /^(physiological basis|clinical significance|interpretation|increased in|decreased in|causes?|notes?|comments?|method|principle|reference(?: interval| range)?|clinical utility|limitations?|specimen|precautions?)\s*:?\s*$/i.test(block);
-      paragraph(block, { bold: isHeading, size: 8 });
-    }
-  }
-  function table(columns, rows, title = '') {
-    const pad = format.rowPadding, lineHeight = format.fontSize + 3;
+  function heading(value, style = {}) { if (value) paragraph(value, { bold: true, size: 11, align: 'center', ...style }); }
+  function table(columns, rows, title = '', style = {}) {
+    const size = style.bodySize || format.fontSize;
+    const pad = style.rowPadding ?? format.rowPadding, lineHeight = style.tableLeading || size + 3;
+    const titleSize = style.titleSize || 11;
     const draw = (cells, heights, isHeader, index, offset, count) => {
       const h = count * lineHeight + pad * 2;
       const banded = format.tableStyle === 'banded';
       if ((isHeader && banded) || (!isHeader && banded && index % 2 === 0)) doc.save().fillColor(isHeader ? format.accentColor : '#f3f4f6').rect(m, y, width, h).fill().restore();
       let x = m;
       cells.forEach((cell, j) => {
-        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + pad, y + pad + i * lineHeight, columns[j].width - pad * 2, { bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: columns[j].align || 'left' });
+        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + pad, y + pad + i * lineHeight, columns[j].width - pad * 2, { size, bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: columns[j].align || 'left' });
         x += columns[j].width;
       });
       if (format.tableStyle === 'outlined') {
@@ -157,12 +159,13 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       y += h;
     };
     const headerCells = columns.map(c => ({ text: c.label }));
-    const headerLines = columns.map(c => lines(c.label, c.width - pad * 2, true));
+    const headerLines = columns.map(c => lines(c.label, c.width - pad * 2, true, size));
     const headerHeight = Math.max(...headerLines.map(l => l.length)) * lineHeight + pad * 2;
-    const tableHeader = () => { heading(title); draw(headerCells, headerLines, true, 0, 0, Math.max(...headerLines.map(l => l.length))); };
-    space(headerHeight + 45); tableHeader();
+    const titleHeight = title ? lines(title, width, true, titleSize).length * (titleSize + 2) + 3 : 0;
+    const tableHeader = () => { heading(title, { size: titleSize, leading: titleSize + 2, gap: 3 }); draw(headerCells, headerLines, true, 0, 0, Math.max(...headerLines.map(l => l.length))); };
+    space(headerHeight + titleHeight + lineHeight + pad * 2); tableHeader();
     rows.forEach((cells, index) => {
-      const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - pad * 2, cell.bold));
+      const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - pad * 2, cell.bold, size));
       const total = Math.max(...heights.map(l => l.length)); let offset = 0;
       while (offset < total) {
         let available = Math.floor((limit - y - pad * 2) / lineHeight);
@@ -173,24 +176,144 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       }
     });
     if (format.tableStyle === 'outlined') rule(y);
-    y += 12;
+    y += style.tableGap ?? 12;
   }
-  function finishReportSection() {
-    if (options.endline && format.endOfReportText) paragraph(format.endOfReportText, { align: 'center' });
-    if (profile.disclaimer) paragraph(profile.disclaimer, { size: 8, align: 'center' });
+  function finishReportSection(style = {}) {
+    if (options.endline && format.endOfReportText) paragraph(format.endOfReportText, { size: style.noteSize || format.fontSize, leading: style.noteLeading, gap: style.noteGap ?? 5, align: 'center' });
+    if (profile.disclaimer) paragraph(profile.disclaimer, { size: style.disclaimerSize || 8, leading: style.disclaimerLeading, gap: style.noteGap ?? 5, align: 'center' });
     const signatures = options.signatures ? (requestOptions.signaturePngs || context.signaturePngs || []).filter(s => s.png) : [];
+    const signatureHeight = style.signatureHeight || 90;
+    const imageHeight = style.signatureHeight ? 36 : 46;
     // Repeat only the signatures actually recorded on this report.
     for (let i = 0; i < signatures.length; i += 2) {
-      space(90);
-      if (i + 2 >= signatures.length) y = Math.max(y, limit - 90);
+      space(signatureHeight);
+      if (i + 2 >= signatures.length) y = Math.max(y, limit - signatureHeight);
       const top = y, col = width / 2;
       signatures.slice(i, i + 2).forEach((signature, j) => {
         const x = m + j * col;
-        image(signature.png, x, top, col - 12, 46);
+        image(signature.png, x, top, col - 12, imageHeight);
         const label = [signature.name, signature.title, 'Authorised Signatory'].filter(Boolean).join('\n');
-        lines(label, col - 12, false, 8).slice(0, 3).forEach((line, n) => text(line, x, top + 50 + n * 11, col - 12, { size: 8, align: j ? 'right' : 'left' }));
+        lines(label, col - 12, false, 8).slice(0, 3).forEach((line, n) => text(line, x, top + imageHeight + 4 + n * 11, col - 12, { size: 8, align: j ? 'right' : 'left' }));
       });
-      y = top + 90;
+      y = top + signatureHeight;
+    }
+  }
+  function endingHeight(style) {
+    let height = 0;
+    if (options.endline && format.endOfReportText) height += lines(format.endOfReportText, width, false, style.noteSize).length * style.noteLeading + style.noteGap;
+    if (profile.disclaimer) height += lines(profile.disclaimer, width, false, style.disclaimerSize).length * style.disclaimerLeading + style.noteGap;
+    const signatures = options.signatures ? (requestOptions.signaturePngs || context.signaturePngs || []).filter(s => s.png) : [];
+    return height + Math.ceil(signatures.length / 2) * style.signatureHeight;
+  }
+  function tableHeight(columns, rows, title, style) {
+    const rowHeight = cells => Math.max(...cells.map((cell, i) => lines(cell.text, columns[i].width - style.rowPadding * 2, cell.bold, style.bodySize).length)) * style.tableLeading + style.rowPadding * 2;
+    const titleHeight = title ? lines(title, width, true, style.titleSize).length * (style.titleSize + 2) + 3 : 0;
+    return titleHeight + rowHeight(columns.map(column => ({ text: column.label, bold: true }))) + rows.reduce((height, row) => height + rowHeight(row), 0) + style.tableGap;
+  }
+  function noteLines(blocks, style, columns) {
+    const columnWidth = (width - (columns - 1) * 14) / columns;
+    const tokens = [];
+    blocks.forEach((block, blockIndex) => {
+      if (block.kind === 'comparison' || block.kind === 'table') {
+        const rows = block.kind === 'table' ? block.rows : [
+          block.columns.map(column => column.heading),
+          ...Array.from({ length: Math.max(...block.columns.map(column => column.items.length)) }, (_, i) => block.columns.map(column => column.items[i] || ''))
+        ];
+        const cellCount = Math.max(...rows.map(row => row.length));
+        const cellWidth = columnWidth / cellCount;
+        rows.forEach((row, rowIndex) => {
+          const cellLines = Array.from({ length: cellCount }, (_, j) => lines(row[j] || '', cellWidth - 10, !rowIndex, style.noteSize));
+          const count = Math.max(...cellLines.map(cell => cell.length));
+          for (let i = 0; i < count; i++) tokens.push({
+            cells: cellLines.map(cell => ({ text: cell[i] || '', bold: !rowIndex })), size: style.noteSize, indent: 0,
+            height: style.noteLeading + 1, before: !rowIndex && !i ? 4 : 0,
+            after: rowIndex === rows.length - 1 && i === count - 1 ? style.noteGap : 0,
+            keepWithNext: !rowIndex, rowTop: !i, rowBottom: i === count - 1,
+            color: '#111111', comparison: true
+          });
+        });
+        return;
+      }
+      const bold = block.kind === 'title' || block.kind === 'heading';
+      const size = style.noteSize + (block.kind === 'title' ? 0.6 : block.kind === 'heading' ? 0.2 : 0);
+      const indent = block.kind === 'list' ? 8 : 0;
+      const wrapped = lines(block.text, columnWidth - indent, bold, size);
+      wrapped.forEach((line, i) => tokens.push({
+        text: line, size, bold, indent,
+        height: bold ? size + 1.5 : style.noteLeading,
+        before: i || !blockIndex ? 0 : bold ? 3 : 1,
+        after: i === wrapped.length - 1 && !bold ? style.noteGap : 0,
+        keepWithNext: bold,
+        title: block.kind === 'title', color: block.kind === 'detail' ? '#475569' : '#111111'
+      }));
+    });
+    return { tokens, columnWidth };
+  }
+  function planNotes(blocks, style, columns, start, bottom) {
+    const { tokens, columnWidth } = noteLines(blocks, style, columns);
+    const placements = [];
+    let column = 0, top = start, lastY = start;
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      const next = tokens[i + 1];
+      const needed = token.before + token.height + token.after + (token.keepWithNext && next ? next.before + next.height : 0);
+      if (top + needed > bottom) {
+        column++; top = start;
+        if (column >= columns) return { fits: false };
+      }
+      top += token.before;
+      placements.push({ ...token, x: m + column * (columnWidth + 14), y: top, width: columnWidth - token.indent });
+      top += token.height + token.after;
+      lastY = Math.max(lastY, top);
+    }
+    return { fits: true, placements, lastY };
+  }
+  function chooseSectionLayout(tables, columns, blocks) {
+    const sizes = [...new Set([format.fontSize, 9, 8.5, 8, 7.5].filter(size => size <= format.fontSize))];
+    const styles = sizes.map((size, index) => ({
+      bodySize: size, rowPadding: Math.min(format.rowPadding, index ? 1 : 2), tableLeading: size + 1.5,
+      titleSize: 10, tableGap: 6, noteSize: Math.min(8.5, size), noteLeading: Math.min(8.5, size) * 1.18,
+      noteGap: 1.5, disclaimerSize: 7, disclaimerLeading: 8.5, signatureHeight: 72
+    }));
+    // Prefer one column like the reference; use two compact note columns only
+    // when the complete wording cannot fit beneath the results in one column.
+    for (const noteColumns of [1, 2]) for (const style of styles) {
+      const resultHeight = tables.reduce((height, item) => height + tableHeight(columns, item.rows, item.title, style), 0);
+      const noteStart = y + resultHeight + (blocks.length ? 5 : 0);
+      const noteBottom = limit - endingHeight(style) - 2;
+      if (noteStart > noteBottom) continue;
+      const notes = planNotes(blocks, style, noteColumns, noteStart, noteBottom);
+      if (notes.fits) return { style, notes };
+    }
+    // Exceptionally long guidance remains complete and legible on continuation
+    // pages rather than being clipped, truncated or reduced below 7.5 points.
+    return { style: styles[styles.length - 1], notes: null };
+  }
+  function drawNotes(blocks, layout) {
+    const drawLine = (line, x, top, lineWidth) => {
+      if (line.comparison) {
+        const cellWidth = lineWidth / line.cells.length;
+        doc.strokeColor('#cbd5e1').lineWidth(0.4);
+        for (let i = 0; i <= line.cells.length; i++) doc.moveTo(x + i * cellWidth, top - 1).lineTo(x + i * cellWidth, top + line.height);
+        if (line.rowTop) doc.moveTo(x, top - 1).lineTo(x + lineWidth, top - 1);
+        if (line.rowBottom) doc.moveTo(x, top + line.height).lineTo(x + lineWidth, top + line.height);
+        doc.stroke();
+        line.cells.forEach((cell, i) => { if (cell) text(cell.text, x + i * cellWidth + 5, top, cellWidth - 10, { ...line, bold: cell.bold }); });
+      } else {
+        if (line.title) doc.strokeColor('#cbd5e1').lineWidth(0.4).moveTo(x, top - 2).lineTo(x + lineWidth, top - 2).stroke();
+        text(line.text, x + line.indent, top, lineWidth, line);
+      }
+    };
+    if (layout.notes) {
+      layout.notes.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
+      y = layout.notes.lastY;
+    } else {
+      const { tokens } = noteLines(blocks, layout.style, 1);
+      tokens.forEach((line, index) => {
+        const next = tokens[index + 1];
+        space(line.before + line.height + line.after + (line.keepWithNext && next ? next.before + next.height : 0));
+        y += line.before; drawLine(line, m, y, width - line.indent); y += line.height + line.after;
+      });
     }
   }
   header();
@@ -245,43 +368,19 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       [...sections.values()].forEach((section, index) => {
         if (index) newPage();
         reportHeading();
-        section.groups.forEach(group => table(columns, group.items.map(({ result: r, test: t }) => {
+        const tables = section.groups.map(group => ({ rows: group.items.map(({ result: r, test: t }) => {
           const bold = ['H', 'L', 'C'].includes(r.flag);
           const range = r.referenceRange || t.referenceRange || (t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : '-');
           const name = r.parameterCode && t.parentName ? (r.testName || t.name || '').replace(`${t.parentName}: `, '') : r.testName || t.sourceFieldName || t.name || '';
           const cells = [{ text: `${name}${r.derived ? ' *' : ''}`, bold }, { text: r.value ?? '', bold }, { text: r.unit || t.unit || '-', bold }, { text: range, bold }];
           if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: r.flag && r.flag !== 'N' ? r.flag : '', bold });
           return cells;
-        }), [...new Set([group.category, section.title].filter(Boolean))].join('\n').toUpperCase()));
-        if (options.interpretation) {
-          const seen = new Set();
-          if (section.description?.trim()) {
-            seen.add(section.description.trim());
-            paragraph(`${section.title} — Description`, { bold: true, size: 9 });
-            explanation(section.description);
-          }
-          section.groups.flatMap(group => group.items).forEach(({ result, test }) => {
-            const name = test.parentName || test.name || result.testName || 'Test';
-            const description = test.description?.trim();
-            // Imported sourceType values describe the input control rather
-            // than clinical content; include actual saved descriptions.
-            if (description && description !== test.sourceType && !seen.has(description)) {
-              seen.add(description); paragraph(`${name} — Description`, { bold: true, size: 9 }); explanation(description);
-            }
-            if (test.interpretation?.trim() && !seen.has(test.interpretation.trim())) {
-              seen.add(test.interpretation.trim()); paragraph(`${name} — Interpretation`, { bold: true, size: 9 }); explanation(test.interpretation);
-            }
-            const method = test.sourceInterpretation?.method?.trim();
-            if (method && !seen.has(`method:${method}`)) {
-              seen.add(`method:${method}`); paragraph(`Method: ${method}`, { size: 8 });
-            }
-            const specimen = test.sampleType?.trim();
-            if (specimen && !seen.has(`specimen:${specimen}`)) {
-              seen.add(`specimen:${specimen}`); paragraph(`Specimen: ${specimen}`, { size: 8 });
-            }
-          });
-        }
-        finishReportSection();
+        }), title: [...new Set([group.category, section.title].filter(Boolean))].join('\n').toUpperCase() }));
+        const blocks = options.interpretation ? reportNoteBlocks(section) : [];
+        const layout = chooseSectionLayout(tables, columns, blocks);
+        tables.forEach(item => table(columns, item.rows, item.title, layout.style));
+        drawNotes(blocks, layout);
+        finishReportSection(layout.style);
       });
     }
   }

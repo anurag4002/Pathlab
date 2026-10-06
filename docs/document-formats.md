@@ -35,6 +35,39 @@ and the relevant saved descriptions, interpretations, specimen/method
 information, end marker and recorded signatures stay with that section.
 Long sections can continue onto more pages before the next report begins.
 
+Interpretation headings and lists are formatted separately, and source line
+wraps become compact paragraphs. The renderer measures each section together
+with its end marker, disclaimer and signatures, choosing compact spacing and,
+when needed, two columns of notes to keep results and guidance on one page.
+It preserves complete clinical text if an unusually long section needs a
+continuation page rather than clipping text or shrinking below 7.5 points.
+
+Import bookkeeping such as `Migrated from Labsmart (9/9 tests linked)` and
+input types such as `Numeric` are excluded from clinical descriptions.
+KFT uses its editable database panel/package description, including the
+supplied reference's creatinine explanation and paired increased/decreased
+causes. `node backend/scripts/updateKftReportGuidance.js --apply` seeds this
+content only into empty/import-placeholder KFT descriptions, backing up the
+old records first. Its versioned source is `kft-guidance.json`; report rendering
+does not hardcode the text or overwrite clinical edits.
+This script also clears migration bookkeeping from other panel/package
+descriptions where the source provides no clinical panel description.
+Unedited imported test guidance is not repeated beneath a KFT panel with a
+clinical description;
+lab-edited test interpretations remain additional notes. Standalone tests
+continue to print their full saved interpretations.
+
+The catalog importer reads names/categories/fees from `labsmart_tests_parsed`,
+field links/units from `labsmart_fields`, and exact day/sex bands and text
+references from `labsmart_ranges_parsed`. It obtains clinical text from
+`labsmart_testinterp_formatted.json`, which preserves the original HTML's
+table columns as tab-delimited rows. The original cleaned export is retained.
+`prepareLabsmartInterpretations.py` can regenerate the formatted text from
+the user's `labsmart_edits_parsed.json`. Imported input types stay in
+`sourceType`, not in clinical descriptions; genuine physiological descriptions
+are extracted when present. Missing source content stays blank. Importing
+backs up catalog records and retains clinical edits and existing formulas.
+
 Both result-entry screens show a live differential-count total after the
 five percentage fields. A complete total of 100% is shown in green; missing
 values or an incorrect total are indicated without changing entered results.

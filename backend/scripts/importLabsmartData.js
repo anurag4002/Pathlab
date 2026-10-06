@@ -10,12 +10,13 @@ const Interpretation = require('../src/models/Interpretation');
 const { parseBounds } = require('../src/services/referenceRangeService');
 const { getResultOptions } = require('../src/services/resultOptionsService');
 const { validateFormula } = require('../src/services/formulaExpression');
+const { interpretationBlocks } = require('../src/services/interpretationLayout');
 
 const root = path.resolve(__dirname, '../..');
 const sourceDirectory = path.join(__dirname, '../data/labsmart');
 function loadSource(directory = sourceDirectory) {
   const read = name => JSON.parse(fs.readFileSync(path.join(directory, `labsmart_${name}.json`), 'utf8'));
-  return { tests: read('tests_parsed'), fields: read('fields'), ranges: read('ranges_parsed'), interpretations: read('testinterp_clean') };
+  return { tests: read('tests_parsed'), fields: read('fields'), ranges: read('ranges_parsed'), interpretations: read('testinterp_formatted'), originalInterpretations: read('testinterp_clean') };
 }
 const number = value => value == null || String(value).trim() === '' ? null : Number(value);
 const key = value => String(value || '').trim().toLowerCase();
@@ -53,6 +54,13 @@ function buildImportPlan(source, catalog, categories) {
     const matching = catalog.filter(t => t.sourceTestId === record.labsmart_id || key(t.name) === key(record.name));
     if (matching.length !== 1) throw new Error(`Expected one existing test for ${record.name}; found ${matching.length}`);
     const previous = matching[0];
+    const interpretation = source.interpretations[record.labsmart_id];
+    const sourceBlocks = interpretationBlocks(interpretation?.text);
+    const basisIndex = sourceBlocks.findIndex(block => block.kind === 'heading' && /^physiologic(?:al)? basis$/i.test(block.text));
+    const sourceDescription = basisIndex >= 0 && sourceBlocks[basisIndex + 1]?.kind === 'paragraph' ? sourceBlocks[basisIndex + 1].text : '';
+    const previousDescription = previous.description?.trim();
+    const placeholderDescription = !previousDescription || previousDescription === previous.sourceType || previousDescription === record.test_type
+      || /^(?:numeric|text|document|single parameter|multiple parameters?|Migrated from Labsmart\b.*)$/i.test(previousDescription);
     if (used.has(String(previous._id))) throw new Error(`Duplicate source mapping for ${record.name}`);
     used.add(String(previous._id));
     const group = source.fields[record.labsmart_id];
@@ -61,7 +69,7 @@ function buildImportPlan(source, catalog, categories) {
     if (!category) throw new Error(`Missing category ${record.category}`);
     const imported = { ...previous, name: record.name, sourceTestId: record.labsmart_id, shortName: record.short_name,
       sourceType: record.test_type, displayOrder: Number(record.order), sourceFee: record.fee,
-      sourceDefinition: record, category: category._id, description: record.test_type,
+      sourceDefinition: record, category: category._id, description: placeholderDescription ? sourceDescription : previousDescription,
       ...(record.fee != null ? {price: record.fee} : {}), referenceAgeDaysPerYear: 365 };
     const fields = group.fields.map(field => {
       const range = source.ranges[field.field_id];
@@ -87,10 +95,11 @@ function buildImportPlan(source, catalog, categories) {
     } else {
       Object.assign(imported,{parameters:[],referenceRange:'',referenceRanges:[],normalLow:null,normalHigh:null,ageMin:null,ageMax:null,maleReferenceRange:'',femaleReferenceRange:'',resultOptions:[],unit:''});
     }
-    const interpretation = source.interpretations[record.labsmart_id];
     if (interpretation) {
       if (key(interpretation.name) !== key(record.name)) throw new Error(`Interpretation mismatch for ${record.name}`);
-      imported.interpretation = interpretation.text;
+      const priorText = previous.interpretation?.trim();
+      const originalText = source.originalInterpretations?.[record.labsmart_id]?.text?.trim();
+      if (!priorText || priorText === previous.sourceInterpretation?.text?.trim() || priorText === originalText) imported.interpretation = interpretation.text;
       imported.sourceInterpretation = interpretation;
     }
     plan.push(imported);
@@ -109,6 +118,7 @@ function importSummary(source, plan) {
     referenceRows:Object.values(source.ranges).reduce((n,r)=>n+r.rows.length,0),textReferences:Object.values(source.ranges).filter(r=>r.normal_value).length,
     interpretationRecords:Object.keys(source.interpretations).length,
     interpretations:Object.values(source.interpretations).filter(i=>i.text?.trim()).length,
+    clinicalDescriptions:plan.filter(t=>t.description?.trim()).length,
     blankInterpretations:Object.values(source.interpretations).filter(i=>!i.text?.trim()).map(i=>i.name),
     formulas:plan.reduce((n,t)=>n+Number(!!t.formula)+t.parameters.filter(p=>p.formula).length,0),
     documentTests:plan.filter(t=>t.sourceType==='Document').map(t=>t.name),blankFields};
@@ -129,7 +139,13 @@ async function main() {
       fs.mkdirSync(path.dirname(backup),{recursive:true});
       fs.writeFileSync(backup,JSON.stringify({catalog,categories,interpretations},null,2));
       if(changed.length) await Test.bulkWrite(changed.map(test=>({updateOne:{filter:{_id:test._id},update:{$set:Object.fromEntries(Object.entries(test).filter(([k])=>!['_id','createdAt','updatedAt','__v'].includes(k)))}}})));
-      await Interpretation.bulkWrite(plan.filter(t=>source.interpretations[t.sourceTestId]?.text?.trim()).map(test=>({updateOne:{filter:{sourceTestId:test.sourceTestId},update:{$set:{test:test._id,sourceTestId:test.sourceTestId,resultCondition:'General reference',interpretationText:source.interpretations[test.sourceTestId].text,normalAbnormalGuidance:'General',status:'Active'}},upsert:true}})));
+      const referenceUpdates = plan.filter(test => {
+        if (!source.interpretations[test.sourceTestId]?.text?.trim()) return false;
+        const old = interpretations.find(row => row.sourceTestId === test.sourceTestId && row.resultCondition === 'General reference');
+        return !old || !old.interpretationText?.trim() || old.interpretationText.trim() === source.originalInterpretations?.[test.sourceTestId]?.text?.trim()
+          || old.interpretationText.trim() === source.interpretations[test.sourceTestId].text.trim();
+      });
+      if (referenceUpdates.length) await Interpretation.bulkWrite(referenceUpdates.map(test=>({updateOne:{filter:{sourceTestId:test.sourceTestId,resultCondition:'General reference'},update:{$set:{test:test._id,sourceTestId:test.sourceTestId,resultCondition:'General reference',interpretationText:source.interpretations[test.sourceTestId].text,normalAbnormalGuidance:'General',status:'Active'}},upsert:true}})));
       // Repair only empty records created by this importer. Their exact source
       // remains on Test.sourceInterpretation and in the backup written above.
       const emptySourceIds = Object.keys(source.interpretations).filter(id=>!source.interpretations[id].text?.trim());
