@@ -384,6 +384,26 @@
     "text": "Physiologic Basis\nIron is transported in plasma complexed to transferrin, which is synthesized in the liver. Total iron-binding capacity is calculated from transferrin levels measured immunologically. Each molecule of transferrin has two iron-binding sites; so its iron- binding capacity is 1.47 mg/g. Normally, transferrin carries an amount of iron representing about 16–60% of its capacity to bind iron (eg, % saturation of iron-binding capacity is 16–60%).\n\nInterpretation\n\n\n\n\nIncreased in:\tDecreased in:\nIron deficiency anemia, late pregnancy, infancy, acute hepatitis. Drugs: oral contraceptives\tHypoproteinemic states (eg, nephrotic syndrome, starvation, malnutrition, cancer), hemochromatosis, thalassemia, hyperthyroidism, chronic infections, chronic inflammatory disorders, chronic liver disease, other chronic diseases.\n\n\n\nComments\nTIBC correlates with serum transferrin, but the relationship is not linear over a wide range of transferrin values and is disrupted in diseases affecting transferrin-binding capacity or other iron-binding proteins. Increased % transferrin saturation with iron is seen in iron overload (iron poisoning, hemolytic anemia, sideroblastic anemia, thalassemia, hemochromatosis, pyridoxine deficiency, aplastic anemia, RBC transfusions). Decreased % transferrin saturation with iron is seen in iron deficiency (usually saturation <16%). Transferrin levels can also be used to assess nutritional status.",
     "method": ""
   },
+  "3775622": {
+    "name": "Transferrin Saturation",
+    "text": "",
+    "method": "Calculated"
+  },
+  "3775624": {
+    "name": "UIBC",
+    "text": "",
+    "method": "Calculated"
+  },
+  "3775625": {
+    "name": "eGFR",
+    "text": "",
+    "method": "Calculated"
+  },
+  "3775626": {
+    "name": "eGFR Category",
+    "text": "",
+    "method": "Calculated"
+  },
   "3775627": {
     "name": "C3 Complement",
     "text": "Physiological basis\nThe classic and alternative complement pathways converge at the C3 step in the complement cascade. Low levels indicate activation by one or both pathways. Most diseases with immune complexes show decreased C3 levels. Test is usually performed as an immunoassay (by radial immunodiffusion or nephelometry).\n\nInterpretation\n\n\n\n\nIncreased Levels\tDecreased Levels\nMany inflammatory conditions as an acute-phase reactant, active phase of rheumatic diseases (eg, rheumatoid arthritis, SLE), acute viral hepatitis, myocardial infarction, cancer, diabetes mellitus, pregnancy, sarcoidosis, amyloidosis, thyroiditis.\tDecreased synthesis (protein malnutrition, congenital deficiency, severe liver disease), increased catabolism (immune complex disease, membranoproliferative glomerulonephritis [75%], SLE, Sjögren syndrome, rheumatoid arthritis, DIC, paroxysmal nocturnal hemoglobinuria, autoimmune hemolytic anemia, gram-negative bacteremia), increased loss (burns, gastroenteropathy)\n\n\nComment\nComplement C3 levels may be useful in following the activity of immune complex diseases.",
@@ -403,5 +423,10 @@
     "name": "Glucose Tolerance Test, GTT (Pregnancy)",
     "text": "According to American Diabetic Association (ADA) Guidelines 2024 For Screening and Diagnosis of Gestational Diabetes Mellitus One-Step Strategy is followed.\n\nMethod\n\nOne-step strategy\nPerform a 75-g OGTT, with plasma glucose measurement when an individual is fasting and at 1 and 2 h, at 24-28 weeks of gestation in individuals not previously diagnosed with diabetes. The OGTT should be performed in the morning after an overnight fast of at least 8 hours. The diagnosis of GDM is made when any of the following plasma glucose values are met or exceeded:\n\n\n\nSample collection time\tNormal values\nFasting\t< 92 mg/dL (5.1 mmol/L)\nAt 1 hour\t< 180 mg/dL (10.0 mmol/L)\nAt 2 hour\t< 153 mg/dL (8.5 mmol/L)",
     "method": ""
+  },
+  "3775633": {
+    "name": "SGOT/SGPT",
+    "text": "",
+    "method": "Calculated"
   }
 }

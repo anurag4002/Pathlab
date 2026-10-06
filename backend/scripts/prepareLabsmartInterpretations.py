@@ -33,8 +33,8 @@ def clean(value):
 source = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf8'))
 output = {}
 for source_id, record in source.items():
-    if record.get('interpretation'):
-        output[source_id] = {'name': record['name'], 'text': clean(record['interpretation']), 'method': record.get('method', '')}
+    if record.get('interpretation') or record.get('method', '').strip():
+        output[source_id] = {'name': record['name'], 'text': clean(record.get('interpretation', '')), 'method': record.get('method', '')}
 destination = pathlib.Path(__file__).resolve().parent.parent / 'data/labsmart/labsmart_testinterp_formatted.json'
 destination.write_text(json.dumps(output, ensure_ascii=False, indent=2) + '\n', encoding='utf8')
-print(f'Saved {len(output)} clinical interpretations, {sum(chr(9) in r["text"] for r in output.values())} with tables: {destination}')
+print(f'Saved {len(output)} interpretation/method records, {sum(chr(9) in r["text"] for r in output.values())} with tables: {destination}')

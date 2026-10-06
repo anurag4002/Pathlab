@@ -4,7 +4,7 @@ Applied: 210 tests; 307 fields; 26 multi-parameter tests; 203 age/sex rows; 16 t
 
 30 existing formulas retained. Test IDs and existing parameter codes are retained, including INR control inputs. Source files contain no formula expressions. Known fees are imported; null fees keep the existing price.
 
-81 source interpretation records are preserved. 79 contain text; Random Blood Sugar, Hepatitis C Virus, HCV have empty source text and do not create blank advice rows.
+86 source interpretation records are preserved. 79 contain text; Random Blood Sugar, Transferrin Saturation, UIBC, eGFR, eGFR Category, SGOT/SGPT, Hepatitis C Virus, HCV have empty source text and do not create blank advice rows.
 
 All original source files are saved in backend/data/labsmart. Exact day boundaries, numeric limits, display text and original units remain available in sourceRange. The source uses 365 days per year. Whole-year boundaries are displayed in years; other boundaries retain days.
 
