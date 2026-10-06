@@ -28,7 +28,17 @@ apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    // PDF requests return blobs, including JSON errors. Decode them so a
+    // page-space validation message reaches download/print and preview UIs.
+    const data = error.response?.data;
+    if (typeof Blob !== 'undefined' && data instanceof Blob && /application\/json/i.test(error.response.headers?.['content-type'] || data.type)) {
+      try {
+        const details = JSON.parse(await data.text());
+        error.response.data = details;
+        if (details.message) error.message = details.message;
+      } catch { /* Preserve the original error if the payload isn't JSON. */ }
+    }
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('ppl_token');
       localStorage.removeItem('ppl_user');

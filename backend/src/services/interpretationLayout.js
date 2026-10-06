@@ -4,6 +4,8 @@ const HEADING = /^(physiologic(?:al)? basis|clinical significance|interpretation
 const INLINE_HEADING = /^((?:increased|decreased|high|low|elevated|raised)(?: levels?)?(?: causes?| values?)?(?: in)?|notes?|comments?|method|specimen)\s*:\s*(.+)$/i;
 const isImportNote = value => /^\s*Migrated from Labsmart\b/i.test(String(value || ''));
 const isKft = value => /^(?:kidney function(?: test)?|renal function(?: test)?)(?:\s*\((?:kft|rft)\))?$|^(?:kft|rft)$/i.test(String(value || '').trim());
+const isCbc = value => /^(?:complete blood count\b|cbc\b)/i.test(String(value || '').trim());
+const normalized = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 function interpretationBlocks(value) {
   const blocks = [];
@@ -50,22 +52,24 @@ function reportNoteBlocks(section) {
   const blocks = [], seen = new Set();
   const add = (title, value) => {
     const content = String(value || '').trim();
-    if (!content || isImportNote(content) || seen.has(content)) return;
-    seen.add(content); blocks.push({ kind: 'title', text: title }, ...interpretationBlocks(content));
+    const key = normalized(content);
+    if (!content || isImportNote(content) || seen.has(key)) return;
+    seen.add(key); blocks.push(...(title ? [{ kind: 'title', text: title }] : []), ...interpretationBlocks(content));
   };
   const tests = section.groups.flatMap(group => group.items);
-  const referenceKft = isKft(section.title) && section.description?.trim() && !isImportNote(section.description);
-  add('Description', section.description);
+  const panelGuidance = (isKft(section.title) || isCbc(section.title)) && section.description?.trim() && !isImportNote(section.description);
+  const compactCbc = isCbc(section.title) && panelGuidance;
+  add(panelGuidance ? '' : 'Description', section.description);
   const names = new Set(tests.map(({ result, test }) => test.parentName || test.name || result.testName || 'Test'));
   for (const { result, test } of tests) {
     const name = test.parentName || test.name || result.testName || 'Test';
     const prefix = names.size > 1 ? `${name} - ` : '';
-    const descriptionIncluded = test.description?.trim() && String(test.interpretation || '').replace(/\s+/g, ' ').includes(test.description.trim().replace(/\s+/g, ' '));
-    if (test.description && !descriptionIncluded && test.description !== test.sourceType && !/^(?:numeric|text|document|single parameter|multiple parameters?)$/i.test(test.description.trim())) add(`${prefix}Description`, test.description);
-    // The supplied KFT report has panel guidance, not every individual test's
+    const descriptionIncluded = test.description?.trim() && normalized(test.interpretation).includes(normalized(test.description));
+    if (!compactCbc && test.description && !descriptionIncluded && test.description !== test.sourceType && !/^(?:numeric|text|document|single parameter|multiple parameters?)$/i.test(test.description.trim())) add(`${prefix}Description`, test.description);
+    // Supplied CBC/KFT reports have panel guidance, not every individual test's
     // full imported boilerplate. Keep lab-authored changes as additional notes.
-    const unchangedImport = test.sourceInterpretation?.text && String(test.interpretation || '').trim() === test.sourceInterpretation.text.trim();
-    if (!referenceKft || !unchangedImport) add(`${prefix}Interpretation`, test.interpretation);
+    const unchangedImport = test.sourceInterpretation?.text && normalized(test.interpretation) === normalized(test.sourceInterpretation.text);
+    if (!compactCbc && (!panelGuidance || !unchangedImport)) add(`${prefix}Interpretation`, test.interpretation);
     const method = String(test.sourceInterpretation?.method || '').trim();
     if (method && !seen.has(`method:${method}`)) {
       seen.add(`method:${method}`); blocks.push({ kind: 'detail', text: `Method: ${method}` });

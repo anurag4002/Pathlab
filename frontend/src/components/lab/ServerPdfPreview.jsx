@@ -10,7 +10,7 @@ export default function ServerPdfPreview({ path }) {
     apiClient.get(path, { responseType: 'blob' }).then(response => {
       if (!active) return;
       objectUrl = URL.createObjectURL(response.data); setUrl(objectUrl);
-    }).catch(() => { if (active) setError('Could not load the PDF preview. Close and reopen to retry.'); });
+    }).catch(error => { if (active) setError(error.response?.data?.message || 'Could not load the PDF preview. Close and reopen to retry.'); });
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [path]);
   if (error) return <p role="alert">{error}</p>;

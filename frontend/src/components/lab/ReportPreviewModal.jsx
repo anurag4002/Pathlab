@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileDown, Printer } from 'lucide-react';
 import { Modal, Button } from '../common';
 import ServerPdfPreview from './ServerPdfPreview';
@@ -12,6 +12,14 @@ const ReportPreviewModal = ({
   loading = false,
   error = '',
 }) => {
+  const [actionError, setActionError] = useState('');
+  useEffect(() => { setActionError(''); }, [report?._id, isOpen]);
+  const runPdfAction = async action => {
+    if (!report?._id) return;
+    setActionError('');
+    try { await action(report._id); }
+    catch (error) { setActionError(error.response?.data?.message || error.message || 'Could not generate the PDF.'); }
+  };
   if (!isOpen) return null;
   return (
     <Modal
@@ -26,7 +34,7 @@ const ReportPreviewModal = ({
             variant="secondary"
             disabled={!report?._id || loading}
             title={report?._id ? 'Download the server-rendered PDF' : 'No report selected'}
-            onClick={() => report?._id && downloadReportPdf(report._id)}
+            onClick={() => runPdfAction(downloadReportPdf)}
           >
             <FileDown size={14} /> Download PDF
           </Button>
@@ -34,7 +42,7 @@ const ReportPreviewModal = ({
             variant="primary"
             disabled={!report?._id || loading}
             title={report?._id ? 'Print the server-rendered PDF' : 'No report selected'}
-            onClick={() => report?._id && printReportPdf(report._id)}
+            onClick={() => runPdfAction(printReportPdf)}
           >
             <Printer size={14} /> Print PDF
           </Button>
@@ -43,6 +51,7 @@ const ReportPreviewModal = ({
     >
       {loading && <p style={{ color: '#6b7280' }}>Loading preview…</p>}
       {error && <p style={{ color: 'var(--color-danger, #b91c1c)' }}>{error}</p>}
+      {actionError && <p role="alert" style={{ color: 'var(--color-danger, #b91c1c)' }}>{actionError}</p>}
       {!loading && !error && (
         report?._id ? <ServerPdfPreview path={`/reports/${report._id}/pdf`} /> : <p>No report selected.</p>
       )}

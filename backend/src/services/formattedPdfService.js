@@ -222,15 +222,18 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
           ...Array.from({ length: Math.max(...block.columns.map(column => column.items.length)) }, (_, i) => block.columns.map(column => column.items[i] || ''))
         ];
         const cellCount = Math.max(...rows.map(row => row.length));
-        const cellWidth = columnWidth / cellCount;
+        const cellWidths = cellCount === 3 ? [0.24, 0.38, 0.38].map(ratio => columnWidth * ratio) : Array(cellCount).fill(columnWidth / cellCount);
         rows.forEach((row, rowIndex) => {
-          const cellLines = Array.from({ length: cellCount }, (_, j) => lines(row[j] || '', cellWidth - 10, !rowIndex, style.noteSize));
+          const cellBold = j => !rowIndex || (cellCount >= 3 && j === 0);
+          const cellLines = Array.from({ length: cellCount }, (_, j) => lines(row[j] || '', cellWidths[j] - 10, cellBold(j), style.noteSize));
           const count = Math.max(...cellLines.map(cell => cell.length));
           for (let i = 0; i < count; i++) tokens.push({
-            cells: cellLines.map(cell => ({ text: cell[i] || '', bold: !rowIndex })), size: style.noteSize, indent: 0,
-            height: style.noteLeading + 1, before: !rowIndex && !i ? 4 : 0,
+            cells: cellLines.map((cell, j) => ({ text: cell[i] || '', bold: cellBold(j) })), cellWidths, size: style.noteSize, indent: 0,
+            height: style.noteLeading + (!i ? 3 : 0) + (i === count - 1 ? 3 : 0), textInset: !i ? 3 : 0,
+            before: !rowIndex && !i ? 4 : 0,
             after: rowIndex === rows.length - 1 && i === count - 1 ? style.noteGap : 0,
-            keepWithNext: !rowIndex, rowTop: !i, rowBottom: i === count - 1,
+            tableGroup: blockIndex, tableStart: !rowIndex && !i, tableHeader: !rowIndex,
+            rowTop: !i, rowBottom: i === count - 1,
             color: '#111111', comparison: true
           });
         });
@@ -255,10 +258,18 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const { tokens, columnWidth } = noteLines(blocks, style, columns);
     const placements = [];
     let column = 0, top = start, lastY = start;
+    const tableHeightFrom = index => {
+      const group = tokens[index]?.tableGroup;
+      let height = 0;
+      for (let j = index; j < tokens.length && tokens[j].tableGroup === group; j++) height += tokens[j].before + tokens[j].height + tokens[j].after;
+      return height;
+    };
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       const next = tokens[i + 1];
-      const needed = token.before + token.height + token.after + (token.keepWithNext && next ? next.before + next.height : 0);
+      const ownHeight = token.tableStart ? tableHeightFrom(i) : token.before + token.height + token.after;
+      const needed = ownHeight + (token.keepWithNext && next ? next.tableStart ? tableHeightFrom(i + 1) : next.before + next.height : 0);
+      if (needed > bottom - start) return { fits: false };
       if (top + needed > bottom) {
         column++; top = start;
         if (column >= columns) return { fits: false };
@@ -287,36 +298,46 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       const notes = planNotes(blocks, style, noteColumns, noteStart, noteBottom);
       if (notes.fits) return { style, notes };
     }
-    // Exceptionally long guidance remains complete and legible on continuation
-    // pages rather than being clipped, truncated or reduced below 7.5 points.
-    return { style: styles[styles.length - 1], notes: null };
+    // Results may need multiple pages. Fit guidance on the final result page
+    // after the table is drawn, never on a new interpretation-only page.
+    return { style: styles[0], notes: null };
   }
-  function drawNotes(blocks, layout) {
+  function drawNotes(blocks, layout, sectionTitle) {
+    if (!layout.notes) {
+      fitNotes: for (const columns of [1, 2]) for (const size of [...new Set([Math.min(8.5, format.fontSize), 8, 7.5])]) {
+        const style = { ...layout.style, noteSize: size, noteLeading: size * 1.18 };
+        const notes = planNotes(blocks, style, columns, y + (blocks.length ? 5 : 0), limit - endingHeight(style) - 2);
+        if (notes.fits) { layout.style = style; layout.notes = notes; break fitNotes; }
+      }
+      if (!layout.notes) {
+        doc.end();
+        const error = new Error(`The interpretation for ${sectionTitle || 'this report'} is too long to fit on the results page. Shorten the saved panel/test interpretation or download with interpretations turned off. Interpretations cannot add report pages.`);
+        error.statusCode = 422;
+        throw error;
+      }
+    }
     const drawLine = (line, x, top, lineWidth) => {
       if (line.comparison) {
-        const cellWidth = lineWidth / line.cells.length;
+        if (line.tableHeader) doc.save().fillColor('#eef2f6').rect(x, top, lineWidth, line.height).fill().restore();
         doc.strokeColor('#cbd5e1').lineWidth(0.4);
-        for (let i = 0; i <= line.cells.length; i++) doc.moveTo(x + i * cellWidth, top - 1).lineTo(x + i * cellWidth, top + line.height);
-        if (line.rowTop) doc.moveTo(x, top - 1).lineTo(x + lineWidth, top - 1);
+        let borderX = x;
+        for (const cellWidth of line.cellWidths) { doc.moveTo(borderX, top).lineTo(borderX, top + line.height); borderX += cellWidth; }
+        doc.moveTo(borderX, top).lineTo(borderX, top + line.height);
+        if (line.rowTop) doc.moveTo(x, top).lineTo(x + lineWidth, top);
         if (line.rowBottom) doc.moveTo(x, top + line.height).lineTo(x + lineWidth, top + line.height);
         doc.stroke();
-        line.cells.forEach((cell, i) => { if (cell) text(cell.text, x + i * cellWidth + 5, top, cellWidth - 10, { ...line, bold: cell.bold }); });
+        let cellX = x;
+        line.cells.forEach((cell, i) => {
+          if (cell) text(cell.text, cellX + 5, top + line.textInset, line.cellWidths[i] - 10, { ...line, bold: cell.bold });
+          cellX += line.cellWidths[i];
+        });
       } else {
         if (line.title) doc.strokeColor('#cbd5e1').lineWidth(0.4).moveTo(x, top - 2).lineTo(x + lineWidth, top - 2).stroke();
         text(line.text, x + line.indent, top, lineWidth, line);
       }
     };
-    if (layout.notes) {
-      layout.notes.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
-      y = layout.notes.lastY;
-    } else {
-      const { tokens } = noteLines(blocks, layout.style, 1);
-      tokens.forEach((line, index) => {
-        const next = tokens[index + 1];
-        space(line.before + line.height + line.after + (line.keepWithNext && next ? next.before + next.height : 0));
-        y += line.before; drawLine(line, m, y, width - line.indent); y += line.height + line.after;
-      });
-    }
+    layout.notes.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
+    y = layout.notes.lastY;
   }
   header();
   if (kind === 'bill') {
@@ -381,7 +402,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const blocks = options.interpretation ? reportNoteBlocks(section) : [];
         const layout = chooseSectionLayout(tables, columns, blocks);
         tables.forEach(item => table(columns, item.rows, item.title, layout.style));
-        drawNotes(blocks, layout);
+        drawNotes(blocks, layout, section.title);
         finishReportSection(layout.style);
       });
     }

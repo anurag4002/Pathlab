@@ -1,0 +1,11 @@
+{
+  "source": "User-supplied CBC interpretation table, 6 October 2026",
+  "heading": "Possible causes of abnormal parameters:",
+  "rows": [
+    ["Parameter", "High", "Low"],
+    ["RBC, Hb, or HCT", "Dehydration, polycythemia, shock, chronic hypoxia", "Anemia, thalassemia, and other hemoglobinopathies"],
+    ["MCV", "Macrocytic anemia, liver disease", "Microcytic anemia"],
+    ["WBC", "Acute stress, infection, malignancies", "Sepsis, marrow hypoplasia"],
+    ["Platelets", "Risk of thrombosis", "Risk of bleeding"]
+  ]
+}

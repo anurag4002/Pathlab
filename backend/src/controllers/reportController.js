@@ -287,7 +287,7 @@ async function reportPdfDownload(req, res, next) {
     const qrPng = qrOff ? null : await qrBuffer(reportVerifyUrl(ctx.token));
     const pdf = await reportPdf(ctx, { ...options, qrPng });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('X-Report-PDF', 'v5-formatted-interpretations');
+    res.setHeader('X-Report-PDF', 'v6-compact-panel-guidance');
     res.setHeader('Content-Disposition', `attachment; filename="Report_${ctx.report.registrationNumber}.pdf"`);
     return res.send(pdf);
   } catch (error) {

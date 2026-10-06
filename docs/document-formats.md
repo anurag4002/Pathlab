@@ -33,14 +33,18 @@ Each standalone test or billed panel/package starts on a new page within
 the same report PDF. Panel parameters stay together (for example, CBC),
 and the relevant saved descriptions, interpretations, specimen/method
 information, end marker and recorded signatures stay with that section.
-Long sections can continue onto more pages before the next report begins.
+Results that need more space can continue before the next report begins.
 
 Interpretation headings and lists are formatted separately, and source line
 wraps become compact paragraphs. The renderer measures each section together
 with its end marker, disclaimer and signatures, choosing compact spacing and,
 when needed, two columns of notes to keep results and guidance on one page.
-It preserves complete clinical text if an unusually long section needs a
-continuation page rather than clipping text or shrinking below 7.5 points.
+Interpretation tables have a shaded header, padded cells, a complete grid and
+balanced column widths. Each interpretation table stays together. Notes must
+fit on a results page: they cannot create extra report pages. If complete text
+cannot fit at 7.5 points or larger, the PDF endpoint returns an actionable 422
+error asking the lab to shorten the saved guidance or disable interpretations,
+rather than silently dropping clinical text.
 
 Import bookkeeping such as `Migrated from Labsmart (9/9 tests linked)` and
 input types such as `Numeric` are excluded from clinical descriptions.
@@ -56,6 +60,15 @@ Unedited imported test guidance is not repeated beneath a KFT panel with a
 clinical description;
 lab-edited test interpretations remain additional notes. Standalone tests
 continue to print their full saved interpretations.
+
+CBC uses the user's concise **Possible causes of abnormal parameters** table
+once, in place of long imported explanations for each CBC measurement.
+`node backend/scripts/updateCbcReportGuidance.js --apply` stores the provided
+guidance in the editable descriptions of CBC panels/packages and backs up
+previous descriptions. Its versioned source is `cbc-guidance.json`. Edit the
+CBC panel description to change this guidance. Individual test guidance stays
+in the catalogue and appears when that test is reported separately.
+Repeated text is deduplicated ignoring case and whitespace differences.
 
 The catalog importer reads names/categories/fees from `labsmart_tests_parsed`,
 field links/units from `labsmart_fields`, and exact day/sex bands and text
