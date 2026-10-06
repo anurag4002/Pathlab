@@ -255,10 +255,7 @@ async function loadReportPdfContext(id, req) {
     throw err;
   }
   const token = await reportService.ensureQrToken(report);
-  const testIds = (report.results || []).map((r) => r.test).filter(Boolean);
-  const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
-  const testMap = {};
-  tests.forEach((t) => { testMap[String(t._id)] = t; });
+  const testMap = await require('../services/reportPrintSections').loadReportPrintTests(report);
   let profile = null;
   try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
   const sigIds = (report.signatures || []).map((s) => s.signature).filter(Boolean);
@@ -290,7 +287,7 @@ async function reportPdfDownload(req, res, next) {
     const qrPng = qrOff ? null : await qrBuffer(reportVerifyUrl(ctx.token));
     const pdf = await reportPdf(ctx, { ...options, qrPng });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('X-Report-PDF', 'v3-saved-template');
+    res.setHeader('X-Report-PDF', 'v4-individual-pages');
     res.setHeader('Content-Disposition', `attachment; filename="Report_${ctx.report.registrationNumber}.pdf"`);
     return res.send(pdf);
   } catch (error) {

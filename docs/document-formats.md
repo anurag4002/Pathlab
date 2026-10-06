@@ -29,6 +29,17 @@ and splits long rows and notes before the footer area. Reference artwork
 contains no patient data or signature images. Signature images are loaded
 from the report's recorded sign-offs.
 
+Each standalone test or billed panel/package starts on a new page within
+the same report PDF. Panel parameters stay together (for example, CBC),
+and the relevant saved descriptions, interpretations, specimen/method
+information, end marker and recorded signatures stay with that section.
+Long sections can continue onto more pages before the next report begins.
+
+Both result-entry screens show a live differential-count total after the
+five percentage fields. A complete total of 100% is shown in green; missing
+values or an incorrect total are indicated without changing entered results.
+Absolute differential counts are excluded from this percentage summary.
+
 Validation:
 
 ```text

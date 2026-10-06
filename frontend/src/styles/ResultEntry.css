@@ -287,3 +287,10 @@
 .re-grid-popup .re-test-group .data-table td:nth-child(4) { width: 1%; white-space: nowrap; }
 .re-grid-popup .data-table td { padding: var(--space-3) var(--space-4); }
 .re-grid-popup .re-result-cell { min-width: 0; }
+
+/* A computed summary under the five differential percentage measurements. */
+.re-differential-total td { border-top: 1px solid var(--color-border); background: var(--color-surface); }
+.re-differential-total output { font-size: 1rem; font-weight: 700; }
+.re-differential-total .form-helper { min-height: 0; margin: 4px 0 0; }
+.re-differential-complete output { color: #166534; }
+.re-differential-warning output, .re-differential-warning .form-helper { color: #b45309; }

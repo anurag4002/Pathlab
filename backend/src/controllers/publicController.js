@@ -1,7 +1,6 @@
 const Report = require('../models/Report');
 const Bill = require('../models/Bill');
 const LabProfile = require('../models/LabProfile');
-const Test = require('../models/Test');
 const Signature = require('../models/Signature');
 const storageService = require('../services/storageService');
 const { verifyPublicToken, reportVerifyUrl, billVerifyUrl } = require('../services/qrService');
@@ -52,10 +51,7 @@ const downloadPublicReport = async (req, res, next) => {
       if (abs) return res.download(abs, `Report_${report.registrationNumber}.pdf`);
     }
     const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
-    const testIds = (full.results || []).map((r) => r.test).filter(Boolean);
-    const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
-    const testMap = {};
-    tests.forEach((t) => { testMap[String(t._id)] = t; });
+    const testMap = await require('../services/reportPrintSections').loadReportPrintTests(full);
     let profile = null;
     try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
     const sigIds = (full.signatures || []).map((s) => s.signature).filter(Boolean);

@@ -3,6 +3,8 @@ import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button, DataTable, Input, Select } from '../common';
 import { FLAG_STYLES, getRangeFlag } from './RangeFlagBadge';
 import InterpretationText from './InterpretationText';
+import DifferentialTotalRow from './DifferentialTotalRow';
+import { differentialTotalsByRow } from '../../utils/differentialCount';
 import {
   saveReportResults,
   saveReportResultsDraft,
@@ -160,6 +162,7 @@ const ResultEntryGrid = forwardRef(({
     ? buildCalculatedResults(testEntries, entry?.results)
     : localResults.calculated;
   const calculationErrors = localResults.errors;
+  const differentialTotals = differentialTotalsByRow(testEntries, values, calculated);
 
   const enterableCount = testEntries.filter((testEntry) => !testEntry.isDerived).length;
   const enteredCount = testEntries.filter(
@@ -272,6 +275,7 @@ const ResultEntryGrid = forwardRef(({
         <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || '—'}</td>
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
+      <DifferentialTotalRow total={differentialTotals.get(key)} />
       {testEntry.interpretation ? (
         <tr className="re-interp-row">
           <td colSpan={4}>

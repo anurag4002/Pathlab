@@ -30,6 +30,8 @@ import { compileReportFormulas, calculateLocalResults } from '../../utils/localR
 import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
 import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
+import DifferentialTotalRow from '../../components/lab/DifferentialTotalRow';
+import { differentialTotalsByRow } from '../../utils/differentialCount';
 import '../../styles/ResultEntry.css';
 
 const isOutsourceBill = (bill) => (
@@ -609,7 +611,8 @@ const ResultEntry = () => {
       .filter(Boolean)
       .join(' · ');
     return (
-      <tr key={key || index}>
+      <React.Fragment key={key || index}>
+      <tr>
         <td>
           <div className="re-test-name">{testEntry.testName || 'Test'}
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
@@ -657,10 +660,13 @@ const ResultEntry = () => {
         <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || '—'}</td>
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
+      <DifferentialTotalRow total={differentialTotals.get(key)} />
+      </React.Fragment>
     );
   };
 
   const testEntries = entry?.testEntries ?? [];
+  const differentialTotals = differentialTotalsByRow(testEntries, values, calculated);
   const enterableCount = testEntries.filter((testEntry) => !testEntry.isDerived).length;
   const enteredCount = testEntries.filter(
     (testEntry) =>
