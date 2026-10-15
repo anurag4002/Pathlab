@@ -58,7 +58,7 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Rate Revision', path: '/settings/rate-revision', roles: ['Admin'] },
       { title: 'Test Panels', path: '/lab/panels', roles: ['Admin'] },
       { title: 'Test Categories', path: '/lab/categories', roles: ['Admin'] },
-      { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin'] },
+      { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin', 'Employee'] },
       { title: 'Test Counts', path: '/lab/counts' },
       { title: 'Test Analysis', path: '/lab/analysis', roles: ['Admin', 'Employee'] },
       { title: 'Rate List', path: '/lab/rates', roles: ['Admin'] }

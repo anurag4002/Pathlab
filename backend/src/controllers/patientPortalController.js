@@ -303,10 +303,7 @@ const downloadPatientReport = async (req, res, next) => {
       const full = await Report.findById(id)
         .populate('patient')
         .populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
-      const testIds = (full.results || []).map((r) => r.test).filter(Boolean);
-      const tests = await Test.find({ _id: { $in: testIds } }).populate('category', 'name');
-      const testMap = {};
-      tests.forEach((t) => { testMap[String(t._id)] = t; });
+      const testMap = await require('../services/reportPrintSections').loadReportPrintTests(full);
       let profile = null;
       try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
       const sigIds = (full.signatures || []).map((s) => s.signature).filter(Boolean);

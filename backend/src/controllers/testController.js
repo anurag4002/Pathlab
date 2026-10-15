@@ -284,11 +284,11 @@ const getInterpretations = async (req, res, next) => {
 const createInterpretation = async (req, res, next) => {
   try {
     const { test, resultCondition, interpretationText, normalAbnormalGuidance, status } = req.body;
-    if (!test || !resultCondition || !interpretationText) {
-      return errorResponse(res, 'Test ID, condition, and interpretation text are required', 400);
+    if (typeof resultCondition !== 'string' || !resultCondition.trim() || typeof interpretationText !== 'string' || !interpretationText.trim() || interpretationText.length > 100000) {
+      return errorResponse(res, 'Library title and interpretation text are required (maximum 100,000 characters)', 400);
     }
     const interpretation = await testService.createInterpretation({
-      test,
+      test: test || null,
       resultCondition,
       interpretationText,
       normalAbnormalGuidance,

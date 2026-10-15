@@ -76,6 +76,7 @@ const TestSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  isDeleted: { type: Boolean, default: false, index: true },
   status: {
     type: String,
     enum: ['Active', 'Inactive'],

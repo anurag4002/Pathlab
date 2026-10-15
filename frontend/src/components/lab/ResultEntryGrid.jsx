@@ -2,7 +2,8 @@ import React, { forwardRef, useImperativeHandle, useMemo, useState } from 'react
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button, DataTable, Input, Select } from '../common';
 import { FLAG_STYLES, getRangeFlag } from './RangeFlagBadge';
-import InterpretationText from './InterpretationText';
+import InlineTestInterpretation from './InlineTestInterpretation';
+import { hasInterpretation } from '../../utils/interpretationContent';
 import DifferentialTotalRow from './DifferentialTotalRow';
 import { differentialTotalsByRow } from '../../utils/differentialCount';
 import {
@@ -276,13 +277,9 @@ const ResultEntryGrid = forwardRef(({
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
       <DifferentialTotalRow total={differentialTotals.get(key)} />
-      {testEntry.interpretation ? (
-        <tr className="re-interp-row">
-          <td colSpan={4}>
-            <InterpretationText text={testEntry.interpretation} />
-          </td>
-        </tr>
-      ) : null}
+      {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={4}>
+        <InlineTestInterpretation reportId={reportId} testEntry={testEntry} readOnly={readOnly} />
+      </td></tr>}
       </React.Fragment>
     );
   };
@@ -314,7 +311,7 @@ const ResultEntryGrid = forwardRef(({
         return groups;
       }, Object.create(null))).map(([name, tests]) => <div key={name} className="re-test-group">
         <h3>{name}</h3>
-        <DataTable headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
+        <DataTable className="re-results-table" headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
       </div>) : <p className="re-sub">This case has no lab tests to report.</p>}
       {readOnly ? (
         <p className="re-sub" role="status">Results already submitted — no further action.</p>

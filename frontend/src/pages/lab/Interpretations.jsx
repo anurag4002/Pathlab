@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { getInterpretations, createInterpretation, updateInterpretation, deleteInterpretation, getTests } from '../../services/testService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import useAuth from '../../hooks/useAuth';
+import InterpretationText from '../../components/lab/InterpretationText';
+import { copyInterpretation } from '../../utils/interpretationContent';
+const RichInterpretationEditor = lazy(() => import('../../components/lab/RichInterpretationEditor'));
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -10,7 +14,15 @@ const STATUS_OPTIONS = [
 ];
 
 const Interpretations = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [interpretations, setInterpretations] = useState([]);
+  const [catalogNotes, setCatalogNotes] = useState([]);
+  const [copyMessage, setCopyMessage] = useState('');
+  const copyText = async text => {
+    try { await copyInterpretation(text); setCopyMessage('Complete interpretation copied.'); }
+    catch { setCopyMessage('Clipboard unavailable. Expand the interpretation and select its text to copy.'); }
+  };
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -59,6 +71,7 @@ const Interpretations = () => {
       const res = await getTests({ status: 'Active' });
       if (res.success) {
         setTests(res.data.map(t => ({ value: t._id, label: `${t.name} (${t.code})` })));
+        setCatalogNotes(res.data.filter(test => test.interpretation?.trim()));
       }
     } catch (err) {
       console.error('Failed to load active tests', err);
@@ -92,7 +105,6 @@ const Interpretations = () => {
 
   const validate = () => {
     const errs = {};
-    if (!formData.test) errs.test = 'Please select a laboratory test';
     if (!formData.resultCondition.trim()) errs.resultCondition = 'Result condition is required';
     if (!formData.interpretationText.trim()) errs.interpretationText = 'Guidance text is required';
     setErrors(errs);
@@ -143,9 +155,9 @@ const Interpretations = () => {
     <div>
       <PageHeader
         title="Interpretations Management"
-        subtitle="Manage advisory guidelines triggered by laboratory values findings"
+        subtitle="Reusable complete interpretations: copy text or select it while editing a report"
         action={
-          <Button variant="primary" onClick={handleOpenCreate}>
+          isAdmin && <Button variant="primary" onClick={handleOpenCreate}>
             <Plus size={16} /> Add Advice
           </Button>
         }
@@ -183,11 +195,11 @@ const Interpretations = () => {
         renderRow={(interp) => (
           <tr key={interp._id}>
             <td style={{ fontWeight: '600' }}>
-              {interp.test ? `${interp.test.name} (${interp.test.code})` : 'Unlinked Test'}
+              {interp.test ? `${interp.test.name} (${interp.test.code})` : 'General / Panel'}
             </td>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{interp.resultCondition}</td>
-            <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {interp.interpretationText}
+            <td style={{ maxWidth: '400px' }}>
+              <InterpretationText text={interp.interpretationText} title="View complete interpretation" />
             </td>
             <td>
               <StatusBadge status={interp.normalAbnormalGuidance} />
@@ -197,7 +209,8 @@ const Interpretations = () => {
             </td>
             <td>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
+                <Button variant="secondary" onClick={() => copyText(interp.interpretationText)}>Copy full text</Button>
+                {isAdmin && <><button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                   onClick={() => handleOpenEdit(interp)}
@@ -210,12 +223,20 @@ const Interpretations = () => {
                   onClick={() => setDeleteTarget(interp)}
                 >
                   <Trash2 size={14} />
-                </button>
+                </button></>}
               </div>
             </td>
           </tr>
         )}
       />
+
+      {copyMessage && <p role="status">{copyMessage}</p>}
+      <h2>Catalog interpretations</h2>
+      {catalogNotes.filter(test => !search || `${test.name} ${test.code} ${test.interpretation}`.toLowerCase().includes(search.toLowerCase())).map(test => <details key={test._id} style={{ margin: '12px 0', border: '1px solid var(--color-border)', padding: 12, borderRadius: 8 }}>
+        <summary>{test.name} ({test.code})</summary>
+        <InterpretationText text={test.interpretation} />
+        <Button variant="secondary" onClick={() => copyText(test.interpretation)}>Copy full interpretation</Button>
+      </details>)}
 
       {/* Form Modal */}
       <Modal
@@ -237,17 +258,17 @@ const Interpretations = () => {
           {errors.api && <div className="form-error">{errors.api}</div>}
           
           <Select
-            label="Target Laboratory Test"
+            label="Target Laboratory Test (optional)"
+            id="library-target-test"
             value={formData.test}
             onChange={(e) => setFormData(prev => ({ ...prev, test: e.target.value }))}
             options={tests}
             error={errors.test}
-            required
-            placeholder="Select Test"
+            placeholder="General / Panel interpretation"
           />
 
           <Input
-            label="Result Value Condition description"
+            label="Library title / Result condition"
             name="resultCondition"
             value={formData.resultCondition}
             onChange={(e) => setFormData(prev => ({ ...prev, resultCondition: e.target.value }))}
@@ -257,16 +278,9 @@ const Interpretations = () => {
           />
 
           <div className="form-group">
-            <label className="form-label" htmlFor="interpretationText">Interpretation text advice *</label>
-            <textarea
-              id="interpretationText"
-              value={formData.interpretationText}
-              onChange={(e) => setFormData(prev => ({ ...prev, interpretationText: e.target.value }))}
-              className="form-control"
-              rows={4}
-              placeholder="Advice to print: Patient exhibits elevated creatinine levels which may indicate acute kidney injury or chronic renal dysfunction..."
-              required
-            />
+            <p className="form-label">Interpretation text advice *</p>
+            <Suspense fallback={<p>Loading editor…</p>}><RichInterpretationEditor label="Library interpretation text" value={formData.interpretationText}
+              onChange={value => setFormData(prev => ({ ...prev, interpretationText: value }))} disabled={submitLoading} /></Suspense>
             {errors.interpretationText && <p className="form-error">{errors.interpretationText}</p>}
           </div>
 

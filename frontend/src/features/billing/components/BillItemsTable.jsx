@@ -3,6 +3,9 @@ import { Trash2 } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
 
+const itemLabels = { Test: 'Test', TestPanel: 'Panel', TestPackage: 'Package', Custom: 'Custom item' };
+const displayName = item => String(item.name || 'Item').replace(/\s*\(bundle\)\s*$/i, '').trim();
+
 const BillItemsTable = ({ items = [], onRemove, error }) => {
   return (
     <div>
@@ -24,7 +27,7 @@ const BillItemsTable = ({ items = [], onRemove, error }) => {
         </p>
       )}
 
-      <div style={{ minHeight: '7.5rem', maxHeight: '12.5rem', overflowY: 'auto' }}>
+      <div className="bill-items-list">
         {items.length === 0 ? (
           <p
             style={{
@@ -42,16 +45,16 @@ const BillItemsTable = ({ items = [], onRemove, error }) => {
               <tr>
                 <th style={{ textAlign: 'left' }}>Item Name</th>
                 <th style={{ textAlign: 'right' }}>Price</th>
-                <th style={{ textAlign: 'center' }}></th>
+                <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, idx) => (
                 <tr key={idx}>
                   <td>
-                    {item.name}{' '}
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
-                      ({item.itemType})
+                    <span className="bill-item-name">{displayName(item)}</span>
+                    <span className="bill-item-type">
+                      {itemLabels[item.itemType] || 'Item'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 'var(--font-weight-semibold)' }}>
@@ -61,17 +64,11 @@ const BillItemsTable = ({ items = [], onRemove, error }) => {
                     <button
                       type="button"
                       onClick={() => onRemove(idx)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--color-danger)',
-                        cursor: 'pointer',
-                        padding: 'var(--space-1)',
-                        display: 'inline-flex'
-                      }}
-                      aria-label={`Remove ${item.name}`}
+                      className="bill-item-remove"
+                      aria-label={`Remove ${displayName(item)}`}
+                      title={`Remove ${displayName(item)} from this bill`}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} aria-hidden="true" /> Remove
                     </button>
                   </td>
                 </tr>

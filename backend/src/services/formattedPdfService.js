@@ -35,7 +35,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   const textFont = (value, bold) => /[↑↓≤≥]/.test(String(value)) ? 'ClinicalMath'
     : /[^\x00-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u2026]/.test(String(value))
       ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
-  const limit = doc.page.height - (options.footer ? format.footerHeight + 26 : 30) - m;
+  const limit = doc.page.height - (options.footer || !options.letterhead ? format.footerHeight + 26 : 30) - m;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
   const imagePath = (url, fallback) => (url ? resolveUploadAbsolute(url) : null) || referenceAsset(fallback);
@@ -48,32 +48,81 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     doc.font(textFont(value, bold)).fontSize(size).fillColor(color).text(String(value ?? ''), x, top, { width: w, align, lineBreak: false });
   }
   function lines(value, w, bold = false, size = format.fontSize) {
+    // PDFKit's word wrapper measures a trailing space too. Leave a small
+    // allowance so it cannot re-wrap an already measured line underneath
+    // the next manually positioned line.
+    const availableWidth = Math.max(1, w - 4);
     const measure = value => doc.font(textFont(value, bold)).fontSize(size).widthOfString(value);
     const output = [];
     for (const paragraph of String(value ?? '').split('\n')) {
+      const paragraphStart = output.length;
       let line = '';
       for (const word of paragraph.split(/\s+/)) {
         // Split a single oversized token too (IDs and unbroken imported text).
         let rest = word;
-        while (measure(rest) > w) {
+        while (measure(rest) > availableWidth) {
           if (line) { output.push(line); line = ''; }
           let end = 1;
-          while (end < rest.length && measure(rest.slice(0, end + 1)) <= w) end++;
+          while (end < rest.length && measure(rest.slice(0, end + 1)) <= availableWidth) end++;
           output.push(rest.slice(0, end)); rest = rest.slice(end);
         }
-        if (line && measure(`${line} ${rest}`) > w) { output.push(line); line = rest; }
+        if (line && measure(`${line} ${rest}`) > availableWidth) { output.push(line); line = rest; }
         else line = line ? `${line} ${rest}` : rest;
       }
       output.push(line);
+      // Avoid leaving a single word (for example the final "C" in
+      // "hepatitis C") stranded on a line of its own.
+      if (output.length - paragraphStart > 1 && output.at(-1).trim().split(/\s+/).length === 1) {
+        const previous = output.at(-2).split(' ');
+        const last = `${previous.at(-1)} ${output.at(-1)}`;
+        if (previous.length > 2 && measure(last) <= availableWidth) {
+          previous.pop(); output[output.length - 2] = previous.join(' '); output[output.length - 1] = last;
+        }
+      }
     }
     return output;
   }
   function rule(top) { doc.strokeColor(format.accentColor).lineWidth(0.6).moveTo(m, top).lineTo(m + width, top).stroke(); }
+  function richFont(run) {
+    const regular = textFont(run.text, run.bold);
+    if (!run.italic || regular.startsWith('Clinical')) return regular;
+    return { Helvetica: 'Helvetica-Oblique', 'Helvetica-Bold': 'Helvetica-BoldOblique', 'Times-Roman': 'Times-Italic', 'Times-Bold': 'Times-BoldItalic', Courier: 'Courier-Oblique', 'Courier-Bold': 'Courier-BoldOblique' }[regular] || regular;
+  }
+  const runWidth = (run, size) => doc.font(richFont(run)).fontSize(size).widthOfString(run.text);
+  function richLines(runs, availableWidth, size, bold = false) {
+    const output = []; let current = [], used = 0;
+    const flush = () => {
+      while (current.length && /^\s+$/.test(current.at(-1).text)) current.pop();
+      output.push({ runs: current, text: current.map(run => run.text).join('') }); current = []; used = 0;
+    };
+    for (const input of runs) for (const token of input.text.match(/\n|[^\S\n]+|[^\s]+/g) || []) {
+      if (token === '\n') { flush(); continue; }
+      let run = { ...input, bold: bold || input.bold, text: token };
+      if (!current.length && /^\s+$/.test(token)) continue;
+      if (used + runWidth(run, size) > availableWidth && current.length) flush();
+      while (runWidth(run, size) > availableWidth) {
+        let end = 1;
+        while (end < run.text.length && runWidth({ ...run, text: run.text.slice(0, end + 1) }, size) <= availableWidth) end++;
+        current.push({ ...run, text: run.text.slice(0, end) }); flush(); run = { ...run, text: run.text.slice(end) };
+      }
+      if (run.text && (current.length || !/^\s+$/.test(run.text))) { current.push(run); used += runWidth(run, size); }
+    }
+    if (current.length || !output.length) flush();
+    return output;
+  }
+  function drawRich(runs, x, top, lineWidth, size, align = 'left', color = '#263445') {
+    const total = runs.reduce((sum, run) => sum + runWidth(run, size), 0);
+    let cursor = x + (align === 'center' ? Math.max(0, (lineWidth - total) / 2) : align === 'right' ? Math.max(0, lineWidth - total) : 0);
+    for (const run of runs) {
+      doc.font(richFont(run)).fontSize(size).fillColor(color).text(run.text, cursor, top, { lineBreak: false, underline: !!run.underline, strike: !!run.strike });
+      cursor += runWidth(run, size);
+    }
+  }
   function header() {
     y = m;
     const headerImage = options.letterhead && imagePath(profile.letterheadUrl, 'reference-header.jpg');
     if (headerImage && (image(headerImage, m, y, width, format.headerHeight) || image(referenceAsset('reference-header.jpg'), m, y, width, format.headerHeight))) y += format.headerHeight + 6;
-    else {
+    else if (options.letterhead) {
       const logo = imagePath(profile.logoUrl);
       const logoWidth = logo && image(logo, m, y, 48, 48) ? 58 : 0;
       const x = m + logoWidth, w = width - logoWidth;
@@ -84,6 +133,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         for (const line of lines(value, w, false, 9)) { text(line, x, y, w, { size: 9 }); y += 12; }
       }
       y = Math.max(y, m + 54) + 8;
+    } else {
+      y += format.headerHeight + 6;
     }
     if (options.watermark) {
       const custom = !!profile.logoUrl;
@@ -216,6 +267,45 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const columnWidth = (width - (columns - 1) * 14) / columns;
     const tokens = [];
     blocks.forEach((block, blockIndex) => {
+      if (block.richRows) {
+        const grid = [], occupied = [];
+        block.richRows.forEach((row, r) => {
+          grid[r] ||= []; let column = 0;
+          row.forEach(cell => {
+            while (grid[r][column]) column++;
+            const placed = { ...cell, column, startRow: r, endRow: Math.min(block.richRows.length - 1, r + cell.rowspan - 1) };
+            occupied.push(placed);
+            for (let rr = r; rr <= placed.endRow; rr++) {
+              grid[rr] ||= [];
+              for (let c = column; c < column + cell.colspan; c++) grid[rr][c] = placed;
+            }
+            column += cell.colspan;
+          });
+        });
+        const columnCount = Math.max(1, ...grid.map(row => row.length));
+        const weights = Array(columnCount).fill(1);
+        occupied.forEach(cell => cell.colwidth.forEach((value, i) => { if (cell.column + i < columnCount) weights[cell.column + i] = value; }));
+        // Columns without explicit widths share the average of known widths.
+        const known = weights.filter(value => value > 1); const average = known.reduce((a, b) => a + b, 0) / (known.length || 1) || 1;
+        const scaled = weights.map(value => value === 1 ? average : value);
+        const sum = scaled.reduce((a, b) => a + b, 0);
+        const widths = scaled.map(value => columnWidth * value / sum);
+        grid.forEach((row, rowIndex) => {
+          const cells = [...new Set(row.filter(Boolean))].map(cell => {
+            const cellWidth = widths.slice(cell.column, cell.column + cell.colspan).reduce((a, b) => a + b, 0);
+            return { ...cell, x: widths.slice(0, cell.column).reduce((a, b) => a + b, 0), width: cellWidth,
+              wrapped: richLines(cell.startRow === rowIndex ? cell.runs : [], Math.max(10, cellWidth - 12), style.noteSize, cell.header) };
+          });
+          const count = Math.max(1, ...cells.map(cell => cell.wrapped.length));
+          for (let i = 0; i < count; i++) tokens.push({
+            richCells: cells.map(cell => ({ ...cell, runs: cell.wrapped[i]?.runs || [] })),
+            size: style.noteSize, indent: 0, height: style.noteLeading + (!i ? 5 : 0) + (i === count - 1 ? 5 : 0), textInset: !i ? 5 : 0,
+            before: !rowIndex && !i ? 6 : 0, after: rowIndex === grid.length - 1 && i === count - 1 ? 8 : 0,
+            tableGroup: blockIndex, tableStart: !rowIndex && !i, rowTop: !i, rowBottom: i === count - 1, tableRow: rowIndex,
+          });
+        });
+        return;
+      }
       if (block.kind === 'comparison' || block.kind === 'table') {
         const rows = block.kind === 'table' ? block.rows : [
           block.columns.map(column => column.heading),
@@ -239,17 +329,19 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         });
         return;
       }
-      const bold = block.kind === 'title' || block.kind === 'heading';
-      const size = style.noteSize + (block.kind === 'title' ? 0.6 : block.kind === 'heading' ? 0.2 : 0);
-      const indent = block.kind === 'list' ? 8 : 0;
-      const wrapped = lines(block.text, columnWidth - indent, bold, size);
+      const title = block.kind === 'title', subheading = block.kind === 'heading', detail = block.kind === 'detail';
+      const bold = title || subheading;
+      const size = title ? style.noteSize + 1.5 : subheading ? style.noteSize + (block.headingLevel === 2 ? 1 : 0) : detail ? 8.5 : style.noteSize;
+      const indent = block.kind === 'list' ? 10 : 0;
+      const wrapped = block.runs ? richLines(block.runs, columnWidth - indent, size, bold) : lines(block.text, columnWidth - indent, bold, size);
       wrapped.forEach((line, i) => tokens.push({
-        text: line, size, bold, indent,
-        height: bold ? size + 1.5 : style.noteLeading,
-        before: i || !blockIndex ? 0 : bold ? 3 : 1,
-        after: i === wrapped.length - 1 && !bold ? style.noteGap : 0,
+        ...(block.runs ? { text: line.text, runs: line.runs, align: block.align } : { text: line }), size, bold, indent,
+        height: bold ? size + 4 : detail ? 12 : style.noteLeading,
+        before: i || !blockIndex ? 0 : title ? 16 : subheading ? 9 : 0,
+        after: i === wrapped.length - 1 ? bold ? 4 : detail ? 4 : style.noteGap : 0,
         keepWithNext: bold,
-        title: block.kind === 'title', color: block.kind === 'detail' ? '#475569' : '#111111'
+        blockIndex, blockLine: i, blockLines: wrapped.length,
+        title, color: title ? '#172033' : subheading ? '#334155' : detail ? '#64748b' : '#263445'
       }));
     });
     return { tokens, columnWidth };
@@ -282,42 +374,33 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     return { fits: true, placements, lastY };
   }
   function chooseSectionLayout(tables, columns, blocks) {
-    const sizes = [...new Set([format.fontSize, 9, 8.5, 8, 7.5].filter(size => size <= format.fontSize))];
-    const styles = sizes.map((size, index) => ({
-      bodySize: size, rowPadding: Math.min(format.rowPadding, index ? 1 : 2), tableLeading: size + 1.5,
-      titleSize: 10, tableGap: 6, noteSize: Math.min(8.5, size), noteLeading: Math.min(8.5, size) * 1.18,
-      noteGap: 1.5, disclaimerSize: 7, disclaimerLeading: 8.5, signatureHeight: 72
-    }));
-    // Prefer one column like the reference; use two compact note columns only
-    // when the complete wording cannot fit beneath the results in one column.
-    for (const noteColumns of [1, 2]) for (const style of styles) {
-      const resultHeight = tables.reduce((height, item) => height + tableHeight(columns, item.rows, item.title, style), 0);
-      const noteStart = y + resultHeight + (blocks.length ? 5 : 0);
-      const noteBottom = limit - endingHeight(style) - 2;
-      if (noteStart > noteBottom) continue;
-      const notes = planNotes(blocks, style, noteColumns, noteStart, noteBottom);
-      if (notes.fits) return { style, notes };
-    }
-    // Results may need multiple pages. Fit guidance on the final result page
-    // after the table is drawn, never on a new interpretation-only page.
-    return { style: styles[0], notes: null };
+    // Interpretation readability is independent of how much space the result
+    // table leaves. Continue on another page rather than shrinking the type.
+    const noteSize = Math.max(10.5, format.fontSize);
+    const style = {
+      bodySize: format.fontSize, rowPadding: format.rowPadding, tableLeading: format.fontSize + 3,
+      titleSize: 10, tableGap: 12, noteSize, noteLeading: noteSize * 1.45,
+      noteGap: 7, disclaimerSize: 8, disclaimerLeading: 11, signatureHeight: 72
+    };
+    const resultHeight = tables.reduce((height, item) => height + tableHeight(columns, item.rows, item.title, style), 0);
+    const noteStart = y + resultHeight + (blocks.length ? 8 : 0);
+    const noteBottom = limit - endingHeight(style) - 2;
+    const notes = noteStart <= noteBottom ? planNotes(blocks, style, 1, noteStart, noteBottom) : null;
+    return { style, notes: notes?.fits ? notes : null };
   }
   function drawNotes(blocks, layout, sectionTitle) {
-    if (!layout.notes) {
-      fitNotes: for (const columns of [1, 2]) for (const size of [...new Set([Math.min(8.5, format.fontSize), 8, 7.5])]) {
-        const style = { ...layout.style, noteSize: size, noteLeading: size * 1.18 };
-        const notes = planNotes(blocks, style, columns, y + (blocks.length ? 5 : 0), limit - endingHeight(style) - 2);
-        if (notes.fits) { layout.style = style; layout.notes = notes; break fitNotes; }
-      }
-      if (!layout.notes) {
-        doc.end();
-        const error = new Error(`The interpretation for ${sectionTitle || 'this report'} is too long to fit on the results page. Shorten the saved panel/test interpretation or download with interpretations turned off. Interpretations cannot add report pages.`);
-        error.statusCode = 422;
-        throw error;
-      }
-    }
     const drawLine = (line, x, top, lineWidth) => {
-      if (line.comparison) {
+      if (line.richCells) {
+        line.richCells.forEach(cell => {
+          const left = x + cell.x, right = left + cell.width;
+          if (cell.header) doc.save().fillColor('#eef2f6').rect(left, top, cell.width, line.height).fill().restore();
+          doc.strokeColor('#b8c5d6').lineWidth(0.5).moveTo(left, top).lineTo(left, top + line.height).moveTo(right, top).lineTo(right, top + line.height);
+          if (line.rowTop && cell.startRow === line.tableRow) doc.moveTo(left, top).lineTo(right, top);
+          if (line.rowBottom && cell.endRow === line.tableRow) doc.moveTo(left, top + line.height).lineTo(right, top + line.height);
+          doc.stroke();
+          drawRich(cell.runs, left + 6, top + line.textInset, cell.width - 12, line.size, cell.align);
+        });
+      } else if (line.comparison) {
         if (line.tableHeader) doc.save().fillColor('#eef2f6').rect(x, top, lineWidth, line.height).fill().restore();
         doc.strokeColor('#cbd5e1').lineWidth(0.4);
         let borderX = x;
@@ -332,12 +415,47 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
           cellX += line.cellWidths[i];
         });
       } else {
-        if (line.title) doc.strokeColor('#cbd5e1').lineWidth(0.4).moveTo(x, top - 2).lineTo(x + lineWidth, top - 2).stroke();
-        text(line.text, x + line.indent, top, lineWidth, line);
+        if (line.title && !line.blockLine) doc.strokeColor('#dbe2e9').lineWidth(0.6).moveTo(x, top - 7).lineTo(x + lineWidth, top - 7).stroke();
+        if (line.runs) drawRich(line.runs, x + line.indent, top, lineWidth, line.size, line.align, line.color);
+        else text(line.text, x + line.indent, top, lineWidth, line);
       }
     };
-    layout.notes.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
-    y = layout.notes.lastY;
+    if (layout.notes) {
+      layout.notes.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
+      y = layout.notes.lastY;
+    } else {
+      // Flow complete guidance at a readable size when it cannot fit below
+      // the results. Every continuation retains the patient identification.
+      const style = layout.style;
+      const { tokens } = noteLines(blocks, style, 1);
+      y += blocks.length ? 8 : 0;
+      let activeTitle = '';
+      tokens.forEach((line, i) => {
+        const height = line.before + line.height + line.after;
+        let keep = 0, last = i;
+        // Keep consecutive headings plus the opening two lines of their
+        // explanation together. Also keep a paragraph's final two lines.
+        while (tokens[last].keepWithNext && tokens[last + 1]) {
+          const next = tokens[++last]; keep += next.before + next.height + next.after;
+        }
+        const next = tokens[last + 1];
+        if (next && !tokens[last].keepWithNext && next.blockIndex === tokens[last].blockIndex &&
+          (tokens[last].blockLine === 0 || tokens[last].blockLine === tokens[last].blockLines - 2)) keep += next.before + next.height + next.after;
+        if (i >= tokens.length - 2) keep = Math.max(keep, tokens.slice(i + 1).reduce((sum, token) => sum + token.before + token.height + token.after, 0) + endingHeight(style));
+        if (y + height + keep > limit) {
+          newPage();
+          heading(`${sectionTitle || 'Report'} - Interpretation (continued)`, { size: 11, align: 'left', leading: 16, gap: 10 });
+          const activeName = activeTitle.replace(/\s*-\s*Interpretation$/i, '').trim().toLowerCase();
+          if (activeTitle && !line.title && activeName !== String(sectionTitle || '').trim().toLowerCase() && activeName !== 'interpretation') {
+            paragraph(`${activeTitle} (continued)`, { bold: true, size: style.noteSize + 1, leading: 16, gap: 8 });
+          }
+        }
+        if (line.title && !line.blockLine) activeTitle = line.text;
+        y += line.before;
+        drawLine(line, m, y, width - line.indent);
+        y += line.height + line.after;
+      });
+    }
   }
   header();
   if (kind === 'bill') {
@@ -367,22 +485,28 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     else {
       const sections = new Map();
       (report.results || []).forEach(result => {
-        const parent = context.testMap?.[String(result.test?._id || result.test)] || context.testMap?.[result.testName] || (typeof result.test === 'object' ? result.test : {});
+        const parent = context.testMap?.[String(result.test?._id || result.test)] || context.testMap?.[result.testName] || (result.test && typeof result.test === 'object' ? result.test : {});
         const definition = result.parameterCode && parent ? expandTests([parent]).find((test) => test.parameterCode === result.parameterCode) : parent;
         const test = resolveReferenceRange(definition || {}, context.patient || report.patient || {});
         const category = options.dept ? test.category?.name || test.categoryName || '' : '';
         let key = parent.reportSectionKey || (parent._id ? `test:${parent._id}`
-          : parent.categoryName ? `category:${parent.categoryName}` : `name:${parent.name || result.testName || 'Tests'}`);
+          : parent.categoryName ? `category:${parent.categoryName}` : Object.keys(parent).length ? `name:${parent.name || result.testName || 'Tests'}` : 'uncatalogued');
         // Legacy calculated rows without a catalog identity belong with the
         // measurements that produced them, rather than an extra report page.
         if (result.derived && !result.test && sections.size) key = [...sections.keys()].at(-1);
         if (!sections.has(key)) sections.set(key, {
+          key,
+          interpretationOverride: (report.interpretations || []).find(item => item.key === key)?.text,
           title: parent.reportSectionName || parent.name || parent.categoryName || result.testName || '',
           description: parent.reportSectionDescription || '', groups: []
         });
         const groups = sections.get(key).groups;
         if (!groups.length || groups[groups.length - 1].category !== category) groups.push({ category, items: [] });
-        groups[groups.length - 1].items.push({ result, test });
+        const resultKey = result.test ? `${result.test?._id || result.test}${result.parameterCode ? `:${result.parameterCode}` : ''}` : `name:${result.testName}`;
+        const override = (report.interpretations || []).find(item => item.key === `result:${resultKey}`);
+        if (parent.parameters?.length && result.parameterCode !== parent.parameters[0].code &&
+          (report.interpretations || []).some(item => item.key.startsWith(`result:${parent._id}:`))) test.interpretation = '';
+        groups[groups.length - 1].items.push({ result: { ...(result.toObject ? result.toObject() : result), interpretationOverride: override?.text }, test });
       });
       const flag = options.flags ? Math.max(width * 0.04, format.flagPlacement === 'last' ? format.fontSize * 3 + format.rowPadding * 2 : 20) : 0;
       const columns = [{ label: 'TEST', width: width * 0.4 - flag }, { label: 'VALUE', width: width * 0.2 }, { label: 'UNIT', width: width * 0.15 }, { label: 'REFERENCE', width: width * 0.25 }];
@@ -418,7 +542,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         image(path.join(assets, 'reference-corner.jpg'), m, footerTop + format.footerHeight * 0.2, width * 0.222, format.footerHeight * 0.8);
       }
     }
-    const labelY = doc.page.height - m - (options.footer ? format.footerHeight + 17 : 15);
+    const labelY = doc.page.height - m - (options.footer || !options.letterhead ? format.footerHeight + 17 : 15);
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
     if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, labelY, width, { size: 8, align: 'right' });
   }

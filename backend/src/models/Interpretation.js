@@ -5,7 +5,7 @@ const InterpretationSchema = new mongoose.Schema({
   test: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Test',
-    required: true,
+    default: null,
     index: true
   },
   resultCondition: {

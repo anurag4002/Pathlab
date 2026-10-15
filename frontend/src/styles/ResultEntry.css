@@ -202,17 +202,30 @@
 .re-fx { margin-left: 8px; padding: 1px 6px; border-radius: 4px; background: #e0e7ff; color: #3730a3; font-size: 0.75rem; font-weight: 700; }
 .re-test-group { margin-top: 20px; }
 .re-test-group h3 { margin: 0 0 12px; font-size: 1rem; }
-.re-test-group .data-table { table-layout: fixed; min-width: 760px; }
-.re-test-group .data-table th:nth-child(1) { width: 34%; }
-.re-test-group .data-table th:nth-child(2) { width: 26%; }
-.re-test-group .data-table th:nth-child(3) { width: 16%; }
-.re-test-group .data-table th:nth-child(4) { width: 24%; }
-.re-test-group .data-table td { overflow-wrap: anywhere; vertical-align: top; }
-.re-test-group .data-table .re-unit { overflow-wrap: normal; white-space: nowrap; }
+/* Both the page and report popup reserve readable space for every column.
+   Target only the outer results table, leaving rich interpretation tables alone. */
+.re-results-table > .data-table-wrapper > .data-table { table-layout: fixed; min-width: 760px; }
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th:nth-child(1) { width: 32%; }
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th:nth-child(2) { width: 28%; }
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th:nth-child(3) { width: 12%; }
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th:nth-child(4) { width: 28%; }
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th,
+.re-results-table > .data-table-wrapper > .data-table > tbody > tr > td {
+  padding: 12px 16px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.re-results-table > .data-table-wrapper > .data-table > thead > tr > th { white-space: normal; }
+.re-results-table .re-test-name { line-height: 1.5; }
+.re-results-table .re-sub { margin-top: 6px; line-height: 1.5; }
+.re-results-table .re-result-cell { min-width: 0; }
+.re-results-table .re-range { white-space: pre-line; }
 .re-result-cell .form-control, .re-result-cell .select-control { box-sizing: border-box; height: 38px; min-width: 0; }
 .re-result-cell .re-document-result { width: 100%; height: 112px; resize: vertical; }
 .re-result-cell .form-helper { line-height: 1.4; min-height: 2.8em; margin-bottom: 0; }
 .re-flag-slot { height: 24px; display: flex; align-items: flex-start; }
+.re-flag-slot:empty { display: none; }
 .re-interpretation { margin-top: 8px; font-size: 0.8rem; white-space: pre-wrap; }
 .re-interpretation summary { cursor: pointer; color: var(--color-primary); }
 
@@ -263,30 +276,23 @@
 .re-flag-text[data-flag='CRITICAL_LOW'],
 .re-flag-text[data-flag='CRITICAL_HIGH'] { color: #991b1b; }
 
-/* Reports-popup grid only (re-grid-popup): fill the modal width instead of
-   the page grid's fixed 760px table — test names take the free space, value
-   inputs get a fixed lane, unit/range shrink to fit. Result-entry page rules
-   above are untouched. */
 /* Flat popup grid: no nested card/table boxes — row lines + inputs carry
    the structure, so there are no redundant bordered boxes in the modal. */
 .re-grid-popup.re-card { background: transparent; border: none; box-shadow: none; padding: 0; }
 .re-grid-popup .data-table-container { background: transparent; border: none; border-radius: 0; box-shadow: none; }
 .re-grid-popup .data-table thead th { background: transparent; }
 /* Full-width interpretation row under its test. */
-.re-interp-row td { padding-top: 0; }
+.re-results-table > .data-table-wrapper > .data-table > tbody > .re-interp-row > td { padding-top: 0; }
 .re-interp-row .re-interpretation { margin-top: 0; }
+.re-inline-interpretation { padding: 4px 0 10px; }
+.re-interpretation-toolbar, .re-inline-library { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.re-interpretation-toolbar .re-interpretation { flex: 1 1 260px; }
+.re-inline-interpretation-form { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 12px; min-width: 0; }
+.re-inline-interpretation-form legend { font-size: var(--font-size-sm); font-weight: 600; }
+.re-inline-interpretation-form textarea { width: 100%; }
+.re-inline-library { margin: 12px 0; align-items: flex-end; }
+.re-inline-library .form-group { flex: 1 1 280px; margin: 0; }
 .re-grid-popup .re-test-group { margin-top: 12px; }
-.re-grid-popup .re-test-group .data-table { table-layout: auto; min-width: 0; }
-.re-grid-popup .re-test-group .data-table th:nth-child(1),
-.re-grid-popup .re-test-group .data-table td:nth-child(1) { width: auto; }
-.re-grid-popup .re-test-group .data-table th:nth-child(2),
-.re-grid-popup .re-test-group .data-table td:nth-child(2) { width: 220px; }
-.re-grid-popup .re-test-group .data-table th:nth-child(3),
-.re-grid-popup .re-test-group .data-table td:nth-child(3),
-.re-grid-popup .re-test-group .data-table th:nth-child(4),
-.re-grid-popup .re-test-group .data-table td:nth-child(4) { width: 1%; white-space: nowrap; }
-.re-grid-popup .data-table td { padding: var(--space-3) var(--space-4); }
-.re-grid-popup .re-result-cell { min-width: 0; }
 
 /* A computed summary under the five differential percentage measurements. */
 .re-differential-total td { border-top: 1px solid var(--color-border); background: var(--color-surface); }

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import './Modal.css';
+import { isPdfPrintActive } from '../../../utils/pdfPrintSession';
 
 const Modal = ({
   isOpen,
@@ -13,7 +14,7 @@ const Modal = ({
 }) => {
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && !e.defaultPrevented && !isPdfPrintActive()) {
         onClose();
       }
     };

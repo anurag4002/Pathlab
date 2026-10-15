@@ -534,7 +534,7 @@ const TestDatabase = () => {
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
         title="Delete Test Definition?"
-        message={`Are you sure you want to permanently delete the test configuration for ${deleteTarget?.name}?`}
+        message={`Delete ${deleteTarget?.name} from the test database? It will no longer be available for new orders. Existing reports retain its definition.`}
       />
     </div>
   );

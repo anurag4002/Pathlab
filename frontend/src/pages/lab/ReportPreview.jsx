@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Download, FileDown, Printer, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Download, FileDown, RefreshCw } from 'lucide-react';
 import {
   PageHeader,
   Button,
@@ -14,7 +14,7 @@ import { getReports, getReportForEntry } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
 import { getUsers } from '../../services/authService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
-import { downloadReportPdf, printReportPdf, fetchBarcodeSvgUrl, fetchReportQr } from '../../services/publicService';
+import { downloadReportPdf, fetchBarcodeSvgUrl, fetchReportQr } from '../../services/publicService';
 import useAuth from '../../hooks/useAuth';
 import assetSrc from '../../utils/assetSrc';
 import downloadFile from '../../utils/downloadFile';
@@ -25,6 +25,11 @@ import {
   formatReferenceRange
 } from '../../utils/reportResults';
 import '../../styles/ReportPreview.css';
+import PrintStationerySelect from '../../components/lab/PrintStationerySelect';
+import ReportPrintActions from '../../components/lab/ReportPrintActions';
+import { stationeryOptions } from '../../utils/reportPrintOptions';
+import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
+import { buildPdfQuery } from '../../services/publicService';
 
 /* Local API error mapper (same mapping as Result Entry / Result Verification):
    surfaces only the backend's user-facing `message` field (never
@@ -90,6 +95,8 @@ const ReportPreview = () => {
 
   // PDF download state — server-rendered PDF (GET /reports/:id/pdf).
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [stationery, setStationery] = useState('default');
+  const pdfOptions = stationeryOptions(stationery);
   const [pdfError, setPdfError] = useState(null);
 
   // Lab profile (letterhead) state — fetched separately so a profile failure
@@ -353,7 +360,7 @@ const ReportPreview = () => {
     try {
       const regNo = entry?.report?.registrationNumber;
       const filename = regNo ? `Report_${regNo}.pdf` : undefined;
-      await downloadReportPdf(id, undefined, filename);
+      await downloadReportPdf(id, pdfOptions, filename);
     } catch (err) {
       setPdfError(getApiErrorMessage(err, 'Failed to generate the PDF report.'));
     } finally {
@@ -508,18 +515,12 @@ const ReportPreview = () => {
             >
               Download PDF
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Printer size={16} />}
-              onClick={async () => { try { await printReportPdf(id); } catch (err) { setPdfError(getApiErrorMessage(err, 'Failed to print the report.')); } }}
-            >
-              Print
-            </Button>
+            <ReportPrintActions reportId={id} onStationeryChange={setStationery} />
           </div>
         ) : null}
       </div>
 
+      <div className="no-print"><PrintStationerySelect value={stationery} onChange={setStationery} /></div>
       {pdfError ? (
         <div className="rp-banner rp-banner-error no-print" role="alert">
           <AlertTriangle size={16} aria-hidden="true" />
@@ -544,6 +545,7 @@ const ReportPreview = () => {
         </div>
       ) : null}
 
+      <ServerPdfPreview path={`/reports/${id}/pdf${buildPdfQuery(pdfOptions)}`} refreshKey={reloadKey} />
       {loading ? (
         <div className="rp-state-block">
           <LoadingSpinner label="Loading report..." />
@@ -557,6 +559,8 @@ const ReportPreview = () => {
           </Button>
         </div>
       ) : entry ? (
+        <>
+        <details className="no-print"><summary>View saved report data</summary>
         <div className="printable-area">
           {/* Dynamic lab letterhead — API data only (see Letterhead.jsx). */}
           <Letterhead part="header" profile={profile} loading={profileLoading} />
@@ -733,6 +737,8 @@ const ReportPreview = () => {
           {/* Dynamic lab letterhead footer — API data only. */}
           <Letterhead part="footer" profile={profile} />
         </div>
+        </details>
+        </>
       ) : null}
     </div>
   );

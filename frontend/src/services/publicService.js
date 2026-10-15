@@ -1,11 +1,14 @@
 import apiClient from './apiClient';
 import { downloadBlob as saveBlob } from '../utils/downloadFile';
+import { beginPdfPrint } from '../utils/pdfPrintSession';
+import { getReportPdfDocument, isReportPdfPath } from './reportPdfDocumentService';
 
 // Public QR self-service (no login). apiClient base is /api.
 export const verifyReportToken = async (token) => (await apiClient.get(`/public/r/${token}`)).data;
 export const verifyBillToken = async (token) => (await apiClient.get(`/public/r/bill/${token}`)).data;
 
 export const downloadBlob = async (path, filename) => {
+  if (isReportPdfPath(path)) return saveBlob(await getReportPdfDocument(path), filename);
   const response = await apiClient.get(path, { responseType: 'blob' });
   const contentType = response.headers?.['content-type'] || response.data?.type || 'application/octet-stream';
   if (/application\/json|text\/html/i.test(contentType)) {
@@ -53,61 +56,55 @@ export const downloadBillPdf = (id, letterhead, opts = {}) =>
 // Direct silent print of a server PDF (no new tab): fetch with auth, load
 // into an off-screen (but real-sized — a 0px frame renders blank) iframe,
 // wait for the viewer, then print the PDF itself.
-export const printPdfPath = (path) =>
-  new Promise(async (resolve, reject) => {
-    try {
-      const response = await apiClient.get(path, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+export const printPdfPath = async (path) => {
+  const endPrint = beginPdfPrint();
+  try {
+    const blob = await getReportPdfDocument(path);
+    return await new Promise((resolve, reject) => {
+      const url = window.URL.createObjectURL(blob);
       const iframe = document.createElement('iframe');
-      // Off-screen but full letter size: the PDF viewer needs layout size
-      // to rasterize, otherwise the printout comes out blank.
-      iframe.style.position = 'fixed';
-      iframe.style.left = '-10000px';
-      iframe.style.top = '0';
-      iframe.style.width = '816px';
-      iframe.style.height = '1056px';
-      iframe.style.border = '0';
-      let settled = false;
-      const cleanup = () => {
+      iframe.title = 'Report PDF print document';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0';
+      let settled = false, renderTimer, cleanupTimer;
+      const cleanup = error => {
         if (settled) return;
         settled = true;
+        clearTimeout(renderTimer); clearTimeout(cleanupTimer);
+        window.removeEventListener('afterprint', afterPrint);
+        try { iframe.contentWindow?.removeEventListener('afterprint', afterPrint); } catch { /* PDF viewer boundary */ }
         window.URL.revokeObjectURL(url);
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        resolve();
+        iframe.remove();
+        endPrint();
+        if (error) reject(error); else resolve();
       };
-      // Clean up when the print dialog closes; long fallback so the blob
-      // is never revoked mid-print (revoking early blanks the job).
-      const armCleanup = () => {
-        try {
-          iframe.contentWindow.addEventListener('afterprint', cleanup);
-        } catch (e) { /* cross-viewer safety */ }
-        setTimeout(cleanup, 60000);
-      };
+      const afterPrint = () => cleanup();
       iframe.onload = () => {
-        // The frame load fires before the PDF viewer finishes rendering —
-        // a short beat prevents a blank first page.
-        setTimeout(() => {
+        renderTimer = setTimeout(() => {
           try {
+            // Register BEFORE print(): afterprint may fire before it returns,
+            // including when the user cancels the native dialog with Escape.
+            window.addEventListener('afterprint', afterPrint);
+            iframe.contentWindow.addEventListener('afterprint', afterPrint);
+            clearTimeout(cleanupTimer);
+            cleanupTimer = setTimeout(afterPrint, 60000);
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
-          } catch (e) {
-            window.open(url, '_blank', 'noopener');
+          } catch {
+            cleanup(new Error('Could not open the print dialog. Download the PDF to print it.'));
           }
-          armCleanup();
         }, 900);
       };
-      iframe.onerror = () => {
-        window.URL.revokeObjectURL(url);
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        reject(new Error('Failed to load PDF for printing'));
-      };
-      document.body.appendChild(iframe);
+      iframe.onerror = () => cleanup(new Error('Failed to load PDF for printing'));
+      cleanupTimer = setTimeout(() => cleanup(new Error('The print document took too long to load. Please try again.')), 60000);
       iframe.src = url;
-    } catch (err) {
-      reject(err);
-    }
-  });
-
+      document.body.appendChild(iframe);
+    });
+  } catch (error) {
+    endPrint();
+    throw error;
+  }
+};
 export const printBillPdf = (id, letterhead, opts = {}) =>
   printPdfPath(`/bills/${id}/pdf${buildPdfQuery(letterhead, opts)}`);
 export const printReportPdf = (id, letterhead, opts = {}) =>

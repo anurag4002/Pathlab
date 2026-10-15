@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/appConstants';
+import { invalidateReportPdfs } from '../utils/reportPdfCache';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -26,6 +27,7 @@ apiClient.interceptors.request.use(
 // Response Interceptor: Catch auth errors
 apiClient.interceptors.response.use(
   (response) => {
+    if (!['get', 'head', 'options'].includes(response.config.method?.toLowerCase())) invalidateReportPdfs();
     return response;
   },
   async (error) => {
@@ -40,6 +42,7 @@ apiClient.interceptors.response.use(
       } catch { /* Preserve the original error if the payload isn't JSON. */ }
     }
     if (error.response && error.response.status === 401) {
+      invalidateReportPdfs();
       localStorage.removeItem('ppl_token');
       localStorage.removeItem('ppl_user');
       if (!window.location.pathname.includes('/login')) {

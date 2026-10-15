@@ -223,6 +223,9 @@ const createResultReport = async ({ patient, bill, branch, entryMode }, user) =>
   if (!patientRecord) throw Object.assign(new Error('Patient not found'), { statusCode: 404 });
   const billRecord = await Bill.findById(bill);
   if (!billRecord) throw Object.assign(new Error('Bill invoice not found'), { statusCode: 404 });
+  if (String(billRecord.patient) !== String(patient)) {
+    throw Object.assign(new Error('The selected patient does not match this invoice'), { statusCode: 400 });
+  }
 
   const BillItem = require('../models/BillItem');
   const items = await BillItem.find({ billId: bill }).lean();
@@ -231,13 +234,16 @@ const createResultReport = async ({ patient, bill, branch, entryMode }, user) =>
     ? entryMode
     : (modes[0] || 'inhouse');
 
-  // Prefer existing open shell for this mode (idempotent).
-  const open = await Report.findOne({
-    bill,
-    entryMode: mode,
-    status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received'] }
-  }).sort({ createdAt: -1 });
-  if (open) return open;
+  // Opening an invoice again must never replace submitted results with a new
+  // blank shell. Single-modality legacy reports used entryMode=all (or none).
+  // Keep mixed-bill modes separate, and prefer filled reports over duplicates
+  // left empty by earlier versions of the entry flow.
+  const compatibleModes = modes.length === 1 ? {
+    $or: [{ entryMode: mode }, { entryMode: 'all' }, { entryMode: { $exists: false } }]
+  } : { entryMode: mode };
+  const existing = await Report.find({ bill, ...compatibleModes }).sort({ updatedAt: -1, createdAt: -1 });
+  const saved = existing.find(report => report.results?.length || report.fileUrl) || existing[0];
+  if (saved) return saved;
 
   const effectiveBranch = branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null;
   const report = new Report({
@@ -270,7 +276,7 @@ const saveResults = async (reportId, entries = [], user) => {
   report.tat = report.tat || {};
   // Same collected-before-received invariant as submitResults.
   if (!report.tat.received && report.tat.collected) report.tat.received = new Date();
-  report.tat.reported = new Date();
+  if (!report.tat.reported) report.tat.reported = new Date();
   report.status = 'Reported';
   await report.save();
   return report;
@@ -288,31 +294,47 @@ const signReport = async (reportId, signatureId, user) => {
   return report;
 };
 
-const updateTat = async (reportId, { collected, received }) => {
+const updateTat = async (reportId, updates = {}) => {
   const report = await Report.findById(reportId);
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
-  // Enforce collected-before-received: receipt without collection is rejected,
-  // and a receipt earlier than the collection is rejected.
-  if (received && !collected && !report.tat?.collected) {
+  const nextTat = { ...(report.tat?.toObject ? report.tat.toObject() : report.tat || {}) };
+  for (const key of ['registered', 'collected', 'received', 'reported']) {
+    if (updates[key] === undefined) continue;
+    const value = updates[key];
+    if ((value === '' || value === null) && key !== 'registered') { nextTat[key] = null; continue; }
+    const parsed = value ? new Date(value) : new Date(NaN);
+    if (Number.isNaN(parsed.getTime())) throw Object.assign(new Error(`Invalid ${key} date and time`), { statusCode: 400 });
+    nextTat[key] = parsed;
+  }
+  if (nextTat.received && !nextTat.collected) {
     throw Object.assign(new Error('Collect the sample before marking it received'), { statusCode: 400 });
   }
-  const nextCollected = collected ? new Date(collected) : (report.tat?.collected ? new Date(report.tat.collected) : null);
-  const nextReceived = received ? new Date(received) : (report.tat?.received ? new Date(report.tat.received) : null);
+  const nextCollected = nextTat.collected;
+  const nextReceived = nextTat.received;
   if (nextCollected && nextReceived && nextReceived < nextCollected) {
     throw Object.assign(new Error('Received time cannot be earlier than collected time'), { statusCode: 400 });
   }
-  report.tat = report.tat || {};
-  if (collected) report.tat.collected = new Date(collected);
-  if (received) report.tat.received = new Date(received);
-  if (report.status === 'Registered' && (collected || report.tat.collected)) report.status = 'Received';
+  if (nextTat.reported && (nextReceived || nextCollected) && nextTat.reported < (nextReceived || nextCollected)) {
+    throw Object.assign(new Error('Reported time cannot be earlier than sample collection or receipt'), { statusCode: 400 });
+  }
+  report.tat = nextTat;
+  if (updates.reported !== undefined && nextTat.reported) report.reportDate = nextTat.reported;
+  if (['Registered', 'Collected', 'Received'].includes(report.status)) {
+    report.status = nextReceived ? 'Received' : nextCollected ? 'Collected' : 'Registered';
+  }
   await report.save();
   return report;
 };
 
 const ensureQrToken = async (report) => {
   if (report.qrToken) return report.qrToken;
-  report.qrToken = newPublicToken(JWT_SECRET);
-  await report.save();
+  // Concurrent preview/print requests must share one permanent QR token.
+  const created = await Report.findOneAndUpdate({ _id: report._id, qrToken: { $in: [null, ''] } },
+    { $set: { qrToken: newPublicToken(JWT_SECRET) } }, { new: true }).select('qrToken updatedAt');
+  const current = created || await Report.findById(report._id).select('qrToken updatedAt');
+  if (!current) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  report.qrToken = current.qrToken;
+  report.updatedAt = current.updatedAt;
   return report.qrToken;
 };
 
@@ -344,7 +366,7 @@ const submitResults = async (reportId, entries = [], user) => {
   // Only backfill `received` when the sample was actually collected —
   // otherwise the timeline would show "received" for never-collected samples.
   if (!report.tat.received && report.tat.collected) report.tat.received = new Date();
-  report.tat.reported = new Date();
+  if (!report.tat.reported) report.tat.reported = new Date();
   report.status = 'Reported';
   await report.save();
   return report;

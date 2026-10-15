@@ -48,6 +48,79 @@ test('long interpretation paragraphs paginate without losing text', async () => 
   for (let i = 1; i <= 250; i++) assert.ok(text.includes(`Note${i}:`), `missing interpretation line ${i}`);
 });
 
+test('legacy and rich interpretation paragraphs retain readable type even when results fill the page', async () => {
+  for (const rich of [false, true]) {
+    const explanation = 'READABLE_BODY_SENTINEL A complete explanation with comfortable paragraph spacing.';
+    const interpretation = rich ? `<h3>Clinical significance</h3><p>${explanation}</p>` : `Clinical significance\n${explanation}`;
+    const results = Array.from({ length: 24 }, (_, i) => ({ test: 'creatinine', testName: `Creatinine measurement ${i + 1}`, value: '1.2' }));
+    const pdf = await reportPdf({ ...context, report: { ...context.report, results }, testMap: { creatinine: { _id: 'creatinine', name: 'Creatinine', interpretation } } });
+    const streams = [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].flatMap(match => {
+      try { return [zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1')]; } catch { return []; }
+    });
+    const runs = streams.flatMap(stream => [...stream.matchAll(/BT([\s\S]*?)ET/g)].map(match => ({
+      size: Number(match[1].match(/\/\S+\s+([\d.]+)\s+Tf/)?.[1]),
+      text: [...match[1].matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join('')
+    })));
+    const body = runs.filter(run => run.text.includes('READABLE_BODY_SENTINEL'));
+    assert.ok(body.length > 0, 'the full explanation must be rendered');
+    assert.ok(body.every(run => run.size >= 10.5), 'interpretation text must never shrink to fit the result page');
+  }
+});
+
+test('report-specific interpretation replaces complete catalog guidance and can be blank', async () => {
+  const testMap = { Creatinine: { _id: 'catalog-test', name: 'Creatinine', interpretation: 'CATALOG GUIDANCE', description: 'CATALOG DESCRIPTION' } };
+  const report = { ...context.report, interpretations: [{ key: 'test:catalog-test', text: 'PATIENT SPECIFIC GUIDANCE' }] };
+  const custom = textOf(await reportPdf({ ...context, testMap, report }));
+  assert.ok(custom.includes('PATIENT SPECIFIC GUIDANCE'));
+  assert.ok(!custom.includes('CATALOG GUIDANCE') && !custom.includes('CATALOG DESCRIPTION'));
+  report.interpretations[0].text = '';
+  const omitted = textOf(await reportPdf({ ...context, testMap, report }));
+  assert.ok(!omitted.includes('PATIENT SPECIFIC GUIDANCE') && !omitted.includes('CATALOG GUIDANCE'));
+});
+
+test('inline TLC interpretation replaces only TLC and leaves adjacent ESR guidance in the PDF', async () => {
+  const testMap = {
+    tlc: { _id: 'tlc', name: 'TLC', reportSectionKey: 'panel:cbc', reportSectionName: 'Blood tests', interpretation: 'ORIGINAL TLC GUIDANCE' },
+    esr: { _id: 'esr', name: 'ESR', reportSectionKey: 'panel:cbc', reportSectionName: 'Blood tests', interpretation: 'ORIGINAL ESR GUIDANCE' }
+  };
+  const report = { ...context.report, results: [{ test: 'tlc', testName: 'TLC', value: '5000' }, { test: 'esr', testName: 'ESR', value: '10' }], interpretations: [{ key: 'result:tlc', text: 'EDITED TLC GUIDANCE' }] };
+  const edited = textOf(await reportPdf({ ...context, report, testMap }));
+  assert.ok(edited.includes('EDITED TLC GUIDANCE') && edited.includes('ORIGINAL ESR GUIDANCE'));
+  assert.ok(!edited.includes('ORIGINAL TLC GUIDANCE'));
+  report.interpretations[0].text = '';
+  const omitted = textOf(await reportPdf({ ...context, report, testMap }));
+  assert.ok(!omitted.includes('ORIGINAL TLC GUIDANCE') && !omitted.includes('EDITED TLC GUIDANCE'));
+  assert.ok(omitted.includes('ORIGINAL ESR GUIDANCE'));
+});
+
+test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {
+  const rich = '<h2 style="text-align:center">Clinical details</h2><p>Normal <strong>bold phrase</strong> and <em>italic phrase</em> with <u>underlined phrase</u>.</p><table><tbody><tr><th colspan="2"><p>COMBINED HEADER</p></th></tr><tr><td rowspan="2"><p>GROUP LABEL</p></td><td><p>FIRST CELL</p></td></tr><tr><td><p>SECOND CELL</p></td></tr></tbody></table><ul><li><p>Bullet detail</p></li></ul>';
+  const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation: rich } } });
+  const text = textOf(pdf);
+  for (const label of ['Clinical details', 'bold phrase', 'italic phrase', 'underlined phrase', 'COMBINED HEADER', 'GROUP LABEL', 'FIRST CELL', 'SECOND CELL', 'Bullet detail']) assert.ok(text.includes(label), label);
+  assert.ok(!text.includes('<table>') && !text.includes('<strong>'));
+  assert.ok(pdf.toString('latin1').includes('Helvetica-Oblique'));
+});
+
+test('without letterhead omits all branding while retaining patient identity and results', async () => {
+  const profile = { ...context.profile, logoUrl: 'uploads/missing.png', documentFormats: [{ ...format, useReferenceBranding: true }] };
+  const pdf = await reportPdf({ ...context, profile }, { letterhead: false });
+  assert.ok(!pdf.toString('latin1').includes('/Subtype /Image'));
+  const text = textOf(pdf);
+  assert.ok(!text.includes('Test Lab'));
+  assert.ok(text.includes('Test Patient') && text.includes('Creatinine') && text.includes('6.44'));
+});
+
+test('long tabular interpretations continue across pages with all cells preserved', async () => {
+  const interpretation = ['Item\tMeaning\tComment', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}\tComment${i + 1}`)].join('\n');
+  const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation } } });
+  const text = textOf(pdf);
+  for (let i = 1; i <= 180; i++) for (const label of ['Item', 'Meaning', 'Comment']) assert.ok(text.includes(`${label}${i}`));
+  const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
+  assert.ok(pages > 1 && pages < 20);
+  assert.equal((text.match(/Test Patient/g) || []).length, pages);
+});
+
 test('saved patient-specific reference range takes precedence over generic catalog bounds', async () => {
   const pdf = await reportPdf({ ...context, testMap: { Creatinine: { normalLow: 0.72, normalHigh: 1.43 } },
     report: { ...context.report, results: [{ testName: 'Creatinine', value: '1.0', referenceRange: '0.55 - 1.13' }] } });

@@ -74,6 +74,12 @@ const ReportSchema = new mongoose.Schema({
     parameterCode: { type: String, default: '' },
     referenceRange: { type: String, default: '' }
   }],
+  // Per-report section text. Missing key uses the catalog; empty text hides it.
+  interpretations: [{
+    _id: false,
+    key: { type: String, required: true },
+    text: { type: String, default: '' }
+  }],
   // Turnaround-time tracking (4 dates).
   tat: {
     registered: { type: Date, default: Date.now },

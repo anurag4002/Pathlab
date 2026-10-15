@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Button, Input, Select } from '../../../components/common';
 import { GENDER_OPTIONS } from '../../../constants/patientConstants';
+import useAuth from '../../../hooks/useAuth';
 
 const EMPTY_FORM = {
   name: '',
@@ -28,6 +29,8 @@ const PatientFormModal = ({
   doctors = [],
   doctorsLoading = false
 }) => {
+  const { user } = useAuth();
+  const identityLocked = isEditing && user?.role !== 'Admin';
   const handleChange = (field) => (e) =>
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -70,6 +73,8 @@ const PatientFormModal = ({
         <Input
           label="Patient Name"
           name="name"
+          disabled={identityLocked}
+          helperText={identityLocked ? 'Only Admin can change the patient name.' : undefined}
           value={formData.name}
           onChange={handleChange('name')}
           error={errors.name}
@@ -105,6 +110,8 @@ const PatientFormModal = ({
           <Input
             label="Phone Number"
             name="phone"
+            disabled={identityLocked}
+            helperText={identityLocked ? 'Only Admin can change the phone number.' : undefined}
             value={formData.phone}
             onChange={handleChange('phone')}
             error={errors.phone}

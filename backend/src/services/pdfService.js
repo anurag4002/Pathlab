@@ -78,6 +78,11 @@ function resolveReportOptions(opt = {}, profile = {}) {
     }
     out[key] = fromProfile !== undefined ? !!fromProfile : REPORT_OPTION_DEFAULTS[key];
   }
+  // Preprinted stationery already contains the lab branding.
+  if (!out.letterhead) {
+    if (opt.footer === undefined) out.footer = false;
+    if (opt.watermark === undefined) out.watermark = false;
+  }
   return out;
 }
 

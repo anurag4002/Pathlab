@@ -10,7 +10,6 @@ import {
   deleteReport,
   createResultReport,
   signReport,
-  updateReportTat,
   verifyReport,
   resendReport
 } from '../../services/reportService';
@@ -27,11 +26,11 @@ import {
 } from '../../services/deliveryHistoryService';
 import DeliveryStatusBadge from '../../components/delivery/DeliveryStatusBadge';
 import ResendButton from '../../components/delivery/ResendButton';
-import { downloadReportPdf, printReportPdf, fetchReportQr } from '../../services/publicService';
+import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
-import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Printer, Tag, RefreshCw } from 'lucide-react';
+import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Tag, RefreshCw } from 'lucide-react';
 import {
   DataTable,
   PageHeader,
@@ -53,6 +52,9 @@ import CommentThread from '../../components/lab/CommentThread';
 import VerificationTimeline from '../../components/lab/VerificationTimeline';
 import LabelPrintSheet from '../../components/lab/LabelPrintSheet';
 import ResultEntryGrid from '../../components/lab/ResultEntryGrid';
+import ReportTatEditor from '../../components/lab/ReportTatEditor';
+import ReportPrintActions from '../../components/lab/ReportPrintActions';
+import { stationeryOptions } from '../../utils/reportPrintOptions';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -130,6 +132,8 @@ const TodaysReports = () => {
     );
   };
   const [reports, setReports] = useState([]);
+  const [stationery, setStationery] = useState('default');
+  const pdfOptions = stationeryOptions(stationery);
   const [loading, setLoading] = useState(false);
 
   // Phase 1 — worklist tabs + department filter (Phase 6 — TAT settings drive due logic).
@@ -172,7 +176,6 @@ const TodaysReports = () => {
   const gridRef = useRef(null);
   const [gridBusy, setGridBusy] = useState(false);
   const entryFinal = ['Signed', 'Verified', 'Completed'].includes(activeReport?.status);
-  const [tat, setTat] = useState({ collected: '', received: '' });
   const [sigId, setSigId] = useState('');
   // Phase 3 — idempotent sign: guards double-click/double-submit.
   const [signing, setSigning] = useState(false);
@@ -192,13 +195,9 @@ const TodaysReports = () => {
   // the Lab Profile API (never hardcoded); empty until it arrives or on failure.
   const [labName, setLabName] = useState('');
   const [labNameError, setLabNameError] = useState(false);
-  const [labProfile, setLabProfile] = useState(null);
   // Local failed-delivery cache; server delivery history remains authoritative.
   const [failedDeliveries, setFailedDeliveries] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState('');
-  const [previewQr, setPreviewQr] = useState({ qrDataUrl: '', verifyUrl: '' });
   const [rejectOpen, setRejectOpen] = useState(false);
   const [labelTarget, setLabelTarget] = useState(null);
   const [sendResult, setSendResult] = useState(null);
@@ -287,11 +286,9 @@ const TodaysReports = () => {
     try {
       const res = await getLabProfile();
       const profile = res?.data?.profile || res?.data || null;
-      setLabProfile(profile);
       setLabName(profile?.labName || '');
       setLabNameError(!profile?.labName);
     } catch {
-      setLabProfile(null);
       setLabName('');
       setLabNameError(true);
     }
@@ -644,10 +641,6 @@ const TodaysReports = () => {
       ));
 
     setActiveReport(nextReport);
-    setTat({
-      collected: nextReport.tat?.collected ? String(nextReport.tat.collected).slice(0, 10) : '',
-      received: nextReport.tat?.received ? String(nextReport.tat.received).slice(0, 10) : ''
-    });
     loadVerifyUrl(nextReport._id);
 
     if (outsource) {
@@ -710,15 +703,6 @@ const TodaysReports = () => {
 
 
 
-  const handleSaveTat = async () => {
-    try {
-      const res = await updateReportTat(activeReport._id, { ...(tat.collected ? { collected: tat.collected } : {}), ...(tat.received ? { received: tat.received } : {}) });
-      if (res.success) { setActiveReport(res.data); fetchReports(); }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update TAT');
-    }
-  };
-
   // Phase 3+15 — idempotent sign: double-click/double-submit cannot
   // double-sign. Sources the signature id from /api/setup/signatures
   // (via SignaturePicker), never from lab-profile fields.
@@ -771,43 +755,11 @@ const TodaysReports = () => {
   const selectedTemplate =
     channelTemplates.find((t) => t.key === sendForm.templateKey) || channelTemplates[0] || null;
 
-  // Phase 4+10 — in-app PDF preview (shared print layout + QR), plus print
-  // state: server PDF via GET /api/reports/:id/pdf with failure feedback
-  // (previously an un-awaited fire-and-forget).
-  const [printingId, setPrintingId] = useState('');
-  const handlePrintPdf = async (id) => {
-    if (!id || printingId) return;
-    setPrintingId(id);
-    try {
-      await printReportPdf(id);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to print report — the server PDF could not be loaded.');
-    } finally {
-      setPrintingId('');
-    }
-  };
-  const handleOpenPreview = async (report) => {
+  const handleOpenPreview = (report) => {
     const target = report || activeReport;
     if (!target?._id) return;
     if (report && report._id !== activeReport?._id) setActiveReport(report);
     setPreviewOpen(true);
-    setPreviewLoading(true);
-    setPreviewError('');
-    try {
-      const qr = await fetchReportQr(target._id);
-      if (qr?.success) {
-        setPreviewQr({ qrDataUrl: qr.data.qrDataUrl || '', verifyUrl: qr.data.verifyUrl || '' });
-        if (!verifyUrl) setVerifyUrl(qr.data.verifyUrl || '');
-      } else {
-        setPreviewQr({ qrDataUrl: '', verifyUrl: verifyUrl || '' });
-      }
-    } catch (err) {
-      // QR is enhancement-only: preview still renders with URL fallback text.
-      setPreviewQr({ qrDataUrl: '', verifyUrl: verifyUrl || '' });
-      setPreviewError(getApiErrorMessage(err, 'Failed to prepare the report preview.'));
-    } finally {
-      setPreviewLoading(false);
-    }
   };
 
   const deliver = async (payload) => {
@@ -1131,10 +1083,8 @@ const TodaysReports = () => {
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)} title="Preview">
                     <Eye size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handlePrintPdf(report._id)} disabled={printingId === report._id} title={printingId === report._id ? 'Printing…' : 'Print the server-rendered PDF'}>
-                    <Printer size={14} />
-                  </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)} title="Download PDF">
+                  <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, pdfOptions)} title="Download PDF">
                     <FileDown size={14} />
                   </button>
                   {report.fileUrl && (
@@ -1310,9 +1260,9 @@ const TodaysReports = () => {
           ) : (
             <>
               <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
-              <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id || previewLoading}><Eye size={14} /> Preview</Button>
-              <Button variant="secondary" onClick={() => activeReport && handlePrintPdf(activeReport._id)} disabled={!activeReport?._id || !!printingId} title="Print the server-rendered PDF (GET /api/reports/:id/pdf)"><Printer size={14} /> {printingId ? 'Printing…' : 'Print'}</Button>
-              <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id)}><FileDown size={14} /> PDF</Button>
+              <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id}><Eye size={14} /> Preview</Button>
+              <ReportPrintActions reportId={activeReport?._id} onStationeryChange={setStationery} />
+              <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, pdfOptions)}><FileDown size={14} /> PDF</Button>
               <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
               {entryFinal ? (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
@@ -1369,11 +1319,7 @@ const TodaysReports = () => {
           </p>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-          <Input type="date" label="Collected (TAT)" value={tat.collected} onChange={(e) => setTat(p => ({ ...p, collected: e.target.value }))} style={{ flex: 1 }} />
-          <Input type="date" label="Received (TAT)" value={tat.received} onChange={(e) => setTat(p => ({ ...p, received: e.target.value }))} style={{ flex: 1 }} />
-          <div style={{ alignSelf: 'flex-end' }}><Button variant="secondary" size="sm" onClick={handleSaveTat}>Save TAT</Button></div>
-        </div>
+        <ReportTatEditor report={activeReport} onSaved={updated => { setActiveReport(updated); fetchReports(); }} />
 
         {/* Phase 15 — sign from /api/setup/signatures with department
             auto-select (never lab-profile fields). Idempotent: the button
@@ -1390,7 +1336,7 @@ const TodaysReports = () => {
             <Button variant="secondary" size="sm" onClick={handleSign} loading={signing} disabled={signing}>
               <PenLine size={14} /> {signing ? 'Signing…' : 'Sign'}
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview()} disabled={previewLoading}>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenPreview()} disabled={!activeReport?._id}>
               <Eye size={14} /> Preview
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setRejectOpen(true)}>
@@ -1399,11 +1345,6 @@ const TodaysReports = () => {
           </div>
         </div>
         {verifyUrl && <p style={{ fontSize: '0.75rem', marginTop: '8px', wordBreak: 'break-all' }}><QrCode size={12} /> Verify: {verifyUrl}</p>}
-        {!verifyUrl && previewQr.verifyUrl && (
-          <p style={{ fontSize: '0.75rem', marginTop: '8px', wordBreak: 'break-all' }}>
-            <QrCode size={12} /> Verify: {previewQr.verifyUrl}
-          </p>
-        )}
 
         {/* Phase 7 — delivery status + per-report history (local until backend endpoint exists) */}
         <div style={{ marginTop: '12px', borderTop: '1px solid var(--color-border, #e2e8f0)', paddingTop: '12px' }}>
@@ -1574,18 +1515,13 @@ const TodaysReports = () => {
         message={`Are you sure you want to permanently delete the report file for ${deleteTarget?.patient?.name}?`}
       />
 
-      {/* Phase 4+10 — preview == print markup (ReportPrintView) with unsigned
-          banner and QrBlock (qrDataUrl + URL fallback text). */}
+      {/* The server PDF already includes the QR and saved report details. */}
       <ReportPreviewModal
         isOpen={previewOpen}
         onClose={() => setPreviewOpen(false)}
         report={activeReport}
-        qrDataUrl={previewQr.qrDataUrl}
-        verifyUrl={previewQr.verifyUrl || verifyUrl}
-        signatures={signatures}
-        profile={labProfile}
-        loading={previewLoading}
-        error={previewError}
+        stationery={stationery}
+        onStationeryChange={setStationery}
       />
 
       <RejectDialog

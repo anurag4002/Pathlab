@@ -8,7 +8,8 @@ import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { Download, FileDown, Printer } from 'lucide-react';
+import { Download, FileDown } from 'lucide-react';
+import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
 
 const STATUS_OPTIONS = [
@@ -103,11 +104,6 @@ const SearchReports = () => {
       <PageHeader
         title="Search Lab Reports"
         subtitle="Advanced URL-based filtering: duration, patient, status, referrer, reg.no, daily case no, UHID, test"
-        action={
-          <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.825rem' }} onClick={() => window.print()}>
-            <Printer size={16} /> Print
-          </button>
-        }
       />
 
       <AdvancedFilterBar
@@ -162,6 +158,7 @@ const SearchReports = () => {
             <td>{report.status}</td>
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <ReportPrintActions reportId={report._id} />
                 <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)}>
                   <FileDown size={14} /> PDF
                 </button>

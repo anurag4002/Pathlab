@@ -33,6 +33,9 @@ import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 import DifferentialTotalRow from '../../components/lab/DifferentialTotalRow';
 import { differentialTotalsByRow } from '../../utils/differentialCount';
 import '../../styles/ResultEntry.css';
+import ReportTatEditor from '../../components/lab/ReportTatEditor';
+import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
+import { hasInterpretation } from '../../utils/interpretationContent';
 
 const isOutsourceBill = (bill) => (
   bill?.caseType === 'OutsourceLabCase'
@@ -559,7 +562,11 @@ const ResultEntry = () => {
           <StatusBadge status={row?.report?.status} />
         </td>
         <td>
-          {final ? (
+          {final && !outsource ? (
+            <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
+              View results
+            </Button>
+          ) : final ? (
             <span className="re-sub">Submitted — no action</span>
           ) : showBoth ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -618,7 +625,6 @@ const ResultEntry = () => {
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
           </div>
           {subLine ? <div className="re-sub">{subLine}</div> : null}
-          {testEntry.interpretation && <details className="re-interpretation"><summary>Interpretation</summary><p>{testEntry.interpretation}</p></details>}
         </td>
         <td className="re-result-cell">
           <div className="re-flag-slot"><RangeFlagBadge value={String(displayValue).replace(/,/g, '')} test={testEntry} /></div>
@@ -661,6 +667,9 @@ const ResultEntry = () => {
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
       <DifferentialTotalRow total={differentialTotals.get(key)} />
+      {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={4}>
+        <InlineTestInterpretation reportId={entry.report._id} testEntry={testEntry} readOnly={['Signed', 'Verified', 'Completed'].includes(entry.report.status)} />
+      </td></tr>}
       </React.Fragment>
     );
   };
@@ -928,6 +937,7 @@ const ResultEntry = () => {
 
                 {/* Backend status + tat timeline (display-only). */}
                 <TatTimeline report={entry.report} />
+                <ReportTatEditor report={entry.report} onSaved={report => setEntry(prev => ({ ...prev, report: { ...prev.report, ...report } }))} />
               </div>
 
               <section className="re-card" aria-labelledby="re-results-heading">
@@ -947,7 +957,7 @@ const ResultEntry = () => {
                   return groups;
                 }, Object.create(null))).map(([name, tests]) => <div key={name} className="re-test-group">
                   <h3>{name}</h3>
-                  <DataTable headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
+                  <DataTable className="re-results-table" headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
                 </div>) : <p className="re-sub">This case has no lab tests to report.</p>}
                 {isReportFinal(entry?.report?.status) ? (
                   <p className="re-sub" role="status">Results already submitted — no further action. Go back to pick another case.</p>

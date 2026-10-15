@@ -24,7 +24,7 @@ const deleteCategory = async (id) => {
 
 // Tests
 const getTests = async (filters = {}) => {
-  const query = {};
+  const query = { isDeleted: { $ne: true } };
   if (filters.category) query.category = filters.category;
   if (filters.status) query.status = filters.status;
   if (filters.search) {
@@ -52,7 +52,8 @@ const updateTest = async (id, data) => {
 };
 
 const deleteTest = async (id) => {
-  return await Test.findByIdAndDelete(id);
+  // Remove from the working catalog while retaining definitions for old reports.
+  return await Test.findOneAndUpdate({ _id: id, isDeleted: { $ne: true } }, { isDeleted: true, status: 'Inactive' }, { new: true });
 };
 
 const updateTestRate = async (id, price) => {
@@ -91,7 +92,7 @@ const bulkUpdateTestRates = async (updates = []) => {
 // Panels — lean + slim nested fields for billing/dropdown speed
 const getPanels = async () => {
   return await TestPanel.find()
-    .populate('tests', 'name code price unit status sampleType')
+    .populate({ path: 'tests', select: 'name code price unit status sampleType', match: { isDeleted: { $ne: true } } })
     .sort({ name: 1 })
     .lean();
 };
@@ -111,7 +112,7 @@ const deletePanel = async (id) => {
 // Packages — lean + slim nested fields for billing/dropdown speed
 const getPackages = async () => {
   return await TestPackage.find()
-    .populate('includedTests', 'name code price unit status sampleType')
+    .populate({ path: 'includedTests', select: 'name code price unit status sampleType', match: { isDeleted: { $ne: true } } })
     .sort({ name: 1 })
     .lean();
 };
@@ -136,11 +137,13 @@ const getInterpretations = async (testId = null) => {
 };
 
 const createInterpretation = async (data) => {
-  return await Interpretation.create(data);
+  return await Interpretation.create({ ...data, interpretationText: require('./richInterpretation').sanitizeInterpretation(data.interpretationText) });
 };
 
 const updateInterpretation = async (id, data) => {
-  return await Interpretation.findByIdAndUpdate(id, data, { new: true });
+  return await Interpretation.findByIdAndUpdate(id, { ...data,
+    ...(data.interpretationText !== undefined ? { interpretationText: require('./richInterpretation').sanitizeInterpretation(data.interpretationText) } : {}),
+    ...(data.test === '' ? { test: null } : {}) }, { new: true, runValidators: true });
 };
 
 const deleteInterpretation = async (id) => {

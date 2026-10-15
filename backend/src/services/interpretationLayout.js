@@ -8,6 +8,8 @@ const isCbc = value => /^(?:complete blood count\b|cbc\b)/i.test(String(value ||
 const normalized = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 function interpretationBlocks(value) {
+  const { isRichInterpretation, richInterpretationBlocks } = require('./richInterpretation');
+  if (isRichInterpretation(value)) return richInterpretationBlocks(value);
   const blocks = [];
   let paragraph = '', tableRows = [];
   const flush = () => { if (paragraph) blocks.push({ kind: 'paragraph', text: paragraph }); paragraph = ''; };
@@ -49,6 +51,10 @@ function interpretationBlocks(value) {
 }
 
 function reportNoteBlocks(section) {
+  if (typeof section.interpretationOverride === 'string') {
+    return section.interpretationOverride.trim()
+      ? [{ kind: 'title', text: 'Interpretation' }, ...interpretationBlocks(section.interpretationOverride)] : [];
+  }
   const blocks = [], seen = new Set();
   const add = (title, value) => {
     const content = String(value || '').trim();
@@ -62,14 +68,16 @@ function reportNoteBlocks(section) {
   add(panelGuidance ? '' : 'Description', section.description);
   const names = new Set(tests.map(({ result, test }) => test.parentName || test.name || result.testName || 'Test'));
   for (const { result, test } of tests) {
-    const name = test.parentName || test.name || result.testName || 'Test';
+    const custom = typeof result.interpretationOverride === 'string';
+    const name = custom ? result.testName || test.name || 'Test' : test.parentName || test.name || result.testName || 'Test';
     const prefix = names.size > 1 ? `${name} - ` : '';
     const descriptionIncluded = test.description?.trim() && normalized(test.interpretation).includes(normalized(test.description));
     if (!compactCbc && test.description && !descriptionIncluded && test.description !== test.sourceType && !/^(?:numeric|text|document|single parameter|multiple parameters?)$/i.test(test.description.trim())) add(`${prefix}Description`, test.description);
     // Supplied CBC/KFT reports have panel guidance, not every individual test's
     // full imported boilerplate. Keep lab-authored changes as additional notes.
     const unchangedImport = test.sourceInterpretation?.text && normalized(test.interpretation) === normalized(test.sourceInterpretation.text);
-    if (!compactCbc && (!panelGuidance || !unchangedImport)) add(`${prefix}Interpretation`, test.interpretation);
+    if (custom) add(`${name} - Interpretation`, result.interpretationOverride);
+    else if (!compactCbc && (!panelGuidance || !unchangedImport)) add(`${prefix}Interpretation`, test.interpretation);
     const method = String(test.sourceInterpretation?.method || '').trim();
     if (method && !seen.has(`method:${method}`)) {
       seen.add(`method:${method}`); blocks.push({ kind: 'detail', text: `Method: ${method}` });

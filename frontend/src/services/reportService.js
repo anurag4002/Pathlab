@@ -1,5 +1,13 @@
 import apiClient from './apiClient';
 
+export const getReportInterpretations = async id => (await apiClient.get(`/reports/${id}/interpretations`)).data;
+export const updateReportInterpretations = async (id, interpretations) => (await apiClient.put(`/reports/${id}/interpretations`, { interpretations })).data;
+export const updateTestInterpretation = async (id, resultKey, text, reset = false) => (await apiClient.put(`/reports/${id}/interpretations`, {
+  merge: true,
+  interpretations: reset ? [] : [{ key: `result:${resultKey}`, text }],
+  resetKeys: reset ? [`result:${resultKey}`] : []
+})).data;
+
 export const getReports = async (params = {}) => {
   const response = await apiClient.get('/reports', { params });
   return response.data;

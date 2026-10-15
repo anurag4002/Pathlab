@@ -17,12 +17,14 @@ const testController = require('../src/controllers/testController');
 const reportController = require('../src/controllers/reportController');
 const reportService = require('../src/services/reportService');
 const testService = require('../src/services/testService');
+const patientController = require('../src/controllers/patientController');
+require('../src/models/Doctor');
 let database, category, patient, hb, hct, rbc, mcv, mch, mchc;
 const user = { _id: new mongoose.Types.ObjectId(), role: 'Admin' };
 
-async function call(handler, params = {}, body = {}, caller = user) {
+async function call(handler, params = {}, body = {}, caller = user, query = {}) {
   const response = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(payload) { this.body = JSON.parse(JSON.stringify(payload)); return this; } };
-  await handler({ params, body, user: caller, query: {} }, response, (error) => { throw error; });
+  await handler({ params, body, user: caller, query }, response, (error) => { throw error; });
   return response;
 }
 
@@ -50,6 +52,166 @@ async function makeReport(kind = 'TestPanel', tests = [hb, hct, rbc, mcv, mch, m
   return Report.create({ patient: patient._id, bill: bill._id, registrationNumber: '6716', uploadedBy: user._id, status: 'Registered' });
 }
 const measurements = () => [{ test: hb._id, value: '7.0' }, { test: hct._id, value: '20.0' }, { test: rbc._id, value: '3.11' }];
+
+test('submit then return to the case list preserves the saved report identity and prefilled values', async () => {
+  const report = await makeReport();
+  const submitted = await reportService.submitResults(report._id, measurements(), user);
+  const bill = await Bill.findById(report.bill);
+  const queue = await call(reportController.getPendingLabCases, {}, {}, user, { search: bill.billNumber });
+  const row = queue.body.data.cases.find(row => row.bill._id === String(bill._id));
+  assert.ok(row);
+  assert.equal(row.report._id, String(report._id));
+  assert.equal(row.report.status, 'Reported');
+  const reopened = await call(reportController.getReportForEntry, { id: row.report._id });
+  assert.equal(reopened.body.data.report._id, String(report._id));
+  assert.equal(reopened.body.data.testEntries.find(test => test.testCode === 'HB').existingValue, '7.0');
+  assert.equal(reopened.body.data.testEntries.find(test => test.testCode === 'MCV').existingValue, '64.3');
+  assert.equal(reopened.body.data.results.length, submitted.results.length);
+  assert.equal(await Report.countDocuments({ bill: report.bill }), 1);
+});
+
+test('opening result entry again reuses submitted and legacy reports instead of creating blank shells', async () => {
+  const report = await makeReport();
+  await reportService.submitResults(report._id, measurements(), user);
+  const opened = await reportService.createResultReport({ patient: patient._id, bill: report.bill, entryMode: 'inhouse' }, user);
+  assert.equal(String(opened._id), String(report._id));
+  assert.equal(opened.results.find(result => result.testName === 'Hemoglobin').value, '7.0');
+  assert.equal(opened.status, 'Reported');
+  assert.equal(await Report.countDocuments({ bill: report.bill }), 1);
+  report.entryMode = 'inhouse'; report.status = 'Signed'; await report.save();
+  const signed = await reportService.createResultReport({ patient: patient._id, bill: report.bill, entryMode: 'inhouse' }, user);
+  assert.equal(String(signed._id), String(report._id));
+  assert.equal(signed.status, 'Signed');
+  assert.equal(await Report.countDocuments({ bill: report.bill }), 1);
+});
+
+test('mixed bill worklist preserves separate in-house and outsource report identities', async () => {
+  const report = await makeReport();
+  report.entryMode = 'inhouse'; await report.save();
+  const custom = await BillItem.create({ billId: report.bill, itemType: 'Custom', name: 'Outsource test', price: 10 });
+  await Bill.updateOne({ _id: report.bill }, { $push: { items: custom._id } });
+  const outsource = await reportService.createResultReport({ patient: patient._id, bill: report.bill, entryMode: 'outsource' }, user);
+  await reportService.saveResultsDraft(report._id, measurements(), user);
+  const bill = await Bill.findById(report.bill);
+  const queue = await call(reportController.getPendingLabCases, {}, {}, user, { search: bill.billNumber });
+  assert.deepEqual(new Set(queue.body.data.cases.map(row => row.report._id)), new Set([String(report._id), String(outsource._id)]));
+  assert.equal(queue.body.data.cases.find(row => row.report._id === String(report._id)).report.status, 'Draft');
+});
+
+test('report interpretations save independently, reopen, reset and lock after signing', async () => {
+  const report = await makeReport();
+  const params = { id: String(report._id) };
+  const initial = await call(reportController.getInterpretations, params);
+  assert.equal(initial.body.data.length, 1);
+  const key = initial.body.data[0].key;
+  const saved = await call(reportController.updateInterpretations, params, { interpretations: [{ key, text: 'Custom report guidance' }] });
+  assert.equal(saved.statusCode, 200);
+  const reopened = await call(reportController.getInterpretations, params);
+  assert.equal(reopened.body.data[0].text, 'Custom report guidance');
+  assert.equal(reopened.body.data[0].customized, true);
+  await call(reportController.updateInterpretations, params, { interpretations: [{ key, text: '' }] });
+  assert.equal((await call(reportController.getInterpretations, params)).body.data[0].text, '');
+  await call(reportController.updateInterpretations, params, { interpretations: [] });
+  assert.equal((await call(reportController.getInterpretations, params)).body.data[0].customized, false);
+  const invalid = await call(reportController.updateInterpretations, params, { interpretations: [{ key: 'other-report', text: 'wrong section' }] });
+  assert.equal(invalid.statusCode, 400);
+  await Report.updateOne({ _id: report._id }, { status: 'Signed' });
+  assert.equal((await call(reportController.updateInterpretations, params, { interpretations: [] })).statusCode, 409);
+});
+
+test('complete panel interpretation can be stored in the reusable library without a single test link', async () => {
+  const saved = await call(testController.createInterpretation, {}, { resultCondition: 'Reusable panel guidance', interpretationText: 'Complete panel text', normalAbnormalGuidance: 'General' });
+  assert.equal(saved.statusCode, 201);
+  assert.equal(saved.body.data.test, null);
+  assert.ok((await testService.getInterpretations()).some(item => item.interpretationText === 'Complete panel text'));
+});
+
+test('inline test interpretations save, reopen and reset independently within one report panel', async () => {
+  const tlc = await Test.create({ code: 'INLINE_TLC', name: 'TLC', category: category._id, sampleType: 'Blood', price: 10, interpretation: 'Catalog TLC interpretation' });
+  const esr = await Test.create({ code: 'INLINE_ESR', name: 'ESR', category: category._id, sampleType: 'Blood', price: 10, interpretation: 'Catalog ESR interpretation' });
+  const report = await makeReport('TestPanel', [tlc, esr]);
+  const params = { id: String(report._id) };
+  const save = (test, text) => call(reportController.updateInterpretations, params, { merge: true, interpretations: [{ key: `result:${test._id}`, text }] });
+  await Promise.all([save(tlc, 'Edited TLC for this patient'), save(esr, 'Edited ESR for this patient')]);
+  let reopened = (await call(reportController.getReportForEntry, params)).body.data.testEntries;
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_TLC').interpretation, 'Edited TLC for this patient');
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_ESR').interpretation, 'Edited ESR for this patient');
+  assert.equal((await Test.findById(tlc._id)).interpretation, 'Catalog TLC interpretation');
+  await save(tlc, '');
+  reopened = (await call(reportController.getReportForEntry, params)).body.data.testEntries;
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_TLC').interpretation, '');
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_TLC').interpretationCustomized, true);
+  await call(reportController.updateInterpretations, params, { merge: true, interpretations: [], resetKeys: [`result:${tlc._id}`] });
+  reopened = (await call(reportController.getReportForEntry, params)).body.data.testEntries;
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_TLC').interpretation, 'Catalog TLC interpretation');
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_TLC').interpretationCustomized, false);
+  assert.equal(reopened.find(row => row.testCode === 'INLINE_ESR').interpretation, 'Edited ESR for this patient');
+  assert.equal((await save({ _id: new mongoose.Types.ObjectId() }, 'Unknown test')).statusCode, 400);
+});
+
+test('inline interpretation edits keep parameters sharing the same catalog ID distinct', async () => {
+  const compound = await Test.create({ code: 'INLINE_PAIR', name: 'CBC fields', category: category._id, sampleType: 'Blood', price: 10,
+    interpretation: 'Default parent guidance', parameters: [{ code: 'INLINE_TLC', name: 'TLC' }, { code: 'INLINE_ESR', name: 'ESR' }] });
+  const report = await makeReport('TestPanel', [compound]);
+  const params = { id: String(report._id) };
+  await call(reportController.updateInterpretations, params, { merge: true, interpretations: [{ key: `result:${compound._id}:INLINE_ESR`, text: 'ESR specific guidance' }] });
+  const entry = (await call(reportController.getReportForEntry, params)).body.data;
+  assert.equal(entry.testEntries.find(row => row.parameterCode === 'INLINE_ESR').interpretation, 'ESR specific guidance');
+  assert.equal(entry.testEntries.find(row => row.parameterCode === 'INLINE_TLC').interpretation, 'Default parent guidance');
+});
+
+test('rich interpretation HTML and table formatting survive save, submit and reopen', async () => {
+  const report = await makeReport();
+  const params = { id: String(report._id) };
+  const html = '<h3>Interpretation</h3><p>Some <strong>bold detail</strong></p><table><tbody><tr><th>Item</th><th>Meaning</th></tr><tr><td>HB</td><td onclick="alert(1)">Editable cell</td></tr></tbody></table>';
+  const saved = await call(reportController.updateInterpretations, params, { merge: true, interpretations: [{ key: `result:${hb._id}`, text: html }] });
+  assert.equal(saved.statusCode, 200);
+  await reportService.submitResults(report._id, measurements(), user);
+  const reopened = (await call(reportController.getReportForEntry, params)).body.data;
+  const note = reopened.testEntries.find(row => row.testCode === 'HB').interpretation;
+  assert.ok(note.includes('<table>') && note.includes('<strong>bold detail</strong>') && note.includes('<td>Editable cell</td>'));
+  assert.ok(!note.includes('onclick'));
+  assert.equal(reopened.report.status, 'Reported');
+});
+
+test('all report timestamps accept precise times and manual reported time survives submit', async () => {
+  const report = await makeReport();
+  const times = { registered: '2026-10-11T08:30:00+05:30', collected: '2026-10-11T09:05:00+05:30', received: '2026-10-11T09:15:00+05:30', reported: '2026-10-11T11:45:00+05:30' };
+  const saved = await reportService.updateTat(report._id, times);
+  for (const key of Object.keys(times)) assert.equal(saved.tat[key].toISOString(), new Date(times[key]).toISOString());
+  const submitted = await reportService.submitResults(report._id, measurements(), user);
+  assert.equal(submitted.tat.reported.toISOString(), new Date(times.reported).toISOString());
+  await assert.rejects(reportService.updateTat(report._id, { received: 'invalid date' }), /Invalid received/);
+  await assert.rejects(reportService.updateTat(report._id, { received: '2026-10-11T08:00:00+05:30' }), /earlier than collected/);
+  await assert.rejects(reportService.updateTat(report._id, { reported: '2026-10-11T09:00:00+05:30' }), /Reported time/);
+  await assert.rejects(reportService.updateTat(report._id, { collected: null }), /Collect the sample/);
+});
+
+test('only Admin can change patient identity, including direct API requests', async () => {
+  const patient = await Patient.create({ name: 'Identity Test', age: 20, gender: 'Male', phone: '9999999999', registrationNumber: 'IDENTITY-TEST' });
+  const params = { id: String(patient._id) };
+  const employee = { ...user, role: 'Employee' };
+  for (const body of [{ name: 'Changed' }, { phone: '8888888888' }]) {
+    assert.equal((await call(patientController.updatePatient, params, body, employee)).statusCode, 403);
+  }
+  await call(patientController.updatePatient, params, { $set: { name: 'Operator bypass' }, address: 'Allowed address' }, employee);
+  assert.equal((await Patient.findById(patient._id)).name, 'Identity Test');
+  const saved = await call(patientController.updatePatient, params, { name: 'Corrected Name', phone: '8888888888' });
+  assert.equal(saved.body.data.name, 'Corrected Name');
+  assert.equal(saved.body.data.phone, '8888888888');
+});
+
+test('deleted catalog tests disappear from new selections while historical definitions survive', async () => {
+  const disposable = await testService.createTest({ code: 'DELETEME', name: 'Deleted test', category: category._id, sampleType: 'Blood', price: 10, interpretation: 'Historical guidance' });
+  const report = await makeReport('TestPanel', [disposable]);
+  await reportService.saveResultsDraft(report._id, [{ test: disposable._id, value: '5' }], user);
+  await testService.deleteTest(disposable._id);
+  assert.ok(!(await testService.getTests()).some(test => String(test._id) === String(disposable._id)));
+  assert.equal((await Test.findById(disposable._id)).interpretation, 'Historical guidance');
+  const testMap = await require('../src/services/reportPrintSections').loadReportPrintTests(report);
+  assert.equal(testMap[String(disposable._id)].interpretation, 'Historical guidance');
+});
+
 
 test('editing a lean catalog record saves the formula and partial updates still work', async () => {
   const result = await call(testController.updateTest, { id: String(mcv._id) }, { formula: 'ROUND([HCT] * 10 / [RBC], 1)' });

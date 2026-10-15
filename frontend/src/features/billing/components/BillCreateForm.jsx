@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill, updateBill } from '../../../services/billService';
 import { createPatient, getPatientById, updatePatient } from '../../../services/patientService';
 import { getTests } from '../../../services/testService';
-import { PageHeader, Button, Select } from '../../../components/common';
+import { PageHeader, Button, Select, Input } from '../../../components/common';
+import useAuth from '../../../hooks/useAuth';
 import PatientDetailsSection from './PatientDetailsSection';
 import DepartmentSelector from './DepartmentSelector';
 import BillItemsTable from './BillItemsTable';
@@ -179,8 +180,21 @@ const BillCreateForm = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isEditMode = !!editBill;
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const editPatient = editBill?.patient && typeof editBill.patient === 'object' ? editBill.patient : null;
   const editPatientId = editPatient?._id || (typeof editBill?.patient === 'string' ? editBill.patient : '');
+  const [identity, setIdentity] = useState(() => ({ name: editPatient?.name || '', phone: editPatient?.phone || '' }));
+  const [identityBusy, setIdentityBusy] = useState(false);
+  const [identityMessage, setIdentityMessage] = useState(null);
+  const saveIdentity = async () => {
+    setIdentityBusy(true); setIdentityMessage(null);
+    try {
+      await updatePatient(editPatientId, { name: identity.name.trim(), phone: identity.phone.trim() });
+      setIdentityMessage({ error: false, text: 'Patient details saved. Linked bills and reports use these details.' });
+    } catch (error) { setIdentityMessage({ error: true, text: getApiErrorMessage(error, 'Could not update patient details.') }); }
+    finally { setIdentityBusy(false); }
+  };
   const idOf = (ref) => (ref && ref._id ? String(ref._id) : (ref ? String(ref) : ''));
   // Prefill from a confirmed booking inquiry (Inquiries → "Confirm & Bill").
   // Handoff arrives via sessionStorage (survives URL-mirroring replaces and
@@ -799,9 +813,15 @@ const BillCreateForm = ({
               <div className="bill-card-header">
                 <div className="bill-card-header-left">
                   <span className="bill-card-step-badge">1</span>
-                  <h3 className="bill-card-title">Patient (locked to this invoice)</h3>
+                  <h3 className="bill-card-title">Patient details</h3>
                 </div>
               </div>
+              {isAdmin ? <>
+                <Input id="invoice-patient-name" label="Patient name" value={identity.name} onChange={e => setIdentity(prev => ({ ...prev, name: e.target.value }))} disabled={identityBusy} required />
+                <Input id="invoice-patient-phone" label="Phone number" value={identity.phone} onChange={e => setIdentity(prev => ({ ...prev, phone: e.target.value }))} disabled={identityBusy} required />
+                <Button variant="secondary" onClick={saveIdentity} loading={identityBusy} disabled={identityBusy || !editPatientId}>Save patient details</Button>
+                {identityMessage && <p role={identityMessage.error ? 'alert' : 'status'} style={{ color: identityMessage.error ? '#b91c1c' : '#166534' }}>{identityMessage.text}</p>}
+              </> : <>
               <div className="payment-summary-row">
                 <span>Patient</span>
                 <strong>
@@ -813,6 +833,8 @@ const BillCreateForm = ({
                 <span>Phone</span>
                 <strong>{editPatient?.phone || '—'}</strong>
               </div>
+              <p>Only Admin can edit patient name and phone number.</p>
+              </>}
               <div className="payment-summary-row">
                 <span>Already paid</span>
                 <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(Number(editBill.paidAmount || 0))}</strong>
@@ -1052,10 +1074,6 @@ const BillCreateForm = ({
               error={errors.items}
             />
             <ComboIndicator items={selectedItems} />
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px', marginBottom: 0 }}>
-              Printed bill note: the server-rendered bill PDF lists each line item and the bill
-              discount — bundle members above are itemised at the package total.
-            </p>
           </div>
 
           <PaymentSummarySection

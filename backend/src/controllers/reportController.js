@@ -166,6 +166,8 @@ module.exports = {
   saveResults,
   signReport,
   updateTat,
+  getInterpretations,
+  updateInterpretations,
   reportPdfDownload,
   reportQr,
   getPendingLabCases,
@@ -238,40 +240,104 @@ async function updateTat(req, res, next) {
   try {
     await assertReportAccess(req, req.params.id);
     const report = await reportService.updateTat(req.params.id, req.body || {});
+    await Activity.create({ user: req.user._id, action: 'Update Report TAT', module: 'Lab', description: `Updated report date and time for ${report.registrationNumber}.` });
     return successResponse(res, 'TAT updated', report);
   } catch (error) {
     next(error);
   }
 }
 
+async function getInterpretations(req, res, next) {
+  try {
+    await assertReportAccess(req, req.params.id);
+    const report = await Report.findById(req.params.id);
+    const sections = await require('../services/reportPrintSections').reportInterpretationSections(report);
+    return successResponse(res, 'Report interpretations loaded', sections);
+  } catch (error) { next(error); }
+}
+
+async function updateInterpretations(req, res, next) {
+  try {
+    await assertReportAccess(req, req.params.id);
+    const report = await Report.findById(req.params.id);
+    if (['Signed', 'Verified', 'Completed'].includes(report.status)) {
+      return errorResponse(res, 'Reopen the report before editing its interpretation', 409);
+    }
+    let entries = req.body.interpretations;
+    if (!Array.isArray(entries) || entries.length > 500 || entries.some(item => !item || typeof item.key !== 'string' || typeof item.text !== 'string' || item.text.length > 100000)) {
+      return errorResponse(res, 'Provide valid report interpretations (maximum 100,000 characters per section)', 400);
+    }
+    entries = entries.map(({ key, text }) => ({ key, text: require('../services/richInterpretation').sanitizeInterpretation(text) }));
+    const sections = await require('../services/reportPrintSections').reportInterpretationSections(report);
+    const targets = await require('../services/reportPrintSections').reportInterpretationTargets(report);
+    const allowed = new Set([...sections, ...targets].map(section => section.key));
+    if (entries.some(item => !allowed.has(item.key)) || new Set(entries.map(item => item.key)).size !== entries.length) {
+      return errorResponse(res, 'Unknown or duplicate report section', 400);
+    }
+    let savedReport;
+    if (req.body.merge === true) {
+      const resetKeys = req.body.resetKeys || [];
+      if (!Array.isArray(resetKeys) || resetKeys.length > 500 || resetKeys.some(key => typeof key !== 'string' || !allowed.has(key))) {
+        return errorResponse(res, 'Unknown report interpretation to reset', 400);
+      }
+      const changed = [...entries.map(item => item.key), ...resetKeys];
+      const sectionKeys = targets.filter(target => changed.includes(target.key)).map(target => target.sectionKey);
+      const removed = [...new Set([...changed, ...sectionKeys])];
+      // Merge a single test atomically; edits to neighbouring tests survive.
+      savedReport = await Report.findOneAndUpdate({ _id: report._id, status: { $nin: ['Signed', 'Verified', 'Completed'] } }, [{ $set: {
+        interpretations: { $concatArrays: [
+          { $filter: { input: { $ifNull: ['$interpretations', []] }, as: 'item', cond: { $not: [{ $in: ['$$item.key', { $literal: removed }] }] } } },
+          { $literal: entries.map(({ key, text }) => ({ key, text })) }
+        ] }
+      } }], { new: true });
+      if (!savedReport) return errorResponse(res, 'The report was finalized. Reopen it before editing.', 409);
+    } else {
+      report.interpretations = entries.map(({ key, text }) => ({ key, text }));
+      savedReport = await report.save();
+    }
+    await Activity.create({ user: req.user._id, action: 'Update Report Interpretation', module: 'Lab', description: `Updated interpretations for ${report.registrationNumber}.` });
+    return successResponse(res, 'Report interpretations saved', savedReport);
+  } catch (error) { next(error); }
+}
+
 // ---- Server-rendered PDF (letterhead toggle) + QR ----
 
-async function loadReportPdfContext(id, req) {
-  const report = await Report.findById(id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
+async function loadReportPdfContext(id, req, options = {}) {
+  const [report, profile] = await Promise.all([
+    Report.findById(id),
+    LabProfile.findOne().lean().catch(() => null)
+  ]);
   if (req) assertBranchAccess(req, report ? report.branch : null);
   if (!report) {
     const err = new Error('Report not found');
     err.statusCode = 404;
     throw err;
   }
-  const token = await reportService.ensureQrToken(report);
-  const testMap = await require('../services/reportPrintSections').loadReportPrintTests(report);
-  let profile = null;
-  try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }
+  const effective = require('../services/pdfService').resolveReportOptions(options, profile || {});
+  const tokenPromise = effective.qr ? reportService.ensureQrToken(report) : Promise.resolve(report.qrToken);
   const sigIds = (report.signatures || []).map((s) => s.signature).filter(Boolean);
-  const sigDocs = sigIds.length ? await Signature.find({ _id: { $in: sigIds } }) : [];
+  // These reads are independent once report/branch access is established.
+  // Avoid serial populate + catalog + profile + signature round trips.
+  const [token, testMap, patient, bill, sigDocs, qrPng] = await Promise.all([
+    tokenPromise,
+    require('../services/reportPrintSections').loadReportPrintTests(report),
+    report.patient ? require('../models/Patient').findById(report.patient).lean() : null,
+    report.bill ? Bill.findById(report.bill).populate('referringDoctor', 'name').lean() : null,
+    effective.signatures && sigIds.length ? Signature.find({ _id: { $in: sigIds } }).lean() : [],
+    effective.qr ? tokenPromise.then(token => qrBuffer(reportVerifyUrl(token))) : null
+  ]);
   const sigById = {};
   sigDocs.forEach((s) => { sigById[String(s._id)] = s; });
-  const signaturePngs = (report.signatures || []).map((s) => {
+  const signaturePngs = (await Promise.all((report.signatures || []).map(async (s) => {
     const d = sigById[String(s.signature)];
     if (!d || !d.imageUrl) return null;
     const abs = storageService.getFilePath(d.imageUrl);
     if (!abs) return null;
     try {
-      return { png: require('fs').readFileSync(abs), name: d.name, title: d.title };
+      return { png: await require('fs').promises.readFile(abs), name: d.name, title: d.title };
     } catch (e) { return null; }
-  }).filter(Boolean);
-  return { report, patient: report.patient || null, bill: report.bill || null, profile, testMap, token, signaturePngs };
+  }))).filter(Boolean);
+  return { report, patient, bill, profile, testMap, token, signaturePngs, qrPng };
 }
 
 async function reportPdfDownload(req, res, next) {
@@ -280,16 +346,23 @@ async function reportPdfDownload(req, res, next) {
     // Per-request flags (?barcode=0&qr=0…) override the stored LabProfile
     // print options; absent flags fall back to the profile defaults.
     const options = reportOptionsFromQuery(req.query);
-    const ctx = await loadReportPdfContext(req.params.id, req);
-    const qrOff = options.qr !== undefined && ['0', 'false', false].includes(
-      typeof options.qr === 'string' ? options.qr.toLowerCase() : options.qr
-    );
-    const qrPng = qrOff ? null : await qrBuffer(reportVerifyUrl(ctx.token));
-    const pdf = await reportPdf(ctx, { ...options, qrPng });
+    const ctx = await loadReportPdfContext(req.params.id, req, options);
+    const { reportPdfCache, reportPdfKey } = require('../services/reportPdfCache');
+    const etag = `"${reportPdfKey(ctx, options)}"`;
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
+    res.setHeader('Access-Control-Expose-Headers', 'ETag, X-Report-PDF-Cache');
+    const matches = String(req.headers?.['if-none-match'] || '').split(',').some(value => value.trim().replace(/^W\//, '') === etag);
+    if (matches) {
+      res.setHeader('X-Report-PDF-Cache', 'REVALIDATED');
+      return res.status(304).end();
+    }
+    const cached = await reportPdfCache.getOrCreate(etag, () => reportPdf(ctx, { ...options, qrPng: ctx.qrPng }));
+    res.setHeader('X-Report-PDF-Cache', cached.status);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('X-Report-PDF', 'v6-compact-panel-guidance');
+    res.setHeader('X-Report-PDF', 'v7-editable-interpretations');
     res.setHeader('Content-Disposition', `attachment; filename="Report_${ctx.report.registrationNumber}.pdf"`);
-    return res.send(pdf);
+    return res.send(cached.buffer);
   } catch (error) {
     next(error);
   }
@@ -461,14 +534,7 @@ async function getPendingLabCases(req, res, next) {
             },
             {
               $addFields: {
-                patient: { $arrayElemAt: ['$patientDoc', 0] },
-                reportInfo: {
-                  $cond: [
-                    { $gt: [{ $size: '$entryReport' }, 0] },
-                    { $arrayElemAt: ['$entryReport', 0] },
-                    { $literal: { status: 'Pending' } }
-                  ]
-                }
+                patient: { $arrayElemAt: ['$patientDoc', 0] }
               }
             },
             {
@@ -479,7 +545,7 @@ async function getPendingLabCases(req, res, next) {
                 department: 1,
                 caseType: 1,
                 items: 1,
-                reportInfo: 1
+                entryReport: 1
               }
             }
           ],
@@ -654,6 +720,9 @@ async function getReportForEntry(req, res, next) {
         ? (report.results || []).find((r) => !r.test && r.testName === t.name)
         : null;
       const row = existing || existingByName;
+      const interpretationKey = `result:${t.itemId ? key : `name:${t.name}`}`;
+      const interpretationOverride = (report.interpretations || []).find(item => item.key === interpretationKey);
+      const catalogInterpretation = definitionIndex === 0 ? test?.interpretation || '' : '';
       return {
         testId: t.itemId || null,
         resultKey: t.itemId ? key : `name:${t.name}`,
@@ -664,7 +733,9 @@ async function getReportForEntry(req, res, next) {
         displayOrder: test?.displayOrder ?? null,
         category: test?.category,
         categoryName: test?.category?.name || '',
-        interpretation: definitionIndex === 0 ? test?.interpretation || '' : '',
+        interpretation: interpretationOverride ? interpretationOverride.text : catalogInterpretation,
+        catalogInterpretation,
+        interpretationCustomized: !!interpretationOverride,
         unit: test?.unit || '',
         resultOptions: getResultOptions(test || {}),
         referenceRange: ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status)
