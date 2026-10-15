@@ -18,6 +18,15 @@ const ModalityCaseSchema = new mongoose.Schema({
     index: true
   },
   reportFileUrl: { type: String, default: '' },
+  // ECG uploads must survive Vercel instance restarts. Keep the bounded
+  // original in MongoDB; omit its bytes from normal case-list queries.
+  reportFile: {
+    data: { type: Buffer, select: false },
+    name: String,
+    contentType: String,
+    size: Number,
+    uploadedAt: Date
+  },
   qrToken: { type: String, default: null, index: true },
   signatures: [{
     signature: { type: mongoose.Schema.Types.ObjectId, ref: 'Signature', default: null },

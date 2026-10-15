@@ -168,7 +168,7 @@ async function billPdfDownload(req, res, next) {
     const qrPng = await qrBuffer(billVerifyUrl(token));
     const pdf = await billPdf(
       { bill, patient: bill.patient, doctor: bill.referringDoctor, agent: bill.agent, items: bill.items, profile },
-      { ...options, qrPng }
+      { ...options, paperSize: req.query.paperSize, qrPng }
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('X-Bill-PDF', 'v3-saved-template');

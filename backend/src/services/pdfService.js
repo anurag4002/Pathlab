@@ -410,6 +410,12 @@ function billPdf(context, options = {}) {
   return require('./formattedPdfService').documentPdf(context, options, 'bill');
 }
 
+function resolveBillPaperOptions(options = {}) {
+  const paperSize = String(options.paperSize || 'A4').toUpperCase();
+  if (!['A4', 'A5'].includes(paperSize)) throw Object.assign(new Error('Choose A4 or half-A4 (A5) bill paper.'), { statusCode: 400 });
+  return { ...options, paperSize, letterhead: false, footer: false, watermark: false };
+}
+
 // Interpretation box (light-blue band like the reference format).
 function drawInterpretationBox(doc, title, body) {
   const W = contentWidth(doc);
@@ -444,6 +450,6 @@ function reportPdf(context, options = {}) {
 }
 
 module.exports = {
-  billPdf, reportPdf, resolveUploadAbsolute, drawBarcode, getPDFDocument,
+  billPdf, reportPdf, resolveBillPaperOptions, resolveUploadAbsolute, drawBarcode, getPDFDocument,
   resolveReportOptions, reportOptionsFromQuery, REPORT_OPTION_DEFAULTS
 };

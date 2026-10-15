@@ -105,7 +105,7 @@ const downloadPublicBill = async (req, res, next) => {
     const qrPng = await qrBuffer(billVerifyUrl(full.qrToken));
     const pdf = await billPdf(
       { bill: full, patient: full.patient, doctor: full.referringDoctor, agent: full.agent, items: full.items, profile },
-      { qrPng }
+      { qrPng, paperSize: req.query.paperSize }
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="Bill_${full.billNumber}.pdf"`);

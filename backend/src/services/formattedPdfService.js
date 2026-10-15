@@ -15,12 +15,14 @@ const date = value => {
 // Page furniture is reserved before flowing content; rows and long paragraphs
 // split safely and table headings repeat on continuation pages.
 function documentPdf(context, requestOptions = {}, kind = 'report') {
-  const { getPDFDocument, resolveReportOptions, resolveUploadAbsolute } = require('./pdfService');
+  const { getPDFDocument, resolveReportOptions, resolveUploadAbsolute, resolveBillPaperOptions } = require('./pdfService');
   const profile = context.profile || {};
   const format = resolveFormat(profile, kind);
+  const plainBill = kind === 'bill';
+  if (plainBill) requestOptions = resolveBillPaperOptions(requestOptions);
   const options = resolveReportOptions(requestOptions, profile);
   const PDFDocument = getPDFDocument();
-  const doc = new PDFDocument({ size: 'A4', margins: { top: format.pageMargin, left: format.pageMargin, right: format.pageMargin, bottom: 0 }, bufferPages: true });
+  const doc = new PDFDocument({ size: plainBill ? requestOptions.paperSize : 'A4', layout: plainBill && requestOptions.paperSize === 'A5' ? 'landscape' : 'portrait', margins: { top: format.pageMargin, left: format.pageMargin, right: format.pageMargin, bottom: 0 }, bufferPages: true });
   const done = new Promise((resolve, reject) => {
     const chunks = [];
     doc.on('data', c => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
@@ -35,7 +37,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   const textFont = (value, bold) => /[↑↓≤≥]/.test(String(value)) ? 'ClinicalMath'
     : /[^\x00-\xff\u2013\u2014\u2018\u2019\u201c\u201d\u2022\u2026]/.test(String(value))
       ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
-  const limit = doc.page.height - (options.footer || !options.letterhead ? format.footerHeight + 26 : 30) - m;
+  const limit = doc.page.height - (!plainBill && (options.footer || !options.letterhead) ? format.footerHeight + 26 : 30) - m;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
   const imagePath = (url, fallback) => (url ? resolveUploadAbsolute(url) : null) || referenceAsset(fallback);
@@ -120,6 +122,14 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   }
   function header() {
     y = m;
+    if (plainBill) {
+      paragraph(profile.labName || 'PURE PATH LAB', { bold: true, size: 15, leading: 19, gap: 2, align: 'center' });
+      for (const value of [profile.address, [profile.phone, profile.email].filter(Boolean).join(' | ')].filter(Boolean)) {
+        paragraph(value, { size: 8, leading: 10, gap: 1, align: 'center' });
+      }
+      rule(y + 3); y += 10; patientBand();
+      return;
+    }
     const headerImage = options.letterhead && imagePath(profile.letterheadUrl, 'reference-header.jpg');
     if (headerImage && (image(headerImage, m, y, width, format.headerHeight) || image(referenceAsset('reference-header.jpg'), m, y, width, format.headerHeight))) y += format.headerHeight + 6;
     else if (options.letterhead) {
@@ -146,7 +156,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   }
   function patientBand() {
     const patient = context.patient || {}, bill = context.bill || {}, report = context.report || {};
-    const qrWidth = options.qr && requestOptions.qrPng ? 76 : 0;
+    const qrWidth = options.qr && requestOptions.qrPng ? (plainBill ? 60 : 76) : 0;
     const middleWidth = width * 0.32, leftWidth = width - middleWidth - qrWidth - 20;
     const start = y, middleX = m + leftWidth + 10, qrX = m + width - qrWidth;
     const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${patient.ageUnit || 'YRS'}` : '', patient.gender].filter(Boolean).join(' / ');
@@ -172,7 +182,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     if (qrWidth) {
       const qrY = stacked ? leftY + 5 : start;
       text(kind === 'bill' ? 'Scan to verify bill' : 'Scan to download', qrX, qrY, qrWidth, { size: 6, align: 'center' });
-      image(requestOptions.qrPng, qrX + 3, qrY + 10, 70, 70); bottom = Math.max(bottom, qrY + 82);
+      image(requestOptions.qrPng, qrX + 3, qrY + 10, qrWidth - 6, qrWidth - 6); bottom = Math.max(bottom, qrY + qrWidth + 6);
     }
     if (!stacked) {
       doc.strokeColor(format.accentColor).lineWidth(0.6).moveTo(middleX - 5, start).lineTo(middleX - 5, bottom).stroke();
@@ -463,8 +473,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     heading(format.billTitle);
     table([{ label: '#', width: 28 }, { label: 'PARTICULARS', width: width - 138 }, { label: 'AMOUNT (Rs.)', width: 110, align: 'right' }], (context.items || []).map((item, index) => [{ text: index + 1 }, { text: item.name || 'Test' }, { text: Number(item.price || 0).toFixed(2) }]));
     const totals = [['Gross subtotal', money(Number(bill.totalAmount || 0) + Number(bill.discount || 0))], ['Discount', money(bill.discount)], ['Net payable', money(bill.totalAmount)], [`Paid (${bill.paymentMethod || 'Cash'})`, money(bill.paidAmount)], ['Balance due', money(bill.dueAmount)]];
-    space(totals.length * 18);
-    totals.forEach(([label, value], i) => { text(label, m, y, width - 120, { align: 'right', bold: i === 2 || i === 4 }); text(value, m + width - 110, y, 110, { align: 'right', bold: i === 2 || i === 4 }); y += 18; });
+    space(totals.length * 16);
+    totals.forEach(([label, value], i) => { text(label, m, y, width - 120, { align: 'right', bold: i === 2 || i === 4 }); text(value, m + width - 110, y, 110, { align: 'right', bold: i === 2 || i === 4 }); y += 16; });
     if (profile.invoiceFooter) paragraph(profile.invoiceFooter, { size: 8, align: 'center' });
   } else {
     const report = context.report || {};
@@ -542,7 +552,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         image(path.join(assets, 'reference-corner.jpg'), m, footerTop + format.footerHeight * 0.2, width * 0.222, format.footerHeight * 0.8);
       }
     }
-    const labelY = doc.page.height - m - (options.footer || !options.letterhead ? format.footerHeight + 17 : 15);
+    const labelY = doc.page.height - m - (!plainBill && (options.footer || !options.letterhead) ? format.footerHeight + 17 : 15);
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
     if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, labelY, width, { size: 8, align: 'right' });
   }

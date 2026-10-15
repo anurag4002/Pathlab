@@ -30,6 +30,26 @@ test('bills use their selected format and retain patient and payment details', a
   assert.match(text, /Test Patient/);
   for (const value of ['Rs. 900.00', 'Rs. 800.00', 'Rs. 500.00', 'Rs. 300.00']) assert.ok(text.includes(value), value);
 });
+
+test('bills use plain A4 or half-A4 paper even when lab letterhead is enabled', async () => {
+  const branded = { ...context.profile, documentFormats: [{ ...format, useReferenceBranding: true }] };
+  for (const paperSize of ['A4', 'A5']) {
+    const pdf = await billPdf({ ...context, profile: branded }, { paperSize, letterhead: true, footer: true, watermark: true, qr: false });
+    const source = pdf.toString('latin1');
+    assert.ok(!source.includes('/Subtype /Image'), 'bill must have no letterhead, footer artwork or watermark');
+    assert.match(source, paperSize === 'A4' ? /\/MediaBox\s*\[0 0 595\.28 841\.89\]/ : /\/MediaBox\s*\[0 0 595\.28 419\.53\]/);
+    for (const label of ['Test Lab', 'Test Patient', 'Kidney Function Test', 'Rs. 800.00', 'Rs. 300.00']) assert.ok(textOf(pdf).includes(label), label);
+  }
+  await assert.rejects(async () => billPdf(context, { paperSize: 'LETTER' }), error => error.statusCode === 400);
+});
+
+test('half-A4 bills keep five test lines, QR and payment totals on one page', async () => {
+  const qrPng = await require('../src/services/qrService').qrBuffer('https://example.test/bill');
+  const items = Array.from({ length: 5 }, (_, i) => ({ name: `Test panel ${i + 1}`, price: 100 }));
+  const pdf = await billPdf({ ...context, items, profile: { ...context.profile, address: 'Hospital Road, Basti', phone: '7701302100' } }, { paperSize: 'A5', qrPng });
+  assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length, 1);
+  for (const label of ['Test panel 5', 'Balance due', 'Rs. 300.00']) assert.ok(textOf(pdf).includes(label), label);
+});
 test('multi-page reports retain all rows and repeat patient details and table headings', async () => {
   const results = Array.from({ length: 100 }, (_, i) => ({ testName: `Unique result ${i + 1}`, value: i, referenceRange: '0 - 99' }));
   const pdf = await reportPdf({ ...context, report: { ...context.report, results } });

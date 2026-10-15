@@ -2,6 +2,7 @@ import apiClient from './apiClient';
 import { downloadBlob as saveBlob } from '../utils/downloadFile';
 import { beginPdfPrint } from '../utils/pdfPrintSession';
 import { getReportPdfDocument, isReportPdfPath } from './reportPdfDocumentService';
+import { getBillPaperSize } from '../utils/billPrintOptions';
 
 // Public QR self-service (no login). apiClient base is /api.
 export const verifyReportToken = async (token) => (await apiClient.get(`/public/r/${token}`)).data;
@@ -51,8 +52,14 @@ export const buildPdfQuery = (letterhead, opts = {}) => {
   return query ? `?${query}` : '';
 };
 
+export const buildBillPdfQuery = (letterhead, opts = {}) => {
+  const options = letterhead && typeof letterhead === 'object' ? { ...opts, ...letterhead } : opts;
+  const params = new URLSearchParams(buildPdfQuery({ ...options, letterhead: false, footer: false, watermark: false }).slice(1));
+  params.set('paperSize', options.paperSize || getBillPaperSize());
+  return `?${params}`;
+};
 export const downloadBillPdf = (id, letterhead, opts = {}) =>
-  downloadBlob(`/bills/${id}/pdf${buildPdfQuery(letterhead, opts)}`, `Bill_${id}.pdf`);
+  downloadBlob(`/bills/${id}/pdf${buildBillPdfQuery(letterhead, opts)}`, `Bill_${id}.pdf`);
 // Direct silent print of a server PDF (no new tab): fetch with auth, load
 // into an off-screen (but real-sized — a 0px frame renders blank) iframe,
 // wait for the viewer, then print the PDF itself.
@@ -106,7 +113,7 @@ export const printPdfPath = async (path) => {
   }
 };
 export const printBillPdf = (id, letterhead, opts = {}) =>
-  printPdfPath(`/bills/${id}/pdf${buildPdfQuery(letterhead, opts)}`);
+  printPdfPath(`/bills/${id}/pdf${buildBillPdfQuery(letterhead, opts)}`);
 export const printReportPdf = (id, letterhead, opts = {}) =>
   printPdfPath(`/reports/${id}/pdf${buildPdfQuery(letterhead, opts)}`);
 // Optional `filename` lets callers use the report's own registration number

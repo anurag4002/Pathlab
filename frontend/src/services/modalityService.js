@@ -6,5 +6,9 @@ export const getModalityCases = async (params = {}) => (await apiClient.get('/mo
 export const createModalityCase = async (data) => (await apiClient.post('/modality', data)).data;
 export const updateModalityCase = async (id, data) => (await apiClient.put(`/modality/${id}`, data)).data;
 export const deleteModalityCase = async (id) => (await apiClient.delete(`/modality/${id}`)).data;
+export const uploadModalityReport = async (id, file) => {
+  const data = new FormData(); data.append('file', file);
+  return (await apiClient.post(`/modality/${id}/file`, data, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+};
 export const deleteUSGCase = async (id) => (await apiClient.delete(`/modality/usg/${id}`)).data;
 export const deleteXrayCase = async (id) => (await apiClient.delete(`/modality/xray/${id}`)).data;

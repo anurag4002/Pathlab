@@ -96,6 +96,39 @@ const deleteCase = async (req, res, next) => {
   }
 };
 
+const uploadCaseReport = async (req, res, next) => {
+  try {
+    const doc = await ModalityCase.findById(req.params.id);
+    if (!doc) return errorResponse(res, 'Case not found', 404);
+    assertBranchAccess(req, doc.branch);
+    if (doc.modality !== 'ECG') return errorResponse(res, 'This upload option is for ECG cases.', 400);
+    if (doc.status === 'Signed') return errorResponse(res, 'Signed ECG reports cannot be replaced.', 409);
+    if (!req.file?.buffer) return errorResponse(res, 'Choose an ECG report to upload.', 400);
+    const { uploadedReportType } = require('../services/uploadedReportPdfService');
+    const contentType = uploadedReportType(req.file.buffer);
+    if (!contentType) return errorResponse(res, 'Upload a valid PDF, JPG or PNG report.', 400);
+    doc.reportFile = { data: req.file.buffer, name: require('path').basename(req.file.originalname), contentType,
+      size: req.file.buffer.length, uploadedAt: new Date() };
+    doc.status = 'Reported';
+    await doc.save();
+    await Activity.create({ user: req.user._id, action: 'Upload ECG Report', module: 'Cases', description: `Uploaded ECG report for case ${doc._id}.` });
+    const result = doc.toObject(); delete result.reportFile.data;
+    return successResponse(res, 'ECG report uploaded', result);
+  } catch (error) { next(error); }
+};
+
+const downloadCaseReport = async (req, res, next) => {
+  try {
+    const doc = await ModalityCase.findById(req.params.id).select('+reportFile.data');
+    if (!doc) return errorResponse(res, 'Case not found', 404);
+    assertBranchAccess(req, doc.branch);
+    if (!doc.reportFile?.data?.length) return errorResponse(res, 'No uploaded report is available.', 404);
+    res.type(doc.reportFile.contentType);
+    res.attachment(doc.reportFile.name || 'ECG-report.pdf');
+    return res.send(doc.reportFile.data);
+  } catch (error) { next(error); }
+};
+
 // ---- USG / X-Ray delete (P-9; Admin only at route) ----
 
 const deleteUSGCase = async (req, res, next) => {
@@ -128,4 +161,4 @@ const deleteXrayCase = async (req, res, next) => {
   }
 };
 
-module.exports = { MODALITIES, listCases, createCase, updateCase, deleteCase, deleteUSGCase, deleteXrayCase };
+module.exports = { MODALITIES, listCases, createCase, updateCase, deleteCase, uploadCaseReport, downloadCaseReport, deleteUSGCase, deleteXrayCase };

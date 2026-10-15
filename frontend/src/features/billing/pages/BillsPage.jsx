@@ -37,6 +37,7 @@ import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
+import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
    only the backend's user-facing `message` field, never stack traces. */
@@ -201,6 +202,7 @@ const BillsPage = () => {
 
   // Phase 8 + 11 — label / sticker printing per bill.
   const [labelTarget, setLabelTarget] = useState(null);
+  const [billPaperSize, setBillPaperSize] = useState(getBillPaperSize);
   const { can } = usePermissions();
   const canBill = can('billing');
 
@@ -640,6 +642,11 @@ const BillsPage = () => {
       )}
 
       {(listError || optionsError) && <ErrorBanner message={listError || optionsError} onRetry={retryLoad} />}
+      <div style={{ maxWidth: 300, marginBottom: 16 }}>
+        <Select label="Bill paper size" id="bill-paper-size" value={billPaperSize} placeholder=""
+          onChange={event => setBillPaperSize(saveBillPaperSize(event.target.value))}
+          options={[{ value: 'A4', label: 'A4 — plain paper' }, { value: 'A5', label: 'Half A4 (A5) — plain paper' }]} />
+      </div>
       {pdfNotice && (
         <p role="status" data-testid="bill-pdf-started" style={{ fontSize: '0.875rem', color: 'var(--color-success, #166534)', marginBottom: '12px' }}>
           {pdfNotice}

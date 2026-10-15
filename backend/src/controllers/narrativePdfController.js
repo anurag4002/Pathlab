@@ -8,11 +8,19 @@ const { resolveUploadAbsolute, reportOptionsFromQuery } = require('../services/p
 exports.forModel = (Model, department) => async (req, res, next) => {
   try {
     let query = Model.findById(req.params.id).populate('patient');
+    if (Model.schema.path('reportFile.data')) query = query.select('+reportFile.data');
     if (Model.schema.path('referringDoctor')) query = query.populate('referringDoctor');
     if (Model.schema.path('bill')) query = query.populate({ path: 'bill', populate: { path: 'referringDoctor' } });
     const record = await query;
     if (!record) { const error = new Error('Report not found'); error.statusCode = 404; throw error; }
     assertBranchAccess(req, record.branch);
+    if (record.modality === 'ECG') {
+      const original = record.reportFile?.data;
+      if (!original?.length) throw Object.assign(new Error('Upload an ECG report before previewing or printing.'), { statusCode: 404 });
+      const pdf = await require('../services/uploadedReportPdfService').uploadedReportPdf(original);
+      res.type('application/pdf'); res.setHeader('Content-Disposition', `inline; filename="ECG_${record._id}.pdf"`);
+      return res.send(pdf);
+    }
     const profile = await LabProfile.findOne();
     const signaturePath = record.status === 'Completed' && resolveUploadAbsolute(record.signatureUrl);
     const signaturePngs = signaturePath ? [{ png: fs.readFileSync(signaturePath) }] : [];
