@@ -2,6 +2,7 @@ const Bill = require('../models/Bill');
 const BillItem = require('../models/BillItem');
 const Transaction = require('../models/Transaction');
 const generateBillNumber = require('../utils/generateBillNumber');
+const { normalizeUSGBillItems, syncUSGCaseForBill } = require('./usgServiceOptions');
 
 const CASE_TYPES = ['LabCase', 'UsgCase', 'DigitalXrayCase', 'XrayCase', 'OutsourceLabCase', 'EcgCase', 'CtScanCase', 'MriCase', 'EpsCase', 'OpgCase', 'CardiologyCase', 'EegCase', 'MammographyCase'];
 
@@ -20,6 +21,9 @@ const durationToDates = (duration) => {
 };
 
 const createBill = async (billData, createdByUserId) => {
+  if (String(billData.department || '').toUpperCase() === 'USG') {
+    billData = { ...billData, items: await normalizeUSGBillItems(billData.items), caseType: 'UsgCase' };
+  }
   const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod, department, collectionCentre, caseType, uhid, dailyCaseNo, onlineReportRequested, discountPercent, branch } = billData;
 
   // Calculate totals
@@ -114,6 +118,7 @@ const createBill = async (billData, createdByUserId) => {
   // Lab / outsource bills: Registered report shells immediately so
   // patients see Processing/Pending and mixed bills get separate actions.
   const dept = String(department || bill.department || 'LAB').toUpperCase();
+  if (dept === 'USG') await syncUSGCaseForBill(bill, savedItems);
   if (dept.includes('LAB') || String(bill.caseType || '').includes('Lab')) {
     try {
       const reportService = require('./reportService');
@@ -516,7 +521,8 @@ const updateBill = async (billId, updates = {}, user = null) => {
   // Validate a replacement item set before touching anything.
   let nextItems = null;
   if (updates.items !== undefined) {
-    nextItems = updates.items;
+    nextItems = String(bill.department || '').toUpperCase() === 'USG'
+      ? await normalizeUSGBillItems(updates.items, bill.items || []) : updates.items;
     const ITEM_TYPES = ['Test', 'TestPackage', 'TestPanel', 'Custom'];
     if (!Array.isArray(nextItems) || nextItems.length === 0) {
       const err = new Error('Invoice must contain at least one item (test, package, panel or outsource test)');
@@ -666,6 +672,7 @@ const updateBill = async (billId, updates = {}, user = null) => {
     ? 'Paid'
     : bill.paidAmount > 0 ? 'Partial' : 'Pending';
   await bill.save();
+  if (nextItems && String(bill.department || '').toUpperCase() === 'USG') await syncUSGCaseForBill(bill, savedItems);
   // Sync lab records: ensure shells for the modes the new lines need, drop
   // untouched (Registered, no results) shells of modes no longer needed, and
   // carry a changed collection centre onto still-open shells.

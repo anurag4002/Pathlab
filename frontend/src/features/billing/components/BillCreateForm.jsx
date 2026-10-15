@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill, updateBill } from '../../../services/billService';
 import { createPatient, getPatientById, updatePatient } from '../../../services/patientService';
 import { getTests } from '../../../services/testService';
+import { getUSGServices } from '../../../services/usgService';
 import { PageHeader, Button, Select, Input } from '../../../components/common';
 import useAuth from '../../../hooks/useAuth';
 import PatientDetailsSection from './PatientDetailsSection';
@@ -246,6 +247,18 @@ const BillCreateForm = ({
   const [selectedDoctor, setSelectedDoctor] = useState(() => idOf(editBill?.referringDoctor));
   const [selectedAgent, setSelectedAgent] = useState(() => idOf(editBill?.agent));
   const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || 'LAB');
+  const [usgServices, setUSGServices] = useState([]);
+  const [usgError, setUSGError] = useState('');
+  const [usgRetry, setUSGRetry] = useState(0);
+  useEffect(() => {
+    if (activeDepartment !== 'USG') return undefined;
+    let active = true;
+    setUSGError('');
+    getUSGServices().then(response => {
+      if (active) setUSGServices(response.data || []);
+    }).catch(error => { if (active) setUSGError(getApiErrorMessage(error, 'Could not load USG services.')); });
+    return () => { active = false; };
+  }, [activeDepartment, usgRetry]);
   // Bill-edit extras: collection centre dropdown + Paid/locked override.
   const [editCollectionCentre, setEditCollectionCentre] = useState(() => editBill?.collectionCentre || 'Main');
   const [editAdminOverride, setEditAdminOverride] = useState(false);
@@ -639,7 +652,7 @@ const BillCreateForm = ({
   const departmentTests = filterTestsByDepartment(tests, activeDepartment);
   // Never dead-end billing: departments with no dedicated tests (e.g.
   // OUTSOURCE LAB) fall back to the full active catalog with a notice.
-  const deptFallback = activeDepartment !== 'LAB' && departmentTests.length === 0;
+  const deptFallback = activeDepartment !== 'LAB' && activeDepartment !== 'USG' && departmentTests.length === 0;
   const deptTestList = deptFallback
     ? tests.filter((t) => !t.status || t.status === 'Active')
     : departmentTests;
@@ -648,6 +661,7 @@ const BillCreateForm = ({
   const activeOnly = (list) => (Array.isArray(list) ? list : [])
     .filter((item) => !item.status || item.status === 'Active');
   const pickerItems = (() => {
+    if (activeDepartment === 'USG') return usgServices.map(service => ({ ...service, _pickerKind: 'USG', _pickerLabel: 'USG' }));
     if (pickerType === 'All') {
       return [
         ...activeOnly(deptTestList).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' })),
@@ -669,7 +683,7 @@ const BillCreateForm = ({
     ? pickerItems.filter((item) => matchesPickerQuery(item, pickerQ))
     : pickerItems;
   const usingServerResults =
-    (pickerType === 'Test' || pickerType === 'All') && pickerQ.length > 0 && localFiltered.length === 0;
+    activeDepartment !== 'USG' && (pickerType === 'Test' || pickerType === 'All') && pickerQ.length > 0 && localFiltered.length === 0;
   const filteredPickerItems = usingServerResults
     ? (serverResults || []).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }))
     : localFiltered;
@@ -719,6 +733,11 @@ const BillCreateForm = ({
 
   const handlePickerSelect = (item) => {
     const kind = item._pickerKind || pickerType;
+    if (kind === 'USG') {
+      setSelectedItems([{ itemId: item._id, itemType: 'Test', name: item.name, price: item.price, _key: item.value }]);
+      requestAnimationFrame(revealCart);
+      return;
+    }
     if (kind === 'Test') {
       handleAddItem(item, 'Test');
       return;
@@ -728,6 +747,7 @@ const BillCreateForm = ({
 
   const isPickerItemAdded = (item) => {
     const kind = item._pickerKind || pickerType;
+    if (kind === 'USG') return selectedItems.length === 1 && selectedItems[0].name === item.name;
     if (kind === 'Test') {
       return selectedItems.some((si) => si.itemId === item._id && si.itemType === 'Test');
     }
@@ -977,7 +997,7 @@ const BillCreateForm = ({
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
                 {activeDepartment === 'OUTSOURCE LAB' ? 'Or pick from catalog (optional)' : 'Select services'}
               </label>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
+              {activeDepartment !== 'USG' && <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
                 {[
                   { key: 'All', label: 'All' },
                   { key: 'Test', label: 'Tests' },
@@ -993,7 +1013,9 @@ const BillCreateForm = ({
                     {tab.label}
                   </Button>
                 ))}
-              </div>
+              </div>}
+              {activeDepartment === 'USG' && <p className="form-helper">Choose one USG service. Rates are loaded from the test catalog.</p>}
+              {activeDepartment === 'USG' && usgError && <p role="alert">{usgError} <Button variant="secondary" size="sm" onClick={() => setUSGRetry(value => value + 1)}>Retry</Button></p>}
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
                   type="search"
@@ -1001,7 +1023,7 @@ const BillCreateForm = ({
                   value={pickerQuery}
                   onChange={(e) => setPickerQuery(e.target.value)}
                   placeholder={
-                    pickerType === 'All'
+                    activeDepartment === 'USG' ? 'Search USG services…' : pickerType === 'All'
                       ? 'Search all tests, packages & panels…'
                       : `Search ${pickerType === 'Test' ? 'tests' : pickerType === 'TestPackage' ? 'packages' : 'panels'} by name or code…`
                   }
@@ -1041,13 +1063,13 @@ const BillCreateForm = ({
                         onKeyDown={(e) => { if (!alreadyAdded && e.key === 'Enter') handlePickerSelect(item); }}
                       >
                         <span>
-                          {pickerType === 'All' && item._pickerLabel ? (
+                          {kind !== 'USG' && pickerType === 'All' && item._pickerLabel ? (
                             <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>
                               [{item._pickerLabel}]
                             </span>
                           ) : null}
                           {item.name}
-                          {item.code ? ` (${item.code})` : ''}
+                          {kind !== 'USG' && item.code ? ` (${item.code})` : ''}
                           {alreadyAdded ? ' — Added' : ''}
                         </span>
                         <strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(item.price)}</strong>

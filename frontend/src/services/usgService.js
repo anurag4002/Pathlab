@@ -1,5 +1,11 @@
 import apiClient from './apiClient';
 
+export const getUSGServices = async () => (await apiClient.get('/usg/services')).data;
+export const uploadUSGReport = async (id, file) => {
+  const data = new FormData(); data.append('file', file);
+  return (await apiClient.post(`/usg/${id}/file`, data, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+};
+
 export const getUSGCases = async (params = {}) => {
   const response = await apiClient.get('/usg', { params });
   return response.data;

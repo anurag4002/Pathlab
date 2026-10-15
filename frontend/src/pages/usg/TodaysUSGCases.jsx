@@ -1,18 +1,18 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, uploadUSGImage } from '../../services/usgService';
+import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, getUSGServices, uploadUSGReport, uploadUSGImage } from '../../services/usgService';
 import { deleteUSGCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
-import { printPdfPath } from '../../services/publicService';
+import { printPdfPath, downloadBlob } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
 import assetSrc from '../../utils/assetSrc';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { Plus, Edit2, Printer, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Printer, Trash2, AlertTriangle, RefreshCw, Upload, Download } from 'lucide-react';
 import {
   DataTable,
   PageHeader,
@@ -22,6 +22,7 @@ import {
   StatusBadge,
   ConfirmDialog,
   ImageUploader,
+  FileUploader,
   PatientPicker,
   Letterhead,
   AdvancedFilterBar
@@ -66,6 +67,7 @@ const TodaysUSGCases = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [cases, setCases] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [services, setServices] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -94,7 +96,27 @@ const TodaysUSGCases = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
   const [pickedPatient, setPickedPatient] = useState(null);
-  const [formData, setFormData] = useState({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
+  const [formData, setFormData] = useState({ patient: '', referringDoctor: '', templateName: '', findings: '', serviceType: 'with-report', status: 'Pending' });
+  const [reportFile, setReportFile] = useState(null);
+  const [uploadTarget, setUploadTarget] = useState(null);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const validatePDF = file => {
+    if (!file || !/\.pdf$/i.test(file.name)) return 'Choose a PDF report.';
+    if (file.size > 10 * 1024 * 1024) return 'The PDF report must be 10 MB or smaller.';
+    return '';
+  };
+  const handleUploadPDF = async () => {
+    const error = validatePDF(uploadFile);
+    if (error) { setUploadError(error); return; }
+    setUploadBusy(true); setUploadError('');
+    try {
+      await uploadUSGReport(uploadTarget._id, uploadFile);
+      setUploadTarget(null); setUploadFile(null); fetchCases();
+    } catch (error) { setUploadError(getApiErrorMessage(error, 'Could not upload the USG report.')); }
+    finally { setUploadBusy(false); }
+  };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   // Phase 5 — uploaded image URLs for the case being edited (non-blocking:
@@ -167,14 +189,15 @@ const TodaysUSGCases = () => {
 
   const loadOptions = async () => {
     try {
-      const [patRes, docRes, tempRes] = await Promise.all([
+      const [patRes, docRes, tempRes, serviceRes] = await Promise.all([
         getPatients({ limit: 100 }),
         getDoctors({ status: 'Active' }),
-        getUSGTemplates()
+        getUSGTemplates(), getUSGServices()
       ]);
       if (!patRes?.success) throw new Error(patRes?.message || 'Failed to load patients.');
       if (!docRes?.success) throw new Error(docRes?.message || 'Failed to load doctors.');
       if (!tempRes?.success) throw new Error(tempRes?.message || 'Failed to load templates.');
+      if (!serviceRes?.success) throw new Error(serviceRes?.message || 'Failed to load USG services.');
 
       setPatients(
         Array.isArray(patRes.data?.patients)
@@ -185,6 +208,7 @@ const TodaysUSGCases = () => {
       );
       setDoctors(Array.isArray(docRes.data) ? docRes.data : []);
       setTemplates(Array.isArray(tempRes.data) ? tempRes.data : []);
+      setServices(serviceRes.data || []);
       setOptionsError(null);
     } catch (err) {
       setOptionsError(getApiErrorMessage(err, 'Failed to load patients, doctors or templates.'));
@@ -338,7 +362,8 @@ const TodaysUSGCases = () => {
   const handleOpenCreate = () => {
     setEditingCase(null);
     setPickedPatient(null);
-    setFormData({ patient: '', referringDoctor: '', templateName: '', findings: '', status: 'Completed' });
+    setFormData({ patient: '', referringDoctor: '', templateName: '', findings: '', serviceType: 'with-report', status: 'Pending' });
+    setReportFile(null);
     setCaseImageUrls([]);
     setErrors({});
     setFormOpen(true);
@@ -352,10 +377,12 @@ const TodaysUSGCases = () => {
       patient: c.patient?._id || '',
       referringDoctor: c.referringDoctor?._id || '',
       templateName: c.templateName || '',
-      findings: c.findings,
+      findings: c.findings || '',
+      serviceType: c.serviceType || '',
       status: c.status
     });
     setCaseImageUrls(caseImages(c));
+    setReportFile(null);
     setUploaderKey((k) => k + 1);
     setErrors({});
     setFormOpen(true);
@@ -387,7 +414,8 @@ const TodaysUSGCases = () => {
   const validate = () => {
     const errs = {};
     if (!formData.patient) errs.patient = 'Please select a patient';
-    if (!formData.findings.trim()) errs.findings = 'Findings report text is required';
+    if (!editingCase && !formData.serviceType) errs.serviceType = 'Choose a USG service';
+    if (reportFile) { const error = validatePDF(reportFile); if (error) errs.reportFile = error; }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -401,7 +429,8 @@ const TodaysUSGCases = () => {
       let res;
       const payload = {
         ...formData,
-        referringDoctor: formData.referringDoctor || null
+        referringDoctor: formData.referringDoctor || null,
+        serviceType: formData.serviceType || undefined
       };
 
       if (editingCase) {
@@ -411,6 +440,12 @@ const TodaysUSGCases = () => {
       }
 
       if (res.success) {
+        if (reportFile) {
+          // Keep the saved id on upload failure so retry cannot create a duplicate case.
+          setEditingCase(res.data);
+          setSearchParams({ case: res.data._id }, { replace: true });
+          await uploadUSGReport(res.data._id, reportFile);
+        }
         closeForm();
         fetchCases();
       }
@@ -434,7 +469,7 @@ const TodaysUSGCases = () => {
     }
     // Letterhead profile + signature masters load lazily on the first print
     // open (print-only metadata — never blocks the list or the form).
-    if (!printMetaLoaded) loadPrintMeta();
+    if (!c.reportFile?.size && !printMetaLoaded) loadPrintMeta();
   };
 
   // Signatory block resolution for the print modal — the case's signatureUrl
@@ -537,7 +572,7 @@ const TodaysUSGCases = () => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Template Selected', 'Findings', 'Images', 'Status', 'Actions']}
+        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'USG Service', 'PDF Report', 'Status', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !searchFilter && !fromDate && !toDate ? 'No ultrasonography cases recorded today.' : 'No ultrasonography cases matched your search query.'}
@@ -560,28 +595,29 @@ const TodaysUSGCases = () => {
             <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
             <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
             <td>{c.referringDoctor?.name || 'Self'}</td>
-            <td>{c.templateName || 'Custom Findings'}</td>
-            <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
-            <td style={{ textAlign: 'center' }}>{caseImages(c).length || '—'}</td>
+            <td>{services.find(service => service.value === c.serviceType)?.name || (c.serviceType ? `USG (${c.serviceType === 'with-report' ? 'With report' : 'Without report'})` : c.templateName || 'USG')}{c.price != null && <div className="form-helper">₹{c.price}</div>}</td>
+            <td style={{ maxWidth: 160, overflowWrap: 'anywhere' }}>{c.reportFile?.name || (c.findings?.trim() ? 'Written findings' : c.serviceType === 'without-report' ? 'Not requested' : 'Awaiting PDF')}</td>
             <td>
               <StatusBadge status={c.status} />
             </td>
             <td style={{ minWidth: 210 }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(''); }}>{c.reportFile?.size ? 'Replace PDF' : 'Upload PDF'}</Button>
+                {!!c.reportFile?.size && <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => alert('Could not download the USG report.'))}>Download PDF</Button>}
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   onClick={() => handleOpenEdit(c)}
                 >
-                  <Edit2 size={14} /> Findings
+                  <Edit2 size={14} /> Edit case
                 </button>
-                <button
+                {(!!c.reportFile?.size || !!c.findings?.trim()) && <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   onClick={() => handlePrint(c)}
                 >
-                  <Printer size={14} /> Print
-                </button>
+                  <Printer size={14} /> Preview / Print
+                </button>}
                 <InlineSignButton
                   caseId={c._id}
                   modality="usg"
@@ -607,14 +643,14 @@ const TodaysUSGCases = () => {
       <Modal
         isOpen={formOpen}
         onClose={closeForm}
-        title={editingCase ? 'Edit USG Case Findings' : 'Create USG Case File'}
+        title={editingCase ? 'Edit USG Case' : 'Create USG Case'}
         footer={
           <>
             <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Findings
+              Save Case
             </Button>
           </>
         }
@@ -622,6 +658,12 @@ const TodaysUSGCases = () => {
         <form onSubmit={handleFormSubmit} className="modal-form">
           {errors.api && <div className="form-error">{errors.api}</div>}
           <div className="usg-form-section-title">Case details</div>
+          <Select id="usg-service-type" label="USG service" value={formData.serviceType}
+            onChange={event => setFormData(previous => ({ ...previous, serviceType: event.target.value, status: event.target.value === 'without-report' ? 'Completed' : 'Pending' }))}
+            options={services.map(service => ({ value: service.value, label: `${service.name} — ₹${service.price}` }))}
+            placeholder={editingCase && !editingCase.serviceType ? 'Existing USG case' : 'Choose USG service'}
+            disabled={!!editingCase?.bill} error={errors.serviceType} required={!editingCase} />
+          {editingCase?.bill && <p className="form-helper">Service and charges are linked to the bill. Edit the bill to change them.</p>}
 
           <PatientPicker
             label="Patient Profile"
@@ -649,13 +691,19 @@ const TodaysUSGCases = () => {
             value={formData.status}
             onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
             options={[
-              { value: 'Pending', label: 'Pending Signature' },
+              { value: 'Pending', label: 'Pending report' },
               { value: 'Completed', label: 'Completed Report' }
             ]}
             required
           />
 
-          <div className="usg-form-section-title">Report findings</div>
+          <div className="usg-form-section-title">PDF report</div>
+          {editingCase?.reportFile?.name && <p>Uploaded: {editingCase.reportFile.name}</p>}
+          <FileUploader label={editingCase?.reportFile?.size ? 'Replace PDF report' : 'Upload PDF report'}
+            subtitle="Choose a PDF, up to 10 MB. You can also upload it after saving the case."
+            accept=".pdf" value={reportFile} onChange={setReportFile} error={errors.reportFile} disabled={submitLoading} />
+          <details open={!!editingCase?.findings}>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, margin: '16px 0' }}>Optional report findings</summary>
 
           <Select
             label="USG Report Template"
@@ -683,7 +731,6 @@ const TodaysUSGCases = () => {
           <div className="form-group">
             <label className="form-label" htmlFor="usg-findings">
               <span>Clinical USG Findings</span>
-              <span className="form-required-star" aria-hidden="true">*</span>
             </label>
             <textarea
               id="usg-findings"
@@ -692,7 +739,6 @@ const TodaysUSGCases = () => {
               className="form-control"
               rows={8}
               placeholder="Record findings details..."
-              required
             />
             {errors.findings && <p className="form-error">{errors.findings}</p>}
           </div>
@@ -712,8 +758,15 @@ const TodaysUSGCases = () => {
               Save the case first — images can be attached while editing.
             </p>
           )}
+          </details>
 
         </form>
+      </Modal>
+
+      <Modal isOpen={!!uploadTarget} onClose={() => !uploadBusy && setUploadTarget(null)} title={`Upload USG PDF — ${uploadTarget?.patient?.name || ''}`}
+        footer={<><Button variant="secondary" disabled={uploadBusy} onClick={() => setUploadTarget(null)}>Cancel</Button><Button loading={uploadBusy} onClick={handleUploadPDF}>Upload PDF</Button></>}>
+        <FileUploader label={uploadTarget?.reportFile?.size ? 'Replace PDF report' : 'Choose PDF report'} subtitle="PDF report, up to 10 MB"
+          accept=".pdf" value={uploadFile} onChange={setUploadFile} error={uploadError} disabled={uploadBusy} />
       </Modal>
 
       {/* Print USG Findings Modal */}
@@ -728,7 +781,7 @@ const TodaysUSGCases = () => {
           </>
         }
       >
-        {profileError && (
+        {profileError && !printTarget?.reportFile?.size && (
           <div className="usg-banner usg-banner-error" role="alert">
             <AlertTriangle size={16} />
             <span>{profileError}</span>

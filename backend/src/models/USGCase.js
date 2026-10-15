@@ -18,7 +18,17 @@ const USGCaseSchema = new mongoose.Schema({
   },
   findings: {
     type: String,
-    required: true
+    default: ''
+  },
+  bill: { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', index: true },
+  serviceType: { type: String, enum: ['with-report', 'without-report'] },
+  price: { type: Number, min: 0 },
+  reportFile: {
+    data: { type: Buffer, select: false },
+    name: String,
+    contentType: String,
+    size: Number,
+    uploadedAt: Date
   },
   signatureUrl: {
     type: String,
