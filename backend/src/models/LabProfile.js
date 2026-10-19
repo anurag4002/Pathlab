@@ -38,7 +38,8 @@ const LabProfileSchema = new mongoose.Schema({
   emailEnabled: { type: Boolean, default: false },
   smsSenderId: { type: String, trim: true, default: 'PUREPATH' },
   googleReviewLink: { type: String, trim: true, default: '' },
-  caseStartNumber: { type: Number, default: 1 },
+  caseStartNumber: { type: Number, default: 1, min: 1, validate: Number.isSafeInteger },
+  registrationDigits: { type: Number, default: 6, min: 4, max: 12, validate: Number.isInteger },
   // Phase 24+ branding / registration extras (server allow-list).
   website: { type: String, trim: true, default: '' },
   disclaimer: { type: String, trim: true, default: '' },

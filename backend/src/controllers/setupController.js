@@ -9,12 +9,13 @@ const { ONBOARDING_STEPS } = require('../constants/onboarding');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 const { formatSettings, validateFormatSettings } = require('../services/documentTemplateService');
+const { registrationSequenceInfo, registrationSettingErrors } = require('../services/registrationSequenceService');
 
 const getProfile = async (req, res, next) => {
   try {
     let profile = await LabProfile.findOne();
     if (!profile) profile = await LabProfile.create({});
-    return successResponse(res, 'Lab profile loaded', { ...profile.toObject(), ...formatSettings(profile) });
+    return successResponse(res, 'Lab profile loaded', { ...profile.toObject(), ...formatSettings(profile), registrationSequence: await registrationSequenceInfo(profile) });
   } catch (error) {
     next(error);
   }
@@ -26,11 +27,14 @@ const updateProfile = async (req, res, next) => {
     // Friendly-key mapping for forward-compat (form uses `name`, server uses `labName`).
     const aliases = { name: 'labName', centreName: 'labName', centerName: 'labName' };
     const body = { ...req.body };
+    const numberingErrors = registrationSettingErrors(body);
+    if (Object.keys(numberingErrors).length) return errorResponse(res, 'Invalid registration settings', 400, numberingErrors);
     Object.entries(aliases).forEach(([from, to]) => {
       if (body[from] !== undefined && body[to] === undefined) body[to] = body[from];
     });
     const patch = {};
     allowed.forEach((k) => { if (body[k] !== undefined) patch[k] = body[k]; });
+    if (body.registrationDigits !== undefined) patch.registrationDigits = Number(body.registrationDigits);
     let profile = await LabProfile.findOne();
     const formatPatch = {};
     for (const key of ['documentFormats', 'reportFormatId', 'billFormatId']) if (body[key] !== undefined) formatPatch[key] = body[key];
@@ -42,7 +46,7 @@ const updateProfile = async (req, res, next) => {
       user: req.user._id, action: 'Update Lab Profile', module: 'Settings',
       description: 'Updated lab profile settings.', ip: req.ip, userAgent: req.headers['user-agent'] || ''
     });
-    return successResponse(res, 'Lab profile updated', profile);
+    return successResponse(res, 'Lab profile updated', { ...profile.toObject(), registrationSequence: await registrationSequenceInfo(profile) });
   } catch (error) {
     next(error);
   }

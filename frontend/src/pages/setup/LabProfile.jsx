@@ -53,14 +53,12 @@ const EDITABLE_FIELDS = [
   'website',
   'disclaimer',
   'invoiceFooter',
-  'registrationPrefix',
   'registrationNumber',
-  'dateFormat',
-  'barcodeFormat',
-  'caseStartNumber'
+  'caseStartNumber',
+  'registrationDigits'
 ];
 
-const NUMERIC_FIELDS = new Set(['letterheadTopMargin', 'caseStartNumber']);
+const NUMERIC_FIELDS = new Set(['letterheadTopMargin', 'caseStartNumber', 'registrationDigits']);
 
 // One toggle per block of the reference lab report format. Stored on the
 // LabProfile and honored by the server PDFs (?flag=0 overrides per download).
@@ -113,6 +111,14 @@ const getFormValues = (profile) => EDITABLE_FIELDS.reduce((values, field) => {
   }
   return values;
 }, {});
+
+const registrationPreview = (profile, form) => {
+  const start = Number(form?.caseStartNumber ?? profile?.caseStartNumber ?? 1);
+  const digits = Number(form?.registrationDigits ?? profile?.registrationDigits ?? 6);
+  if (!Number.isSafeInteger(start) || start < 1 || !Number.isInteger(digits) || digits < 4 || digits > 12) return '—';
+  const next = Math.max(start, Number(profile?.registrationSequence?.lastIssued || 0) + 1);
+  return String(next).padStart(digits, '0');
+};
 
 const comparableValue = (value) => (
   value === undefined || value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value)
@@ -309,11 +315,11 @@ const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl
             <div className="lab-profile-preview-patient-name">Sample Patient</div>
             <div>Age / Sex : 32 YRS / M</div>
             {opt('showReferredBy') && <div>Referred by : Sample Doctor</div>}
-            <div>Reg. no. : 5830</div>
+            <div>Reg. no. : {registrationPreview(profile, form)}</div>
           </div>
           <div className="lab-profile-preview-mid">
             {opt('showBarcode') && (
-              <div className="lab-profile-preview-barcode" aria-hidden="true"><span>5830</span></div>
+              <div className="lab-profile-preview-barcode" aria-hidden="true"><span>{registrationPreview(profile, form)}</span></div>
             )}
             {opt('showTatDates') && (
               <div className="lab-profile-preview-tat">
@@ -541,6 +547,9 @@ const LabProfile = () => {
       }
     });
 
+    if (form.caseStartNumber !== undefined && (!Number.isSafeInteger(Number(form.caseStartNumber)) || Number(form.caseStartNumber) < 1)) errors.caseStartNumber = 'Enter a positive whole number.';
+    const digits = Number(form.registrationDigits ?? profile?.registrationDigits ?? 6);
+    if (!Number.isInteger(digits) || digits < 4 || digits > 12) errors.registrationDigits = 'Choose a whole number from 4 to 12 digits.';
     return errors;
   };
 
@@ -608,6 +617,7 @@ const LabProfile = () => {
       setNotice(response.message || 'Lab profile saved.');
       await loadProfile({ showLoading: false });
     } catch (error) {
+      setFieldErrors(error.response?.data?.errors || {});
       setFormError(getErrorMessage(error, 'Failed to save the lab profile.'));
     } finally {
       setSaving(false);
@@ -771,7 +781,7 @@ const LabProfile = () => {
             <section className="lab-profile-section" aria-labelledby="lab-profile-registration-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-registration-heading">Registration settings</h2>
-                <p>New registrations and bills use a shared sequence: 000001, 000002, 000003. No date is included.</p>
+                <p>Set the starting number and digit count for new registrations and bills. Both use the same number, without a date.</p>
               </div>
               <div className="lab-profile-grid lab-profile-grid-settings">
                 <Input
@@ -779,6 +789,8 @@ const LabProfile = () => {
                   name="caseStartNumber"
                   label="Sequence start number"
                   type="number"
+                  min={1}
+                  step={1}
                   value={form.caseStartNumber ?? ''}
                   onChange={(event) => updateField('caseStartNumber', event.target.value)}
                   error={fieldErrors.caseStartNumber}
@@ -786,12 +798,18 @@ const LabProfile = () => {
                   helperText="Minimum starting number for new registrations. Existing numbers are preserved."
                 />
                 <Input
-                  id="registrationPrefix"
-                  name="registrationPrefix"
-                  label="Registration prefix"
-                  value={form.registrationPrefix ?? ''}
-                  onChange={(event) => updateField('registrationPrefix', event.target.value)}
+                  id="registrationDigits"
+                  name="registrationDigits"
+                  label="Number of digits"
+                  type="number"
+                  min={4}
+                  max={12}
+                  step={1}
+                  value={form.registrationDigits ?? 6}
+                  onChange={event => updateField('registrationDigits', event.target.value)}
+                  error={fieldErrors.registrationDigits}
                   disabled={fieldDisabled}
+                  helperText="Leading zeros, from 4 to 12 digits. The sequence grows beyond this width when needed."
                 />
                 <Input
                   id="registrationNumber"
@@ -802,26 +820,18 @@ const LabProfile = () => {
                   disabled={fieldDisabled}
                 />
                 <Input
-                  id="dateFormat"
-                  name="dateFormat"
-                  label="Date format"
-                  value={form.dateFormat ?? ''}
-                  onChange={(event) => updateField('dateFormat', event.target.value)}
-                  disabled={fieldDisabled}
+                  id="nextRegistrationNumber"
+                  label="Next registration / bill number"
+                  value={registrationPreview(profile, form)}
+                  readOnly
+                  helperText="Preview using the latest loaded sequence. Saving applies these settings to new numbers."
                 />
-                <Input
-                  id="barcodeFormat"
-                  name="barcodeFormat"
-                  label="Barcode format"
-                  value={form.barcodeFormat ?? ''}
-                  onChange={(event) => updateField('barcodeFormat', event.target.value)}
-                  disabled={fieldDisabled}
-                />
+                <Input label="Barcode format" value="CODE39" readOnly helperText="The barcode contains the same registration / bill number." />
               </div>
               <div className="lab-profile-registration-note" role="note">
-                <strong>Registration numbers are generated by the backend.</strong>
+                <strong>Numbering is controlled by these settings.</strong>
                 <p>
-                  The sequence starts at 000001 by default, grows beyond six digits when needed, and never moves backwards. Prefix and date format do not affect case or bill numbers. Lab registration number above is printed below the lab name.
+                  Use Edit profile, change the starting number or digit count, then Save changes. Existing numbers are preserved and the sequence never moves backwards. The lab registration number is separate and appears below the lab name on the bill.
                 </p>
               </div>
             </section>

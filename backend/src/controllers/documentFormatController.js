@@ -2,13 +2,19 @@ const LabProfile = require('../models/LabProfile');
 const { validateFormatSettings } = require('../services/documentTemplateService');
 const { documentPdf } = require('../services/formattedPdfService');
 const { qrBuffer } = require('../services/qrService');
+const { registrationSequenceInfo, registrationSettingErrors } = require('../services/registrationSequenceService');
 
 exports.preview = async (req, res, next) => {
   try {
     const saved = await LabProfile.findOne();
     const profile = saved ? saved.toObject() : {};
     const body = req.body || {};
-    Object.assign(profile, validateFormatSettings({ documentFormats: body.documentFormats, reportFormatId: body.reportFormatId, billFormatId: body.billFormatId }, profile));
+    const numberingErrors = registrationSettingErrors(body);
+    if (Object.keys(numberingErrors).length) throw Object.assign(new Error('Invalid registration settings'), { statusCode: 400 });
+    for (const field of ['caseStartNumber', 'registrationDigits']) if (body[field] !== undefined) profile[field] = Number(body[field]);
+    const { nextNumber } = await registrationSequenceInfo(profile);
+    const formatPatch = Object.fromEntries(['documentFormats', 'reportFormatId', 'billFormatId'].filter(key => body[key] !== undefined).map(key => [key, body[key]]));
+    Object.assign(profile, validateFormatSettings(formatPatch, profile));
     // Preview unsaved text/toggles, but assets always come from the stored
     // profile and its authenticated upload endpoints.
     for (const key of ['labName', 'tagline', 'phone', 'address', 'email', 'website', 'registrationNumber', 'disclaimer', 'invoiceFooter']) {
@@ -17,10 +23,10 @@ exports.preview = async (req, res, next) => {
     for (const key of Object.keys(profile).filter(key => key.startsWith('show'))) if (typeof body[key] === 'boolean') profile[key] = body[key];
     const now = new Date();
     const context = {
-      preview: true, profile, patient: { name: 'Sample Patient', age: 32, gender: 'M', registrationNumber: 'SAMPLE-5830', phone: '0000000000' },
-      bill: { billNumber: 'SAMPLE-001', date: now, department: 'BIOCHEMISTRY', totalAmount: 800, paidAmount: 500, dueAmount: 300, discount: 100, paymentMethod: 'Cash' },
+      preview: true, profile, patient: { name: 'Sample Patient', age: 32, gender: 'M', registrationNumber: nextNumber, phone: '0000000000' },
+      bill: { billNumber: nextNumber, date: now, department: 'BIOCHEMISTRY', totalAmount: 800, paidAmount: 500, dueAmount: 300, discount: 100, paymentMethod: 'Cash' },
       referredName: 'Sample Referring Doctor',
-      report: { registrationNumber: 'SAMPLE-5830', tat: { registered: now, collected: now, received: now, reported: now }, results: [
+      report: { registrationNumber: nextNumber, tat: { registered: now, collected: now, received: now, reported: now }, results: [
         { test: 'sugar', testName: 'RANDOM BLOOD SUGAR', value: '76.30', unit: 'mg/dl', flag: 'N' },
         { test: 'urea', testName: 'SERUM UREA', value: '86.20', unit: 'mg/dl', flag: 'H' },
         { test: 'creatinine', testName: 'SERUM CREATININE', value: '6.44', unit: 'mg/dl', flag: 'H' },
