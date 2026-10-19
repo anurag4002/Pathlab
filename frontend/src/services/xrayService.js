@@ -1,5 +1,10 @@
 import apiClient from './apiClient';
 
+export const uploadXrayReport = async (id, file) => {
+  const body = new FormData(); body.append('file', file);
+  return (await apiClient.post(`/xray/${id}/file`, body, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+};
+
 export const getXrayCases = async (params = {}) => {
   const response = await apiClient.get('/xray', {
     params: { ...params, _t: Date.now() },

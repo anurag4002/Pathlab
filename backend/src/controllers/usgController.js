@@ -9,7 +9,9 @@ const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require(
 const getUSGCases = async (req, res, next) => {
   try {
     const { search, date, status } = req.query;
-    const query = { ...getBranchFilter(req) };
+    const branchScope = getBranchFilter(req);
+    await require('../services/imagingBillService').recoverMissingImagingCases(branchScope, 'USG');
+    const query = { ...branchScope };
 
     if (status) query.status = status;
     

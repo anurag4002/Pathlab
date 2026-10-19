@@ -1,8 +1,12 @@
 import React from 'react';
-import { DEPARTMENTS } from '../billingConstants';
+import { DEPARTMENTS, filterTestsByDepartment } from '../billingConstants';
 import '../Billing.css';
 
-const DepartmentSelector = ({ activeDepartment, onSelect }) => {
+const DepartmentSelector = ({ activeDepartment, onSelect, tests = [], packages = [], panels = [], existingDepartment }) => {
+  const activeCatalog = [...tests, ...packages, ...panels].filter(item => !item.isDeleted && (!item.status || item.status === 'Active'));
+  const departments = [{ name: 'ALL', icon: DEPARTMENTS[0].icon }, ...DEPARTMENTS].filter(dept =>
+    ['ALL', 'LAB', 'OUTSOURCE LAB'].includes(dept.name) || dept.name === existingDepartment
+    || filterTestsByDepartment(activeCatalog, dept.name).length > 0);
   return (
     <div>
       <label
@@ -12,7 +16,7 @@ const DepartmentSelector = ({ activeDepartment, onSelect }) => {
         Select Department
       </label>
       <div className="department-selector-grid">
-        {DEPARTMENTS.map((dept) => {
+        {departments.map((dept) => {
           const Icon = dept.icon;
           const isActive = activeDepartment === dept.name;
           return (
@@ -24,7 +28,7 @@ const DepartmentSelector = ({ activeDepartment, onSelect }) => {
               aria-pressed={isActive}
             >
               <Icon size={18} aria-hidden="true" />
-              <span>{dept.name}</span>
+              <span>{dept.name === 'ALL' ? 'All' : dept.name}</span>
             </button>
           );
         })}

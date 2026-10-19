@@ -343,7 +343,6 @@ const TestDatabase = () => {
                 error={errors.code}
                 placeholder="e.g. HB"
                 required
-                disabled={!!editingTest}
               />
               <Input
                 label="Test Name"

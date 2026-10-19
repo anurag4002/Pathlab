@@ -31,7 +31,7 @@ function reportVerifyUrl(qrToken) {
 }
 
 function billVerifyUrl(qrToken) {
-  return `${publicBase()}/r/bill/${qrToken}`;
+  return `${publicBase()}/patient/report`;
 }
 
 async function qrDataURL(text, opts = {}) {

@@ -6,7 +6,7 @@ const { REFERENCE_FORMAT } = require('../src/services/documentTemplateService');
 
 function textOf(pdf) {
   const source = pdf.toString('latin1');
-  const streams = [...source.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)];
+  const streams = [...source.matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)];
   return streams.map(match => {
     try {
       const content = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1');
@@ -29,6 +29,20 @@ test('bills use their selected format and retain patient and payment details', a
   assert.match(text, /CUSTOM INVOICE/);
   assert.match(text, /Test Patient/);
   for (const value of ['Rs. 900.00', 'Rs. 800.00', 'Rs. 500.00', 'Rs. 300.00']) assert.ok(text.includes(value), value);
+});
+
+test('bill header order, case number and investigation labels match the printed bill requirements', async () => {
+  const profile = { ...context.profile, registrationNumber: 'LAB-REG-123', phone: '9999999999', address: 'Gonda address' };
+  const qrPng = await require('../src/services/qrService').qrBuffer('https://lab.example.com/patient/report');
+  const pdf = await billPdf({ ...context, profile, bill: { ...context.bill, billNumber: '0001' } }, { qrPng, qr: true });
+  const text = textOf(pdf);
+  const labels = ['Test Lab', 'Reg. No. LAB-REG-123', 'Phone No.: 9999999999', 'Gonda address'];
+  for (let index = 0; index < labels.length; index++) {
+    assert.ok(text.includes(labels[index]), labels[index]);
+    if (index) assert.ok(text.indexOf(labels[index - 1]) < text.indexOf(labels[index]));
+  }
+  for (const label of ['Reg. no. : 0001', 'Bill No: 0001', 'S.No.', 'INVESTIGATIONS', 'Scan to view report']) assert.ok(text.includes(label), label);
+  assert.ok(!text.includes('Scan to verify bill'));
 });
 
 test('bills use plain A4 or half-A4 paper even when lab letterhead is enabled', async () => {
@@ -74,7 +88,7 @@ test('legacy and rich interpretation paragraphs retain readable type even when r
     const interpretation = rich ? `<h3>Clinical significance</h3><p>${explanation}</p>` : `Clinical significance\n${explanation}`;
     const results = Array.from({ length: 24 }, (_, i) => ({ test: 'creatinine', testName: `Creatinine measurement ${i + 1}`, value: '1.2' }));
     const pdf = await reportPdf({ ...context, report: { ...context.report, results }, testMap: { creatinine: { _id: 'creatinine', name: 'Creatinine', interpretation } } });
-    const streams = [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].flatMap(match => {
+    const streams = [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)].flatMap(match => {
       try { return [zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1')]; } catch { return []; }
     });
     const runs = streams.flatMap(stream => [...stream.matchAll(/BT([\s\S]*?)ET/g)].map(match => ({

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import './Modal.css';
 import { isPdfPrintActive } from '../../../utils/pdfPrintSession';
@@ -44,7 +45,9 @@ const Modal = ({
 
   if (!isOpen) return null;
 
-  return (
+  // Table cells with sticky positioning create their own stacking contexts.
+  // Mount dialogs outside those cells so headers cannot cover the overlay.
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={onClose}
@@ -72,7 +75,8 @@ const Modal = ({
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

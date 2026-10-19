@@ -855,11 +855,12 @@ const TodaysReports = () => {
   const pendingItemsLabel = (pendingCase) => {
     let items = pendingCase?.bill?.items;
     if (!Array.isArray(items) || !items.length) return '—';
+    items = items.filter(item => !['USG', 'XRAY'].includes(item.reportDepartment) && !/\bUSG\b|ultrasound|ultrasonogra|sonography|\bx[\s-]?ray\b|radiograph/i.test(item.name || ''));
     const mode = pendingCase?.report?.entryMode;
     if (mode === 'inhouse') {
-      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
+      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId && !/\bECG\b|\bEKG\b|electrocardiogram/i.test(i?.name || ''));
     } else if (mode === 'outsource') {
-      items = items.filter((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+      items = items.filter((i) => i?.itemType === 'Custom' || /\bECG\b|\bEKG\b|electrocardiogram/i.test(i?.name || '') || (!i?.itemId && i?.name));
     }
     if (!items.length) {
       return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';

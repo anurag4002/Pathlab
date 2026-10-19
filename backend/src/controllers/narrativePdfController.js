@@ -14,13 +14,20 @@ exports.forModel = (Model, department) => async (req, res, next) => {
     const record = await query;
     if (!record) { const error = new Error('Report not found'); error.statusCode = 404; throw error; }
     assertBranchAccess(req, record.branch);
-    if (record.modality === 'ECG' || (department === 'USG' && record.reportFile?.data?.length)) {
-      const label = record.modality === 'ECG' ? 'ECG' : 'USG';
+    if (record.modality === 'ECG' || (['USG', 'X-RAY'].includes(department) && record.reportFile?.data?.length)) {
+      const label = record.modality === 'ECG' ? 'ECG' : department;
       const original = record.reportFile?.data;
       if (!original?.length) throw Object.assign(new Error('Upload an ECG report before previewing or printing.'), { statusCode: 404 });
       const pdf = await require('../services/uploadedReportPdfService').uploadedReportPdf(original);
       res.type('application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${label}_${record._id}.pdf"`);
       return res.send(pdf);
+    }
+    if (department === 'X-RAY' && /\.pdf$/i.test(record.fileUrl || '')) {
+      const file = resolveUploadAbsolute(record.fileUrl);
+      if (file) {
+        res.type('application/pdf');
+        return res.send(fs.readFileSync(file));
+      }
     }
     if (department === 'USG' && !record.findings?.trim()) throw Object.assign(new Error('No USG report is available. Upload a PDF report first.'), { statusCode: 404 });
     const profile = await LabProfile.findOne();

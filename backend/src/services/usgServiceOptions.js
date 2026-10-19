@@ -28,14 +28,7 @@ async function normalizeUSGBillItems(items, existingItems = []) {
 }
 
 async function syncUSGCaseForBill(bill, items) {
-  const services = await getUSGServices();
-  const service = items?.length === 1 && services.find(option => String(option._id) === String(items[0].itemId || '') || option.name === items[0].name);
-  if (!service) return;
-  const USGCase = require('../models/USGCase');
-  await USGCase.findOneAndUpdate({ bill: bill._id }, {
-    $set: { patient: bill.patient?._id || bill.patient, branch: bill.branch || null, referringDoctor: bill.referringDoctor || null, serviceType: service.value, price: items[0].price },
-    $setOnInsert: { bill: bill._id, findings: '', date: bill.date, status: service.value === 'with-report' ? 'Pending' : 'Completed' }
-  }, { upsert: true, runValidators: true, setDefaultsOnInsert: true });
+  return require('./imagingBillService').syncImagingCasesForBill(bill, items);
 }
 
 module.exports = { getUSGServices, getUSGService, normalizeUSGBillItems, syncUSGCaseForBill };

@@ -5,11 +5,14 @@ const Activity = require('../models/Activity');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
+const { isPdfUpload, assignReportPdf } = require('../services/xrayReportService');
 
 const getXrayCases = async (req, res, next) => {
   try {
     const { search, date, status } = req.query;
-    const query = { ...getBranchFilter(req) };
+    const branchScope = getBranchFilter(req);
+    await require('../services/imagingBillService').recoverMissingImagingCases(branchScope, 'XRAY');
+    const query = { ...branchScope };
 
     if (status) query.status = status;
 
@@ -46,24 +49,26 @@ const createXrayCase = async (req, res, next) => {
   try {
     const { patient, referringDoctor, findings, status } = req.body;
     
-    if (!patient || !findings) {
-      return errorResponse(res, 'Patient and findings text are required', 400);
+    if (!patient || (!findings?.trim() && !isPdfUpload(req.file))) {
+      return errorResponse(res, 'Patient and either findings or a PDF report are required', 400);
     }
 
-    persistRequestFiles(req, 'xray');
     let fileUrl = '';
-    if (req.file) {
+    if (req.file && !isPdfUpload(req.file)) {
+      persistRequestFiles(req, 'xray');
       fileUrl = `uploads/xray/${req.file.filename}`;
     }
 
-    const newCase = await XrayCase.create({
+    const newCase = new XrayCase({
       patient,
       branch: resolveBranchForCreate(req, req.body),
       referringDoctor: referringDoctor || null,
-      findings,
+      findings: findings || '',
       fileUrl,
       status: status || 'Completed'
     });
+    if (isPdfUpload(req.file)) assignReportPdf(newCase, req.file);
+    await newCase.save();
 
     const populatedCase = await XrayCase.findById(newCase._id)
       .populate('patient')
@@ -92,11 +97,13 @@ const updateXrayCase = async (req, res, next) => {
     if (!xrayCase) return errorResponse(res, 'X-Ray Case not found', 404);
     try { assertBranchAccess(req, xrayCase.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
 
-    if (findings) xrayCase.findings = findings;
+    if (findings !== undefined) xrayCase.findings = findings;
     if (referringDoctor) xrayCase.referringDoctor = referringDoctor;
     if (status) xrayCase.status = status;
 
-    if (req.file) {
+    if (isPdfUpload(req.file)) {
+      assignReportPdf(xrayCase, req.file);
+    } else if (req.file) {
       const storageService = require('../services/storageService');
       // Persist the new buffer first, then remove the replaced file so a
       // failed write never orphans the old record without a file.
@@ -142,9 +149,35 @@ const getXrayCaseById = async (req, res, next) => {
   }
 };
 
+const uploadXrayReport = async (req, res, next) => {
+  try {
+    const record = await XrayCase.findById(req.params.id);
+    if (!record) return errorResponse(res, 'X-Ray case not found', 404);
+    assertBranchAccess(req, record.branch);
+    assignReportPdf(record, req.file);
+    await record.save();
+    await Activity.create({ user: req.user._id, action: 'Upload X-Ray Report', module: 'X-Ray', description: `Uploaded PDF report for X-Ray case ${record._id}.` });
+    const result = record.toObject(); delete result.reportFile.data;
+    return successResponse(res, 'X-Ray PDF report uploaded', result);
+  } catch (error) { next(error); }
+};
+
+const downloadXrayReport = async (req, res, next) => {
+  try {
+    const record = await XrayCase.findById(req.params.id).select('+reportFile.data');
+    if (!record) return errorResponse(res, 'X-Ray case not found', 404);
+    assertBranchAccess(req, record.branch);
+    if (!record.reportFile?.data?.length) return errorResponse(res, 'No PDF report has been uploaded.', 404);
+    res.type('application/pdf'); res.attachment(record.reportFile.name || 'X-Ray-report.pdf');
+    return res.send(record.reportFile.data);
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getXrayCases,
   getXrayCaseById,
   createXrayCase,
-  updateXrayCase
+  updateXrayCase,
+  uploadXrayReport,
+  downloadXrayReport
 };

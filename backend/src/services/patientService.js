@@ -77,8 +77,12 @@ const getPatientById = async (id) => {
 
 const createPatient = async (patientData) => {
   const registrationNumber = await generateRegistrationNumber();
+  const age = Number(patientData.age);
+  const ageYears = patientData.ageUnit === 'months' ? Math.floor(age / 12) : patientData.ageUnit === 'days' ? Math.floor(age / 365.25) : Math.floor(age);
+  const year = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date()));
   const patient = new Patient({
     ...patientData,
+    birthYear: patientData.birthYear || year - ageYears,
     registrationNumber
   });
   return await patient.save();

@@ -125,6 +125,7 @@ const PatientsPage = () => {
       name: patient.name,
       age: patient.age,
       ageUnit: patient.ageUnit || 'years',
+      birthYear: patient.birthYear || '',
       gender: patient.gender,
       phone: patient.phone,
       address: patient.address || '',

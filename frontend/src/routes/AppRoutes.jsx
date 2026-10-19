@@ -162,7 +162,8 @@ const AppRoutes = () => {
         </Route>
 
         {/* USG — Today + Search merged into one Cases page */}
-        <Route path="/usg/today" element={<TodaysUSGCases />} />
+        <Route path="/usg/today" element={<TodaysUSGCases key="cases" />} />
+        <Route path="/usg/reports" element={<TodaysUSGCases key="reports" reportsView />} />
         <Route path="/usg/search" element={<Navigate to="/usg/today" replace />} />
         <Route path="/usg/templates" element={<ReportTemplates />} />
 

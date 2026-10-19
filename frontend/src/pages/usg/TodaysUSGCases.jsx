@@ -59,7 +59,7 @@ const caseImages = (c) => (
       : []
 );
 
-const TodaysUSGCases = () => {
+const TodaysUSGCases = ({ reportsView = false }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   // Modal state is mirrored to the URL (?case=new|<id>&print=<id>) so a
@@ -86,7 +86,7 @@ const TodaysUSGCases = () => {
   const [assignedFilter, setAssignedFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchFilter, setSearchFilter] = useState('');
-  const [dateScope, setDateScope] = useState('today'); // 'today' | 'all'
+  const [dateScope, setDateScope] = useState(reportsView ? 'all' : 'today'); // 'today' | 'all'
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const debouncedSearch = useDebounce(searchFilter, 500);
@@ -494,7 +494,7 @@ const TodaysUSGCases = () => {
   return (
     <div>
       <PageHeader
-        title="USG Cases"
+        title={reportsView ? "USG Reports" : "USG Cases"}
         subtitle="Today's and historical ultrasonography cases — search, filter and paginate"
         action={
           <Button variant="primary" onClick={handleOpenCreate}>

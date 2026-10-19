@@ -6,7 +6,7 @@ import { deleteXrayCase } from '../../services/modalityService';
 import { getPatients } from '../../services/patientService';
 import { getDoctors } from '../../services/doctorService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
-import { printPdfPath } from '../../services/publicService';
+import { printPdfPath, downloadBlob } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
@@ -28,6 +28,7 @@ import {
 } from '../../components/common';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import XrayImagePane from '../../components/xray/XrayImagePane';
+import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
@@ -295,7 +296,7 @@ const TodaysXrayCases = () => {
   const validate = () => {
     const errs = {};
     if (!formData.patient) errs.patient = 'Please select a patient';
-    if (!formData.findings.trim()) errs.findings = 'Findings report text is required';
+    if (!formData.findings.trim() && !editingCase?.reportFile?.size && !/\.pdf$/i.test(formData.file?.name || '')) errs.findings = 'Enter findings or upload a PDF report';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -461,7 +462,7 @@ const TodaysXrayCases = () => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Download Scan', 'Actions']}
+        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Scan / PDF', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !search && !fromDate && !toDate ? 'No X-Ray cases recorded today.' : 'No X-Ray cases matched your search query.'}
@@ -489,6 +490,7 @@ const TodaysXrayCases = () => {
               <StatusBadge status={c.status} />
             </td>
             <td>
+              {!!c.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch(error => alert(error.message))}>Download PDF</Button>}
               {c.fileUrl ? (
                 <button
                   className="btn btn-secondary"
@@ -497,12 +499,13 @@ const TodaysXrayCases = () => {
                 >
                   <Download size={14} /> Download Scan
                 </button>
-              ) : (
+              ) : !c.reportFile?.size && (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>No attachment</span>
               )}
             </td>
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <XrayReportUpload record={c} onUploaded={() => fetchCases()} />
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem' }}
@@ -595,7 +598,7 @@ const TodaysXrayCases = () => {
           <div className="form-group">
             <label className="form-label" htmlFor="xray-findings">
               <span>Clinical X-Ray Findings</span>
-              <span className="form-required-star" aria-hidden="true">*</span>
+              <span className="form-hint"> (optional with a PDF report)</span>
             </label>
             <textarea
               id="xray-findings"
@@ -603,8 +606,7 @@ const TodaysXrayCases = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
               className="form-control"
               rows={8}
-              placeholder="Record findings details..."
-              required
+              placeholder="Record findings, or upload a PDF report below..."
             />
             {errors.findings && <p className="form-error">{errors.findings}</p>}
           </div>
@@ -615,10 +617,10 @@ const TodaysXrayCases = () => {
             <FileUploader
               onChange={(file) => setFormData(prev => ({ ...prev, file }))}
               value={formData.file}
-              label="Select X-Ray Scan image file (optional — leave empty to save findings only)"
+              label="Select X-Ray PDF report or scan image"
               accept=".jpg,.jpeg,.png,.pdf"
             />
-            <p className="form-hint" data-testid="xray-upload-optional">Image upload is optional. Click Save Case without attaching a file.</p>
+            <p className="form-hint" data-testid="xray-upload-optional">Upload a PDF report without typing findings, or save written findings with an optional scan image.</p>
           </div>
 
           {editingCase && (

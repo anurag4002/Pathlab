@@ -116,7 +116,7 @@ const createReport = async (reportData, file, user) => {
 
   const report = new Report({
     patient,
-    registrationNumber: patientRecord.registrationNumber,
+    registrationNumber: billRecord.billNumber || patientRecord.registrationNumber,
     bill,
     branch: branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null,
     test: test || null,
@@ -198,7 +198,7 @@ const ensureReportsForBill = async (bill, items, userId) => {
     }
     const report = await Report.create({
       patient: bill.patient,
-      registrationNumber: patientRecord.registrationNumber,
+      registrationNumber: bill.billNumber || patientRecord.registrationNumber,
       bill: bill._id,
       branch: bill.branch || patientRecord.branch || null,
       entryMode: mode,
@@ -248,7 +248,7 @@ const createResultReport = async ({ patient, bill, branch, entryMode }, user) =>
   const effectiveBranch = branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null;
   const report = new Report({
     patient,
-    registrationNumber: patientRecord.registrationNumber,
+    registrationNumber: billRecord.billNumber || patientRecord.registrationNumber,
     bill,
     branch: effectiveBranch,
     entryMode: mode,

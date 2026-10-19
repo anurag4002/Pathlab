@@ -102,12 +102,12 @@ const updatePatient = async (req, res, next) => {
     await patientService.assertPatientAccess(id, req);
     // Partial body OK — billing may sync only phone/email/address/aadhaar/history
     const current = await patientService.getPatientById(id);
-    const identityFields = ['name', 'phone', 'title'];
+    const identityFields = ['name', 'phone', 'title', 'birthYear'];
     if (req.user.role !== 'Admin' && identityFields.some(key => req.body[key] !== undefined && String(req.body[key]).trim() !== String(current[key] || '').trim())) {
       return errorResponse(res, 'Only Admin can change a patient name or phone number', 403);
     }
     // Whitelist updates so MongoDB operators cannot bypass identity checks.
-    const allowed = ['name', 'phone', 'title', 'age', 'ageUnit', 'gender', 'address', 'email', 'aadhaar', 'history', 'uhid', 'referringDoctor'];
+    const allowed = ['name', 'phone', 'title', 'birthYear', 'age', 'ageUnit', 'gender', 'address', 'email', 'aadhaar', 'history', 'uhid', 'referringDoctor'];
     const payload = Object.fromEntries(allowed.filter(key => req.body[key] !== undefined).map(key => [key, req.body[key]]));
     const { errors, isValid } = validatePatientUpdate(payload);
     if (!isValid) {

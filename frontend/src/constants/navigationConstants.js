@@ -70,6 +70,7 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
       { title: 'Cases', path: '/usg/today' },
+      { title: 'USG Reports', path: '/usg/reports' },
       { title: 'Report Templates', path: '/usg/templates', roles: ['Admin'] }
     ]
   },

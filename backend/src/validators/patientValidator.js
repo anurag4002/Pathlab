@@ -33,6 +33,7 @@ const validatePhone = (phone, errors) => {
 /** Full create — name / age / gender / phone required. Profile extras optional. */
 const validatePatient = (data) => {
   const errors = {};
+  if (data.birthYear !== undefined && data.birthYear !== null && data.birthYear !== '' && (!Number.isInteger(Number(data.birthYear)) || Number(data.birthYear) < 1850 || Number(data.birthYear) > Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date())))) errors.birthYear = 'Enter a valid four-digit birth year';
 
   if (!data.name || String(data.name).trim() === '') {
     errors.name = 'Patient name is required';
@@ -53,6 +54,7 @@ const validatePatient = (data) => {
  */
 const validatePatientUpdate = (data) => {
   const errors = {};
+  if (data.birthYear !== undefined && data.birthYear !== null && data.birthYear !== '' && (!Number.isInteger(Number(data.birthYear)) || Number(data.birthYear) < 1850 || Number(data.birthYear) > Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date())))) errors.birthYear = 'Enter a valid four-digit birth year';
 
   if (data.name !== undefined && (!data.name || String(data.name).trim() === '')) {
     errors.name = 'Patient name is required';

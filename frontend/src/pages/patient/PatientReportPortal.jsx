@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import {
   requestOtp,
+  loginWithBirthYear,
   verifyOtp,
   getPatientReports,
   downloadPatientReport,
@@ -72,6 +73,7 @@ const INQUIRY_STATUS_STYLE = {
 const PatientReportPortal = () => {
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 2.5: Register, 3: Home
   const [phone, setPhone] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -178,6 +180,18 @@ const PatientReportPortal = () => {
       loadInquiries();
     }
   }, []);
+
+  const handleBirthYearLogin = async (event) => {
+    event.preventDefault(); setLoading(true); setError('');
+    try {
+      const response = await loginWithBirthYear(phone, birthYear);
+      if (response.success) {
+        setProfiles(response.data.patients || []); setStep(3); setTab('reports');
+        loadReports(); loadInquiries();
+      }
+    } catch (error) { setError(error.response?.data?.message || 'Unable to log in'); }
+    finally { setLoading(false); }
+  };
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
@@ -420,7 +434,7 @@ const PatientReportPortal = () => {
           </div>
           <h2 className="patient-step-title">View Your Report</h2>
           <p className="patient-step-desc">
-            Access your laboratory report securely using your mobile number. New here? You can create your profile after OTP verification.
+            Enter your registered mobile number and birth year to view your reports.
           </p>
 
           {error && (
@@ -430,7 +444,7 @@ const PatientReportPortal = () => {
             </div>
           )}
 
-          <form onSubmit={handleRequestOtp} className="patient-form">
+          <form onSubmit={handleBirthYearLogin} className="patient-form">
             <div className="patient-form-group">
               <label htmlFor="patient-phone" className="patient-form-label">Mobile Number</label>
               <div className="patient-input-prefix">
@@ -449,14 +463,19 @@ const PatientReportPortal = () => {
               </div>
             </div>
 
+            <div className="patient-form-group">
+              <label htmlFor="patient-birth-year" className="patient-form-label">Birth Year</label>
+              <input id="patient-birth-year" className="patient-phone-input" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="e.g. 1990" value={birthYear} onChange={event => setBirthYear(event.target.value.replace(/\D/g, ''))} required />
+            </div>
             <button type="submit" className="patient-btn" disabled={loading}>
-              {loading ? 'Requesting OTP...' : 'Get OTP'}
+              {loading ? 'Logging in...' : 'View reports'}
             </button>
+            <button type="button" className="patient-link-btn" onClick={handleRequestOtp} disabled={loading}>Use mobile OTP / New patient</button>
           </form>
 
           <div className="patient-security-note">
             <Lock size={13} />
-            <span>End-to-end encrypted medical report access</span>
+            <span>Your report access requires patient login</span>
           </div>
         </div>
       )}

@@ -397,7 +397,7 @@ async function getPendingLabCases(req, res, next) {
     // In-lab LAB + outsource (OUTSOURCE LAB / OutsourceLabCase) share this queue.
     const deptClause = {
       $or: [
-        { department: { $in: ['LAB', 'OUTSOURCE LAB'] } },
+        { department: { $in: ['LAB', 'OUTSOURCE LAB', 'ECG'] } },
         { caseType: 'OutsourceLabCase' }
       ]
     };
@@ -458,9 +458,21 @@ async function getPendingLabCases(req, res, next) {
           localField: '_id',
           foreignField: 'billId',
           as: 'itemDocs',
-          pipeline: [{ $project: { name: 1, itemType: 1, price: 1, itemId: 1 } }]
+          pipeline: [{ $project: { name: 1, itemType: 1, price: 1, itemId: 1, reportDepartment: 1 } }]
         }
       },
+      // Imaging-only bills belong to their own queues. Exclude them before
+      // pagination/counting so they cannot crowd out pending laboratory work.
+      { $match: { $or: [
+        { 'itemDocs.0': { $exists: false } },
+        { itemDocs: { $elemMatch: { $or: [
+          { name: require('../utils/imagingDepartment').ECG_PATTERN },
+          { $nor: [
+            { reportDepartment: { $in: ['USG', 'XRAY'] } },
+            { name: /\bUSG\b|ultrasound|ultrasonogra|sonography|\bx[\s-]?ray\b|radiograph/i }
+          ] }
+        ] } } }
+      ] } },
       {
         $project: {
           billNumber: 1,
@@ -545,6 +557,7 @@ async function getPendingLabCases(req, res, next) {
                 department: 1,
                 caseType: 1,
                 items: 1,
+                reportDocs: 1,
                 entryReport: 1
               }
             }
@@ -571,7 +584,12 @@ async function getPendingLabCases(req, res, next) {
         items: Array.isArray(bill.items) ? bill.items : []
       };
       const openReports = Array.isArray(bill.entryReport) ? bill.entryReport : [];
+      const expectedModes = reportModesForItems(baseBill.items, baseBill);
+      if (!expectedModes.length) continue;
       if (openReports.length) {
+        for (const missingMode of expectedModes.filter(mode => !(bill.reportDocs || []).some(report => report.entryMode === mode || (report.entryMode === 'all' && expectedModes.length === 1)))) {
+          data.push({ bill: baseBill, report: { status: 'Pending', entryMode: missingMode } });
+        }
         for (const r of openReports) {
           data.push({
             bill: baseBill,

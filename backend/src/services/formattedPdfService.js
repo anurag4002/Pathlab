@@ -123,10 +123,17 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   function header() {
     y = m;
     if (plainBill) {
-      paragraph(profile.labName || 'PURE PATH LAB', { bold: true, size: 15, leading: 19, gap: 2, align: 'center' });
-      for (const value of [profile.address, [profile.phone, profile.email].filter(Boolean).join(' | ')].filter(Boolean)) {
-        paragraph(value, { size: 8, leading: 10, gap: 1, align: 'center' });
+      const logo = imagePath(profile.logoUrl);
+      const logoWidth = logo && image(logo, m + width - 52, y, 48, 48) ? 62 : 0;
+      const headerWidth = width - logoWidth;
+      const headerStart = y;
+      for (const [index, value] of [profile.labName || 'PURE PATH LAB', profile.registrationNumber && `Reg. No. ${profile.registrationNumber}`, profile.phone && `Phone No.: ${profile.phone}`, profile.address].filter(Boolean).entries()) {
+        const size = index === 0 ? 15 : 9;
+        for (const line of lines(value, headerWidth, index === 0, size)) {
+          text(line, m, y, headerWidth, { bold: index === 0, size }); y += index === 0 ? 20 : 12;
+        }
       }
+      y = Math.max(y, headerStart + (logoWidth ? 50 : 0));
       rule(y + 3); y += 10; patientBand();
       return;
     }
@@ -161,7 +168,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const start = y, middleX = m + leftWidth + 10, qrX = m + width - qrWidth;
     const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${patient.ageUnit || 'YRS'}` : '', patient.gender].filter(Boolean).join(' / ');
     const referred = context.referredName || context.doctor?.name || bill.referringDoctor?.name;
-    const identity = [patient.name || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${report.registrationNumber || patient.registrationNumber || '-'}`];
+    const identity = [patient.name || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${(kind === 'bill' ? bill.billNumber : report.registrationNumber) || patient.registrationNumber || '-'}`];
     let leftY = start;
     identity.forEach((value, i) => lines(value, format.patientLayout === 'stacked' ? width : leftWidth, i === 0, i === 0 ? 12 : format.fontSize).forEach(line => {
       text(line, m, leftY, format.patientLayout === 'stacked' ? width : leftWidth, { bold: i === 0, size: i === 0 ? 12 : format.fontSize }); leftY += i === 0 ? 17 : format.fontSize + 4;
@@ -181,7 +188,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     let bottom = Math.max(leftY, midY);
     if (qrWidth) {
       const qrY = stacked ? leftY + 5 : start;
-      text(kind === 'bill' ? 'Scan to verify bill' : 'Scan to download', qrX, qrY, qrWidth, { size: 6, align: 'center' });
+      text(kind === 'bill' ? 'Scan to view report' : 'Scan to download', qrX, qrY, qrWidth, { size: 6, align: 'center' });
       image(requestOptions.qrPng, qrX + 3, qrY + 10, qrWidth - 6, qrWidth - 6); bottom = Math.max(bottom, qrY + qrWidth + 6);
     }
     if (!stacked) {
@@ -471,7 +478,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   if (kind === 'bill') {
     const bill = context.bill || {};
     heading(format.billTitle);
-    table([{ label: '#', width: 28 }, { label: 'PARTICULARS', width: width - 138 }, { label: 'AMOUNT (Rs.)', width: 110, align: 'right' }], (context.items || []).map((item, index) => [{ text: index + 1 }, { text: item.name || 'Test' }, { text: Number(item.price || 0).toFixed(2) }]));
+    table([{ label: 'S.No.', width: 36 }, { label: 'INVESTIGATIONS', width: width - 146 }, { label: 'AMOUNT (Rs.)', width: 110, align: 'right' }], (context.items || []).map((item, index) => [{ text: index + 1 }, { text: item.name || 'Test' }, { text: Number(item.price || 0).toFixed(2) }]));
     const totals = [['Gross subtotal', money(Number(bill.totalAmount || 0) + Number(bill.discount || 0))], ['Discount', money(bill.discount)], ['Net payable', money(bill.totalAmount)], [`Paid (${bill.paymentMethod || 'Cash'})`, money(bill.paidAmount)], ['Balance due', money(bill.dueAmount)]];
     space(totals.length * 16);
     totals.forEach(([label, value], i) => { text(label, m, y, width - 120, { align: 'right', bold: i === 2 || i === 4 }); text(value, m + width - 110, y, 110, { align: 'right', bold: i === 2 || i === 4 }); y += 16; });

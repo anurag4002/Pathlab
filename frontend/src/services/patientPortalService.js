@@ -1,5 +1,14 @@
 import apiClient from './apiClient';
 
+export const loginWithBirthYear = async (phone, birthYear) => {
+  const response = await apiClient.post('/patient/auth/login', { phone, birthYear });
+  if (response.data.success && response.data.data.token) {
+    sessionStorage.setItem('ppl_patient_token', response.data.data.token);
+    sessionStorage.setItem('ppl_patient_phone', response.data.data.phone);
+  }
+  return response.data;
+};
+
 export const requestOtp = async (phone) => {
   const response = await apiClient.post('/patient/auth/request-otp', { phone });
   return response.data;

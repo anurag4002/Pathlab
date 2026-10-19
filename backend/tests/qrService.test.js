@@ -51,8 +51,8 @@ describe('qrService verify URLs', () => {
     assert.ok(url.includes('/r/abc123.def45678'), `unexpected url: ${url}`);
   });
 
-  it('billVerifyUrl contains the token', () => {
+  it('bill QR opens patient login without disclosing a report token', () => {
     const url = billVerifyUrl('abc123.def45678');
-    assert.ok(url.includes('/r/bill/abc123.def45678'), `unexpected url: ${url}`);
+    assert.ok(url.endsWith('/patient/report'), `unexpected url: ${url}`);
   });
 });

@@ -20,6 +20,31 @@ const { successResponse, errorResponse } = require('../utils/response');
 const { JWT_SECRET } = require('../config/environment');
 const MESSAGES = require('../constants/messages');
 
+const patientScope = req => ({ phone: req.patientPhone,
+  ...(req.patientIds ? { _id: { $in: req.patientIds } } : {}) });
+
+const loginWithBirthYear = async (req, res, next) => {
+  try {
+    const phone = String(req.body.phone || '').replace(/\D/g, '').slice(-10);
+    const year = Number(req.body.birthYear);
+    const currentYear = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date()));
+    if (!/^\d{10}$/.test(phone) || !Number.isInteger(year) || year < 1850 || year > currentYear) {
+      return errorResponse(res, 'Enter a valid mobile number and four-digit birth year', 400);
+    }
+    const candidates = await Patient.find({ phone });
+    const patients = candidates.filter(patient => {
+      if (patient.birthYear) return patient.birthYear === year;
+      const registeredYear = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(patient.createdAt));
+      const ageYears = patient.ageUnit === 'months' ? Math.floor(patient.age / 12)
+        : patient.ageUnit === 'days' ? Math.floor(patient.age / 365.25) : Math.floor(patient.age);
+      return registeredYear - ageYears === year;
+    });
+    if (!patients.length) return errorResponse(res, 'Mobile number or birth year does not match', 401);
+    const token = jwt.sign({ phone, role: 'Patient', patientIds: patients.map(patient => String(patient._id)) }, JWT_SECRET, { expiresIn: '2h' });
+    return successResponse(res, 'Patient login successful', { token, phone, patients: patients.map(patient => ({ _id: patient._id, name: patient.name, registrationNumber: patient.registrationNumber })), isNew: false });
+  } catch (error) { next(error); }
+};
+
 const requestOtp = async (req, res, next) => {
   try {
     const { phone } = req.body;
@@ -82,7 +107,7 @@ const getPatientReports = async (req, res, next) => {
     const phone = req.patientPhone;
 
     // Find all patients registered with this phone number
-    const patients = await Patient.find({ phone });
+    const patients = await Patient.find(patientScope(req));
     if (!patients.length) {
       return successResponse(res, MESSAGES.PATIENT_PORTAL.NO_REPORTS, []);
     }
@@ -185,8 +210,8 @@ const getPatientReports = async (req, res, next) => {
           date: x.date,
           status: portalDisplayStatus(raw),
           statusRaw: raw,
-          downloadable: isDownloadable(raw, !!x.fileUrl),
-          hasFile: !!x.fileUrl,
+          downloadable: isDownloadable(raw, !!x.fileUrl || !!x.reportFile?.size),
+          hasFile: !!x.fileUrl || !!x.reportFile?.size,
           findings: x.findings,
           impression: x.impression
         };
@@ -204,7 +229,7 @@ const getPatientReportById = async (req, res, next) => {
     const { id } = req.params;
     const phone = req.patientPhone;
 
-    const patients = await Patient.find({ phone }).select('_id');
+    const patients = await Patient.find(patientScope(req)).select('_id');
     const patientIds = patients.map(p => p._id.toString());
 
     // Search Lab Reports
@@ -271,7 +296,7 @@ const getPatientReportById = async (req, res, next) => {
         status: xrayReport.status || 'Completed',
         findings: xrayReport.findings,
         impression: xrayReport.impression,
-        hasFile: !!xrayReport.fileUrl
+        hasFile: !!xrayReport.fileUrl || !!xrayReport.reportFile?.size
       });
     }
 
@@ -287,7 +312,7 @@ const downloadPatientReport = async (req, res, next) => {
     const phone = req.patientPhone;
 
     // Verify patient ownership
-    const patients = await Patient.find({ phone }).select('_id');
+    const patients = await Patient.find(patientScope(req)).select('_id');
     const patientIds = patients.map(p => p._id.toString());
 
     // Laboratory report: prefer uploaded file, else render structured PDF.
@@ -328,8 +353,12 @@ const downloadPatientReport = async (req, res, next) => {
       return res.send(pdf);
     }
 
-    // X-Ray: uploaded file only
-    const xray = await XrayCase.findById(id);
+    // X-Ray: prefer the durable PDF, while keeping older scan downloads.
+    const xray = await XrayCase.findById(id).select('+reportFile.data');
+    if (xray && patientIds.includes(String(xray.patient)) && xray.reportFile?.data?.length) {
+      res.type('application/pdf'); res.attachment(xray.reportFile.name || `XRay_${id}.pdf`);
+      return res.send(xray.reportFile.data);
+    }
     if (xray && patientIds.includes(String(xray.patient)) && xray.fileUrl) {
       const absolutePath = storageService.getFilePath(xray.fileUrl);
       if (absolutePath) {
@@ -420,13 +449,13 @@ const createInquiry = async (req, res, next) => {
     let patientRef = null;
     let displayName = String(name || '').trim();
     if (patientId) {
-      const owned = await Patient.findOne({ _id: patientId, phone }).select('_id name');
+      const owned = await Patient.findOne({ ...patientScope(req), _id: req.patientIds && !req.patientIds.includes(String(patientId)) ? null : patientId }).select('_id name');
       if (!owned) return errorResponse(res, 'Unknown profile for this number', 400);
       patientRef = owned._id;
       if (!displayName) displayName = owned.name;
     }
     if (!displayName || !patientRef) {
-      const first = await Patient.findOne({ phone }).select('_id name');
+      const first = await Patient.findOne(patientScope(req)).select('_id name');
       if (first) {
         if (!displayName) displayName = first.name;
         // Link already-confirmed patients so staff see the profile in queue.
@@ -467,7 +496,7 @@ const createInquiry = async (req, res, next) => {
 // GET /api/patient/inquiries — the caller's own booking inquiries.
 const listMyInquiries = async (req, res, next) => {
   try {
-    const docs = await Inquiry.find({ phone: req.patientPhone }).sort({ createdAt: -1 }).limit(50).lean();
+    const docs = await Inquiry.find({ phone: req.patientPhone, ...(req.patientIds ? { patient: { $in: req.patientIds } } : {}) }).sort({ createdAt: -1 }).limit(50).lean();
     return successResponse(res, 'Booking inquiries loaded', docs);
   } catch (error) {
     next(error);
@@ -475,6 +504,7 @@ const listMyInquiries = async (req, res, next) => {
 };
 
 module.exports = {
+  loginWithBirthYear,
   requestOtp,
   verifyOtp,
   registerPatient,

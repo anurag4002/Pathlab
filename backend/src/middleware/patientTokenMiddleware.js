@@ -19,6 +19,7 @@ const protectPatient = async (req, res, next) => {
       }
 
       req.patientPhone = decoded.phone;
+      req.patientIds = decoded.patientIds || null;
       return next();
     } catch (error) {
       console.error('Patient Token Verification Error:', error.message);

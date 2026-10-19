@@ -7,6 +7,7 @@ const EMPTY_FORM = {
   name: '',
   age: '',
   ageUnit: 'years',
+  birthYear: '',
   gender: '',
   phone: '',
   address: '',
@@ -92,6 +93,7 @@ const PatientFormModal = ({
             error={errors.age}
             required
           />
+          <Input label="Birth year (patient login)" name="birthYear" disabled={identityLocked} type="number" min="1850" max="2200" value={formData.birthYear || ''} onChange={handleChange('birthYear')} error={errors.birthYear} helperText="Enter the actual birth year. If blank, the registration year minus age is used." />
           <Select label="Age unit" name="ageUnit" value={formData.ageUnit || 'years'}
             onChange={handleChange('ageUnit')} options={[{ value: 'years', label: 'Years' }, { value: 'months', label: 'Months' }, { value: 'days', label: 'Days' }]}
             placeholder="" error={errors.ageUnit} />

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const BillItemSchema = new mongoose.Schema({
+  reportDepartment: { type: String, enum: ['', 'USG', 'XRAY'], default: '' },
   billId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Bill',

@@ -5,6 +5,7 @@ const { protectPatient } = require('../middleware/patientTokenMiddleware');
 const { otpLimiter, verifyLimiter } = require('../middleware/rateLimitMiddleware');
 
 // OTP Authentication Routes (Rate limited)
+router.post('/auth/login', verifyLimiter, patientPortalController.loginWithBirthYear);
 router.post('/auth/request-otp', otpLimiter, patientPortalController.requestOtp);
 router.post('/auth/verify-otp', verifyLimiter, patientPortalController.verifyOtp);
 

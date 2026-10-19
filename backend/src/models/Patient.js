@@ -17,6 +17,7 @@ const PatientSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  birthYear: { type: Number, min: 1850, max: 2200, default: null },
   ageUnit: { type: String, enum: ['years', 'months', 'days'], default: 'years' },
   gender: {
     type: String,

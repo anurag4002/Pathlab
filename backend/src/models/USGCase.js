@@ -54,4 +54,5 @@ const USGCaseSchema = new mongoose.Schema({
   timestamps: true
 });
 
+USGCaseSchema.index({ bill: 1 }, { name: 'unique_billed_usg_case', unique: true, partialFilterExpression: { bill: { $type: 'objectId' } } });
 module.exports = mongoose.model('USGCase', USGCaseSchema);

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const XrayCaseSchema = new mongoose.Schema({
+  bill: { type: mongoose.Schema.Types.ObjectId, ref: 'Bill', index: true },
   patient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',
@@ -14,11 +15,18 @@ const XrayCaseSchema = new mongoose.Schema({
   },
   findings: {
     type: String,
-    required: true
+    default: ''
   },
   fileUrl: {
     type: String,
     trim: true
+  },
+  reportFile: {
+    data: { type: Buffer, select: false },
+    name: String,
+    contentType: String,
+    size: Number,
+    uploadedAt: Date
   },
   date: {
     type: Date,
@@ -40,4 +48,5 @@ const XrayCaseSchema = new mongoose.Schema({
   timestamps: true
 });
 
+XrayCaseSchema.index({ bill: 1 }, { name: 'unique_billed_xray_case', unique: true, partialFilterExpression: { bill: { $type: 'objectId' } } });
 module.exports = mongoose.model('XrayCase', XrayCaseSchema);

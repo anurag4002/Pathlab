@@ -1,15 +1,16 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getXrayCases } from '../../services/xrayService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
-import { printPdfPath } from '../../services/publicService';
+import { printPdfPath, downloadBlob } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
 import downloadFile from '../../utils/downloadFile';
 import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, Download, Printer, RefreshCw } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, AdvancedFilterBar } from '../../components/common';
 import XrayImagePane from '../../components/xray/XrayImagePane';
+import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
 
 const getApiErrorMessage = (err, fallback) => {
@@ -58,7 +59,7 @@ const XrayReports = () => {
     const fetchReports = async () => {
       setLoading(true);
       try {
-        const res = await getXrayCases({ status: 'Completed' });
+        const res = await getXrayCases();
         if (!active) return;
         if (!res?.success) {
           setReports([]);
@@ -66,7 +67,7 @@ const XrayReports = () => {
           return;
         }
         const rows = Array.isArray(res.data) ? res.data : [];
-        setReports(rows.filter((report) => report.fileUrl));
+        setReports(rows);
         setLoadError(null);
       } catch (err) {
         if (!active) return;
@@ -129,7 +130,7 @@ const XrayReports = () => {
     <div>
       <PageHeader
         title="Completed X-Ray Reports Archive"
-        subtitle="Access and download completed digital radiographs and clinical reports"
+        subtitle="Track billed X-Ray orders, enter findings and view completed reports"
       />
 
       {loadError && (
@@ -161,10 +162,10 @@ const XrayReports = () => {
       />
 
       <DataTable
-        headers={['Completed Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Download Scan File', 'Preview']}
+        headers={['Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Status', 'Scan File', 'Report']}
         data={pg.paged}
         loading={loading}
-        emptyMessage="No completed X-Ray scans archived yet."
+        emptyMessage="No X-Ray orders or reports found."
         pagination={{
           total: pg.total,
           page: pg.page,
@@ -179,8 +180,10 @@ const XrayReports = () => {
             <td style={{ fontWeight: '600' }}>{report.patient?.registrationNumber}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.name}</td>
             <td>{report.referringDoctor?.name || 'Self'}</td>
+            <td>{report.status || 'Pending'}</td>
             <td>
-              <button
+              {!!report.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch(error => alert(error.message))}>Download PDF</Button>}
+              {report.fileUrl ? <button
                 type="button"
                 className="btn btn-primary"
                 style={{ padding: '4px 8px', fontSize: '0.75rem' }}
@@ -190,10 +193,12 @@ const XrayReports = () => {
                 )}
               >
                 <Download size={14} /> Download Scan
-              </button>
+              </button> : !report.reportFile?.size && <span>Not uploaded</span>}
             </td>
             <td>
-              <button
+              <XrayReportUpload record={report} onUploaded={() => setReloadKey(key => key + 1)} />
+              <Link className="btn btn-secondary" to={`/xray/today?case=${report._id}`}>Enter / edit report</Link>
+              {report.status === 'Completed' && (report.findings?.trim() || report.fileUrl || report.reportFile?.size) && <button
                 type="button"
                 className="btn btn-secondary"
                 style={{ padding: '4px 8px', fontSize: '0.75rem' }}
@@ -204,7 +209,7 @@ const XrayReports = () => {
                 }}
               >
                 <Printer size={14} /> Preview
-              </button>
+              </button>}
             </td>
           </tr>
         )}

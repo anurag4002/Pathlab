@@ -48,7 +48,7 @@ const createTest = async (data) => {
 };
 
 const updateTest = async (id, data) => {
-  return await Test.findByIdAndUpdate(id, data, { new: true });
+  return await Test.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 };
 
 const deleteTest = async (id) => {

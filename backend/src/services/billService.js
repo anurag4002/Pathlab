@@ -2,7 +2,8 @@ const Bill = require('../models/Bill');
 const BillItem = require('../models/BillItem');
 const Transaction = require('../models/Transaction');
 const generateBillNumber = require('../utils/generateBillNumber');
-const { normalizeUSGBillItems, syncUSGCaseForBill } = require('./usgServiceOptions');
+const { normalizeUSGBillItems } = require('./usgServiceOptions');
+const { classifyImagingItems, syncImagingCasesForBill } = require('./imagingBillService');
 
 const CASE_TYPES = ['LabCase', 'UsgCase', 'DigitalXrayCase', 'XrayCase', 'OutsourceLabCase', 'EcgCase', 'CtScanCase', 'MriCase', 'EpsCase', 'OpgCase', 'CardiologyCase', 'EegCase', 'MammographyCase'];
 
@@ -44,7 +45,10 @@ const createBill = async (billData, createdByUserId) => {
     paymentStatus = 'Partial';
   }
 
-  const billNumber = await generateBillNumber();
+  const registeredPatient = await require('../models/Patient').findById(patient).select('registrationNumber');
+  const registration = registeredPatient?.registrationNumber;
+  const billNumber = /^\d+$/.test(registration || '') && !await Bill.exists({ billNumber: registration })
+    ? registration : await generateBillNumber();
 
   const Patient = require('./patientService');
   let denormUhid = uhid || '';
@@ -85,10 +89,17 @@ const createBill = async (billData, createdByUserId) => {
     createdBy: createdByUserId
   });
 
-  await bill.save();
+  try { await bill.save(); }
+  catch (error) {
+    if (error.code !== 11000 || !error.keyPattern?.billNumber) throw error;
+    bill.billNumber = await generateBillNumber();
+    await bill.save();
+  }
 
   // Create BillItems (Custom/outsource lines may omit itemId)
-  const itemRecords = items.map((item) => ({
+  const classifiedItems = await classifyImagingItems(items, bill);
+  const itemRecords = classifiedItems.map((item) => ({
+    reportDepartment: item.reportDepartment,
     billId: bill._id,
     itemType: item.itemType,
     itemId: item.itemType === 'Custom' ? null : item.itemId,
@@ -118,8 +129,8 @@ const createBill = async (billData, createdByUserId) => {
   // Lab / outsource bills: Registered report shells immediately so
   // patients see Processing/Pending and mixed bills get separate actions.
   const dept = String(department || bill.department || 'LAB').toUpperCase();
-  if (dept === 'USG') await syncUSGCaseForBill(bill, savedItems);
-  if (dept.includes('LAB') || String(bill.caseType || '').includes('Lab')) {
+  await syncImagingCasesForBill(bill, savedItems);
+  if (dept.includes('LAB') || dept === 'ECG' || String(bill.caseType || '').includes('Lab')) {
     try {
       const reportService = require('./reportService');
       await reportService.ensureReportsForBill(bill, savedItems, createdByUserId);
@@ -646,7 +657,9 @@ const updateBill = async (billId, updates = {}, user = null) => {
   if (nextItems) {
     const BillItem = require('../models/BillItem');
     await BillItem.deleteMany({ billId: bill._id });
-    const records = nextItems.map((it) => ({
+    const classifiedItems = await classifyImagingItems(nextItems, bill);
+    const records = classifiedItems.map((it) => ({
+      reportDepartment: it.reportDepartment,
       billId: bill._id,
       itemType: it.itemType,
       itemId: it.itemType === 'Custom' ? null : it.itemId,
@@ -672,11 +685,11 @@ const updateBill = async (billId, updates = {}, user = null) => {
     ? 'Paid'
     : bill.paidAmount > 0 ? 'Partial' : 'Pending';
   await bill.save();
-  if (nextItems && String(bill.department || '').toUpperCase() === 'USG') await syncUSGCaseForBill(bill, savedItems);
+  await syncImagingCasesForBill(bill, savedItems || bill.items || []);
   // Sync lab records: ensure shells for the modes the new lines need, drop
   // untouched (Registered, no results) shells of modes no longer needed, and
   // carry a changed collection centre onto still-open shells.
-  if (nextItems && (String(bill.department || '').toUpperCase().includes('LAB') || String(bill.caseType || '').includes('Lab'))) {
+  if (nextItems && (['LAB', 'OUTSOURCE LAB', 'ECG'].includes(String(bill.department || '').toUpperCase()) || String(bill.caseType || '').includes('Lab'))) {
     try {
       const reportService = require('./reportService');
       const { reportModesForItems } = require('../utils/billItemModality');

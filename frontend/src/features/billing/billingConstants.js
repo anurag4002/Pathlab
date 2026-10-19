@@ -21,43 +21,34 @@ export const DEPARTMENTS = [
 
 export const PATIENT_TITLES = ['Mr','Mrs','Smt','Kumari','Shri','Miss','Master','Mohd','Baby','Baby of','Wife of','Mother of','Son of','Daughter of','Ms','Miss-Mrs','Selvi','Sk','PROF','Dr','Child','Md','Mx','Mrs.'];
 export const DEPT_TO_CASE_TYPE = {
+  ALL: 'LabCase',
   'LAB': 'LabCase', 'USG': 'UsgCase', 'DIGITAL XRAY': 'DigitalXrayCase', 'XRAY': 'XrayCase',
   'OUTSOURCE LAB': 'OutsourceLabCase', 'ECG': 'EcgCase', 'CT SCAN': 'CtScanCase', 'MRI': 'MriCase',
   'EPS': 'EpsCase', 'OPG': 'OpgCase', 'CARDIOLOGY': 'CardiologyCase', 'EEG': 'EegCase', 'MAMMOGRAPHY': 'MammographyCase'
 };
 
-const hay = (t) => `${t?.name || ''} ${t?.code || ''} ${t?.category?.name || ''}`.toLowerCase();
-const anyKw = (t, kws) => { const h = hay(t); return kws.some((k) => h.includes(k)); };
+const hay = (t) => `${t?.name || ''} ${t?.code || ''} ${typeof t?.category === 'string' ? t.category : t?.category?.name || ''}`.toLowerCase();
+const anyKw = (t, kws) => {
+  const h = hay(t);
+  return kws.some(keyword => {
+    const value = keyword.trim();
+    const end = value.length <= 4 ? '(?=$|[^a-z0-9])' : '';
+    return new RegExp(`(?:^|[^a-z0-9])${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${end}`, 'i').test(h);
+  });
+};
 
 export const filterTestsByDepartment = (tests = [], department) => {
   const dept = String(department || '').toUpperCase().trim();
-  if (!dept) return tests;
+  if (!dept || dept === 'ALL') return tests;
   if (dept === 'LAB') {
-    return tests.filter(
-      (t) =>
-        !t.name.toLowerCase().includes('usg') &&
-        !t.name.toLowerCase().includes('xray') &&
-        !t.name.toLowerCase().includes('x-ray') &&
-        !t.category?.name?.toLowerCase().includes('usg') &&
-        !t.category?.name?.toLowerCase().includes('xray')
-    );
+    return tests.filter(test => !DEPARTMENTS.some(department => department.name !== 'LAB'
+      && filterTestsByDepartment([test], department.name).length > 0));
   }
   if (dept === 'USG') {
-    return tests.filter(
-      (t) =>
-        t.name.toLowerCase().includes('usg') ||
-        t.name.toLowerCase().includes('ultrasound') ||
-        t.category?.name?.toLowerCase().includes('usg')
-    );
+    return tests.filter(test => anyKw(test, ['usg', 'ultrasound', 'ultrasonogra', 'sonography']));
   }
   if (dept === 'DIGITAL XRAY' || dept === 'XRAY') {
-    return tests.filter(
-      (t) =>
-        t.name.toLowerCase().includes('xray') ||
-        t.name.toLowerCase().includes('x-ray') ||
-        t.name.toLowerCase().includes('radiograph') ||
-        t.category?.name?.toLowerCase().includes('xray')
-    );
+    return tests.filter(test => anyKw(test, ['xray', 'x-ray', 'x ray', 'radiograph']));
   }
   const KW = {
     'CT SCAN': ['ct scan', 'computed tomography', 'computed', ' ct '],
@@ -73,11 +64,7 @@ export const filterTestsByDepartment = (tests = [], department) => {
     MAMMOGRAPHY: ['mammo', 'mammography', 'breast']
   };
   if (KW[dept]) {
-    const matched = tests.filter((t) => anyKw(t, KW[dept]));
-    // Never return [] for a known dept due to over-filtering: fall back to
-    // category-name match only before giving up (truly no match -> []).
-    if (matched.length > 0) return matched;
-    return tests.filter((t) => (t.category?.name || '').toLowerCase().includes(dept.toLowerCase().split(' ')[0]));
+    return tests.filter((t) => anyKw(t, KW[dept]));
   }
-  return tests;
+  return [];
 };

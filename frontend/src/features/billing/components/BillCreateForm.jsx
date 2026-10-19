@@ -246,7 +246,7 @@ const BillCreateForm = ({
   const [pickedPatient, setPickedPatient] = useState(() => editPatient || null);
   const [selectedDoctor, setSelectedDoctor] = useState(() => idOf(editBill?.referringDoctor));
   const [selectedAgent, setSelectedAgent] = useState(() => idOf(editBill?.agent));
-  const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || 'LAB');
+  const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || 'ALL');
   const [usgServices, setUSGServices] = useState([]);
   const [usgError, setUSGError] = useState('');
   const [usgRetry, setUSGRetry] = useState(0);
@@ -630,7 +630,7 @@ const BillCreateForm = ({
         discount: discountAmount,
         paidAmount,
         paymentMethod,
-        department: activeDepartment,
+        department: activeDepartment === 'ALL' ? 'LAB' : activeDepartment,
         caseType: DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
         collectionCentre: 'Main',
         onlineReportRequested: patientForm.onlineReportRequested,
@@ -649,31 +649,28 @@ const BillCreateForm = ({
     }
   };
 
-  const departmentTests = filterTestsByDepartment(tests, activeDepartment);
-  // Never dead-end billing: departments with no dedicated tests (e.g.
-  // OUTSOURCE LAB) fall back to the full active catalog with a notice.
-  const deptFallback = activeDepartment !== 'LAB' && activeDepartment !== 'USG' && departmentTests.length === 0;
-  const deptTestList = deptFallback
-    ? tests.filter((t) => !t.status || t.status === 'Active')
-    : departmentTests;
+  const catalogDepartment = ['ALL', 'OUTSOURCE LAB'].includes(activeDepartment) ? 'ALL' : activeDepartment;
+  const deptTestList = filterTestsByDepartment(tests, catalogDepartment);
+  const deptPackages = filterTestsByDepartment(packages, catalogDepartment);
+  const deptPanels = filterTestsByDepartment(panels, catalogDepartment);
 
   // Picker source per active tab — All merges tests + packages + panels.
   const activeOnly = (list) => (Array.isArray(list) ? list : [])
-    .filter((item) => !item.status || item.status === 'Active');
+    .filter((item) => !item.isDeleted && (!item.status || item.status === 'Active'));
   const pickerItems = (() => {
     if (activeDepartment === 'USG') return usgServices.map(service => ({ ...service, _pickerKind: 'USG', _pickerLabel: 'USG' }));
     if (pickerType === 'All') {
       return [
         ...activeOnly(deptTestList).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' })),
-        ...activeOnly(packages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' })),
-        ...activeOnly(panels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }))
+        ...activeOnly(deptPackages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' })),
+        ...activeOnly(deptPanels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }))
       ];
     }
     if (pickerType === 'TestPackage') {
-      return activeOnly(packages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' }));
+      return activeOnly(deptPackages).map((p) => ({ ...p, _pickerKind: 'TestPackage', _pickerLabel: 'Package' }));
     }
     if (pickerType === 'TestPanel') {
-      return activeOnly(panels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }));
+      return activeOnly(deptPanels).map((p) => ({ ...p, _pickerKind: 'TestPanel', _pickerLabel: 'Panel' }));
     }
     return activeOnly(deptTestList).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }));
   })();
@@ -685,7 +682,7 @@ const BillCreateForm = ({
   const usingServerResults =
     activeDepartment !== 'USG' && (pickerType === 'Test' || pickerType === 'All') && pickerQ.length > 0 && localFiltered.length === 0;
   const filteredPickerItems = usingServerResults
-    ? (serverResults || []).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }))
+    ? activeOnly(filterTestsByDepartment(serverResults || [], catalogDepartment)).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }))
     : localFiltered;
 
   useEffect(() => {
@@ -711,7 +708,7 @@ const BillCreateForm = ({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [usingServerResults, pickerQ]);
+  }, [usingServerResults, pickerQ, activeDepartment]);
 
   useEffect(() => () => {
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
@@ -724,9 +721,7 @@ const BillCreateForm = ({
       : pickerType === 'All'
         ? 'No tests, packages or panels available.'
         : pickerType === 'Test'
-          ? (deptFallback
-              ? 'No tests found.'
-              : `No tests mapped under ${activeDepartment}`)
+          ? `No tests mapped under ${activeDepartment}`
           : pickerType === 'TestPackage'
             ? 'No packages available.'
             : 'No panels available.';
@@ -958,6 +953,10 @@ const BillCreateForm = ({
             {/* Department Selector */}
             <DepartmentSelector
               activeDepartment={activeDepartment}
+              tests={tests}
+              packages={packages}
+              panels={panels}
+              existingDepartment={editBill?.department}
               onSelect={(d) => {
                 setActiveDepartment(d);
                 setPickerQuery('');
@@ -1038,11 +1037,6 @@ const BillCreateForm = ({
                   </span>
                 )}
               </div>
-              {deptFallback && (pickerType === 'Test' || pickerType === 'All') && !pickerQ && (
-                <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', margin: '0 0 var(--space-2)' }}>
-                  No dedicated {activeDepartment} tests — showing full catalog.
-                </p>
-              )}
               <div className="test-picker-list">
                 {filteredPickerItems.length === 0 ? (
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-5)' }}>
