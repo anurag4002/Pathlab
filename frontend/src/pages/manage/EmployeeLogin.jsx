@@ -6,7 +6,7 @@ import useDebounce from '../../hooks/useDebounce';
 import useClientPagination from '../../hooks/useClientPagination';
 import { validateEmail } from '../../utils/validators';
 import formatDate from '../../utils/formatDate';
-import { DataTable, PageHeader, Button, Modal, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import EmployeeForm from './components/EmployeeForm';
 import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
@@ -68,7 +68,7 @@ const getResponseError = (response, fallback) => ({
 });
 
 const EmployeeLogin = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, syncFromStorage } = useAuth();
   const canManage = currentUser?.role === 'Admin';
 
   const [usersState, setUsersState] = useState({ key: null, data: [], error: '' });
@@ -91,6 +91,26 @@ const EmployeeLogin = () => {
   const [statusLoading, setStatusLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [notice, setNotice] = useState('');
+  const [nameOpen, setNameOpen] = useState(false);
+  const [ownName, setOwnName] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
+
+  const saveOwnName = async (event) => {
+    event.preventDefault();
+    if (!canManage || nameSaving) return;
+    const name = ownName.trim();
+    if (!name) { setNameError('Name is required.'); return; }
+    setNameSaving(true); setNameError('');
+    try {
+      const response = await updateUser(currentUser._id, { name });
+      if (!response?.success) { setNameError(response?.message || 'Could not update your name.'); return; }
+      localStorage.setItem('ppl_user', JSON.stringify({ ...currentUser, name: response.data?.name || name }));
+      syncFromStorage();
+      setNameOpen(false); setNotice('Your name has been updated.'); refreshUsers();
+    } catch (error) { setNameError(getErrorMessage(error, 'Could not update your name.')); }
+    finally { setNameSaving(false); }
+  };
 
   useEffect(() => {
     let active = true;
@@ -415,7 +435,12 @@ const EmployeeLogin = () => {
               <td>{formatDate(account.createdAt)}</td>
               <td>
                 {isCurrentUser ? (
-                  <span className="user-management-current">Current user</span>
+                  <div className="user-management-actions">
+                    <span className="user-management-current">Current user</span>
+                    <Button variant="secondary" size="sm" disabled={!canManage} onClick={() => { setOwnName(account.name || ''); setNameError(''); setNameOpen(true); }}>
+                      <Edit2 size={14} /> Change name
+                    </Button>
+                  </div>
                 ) : (
                   <div className="user-management-actions">
                     <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} data-testid="user-edit" disabled={!canManage}>
@@ -434,6 +459,13 @@ const EmployeeLogin = () => {
           );
         }}
       />
+
+      <Modal isOpen={nameOpen} onClose={() => !nameSaving && setNameOpen(false)} title="Change your name"
+        footer={<><Button variant="secondary" disabled={nameSaving} onClick={() => setNameOpen(false)}>Cancel</Button><Button type="submit" form="own-name-form" loading={nameSaving} disabled={nameSaving}>Save name</Button></>}>
+        <form id="own-name-form" onSubmit={saveOwnName}>
+          <Input label="Full name" name="ownName" value={ownName} onChange={event => { setOwnName(event.target.value); setNameError(''); }} error={nameError} required autoFocus disabled={nameSaving} />
+        </form>
+      </Modal>
 
       <Modal
         isOpen={formOpen}

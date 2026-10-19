@@ -87,6 +87,9 @@ const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, email, phone, role, password, status } = req.body;
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) {
+      return errorResponse(res, 'Name is required', 400, { name: 'Name is required.' });
+    }
 
     const user = await User.findById(id);
     if (!user) {
@@ -101,7 +104,7 @@ const updateUser = async (req, res, next) => {
       user.email = email;
     }
 
-    if (name) user.name = name;
+    if (name !== undefined) user.name = name.trim();
     if (phone) user.phone = phone;
     if (role) user.role = role;
     if (status) user.status = status;
