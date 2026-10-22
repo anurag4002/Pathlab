@@ -1,0 +1,14 @@
+{
+  "id": "30612197",
+  "slug": "30612197",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30612197",
+  "scrapedAt": "2026-10-22T18:06:54.796Z",
+  "bytes": 99594,
+  "textChars": 3269,
+  "pdftotext": true,
+  "patient": "Mrs. Rahima Begam",
+  "reg": "6960",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

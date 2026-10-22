@@ -1,0 +1,16 @@
+{
+  "id": "30602095",
+  "slug": "30602095",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30602095",
+  "scrapedAt": "2026-10-22T18:07:23.512Z",
+  "bytes": 92551,
+  "textChars": 2953,
+  "pdftotext": true,
+  "patient": "Mrs. Noor jaha",
+  "reg": "6955",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "30659353",
+  "slug": "30659353",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30659353",
+  "scrapedAt": "2026-10-22T18:03:13.597Z",
+  "bytes": 100334,
+  "textChars": 2738,
+  "pdftotext": true,
+  "patient": "Mr. Ravi Yadav",
+  "reg": "7002",
+  "sampleTests": [
+    "PH                                                    7.438"
+  ]
+}

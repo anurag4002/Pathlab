@@ -1,0 +1,14 @@
+{
+  "id": "30668231",
+  "slug": "30668231",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30668231",
+  "scrapedAt": "2026-10-22T18:02:52.592Z",
+  "bytes": 92488,
+  "textChars": 3262,
+  "pdftotext": true,
+  "patient": "Mr. Dev mani Tiwari",
+  "reg": "7006",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

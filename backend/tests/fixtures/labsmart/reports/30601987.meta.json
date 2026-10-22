@@ -1,0 +1,16 @@
+{
+  "id": "30601987",
+  "slug": "30601987",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30601987",
+  "scrapedAt": "2026-10-22T18:07:45.748Z",
+  "bytes": 158204,
+  "textChars": 5683,
+  "pdftotext": true,
+  "patient": "Mr. Saif Raza",
+  "reg": "6951",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.425"
+  ]
+}

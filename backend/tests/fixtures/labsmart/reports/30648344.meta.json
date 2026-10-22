@@ -1,0 +1,14 @@
+{
+  "id": "30648344",
+  "slug": "30648344",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30648344",
+  "scrapedAt": "2026-10-22T18:03:54.267Z",
+  "bytes": 107261,
+  "textChars": 2447,
+  "pdftotext": true,
+  "patient": "Mr. Ram sagar",
+  "reg": "6994",
+  "sampleTests": [
+    "PH                                              7.414"
+  ]
+}

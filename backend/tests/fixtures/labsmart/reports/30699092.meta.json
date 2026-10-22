@@ -1,0 +1,16 @@
+{
+  "id": "30699092",
+  "slug": "30699092",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30699092",
+  "scrapedAt": "2026-10-22T18:01:41.952Z",
+  "bytes": 158607,
+  "textChars": 5694,
+  "pdftotext": true,
+  "patient": "Mr. Nakched",
+  "reg": "7024",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.458"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "30602117",
+  "slug": "30602117",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30602117",
+  "scrapedAt": "2026-10-22T18:07:17.900Z",
+  "bytes": 92055,
+  "textChars": 3160,
+  "pdftotext": true,
+  "patient": "Mr. Laxmi narayan",
+  "reg": "6956",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

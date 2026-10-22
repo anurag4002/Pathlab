@@ -1,0 +1,14 @@
+{
+  "id": "30692118",
+  "slug": "30692118",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30692118",
+  "scrapedAt": "2026-10-22T18:01:56.978Z",
+  "bytes": 106602,
+  "textChars": 2744,
+  "pdftotext": true,
+  "patient": "Mr. Abdul Hafeez",
+  "reg": "7020",
+  "sampleTests": [
+    "PH                                                    7.254"
+  ]
+}

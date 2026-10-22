@@ -1,0 +1,14 @@
+{
+  "id": "30644153",
+  "slug": "30644153",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30644153",
+  "scrapedAt": "2026-10-22T18:04:34.452Z",
+  "bytes": 102990,
+  "textChars": 2737,
+  "pdftotext": true,
+  "patient": "Mr. Arman",
+  "reg": "6986",
+  "sampleTests": [
+    "PH                                                    7.578"
+  ]
+}

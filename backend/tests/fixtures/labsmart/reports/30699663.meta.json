@@ -1,0 +1,15 @@
+{
+  "id": "30699663",
+  "slug": "30699663",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30699663",
+  "scrapedAt": "2026-10-22T18:01:26.861Z",
+  "bytes": 114722,
+  "textChars": 4879,
+  "pdftotext": true,
+  "patient": "Mrs. Maimun nisha",
+  "reg": "7027",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "PH                                                    7.425"
+  ]
+}

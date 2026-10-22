@@ -1,0 +1,16 @@
+{
+  "id": "30638037",
+  "slug": "30638037",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30638037",
+  "scrapedAt": "2026-10-22T18:04:55.283Z",
+  "bytes": 97233,
+  "textChars": 2957,
+  "pdftotext": true,
+  "patient": "Mrs. Rajdevi Verma",
+  "reg": "6982",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

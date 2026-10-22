@@ -1,0 +1,17 @@
+{
+  "id": "30626877",
+  "slug": "30626877",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30626877",
+  "scrapedAt": "2026-10-22T18:05:50.275Z",
+  "bytes": 151633,
+  "textChars": 4503,
+  "pdftotext": true,
+  "patient": "Mr. Rajendra Kumar singh",
+  "reg": "6972",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "MALARIA PARASITE (CARD TEST)",
+    "DENGUE (CARD METHOD)"
+  ]
+}

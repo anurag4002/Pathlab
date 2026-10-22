@@ -1,0 +1,16 @@
+{
+  "id": "30696412",
+  "slug": "30696412",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30696412",
+  "scrapedAt": "2026-10-22T18:01:47.232Z",
+  "bytes": 158073,
+  "textChars": 5702,
+  "pdftotext": true,
+  "patient": "Mr. Mata Prasad",
+  "reg": "7023",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.355"
+  ]
+}

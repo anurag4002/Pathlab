@@ -1,0 +1,14 @@
+{
+  "id": "30692056",
+  "slug": "30692056",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30692056",
+  "scrapedAt": "2026-10-22T18:02:01.797Z",
+  "bytes": 87896,
+  "textChars": 3158,
+  "pdftotext": true,
+  "patient": "Mr. Abdul rasid",
+  "reg": "7019",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

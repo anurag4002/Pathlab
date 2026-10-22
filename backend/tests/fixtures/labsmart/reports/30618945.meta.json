@@ -1,0 +1,14 @@
+{
+  "id": "30618945",
+  "slug": "30618945",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30618945",
+  "scrapedAt": "2026-10-22T18:06:00.832Z",
+  "bytes": 94057,
+  "textChars": 3158,
+  "pdftotext": true,
+  "patient": "Mr. Mohd mustak",
+  "reg": "6970",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

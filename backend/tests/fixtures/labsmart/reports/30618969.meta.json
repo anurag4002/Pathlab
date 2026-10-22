@@ -1,0 +1,16 @@
+{
+  "id": "30618969",
+  "slug": "30618969",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30618969",
+  "scrapedAt": "2026-10-22T18:05:55.314Z",
+  "bytes": 97003,
+  "textChars": 3050,
+  "pdftotext": true,
+  "patient": "Mr. Satish kumar Singh",
+  "reg": "6971",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    POSITIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

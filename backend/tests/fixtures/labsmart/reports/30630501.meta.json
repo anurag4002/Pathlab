@@ -1,0 +1,14 @@
+{
+  "id": "30630501",
+  "slug": "30630501",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30630501",
+  "scrapedAt": "2026-10-22T18:05:33.925Z",
+  "bytes": 91692,
+  "textChars": 3156,
+  "pdftotext": true,
+  "patient": "Mr. Raj karan",
+  "reg": "6975",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

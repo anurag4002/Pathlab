@@ -4,3 +4,8 @@ src/uploads
 dist
 *.log
 .DS_Store
+
+# Generated Labsmart recreate / visual-diff artifacts (rebuild via npm scripts).
+tests/fixtures/labsmart/reports/pathlab-recreates/
+tests/fixtures/labsmart/reports/pathlab-renders/
+tests/fixtures/labsmart/reports/visual-diffs/

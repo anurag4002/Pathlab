@@ -1,0 +1,16 @@
+{
+  "id": "30608321",
+  "slug": "30608321",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30608321",
+  "scrapedAt": "2026-10-22T18:07:06.354Z",
+  "bytes": 158205,
+  "textChars": 5690,
+  "pdftotext": true,
+  "patient": "Mr. Vikas verma",
+  "reg": "6958",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.451"
+  ]
+}

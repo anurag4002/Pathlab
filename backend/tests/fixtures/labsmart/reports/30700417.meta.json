@@ -1,0 +1,14 @@
+{
+  "id": "30700417",
+  "slug": "30700417",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30700417",
+  "scrapedAt": "2026-10-22T18:01:16.263Z",
+  "bytes": 101221,
+  "textChars": 2733,
+  "pdftotext": true,
+  "patient": "Mr. Nanku",
+  "reg": "7029",
+  "sampleTests": [
+    "PH                                                    7.452"
+  ]
+}

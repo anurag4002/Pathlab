@@ -1,0 +1,15 @@
+{
+  "id": "30690438",
+  "slug": "cbc",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30690438",
+  "scrapedAt": "2026-10-22T18:00:55.003Z",
+  "bytes": 146998,
+  "textChars": 3918,
+  "pdftotext": true,
+  "patient": "Miss. Madhu Shukla",
+  "reg": "7018",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC"
+  ]
+}

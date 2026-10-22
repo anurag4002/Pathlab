@@ -174,7 +174,9 @@ const TodaysReports = () => {
   const [entryData, setEntryData] = useState(null);
   // Single Save lives in the modal footer and drives the grid via ref.
   const gridRef = useRef(null);
+  const tatRef = useRef(null);
   const [gridBusy, setGridBusy] = useState(false);
+  const [caseSaving, setCaseSaving] = useState(false);
   const entryFinal = ['Signed', 'Verified', 'Completed'].includes(activeReport?.status);
   const [sigId, setSigId] = useState('');
   // Phase 3 — idempotent sign: guards double-click/double-submit.
@@ -656,6 +658,21 @@ const TodaysReports = () => {
     setEntryData(entryPayload || fallbackEntry(nextReport));
     setEntryOpen(true);
     setEntryLoading(false);
+  };
+
+  // Case save: persist any pending TAT edits before the results grid saves,
+  // so editing the date fields and clicking "Save Results" never loses them.
+  const saveCaseEntry = async () => {
+    if (caseSaving || gridBusy) return;
+    setCaseSaving(true);
+    try {
+      await tatRef.current?.flush();
+    } catch {
+      setCaseSaving(false);
+      return;
+    }
+    setCaseSaving(false);
+    gridRef.current?.save('save');
   };
 
   // Refresh after the grid saves (authoritative report state).
@@ -1268,7 +1285,7 @@ const TodaysReports = () => {
               {entryFinal ? (
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
               ) : (
-                <Button variant="primary" onClick={() => gridRef.current?.save('save')} loading={gridBusy} disabled={gridBusy}>Save Results</Button>
+                <Button variant="primary" onClick={saveCaseEntry} loading={gridBusy || caseSaving} disabled={gridBusy || caseSaving}>Save Results</Button>
               )}
             </>
           )
@@ -1320,7 +1337,7 @@ const TodaysReports = () => {
           </p>
         )}
 
-        <ReportTatEditor report={activeReport} onSaved={updated => { setActiveReport(updated); fetchReports(); }} />
+        <ReportTatEditor ref={tatRef} report={activeReport} onSaved={updated => { setActiveReport(updated); fetchReports(); }} />
 
         {/* Phase 15 — sign from /api/setup/signatures with department
             auto-select (never lab-profile fields). Idempotent: the button

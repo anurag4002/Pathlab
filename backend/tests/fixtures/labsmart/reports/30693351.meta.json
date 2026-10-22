@@ -1,0 +1,16 @@
+{
+  "id": "30693351",
+  "slug": "30693351",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30693351",
+  "scrapedAt": "2026-10-22T18:01:52.130Z",
+  "bytes": 86257,
+  "textChars": 2951,
+  "pdftotext": true,
+  "patient": "Mr. Shanshah",
+  "reg": "7022",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

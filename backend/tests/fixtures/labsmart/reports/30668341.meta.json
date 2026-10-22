@@ -1,0 +1,16 @@
+{
+  "id": "30668341",
+  "slug": "30668341",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30668341",
+  "scrapedAt": "2026-10-22T18:02:31.992Z",
+  "bytes": 92383,
+  "textChars": 3049,
+  "pdftotext": true,
+  "patient": "Mr. Chunni lal",
+  "reg": "7010",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    WEAKLY POSITIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

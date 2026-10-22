@@ -7,7 +7,15 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seed.js",
-    "test": "node --test"
+    "test": "node --test",
+    "labsmart:scrape": "node scripts/labsmart/scrapeInterpretations.js",
+    "labsmart:seed-fixtures": "node scripts/labsmart/seedFixturesFromTmp.js",
+    "labsmart:scrape-reports": "node scripts/labsmart/scrapeReportPdfs.js --recent=100",
+    "labsmart:seed-reports": "node scripts/labsmart/seedReportPdfsFromTmp.js",
+    "labsmart:build-twins": "node scripts/labsmart/buildTwins.js",
+    "labsmart:match-reports": "node scripts/labsmart/buildTwins.js && node scripts/labsmart/matchReportPdfs.js",
+    "labsmart:recreate-match": "node scripts/labsmart/recreateAndMatch.js",
+    "labsmart:visual-match": "node scripts/labsmart/visualMatch.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +34,8 @@
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "pixelmatch": "^8.0.0",
+    "pngjs": "^7.0.0"
   }
 }

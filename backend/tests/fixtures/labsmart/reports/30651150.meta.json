@@ -1,0 +1,17 @@
+{
+  "id": "30651150",
+  "slug": "30651150",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30651150",
+  "scrapedAt": "2026-10-22T18:03:39.378Z",
+  "bytes": 164816,
+  "textChars": 7949,
+  "pdftotext": true,
+  "patient": "Mr. Rupesh Pandey",
+  "reg": "6997",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "SGOT/SGPT                                           0.73",
+    "PH                                              7.452"
+  ]
+}

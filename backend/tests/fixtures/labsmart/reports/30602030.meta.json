@@ -1,0 +1,16 @@
+{
+  "id": "30602030",
+  "slug": "30602030",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30602030",
+  "scrapedAt": "2026-10-22T18:07:39.793Z",
+  "bytes": 157259,
+  "textChars": 5685,
+  "pdftotext": true,
+  "patient": "Mr. Ghan Shyam",
+  "reg": "6952",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.425"
+  ]
+}

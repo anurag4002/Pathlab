@@ -1,0 +1,16 @@
+{
+  "id": "30659442",
+  "slug": "30659442",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30659442",
+  "scrapedAt": "2026-10-22T18:03:08.741Z",
+  "bytes": 159695,
+  "textChars": 5698,
+  "pdftotext": true,
+  "patient": "Mr. Vijay Kumar",
+  "reg": "7003",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.359"
+  ]
+}

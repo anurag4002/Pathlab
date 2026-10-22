@@ -1,0 +1,15 @@
+{
+  "id": "30633156",
+  "slug": "30633156",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30633156",
+  "scrapedAt": "2026-10-22T18:05:06.944Z",
+  "bytes": 121320,
+  "textChars": 4886,
+  "pdftotext": true,
+  "patient": "Mr. Rajesh kumar Yadav",
+  "reg": "6980",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "PH                                                    7.258"
+  ]
+}

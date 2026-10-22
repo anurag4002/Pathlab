@@ -1,0 +1,14 @@
+{
+  "id": "30644379",
+  "slug": "30644379",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30644379",
+  "scrapedAt": "2026-10-22T18:04:29.641Z",
+  "bytes": 93906,
+  "textChars": 3162,
+  "pdftotext": true,
+  "patient": "Mr. Chandra Prakash",
+  "reg": "6987",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

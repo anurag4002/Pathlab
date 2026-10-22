@@ -1,0 +1,17 @@
+{
+  "id": "30612192",
+  "slug": "30612192",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30612192",
+  "scrapedAt": "2026-10-22T18:07:00.427Z",
+  "bytes": 163504,
+  "textChars": 7802,
+  "pdftotext": true,
+  "patient": "Mr. Santosh Verma",
+  "reg": "6959",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "HIV (CARD TEST)",
+    "PH                                              7.487"
+  ]
+}

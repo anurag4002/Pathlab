@@ -1,0 +1,14 @@
+{
+  "id": "30613978",
+  "slug": "30613978",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30613978",
+  "scrapedAt": "2026-10-22T18:06:27.974Z",
+  "bytes": 91357,
+  "textChars": 3160,
+  "pdftotext": true,
+  "patient": "Mr. Satya Prakash",
+  "reg": "6965",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

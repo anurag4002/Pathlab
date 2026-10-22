@@ -1,0 +1,17 @@
+{
+  "id": "30633068",
+  "slug": "30633068",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30633068",
+  "scrapedAt": "2026-10-22T18:05:12.363Z",
+  "bytes": 167847,
+  "textChars": 7178,
+  "pdftotext": true,
+  "patient": "Mr. Nitish Kashyap",
+  "reg": "6979",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "SGOT/SGPT                                      0.93",
+    "PH                                             7.415"
+  ]
+}

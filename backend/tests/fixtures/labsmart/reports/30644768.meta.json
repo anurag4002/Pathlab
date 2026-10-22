@@ -1,0 +1,17 @@
+{
+  "id": "30644768",
+  "slug": "30644768",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30644768",
+  "scrapedAt": "2026-10-22T18:04:24.550Z",
+  "bytes": 124683,
+  "textChars": 4720,
+  "pdftotext": true,
+  "patient": "Mr. Balraj Verma",
+  "reg": "6988",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    WEAKLY POSITIVE",
+    "HBSAG                                     NEGATIVE",
+    "PH                                              7.445"
+  ]
+}

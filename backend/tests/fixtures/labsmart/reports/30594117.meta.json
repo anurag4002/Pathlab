@@ -1,0 +1,15 @@
+{
+  "id": "30594117",
+  "slug": "30594117",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30594117",
+  "scrapedAt": "2026-10-22T18:07:51.495Z",
+  "bytes": 121880,
+  "textChars": 4891,
+  "pdftotext": true,
+  "patient": "Mr. Buddhu",
+  "reg": "6950",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "PH                                                    7.346"
+  ]
+}

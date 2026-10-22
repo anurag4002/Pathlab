@@ -1,0 +1,14 @@
+{
+  "id": "30630487",
+  "slug": "30630487",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30630487",
+  "scrapedAt": "2026-10-22T18:05:39.698Z",
+  "bytes": 105065,
+  "textChars": 2743,
+  "pdftotext": true,
+  "patient": "Mr. Vijay Singh",
+  "reg": "6974",
+  "sampleTests": [
+    "PH                                                    7.452"
+  ]
+}

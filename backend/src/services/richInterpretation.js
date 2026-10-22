@@ -44,7 +44,10 @@ function richInterpretationBlocks(value) {
         }
       };
       collectRows(node);
-      if (rows.length) blocks.push({ kind: 'table', rows: rows.map(row => row.map(cell => cell.text)), richRows: rows });
+      // Imported HTML frequently carries layout shells with no content. They
+      // would otherwise print as a large empty grid inside the guidance band.
+      const hasContent = rows.some(row => row.some(cell => String(cell.text || '').trim()));
+      if (rows.length && hasContent) blocks.push({ kind: 'table', rows: rows.map(row => row.map(cell => cell.text)), richRows: rows });
       return;
     }
     if (['ul', 'ol'].includes(node.name)) {
@@ -65,6 +68,8 @@ function richInterpretationBlocks(value) {
     children(node).forEach(child => visit(child));
   };
   visit(document);
-  return blocks;
+  // Imported documents occasionally have section headings whose body was an
+  // empty layout table. Do not print a heading that has no content beneath it.
+  return blocks.filter((block, index) => block.kind !== 'heading' || (blocks[index + 1] && blocks[index + 1].kind !== 'heading'));
 }
 module.exports = { isRichInterpretation, sanitizeInterpretation, richInterpretationBlocks };

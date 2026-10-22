@@ -1,0 +1,14 @@
+{
+  "id": "30668332",
+  "slug": "30668332",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30668332",
+  "scrapedAt": "2026-10-22T18:02:37.301Z",
+  "bytes": 93421,
+  "textChars": 3585,
+  "pdftotext": true,
+  "patient": "Mr. Nand lal",
+  "reg": "7009",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

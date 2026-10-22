@@ -1,0 +1,1218 @@
+{
+  "scrapedAt": "2026-10-22T18:07:51.547Z",
+  "labId": "22707599",
+  "count": 80,
+  "reports": [
+    {
+      "id": "30690438",
+      "slug": "cbc",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30690438",
+      "scrapedAt": "2026-10-22T18:00:55.003Z",
+      "bytes": 146998,
+      "textChars": 3918,
+      "pdftotext": true,
+      "patient": "Miss. Madhu Shukla",
+      "reg": "7018",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC"
+      ]
+    },
+    {
+      "id": "30693124",
+      "slug": "kft",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30693124",
+      "scrapedAt": "2026-10-22T18:01:00.003Z",
+      "bytes": 122936,
+      "textChars": 5004,
+      "pdftotext": true,
+      "patient": "Mr. Surendra Mishra",
+      "reg": "7021",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30688430",
+      "slug": "cbc-kft",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30688430",
+      "scrapedAt": "2026-10-22T18:01:05.356Z",
+      "bytes": 158104,
+      "textChars": 5707,
+      "pdftotext": true,
+      "patient": "Mr. Chandra Sekhar Singh",
+      "reg": "7017",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.154"
+      ]
+    },
+    {
+      "id": "30684127",
+      "slug": "multi",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30684127",
+      "scrapedAt": "2026-10-22T18:01:10.780Z",
+      "bytes": 164182,
+      "textChars": 8375,
+      "pdftotext": true,
+      "patient": "Mrs. Shanti Prasad",
+      "reg": "7016",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "WIDAL TEST (SLIDE METHOD)",
+        "SGOT/SGPT                                        0.93",
+        "PH                                               7.248"
+      ]
+    },
+    {
+      "id": "30700417",
+      "slug": "30700417",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30700417",
+      "scrapedAt": "2026-10-22T18:01:16.263Z",
+      "bytes": 101221,
+      "textChars": 2733,
+      "pdftotext": true,
+      "patient": "Mr. Nanku",
+      "reg": "7029",
+      "sampleTests": [
+        "PH                                                    7.452"
+      ]
+    },
+    {
+      "id": "30700387",
+      "slug": "30700387",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30700387",
+      "scrapedAt": "2026-10-22T18:01:21.780Z",
+      "bytes": 113845,
+      "textChars": 4874,
+      "pdftotext": true,
+      "patient": "Mrs. Savitri",
+      "reg": "7028",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.425"
+      ]
+    },
+    {
+      "id": "30699663",
+      "slug": "30699663",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30699663",
+      "scrapedAt": "2026-10-22T18:01:26.861Z",
+      "bytes": 114722,
+      "textChars": 4879,
+      "pdftotext": true,
+      "patient": "Mrs. Maimun nisha",
+      "reg": "7027",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.425"
+      ]
+    },
+    {
+      "id": "30699223",
+      "slug": "30699223",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30699223",
+      "scrapedAt": "2026-10-22T18:01:31.866Z",
+      "bytes": 146146,
+      "textChars": 3865,
+      "pdftotext": true,
+      "patient": "",
+      "reg": "7026",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC"
+      ]
+    },
+    {
+      "id": "30699174",
+      "slug": "30699174",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30699174",
+      "scrapedAt": "2026-10-22T18:01:36.917Z",
+      "bytes": 146298,
+      "textChars": 3885,
+      "pdftotext": true,
+      "patient": "Mr. Sweetu Singh",
+      "reg": "7025",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC"
+      ]
+    },
+    {
+      "id": "30699092",
+      "slug": "30699092",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30699092",
+      "scrapedAt": "2026-10-22T18:01:41.952Z",
+      "bytes": 158607,
+      "textChars": 5694,
+      "pdftotext": true,
+      "patient": "Mr. Nakched",
+      "reg": "7024",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.458"
+      ]
+    },
+    {
+      "id": "30696412",
+      "slug": "30696412",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30696412",
+      "scrapedAt": "2026-10-22T18:01:47.232Z",
+      "bytes": 158073,
+      "textChars": 5702,
+      "pdftotext": true,
+      "patient": "Mr. Mata Prasad",
+      "reg": "7023",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.355"
+      ]
+    },
+    {
+      "id": "30693351",
+      "slug": "30693351",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30693351",
+      "scrapedAt": "2026-10-22T18:01:52.130Z",
+      "bytes": 86257,
+      "textChars": 2951,
+      "pdftotext": true,
+      "patient": "Mr. Shanshah",
+      "reg": "7022",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30692118",
+      "slug": "30692118",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30692118",
+      "scrapedAt": "2026-10-22T18:01:56.978Z",
+      "bytes": 106602,
+      "textChars": 2744,
+      "pdftotext": true,
+      "patient": "Mr. Abdul Hafeez",
+      "reg": "7020",
+      "sampleTests": [
+        "PH                                                    7.254"
+      ]
+    },
+    {
+      "id": "30692056",
+      "slug": "30692056",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30692056",
+      "scrapedAt": "2026-10-22T18:02:01.797Z",
+      "bytes": 87896,
+      "textChars": 3158,
+      "pdftotext": true,
+      "patient": "Mr. Abdul rasid",
+      "reg": "7019",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30683292",
+      "slug": "30683292",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30683292",
+      "scrapedAt": "2026-10-22T18:02:06.857Z",
+      "bytes": 117656,
+      "textChars": 7380,
+      "pdftotext": true,
+      "patient": "Mr. Jai Narayan",
+      "reg": "7015",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "SGOT/SGPT                                             0.93",
+        "PH                                              7.425"
+      ]
+    },
+    {
+      "id": "30675863",
+      "slug": "30675863",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30675863",
+      "scrapedAt": "2026-10-22T18:02:11.760Z",
+      "bytes": 106325,
+      "textChars": 2738,
+      "pdftotext": true,
+      "patient": "Miss. Chandani",
+      "reg": "7014",
+      "sampleTests": [
+        "PH                                                    7.491"
+      ]
+    },
+    {
+      "id": "30675204",
+      "slug": "30675204",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30675204",
+      "scrapedAt": "2026-10-22T18:02:16.631Z",
+      "bytes": 94572,
+      "textChars": 3265,
+      "pdftotext": true,
+      "patient": "Mr. Lal bahadur",
+      "reg": "7013",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30668549",
+      "slug": "30668549",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668549",
+      "scrapedAt": "2026-10-22T18:02:21.870Z",
+      "bytes": 108935,
+      "textChars": 2741,
+      "pdftotext": true,
+      "patient": "Mrs. ATIYA SIDDIQUI",
+      "reg": "7012",
+      "sampleTests": [
+        "PH                                                    7.671"
+      ]
+    },
+    {
+      "id": "30668544",
+      "slug": "30668544",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668544",
+      "scrapedAt": "2026-10-22T18:02:26.918Z",
+      "bytes": 114254,
+      "textChars": 4879,
+      "pdftotext": true,
+      "patient": "Mrs. Priyanka",
+      "reg": "7011",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.265"
+      ]
+    },
+    {
+      "id": "30668341",
+      "slug": "30668341",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668341",
+      "scrapedAt": "2026-10-22T18:02:31.992Z",
+      "bytes": 92383,
+      "textChars": 3049,
+      "pdftotext": true,
+      "patient": "Mr. Chunni lal",
+      "reg": "7010",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    WEAKLY POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30668332",
+      "slug": "30668332",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668332",
+      "scrapedAt": "2026-10-22T18:02:37.301Z",
+      "bytes": 93421,
+      "textChars": 3585,
+      "pdftotext": true,
+      "patient": "Mr. Nand lal",
+      "reg": "7009",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30668297",
+      "slug": "30668297",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668297",
+      "scrapedAt": "2026-10-22T18:02:42.602Z",
+      "bytes": 92205,
+      "textChars": 3038,
+      "pdftotext": true,
+      "patient": "Mrs. Reeta",
+      "reg": "7008",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30668288",
+      "slug": "30668288",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668288",
+      "scrapedAt": "2026-10-22T18:02:47.496Z",
+      "bytes": 88713,
+      "textChars": 3255,
+      "pdftotext": true,
+      "patient": "",
+      "reg": "7007",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30668231",
+      "slug": "30668231",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30668231",
+      "scrapedAt": "2026-10-22T18:02:52.592Z",
+      "bytes": 92488,
+      "textChars": 3262,
+      "pdftotext": true,
+      "patient": "Mr. Dev mani Tiwari",
+      "reg": "7006",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30663140",
+      "slug": "30663140",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30663140",
+      "scrapedAt": "2026-10-22T18:02:57.949Z",
+      "bytes": 150840,
+      "textChars": 3701,
+      "pdftotext": true,
+      "patient": "Miss. Mansi",
+      "reg": "7005",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "WIDAL TEST (SLIDE METHOD)"
+      ]
+    },
+    {
+      "id": "30662546",
+      "slug": "30662546",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30662546",
+      "scrapedAt": "2026-10-22T18:03:03.636Z",
+      "bytes": 161576,
+      "textChars": 10532,
+      "pdftotext": true,
+      "patient": "Mr. Shiv Prasad",
+      "reg": "7004",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "HIV (CARD TEST)",
+        "SGOT/SGPT                                               1.19"
+      ]
+    },
+    {
+      "id": "30659442",
+      "slug": "30659442",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30659442",
+      "scrapedAt": "2026-10-22T18:03:08.741Z",
+      "bytes": 159695,
+      "textChars": 5698,
+      "pdftotext": true,
+      "patient": "Mr. Vijay Kumar",
+      "reg": "7003",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.359"
+      ]
+    },
+    {
+      "id": "30659353",
+      "slug": "30659353",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30659353",
+      "scrapedAt": "2026-10-22T18:03:13.597Z",
+      "bytes": 100334,
+      "textChars": 2738,
+      "pdftotext": true,
+      "patient": "Mr. Ravi Yadav",
+      "reg": "7002",
+      "sampleTests": [
+        "PH                                                    7.438"
+      ]
+    },
+    {
+      "id": "30658849",
+      "slug": "30658849",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30658849",
+      "scrapedAt": "2026-10-22T18:03:19.047Z",
+      "bytes": 118477,
+      "textChars": 4878,
+      "pdftotext": true,
+      "patient": "Mr. Anil kumar",
+      "reg": "7001",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.451"
+      ]
+    },
+    {
+      "id": "30658768",
+      "slug": "30658768",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30658768",
+      "scrapedAt": "2026-10-22T18:03:23.827Z",
+      "bytes": 86088,
+      "textChars": 2962,
+      "pdftotext": true,
+      "patient": "Mr. Kuwar bahadur Singh",
+      "reg": "7000",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30658537",
+      "slug": "30658537",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30658537",
+      "scrapedAt": "2026-10-22T18:03:29.147Z",
+      "bytes": 170735,
+      "textChars": 9897,
+      "pdftotext": true,
+      "patient": "Mr. Jamal Ahmad",
+      "reg": "6999",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE",
+        "SGOT/SGPT                                               1.28"
+      ]
+    },
+    {
+      "id": "30657141",
+      "slug": "30657141",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30657141",
+      "scrapedAt": "2026-10-22T18:03:34.095Z",
+      "bytes": 104504,
+      "textChars": 2748,
+      "pdftotext": true,
+      "patient": "Mr. Sadab Khan",
+      "reg": "6998",
+      "sampleTests": [
+        "PH                                                    7.452"
+      ]
+    },
+    {
+      "id": "30651150",
+      "slug": "30651150",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30651150",
+      "scrapedAt": "2026-10-22T18:03:39.378Z",
+      "bytes": 164816,
+      "textChars": 7949,
+      "pdftotext": true,
+      "patient": "Mr. Rupesh Pandey",
+      "reg": "6997",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "SGOT/SGPT                                           0.73",
+        "PH                                              7.452"
+      ]
+    },
+    {
+      "id": "30650977",
+      "slug": "30650977",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30650977",
+      "scrapedAt": "2026-10-22T18:03:44.276Z",
+      "bytes": 110957,
+      "textChars": 3346,
+      "pdftotext": true,
+      "patient": "Mr. Ankit Yadav",
+      "reg": "6996",
+      "sampleTests": [
+        "WIDAL TEST (SLIDE METHOD)",
+        "SGOT/SGPT                                   0.92"
+      ]
+    },
+    {
+      "id": "30650669",
+      "slug": "30650669",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30650669",
+      "scrapedAt": "2026-10-22T18:03:49.489Z",
+      "bytes": 146464,
+      "textChars": 3890,
+      "pdftotext": true,
+      "patient": "Mrs. Prinshu Mishra",
+      "reg": "6995",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC"
+      ]
+    },
+    {
+      "id": "30648344",
+      "slug": "30648344",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30648344",
+      "scrapedAt": "2026-10-22T18:03:54.267Z",
+      "bytes": 107261,
+      "textChars": 2447,
+      "pdftotext": true,
+      "patient": "Mr. Ram sagar",
+      "reg": "6994",
+      "sampleTests": [
+        "PH                                              7.414"
+      ]
+    },
+    {
+      "id": "30647891",
+      "slug": "30647891",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30647891",
+      "scrapedAt": "2026-10-22T18:03:59.066Z",
+      "bytes": 105494,
+      "textChars": 2747,
+      "pdftotext": true,
+      "patient": "Mr. Tabaruk",
+      "reg": "6993",
+      "sampleTests": [
+        "PH                                                    7.413"
+      ]
+    },
+    {
+      "id": "30647504",
+      "slug": "30647504",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30647504",
+      "scrapedAt": "2026-10-22T18:04:03.736Z",
+      "bytes": 117597,
+      "textChars": 2779,
+      "pdftotext": true,
+      "patient": "Mr. Saddam",
+      "reg": "6992",
+      "sampleTests": []
+    },
+    {
+      "id": "30647391",
+      "slug": "30647391",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30647391",
+      "scrapedAt": "2026-10-22T18:04:08.495Z",
+      "bytes": 90857,
+      "textChars": 1229,
+      "pdftotext": true,
+      "patient": "Mr. Ram Asish",
+      "reg": "6991",
+      "sampleTests": []
+    },
+    {
+      "id": "30644979",
+      "slug": "30644979",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30644979",
+      "scrapedAt": "2026-10-22T18:04:13.903Z",
+      "bytes": 97262,
+      "textChars": 3050,
+      "pdftotext": true,
+      "patient": "Mr. Bhavani Prasad",
+      "reg": "6990",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30644909",
+      "slug": "30644909",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30644909",
+      "scrapedAt": "2026-10-22T18:04:19.105Z",
+      "bytes": 100105,
+      "textChars": 3049,
+      "pdftotext": true,
+      "patient": "Mrs. Sunita Gupta",
+      "reg": "6989",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30644768",
+      "slug": "30644768",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30644768",
+      "scrapedAt": "2026-10-22T18:04:24.550Z",
+      "bytes": 124683,
+      "textChars": 4720,
+      "pdftotext": true,
+      "patient": "Mr. Balraj Verma",
+      "reg": "6988",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    WEAKLY POSITIVE",
+        "HBSAG                                     NEGATIVE",
+        "PH                                              7.445"
+      ]
+    },
+    {
+      "id": "30644379",
+      "slug": "30644379",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30644379",
+      "scrapedAt": "2026-10-22T18:04:29.641Z",
+      "bytes": 93906,
+      "textChars": 3162,
+      "pdftotext": true,
+      "patient": "Mr. Chandra Prakash",
+      "reg": "6987",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30644153",
+      "slug": "30644153",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30644153",
+      "scrapedAt": "2026-10-22T18:04:34.452Z",
+      "bytes": 102990,
+      "textChars": 2737,
+      "pdftotext": true,
+      "patient": "Mr. Arman",
+      "reg": "6986",
+      "sampleTests": [
+        "PH                                                    7.578"
+      ]
+    },
+    {
+      "id": "30643758",
+      "slug": "30643758",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30643758",
+      "scrapedAt": "2026-10-22T18:04:39.738Z",
+      "bytes": 158719,
+      "textChars": 5692,
+      "pdftotext": true,
+      "patient": "Mrs. Yasmeen Khanam",
+      "reg": "6985",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.446"
+      ]
+    },
+    {
+      "id": "30638477",
+      "slug": "30638477",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30638477",
+      "scrapedAt": "2026-10-22T18:04:44.960Z",
+      "bytes": 166455,
+      "textChars": 10558,
+      "pdftotext": true,
+      "patient": "Mr. Om prakash",
+      "reg": "6984",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "HIV (CARD TEST)",
+        "SGOT/SGPT                                               0.87"
+      ]
+    },
+    {
+      "id": "30638044",
+      "slug": "30638044",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30638044",
+      "scrapedAt": "2026-10-22T18:04:50.329Z",
+      "bytes": 103903,
+      "textChars": 3263,
+      "pdftotext": true,
+      "patient": "Mrs. Reshma Bano",
+      "reg": "6983",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30638037",
+      "slug": "30638037",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30638037",
+      "scrapedAt": "2026-10-22T18:04:55.283Z",
+      "bytes": 97233,
+      "textChars": 2957,
+      "pdftotext": true,
+      "patient": "Mrs. Rajdevi Verma",
+      "reg": "6982",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30638028",
+      "slug": "30638028",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30638028",
+      "scrapedAt": "2026-10-22T18:05:01.333Z",
+      "bytes": 171449,
+      "textChars": 8661,
+      "pdftotext": true,
+      "patient": "Mr. Ram Asish",
+      "reg": "6981",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "URINE ROUTINE EXAMINATION",
+        "SGOT/SGPT                                      1.54",
+        "PH                                             7.456"
+      ]
+    },
+    {
+      "id": "30633156",
+      "slug": "30633156",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30633156",
+      "scrapedAt": "2026-10-22T18:05:06.944Z",
+      "bytes": 121320,
+      "textChars": 4886,
+      "pdftotext": true,
+      "patient": "Mr. Rajesh kumar Yadav",
+      "reg": "6980",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.258"
+      ]
+    },
+    {
+      "id": "30633068",
+      "slug": "30633068",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30633068",
+      "scrapedAt": "2026-10-22T18:05:12.363Z",
+      "bytes": 167847,
+      "textChars": 7178,
+      "pdftotext": true,
+      "patient": "Mr. Nitish Kashyap",
+      "reg": "6979",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "SGOT/SGPT                                      0.93",
+        "PH                                             7.415"
+      ]
+    },
+    {
+      "id": "30630738",
+      "slug": "30630738",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30630738",
+      "scrapedAt": "2026-10-22T18:05:18.018Z",
+      "bytes": 93247,
+      "textChars": 3151,
+      "pdftotext": true,
+      "patient": "Mr. Annu",
+      "reg": "6978",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30630634",
+      "slug": "30630634",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30630634",
+      "scrapedAt": "2026-10-22T18:05:23.756Z",
+      "bytes": 154590,
+      "textChars": 6121,
+      "pdftotext": true,
+      "patient": "",
+      "reg": "6977",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30630530",
+      "slug": "30630530",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30630530",
+      "scrapedAt": "2026-10-22T18:05:29.166Z",
+      "bytes": 90612,
+      "textChars": 3159,
+      "pdftotext": true,
+      "patient": "Mrs. Mamta Singh",
+      "reg": "6976",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30630501",
+      "slug": "30630501",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30630501",
+      "scrapedAt": "2026-10-22T18:05:33.925Z",
+      "bytes": 91692,
+      "textChars": 3156,
+      "pdftotext": true,
+      "patient": "Mr. Raj karan",
+      "reg": "6975",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30630487",
+      "slug": "30630487",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30630487",
+      "scrapedAt": "2026-10-22T18:05:39.698Z",
+      "bytes": 105065,
+      "textChars": 2743,
+      "pdftotext": true,
+      "patient": "Mr. Vijay Singh",
+      "reg": "6974",
+      "sampleTests": [
+        "PH                                                    7.452"
+      ]
+    },
+    {
+      "id": "30627070",
+      "slug": "30627070",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30627070",
+      "scrapedAt": "2026-10-22T18:05:45.227Z",
+      "bytes": 163430,
+      "textChars": 5973,
+      "pdftotext": true,
+      "patient": "Mrs. Shugra Devi",
+      "reg": "6973",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.415"
+      ]
+    },
+    {
+      "id": "30626877",
+      "slug": "30626877",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30626877",
+      "scrapedAt": "2026-10-22T18:05:50.275Z",
+      "bytes": 151633,
+      "textChars": 4503,
+      "pdftotext": true,
+      "patient": "Mr. Rajendra Kumar singh",
+      "reg": "6972",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "MALARIA PARASITE (CARD TEST)",
+        "DENGUE (CARD METHOD)"
+      ]
+    },
+    {
+      "id": "30618969",
+      "slug": "30618969",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30618969",
+      "scrapedAt": "2026-10-22T18:05:55.314Z",
+      "bytes": 97003,
+      "textChars": 3050,
+      "pdftotext": true,
+      "patient": "Mr. Satish kumar Singh",
+      "reg": "6971",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30618945",
+      "slug": "30618945",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30618945",
+      "scrapedAt": "2026-10-22T18:06:00.832Z",
+      "bytes": 94057,
+      "textChars": 3158,
+      "pdftotext": true,
+      "patient": "Mr. Mohd mustak",
+      "reg": "6970",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30618875",
+      "slug": "30618875",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30618875",
+      "scrapedAt": "2026-10-22T18:06:06.199Z",
+      "bytes": 110947,
+      "textChars": 2738,
+      "pdftotext": true,
+      "patient": "Mrs. Pushpa Devi",
+      "reg": "6969",
+      "sampleTests": [
+        "PH                                                    7.285"
+      ]
+    },
+    {
+      "id": "30618750",
+      "slug": "30618750",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30618750",
+      "scrapedAt": "2026-10-22T18:06:11.442Z",
+      "bytes": 95192,
+      "textChars": 2954,
+      "pdftotext": true,
+      "patient": "Mr. Abdul Salam",
+      "reg": "6968",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30618696",
+      "slug": "30618696",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30618696",
+      "scrapedAt": "2026-10-22T18:06:17.025Z",
+      "bytes": 88062,
+      "textChars": 3156,
+      "pdftotext": true,
+      "patient": "Mr. Sabar Ali",
+      "reg": "6967",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30613979",
+      "slug": "30613979",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30613979",
+      "scrapedAt": "2026-10-22T18:06:22.750Z",
+      "bytes": 88579,
+      "textChars": 3158,
+      "pdftotext": true,
+      "patient": "Mrs. Usha Singh",
+      "reg": "6966",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30613978",
+      "slug": "30613978",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30613978",
+      "scrapedAt": "2026-10-22T18:06:27.974Z",
+      "bytes": 91357,
+      "textChars": 3160,
+      "pdftotext": true,
+      "patient": "Mr. Satya Prakash",
+      "reg": "6965",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30613975",
+      "slug": "30613975",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30613975",
+      "scrapedAt": "2026-10-22T18:06:33.237Z",
+      "bytes": 92603,
+      "textChars": 3163,
+      "pdftotext": true,
+      "patient": "Mr. Dharmendra Yadav",
+      "reg": "6964",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30613971",
+      "slug": "30613971",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30613971",
+      "scrapedAt": "2026-10-22T18:06:38.231Z",
+      "bytes": 94878,
+      "textChars": 3163,
+      "pdftotext": true,
+      "patient": "Mr. Raj kumar Pandey",
+      "reg": "6963",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30613969",
+      "slug": "30613969",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30613969",
+      "scrapedAt": "2026-10-22T18:06:43.644Z",
+      "bytes": 118335,
+      "textChars": 4886,
+      "pdftotext": true,
+      "patient": "Mrs. Tarifun Nisha",
+      "reg": "6962",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.541"
+      ]
+    },
+    {
+      "id": "30612328",
+      "slug": "30612328",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30612328",
+      "scrapedAt": "2026-10-22T18:06:49.427Z",
+      "bytes": 158560,
+      "textChars": 5694,
+      "pdftotext": true,
+      "patient": "Mrs. Ayesha",
+      "reg": "6961",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.459"
+      ]
+    },
+    {
+      "id": "30612197",
+      "slug": "30612197",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30612197",
+      "scrapedAt": "2026-10-22T18:06:54.796Z",
+      "bytes": 99594,
+      "textChars": 3269,
+      "pdftotext": true,
+      "patient": "Mrs. Rahima Begam",
+      "reg": "6960",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30612192",
+      "slug": "30612192",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30612192",
+      "scrapedAt": "2026-10-22T18:07:00.427Z",
+      "bytes": 163504,
+      "textChars": 7802,
+      "pdftotext": true,
+      "patient": "Mr. Santosh Verma",
+      "reg": "6959",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "HIV (CARD TEST)",
+        "PH                                              7.487"
+      ]
+    },
+    {
+      "id": "30608321",
+      "slug": "30608321",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30608321",
+      "scrapedAt": "2026-10-22T18:07:06.354Z",
+      "bytes": 158205,
+      "textChars": 5690,
+      "pdftotext": true,
+      "patient": "Mr. Vikas verma",
+      "reg": "6958",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.451"
+      ]
+    },
+    {
+      "id": "30608263",
+      "slug": "30608263",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30608263",
+      "scrapedAt": "2026-10-22T18:07:12.096Z",
+      "bytes": 114564,
+      "textChars": 5131,
+      "pdftotext": true,
+      "patient": "Mr. Jagat Ram",
+      "reg": "6957",
+      "sampleTests": [
+        "URINE ROUTINE EXAMINATION",
+        "PH                                                    7.245"
+      ]
+    },
+    {
+      "id": "30602117",
+      "slug": "30602117",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30602117",
+      "scrapedAt": "2026-10-22T18:07:17.900Z",
+      "bytes": 92055,
+      "textChars": 3160,
+      "pdftotext": true,
+      "patient": "Mr. Laxmi narayan",
+      "reg": "6956",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30602095",
+      "slug": "30602095",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30602095",
+      "scrapedAt": "2026-10-22T18:07:23.512Z",
+      "bytes": 92551,
+      "textChars": 2953,
+      "pdftotext": true,
+      "patient": "Mrs. Noor jaha",
+      "reg": "6955",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30602075",
+      "slug": "30602075",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30602075",
+      "scrapedAt": "2026-10-22T18:07:28.858Z",
+      "bytes": 93807,
+      "textChars": 3164,
+      "pdftotext": true,
+      "patient": "Mr. Ram Suresh Mishra",
+      "reg": "6954",
+      "sampleTests": [
+        "HIV (CARD TEST)"
+      ]
+    },
+    {
+      "id": "30602054",
+      "slug": "30602054",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30602054",
+      "scrapedAt": "2026-10-22T18:07:34.143Z",
+      "bytes": 99732,
+      "textChars": 3049,
+      "pdftotext": true,
+      "patient": "Mr. Lalji",
+      "reg": "6953",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "HEPATITIS C VIRUS, HCV                    POSITIVE",
+        "HBSAG                                     NEGATIVE"
+      ]
+    },
+    {
+      "id": "30602030",
+      "slug": "30602030",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30602030",
+      "scrapedAt": "2026-10-22T18:07:39.793Z",
+      "bytes": 157259,
+      "textChars": 5685,
+      "pdftotext": true,
+      "patient": "Mr. Ghan Shyam",
+      "reg": "6952",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.425"
+      ]
+    },
+    {
+      "id": "30601987",
+      "slug": "30601987",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30601987",
+      "scrapedAt": "2026-10-22T18:07:45.748Z",
+      "bytes": 158204,
+      "textChars": 5683,
+      "pdftotext": true,
+      "patient": "Mr. Saif Raza",
+      "reg": "6951",
+      "sampleTests": [
+        "DIFFERENTIAL LEUCOCYTE COUNT",
+        "MCHC",
+        "PH                                              7.425"
+      ]
+    },
+    {
+      "id": "30594117",
+      "slug": "30594117",
+      "url": "https://app.labsmartlis.com/22707599/lab_reports/30594117",
+      "scrapedAt": "2026-10-22T18:07:51.495Z",
+      "bytes": 121880,
+      "textChars": 4891,
+      "pdftotext": true,
+      "patient": "Mr. Buddhu",
+      "reg": "6950",
+      "sampleTests": [
+        "HIV (CARD TEST)",
+        "PH                                                    7.346"
+      ]
+    }
+  ]
+}

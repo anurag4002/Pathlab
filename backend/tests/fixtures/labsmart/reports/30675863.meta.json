@@ -1,0 +1,14 @@
+{
+  "id": "30675863",
+  "slug": "30675863",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30675863",
+  "scrapedAt": "2026-10-22T18:02:11.760Z",
+  "bytes": 106325,
+  "textChars": 2738,
+  "pdftotext": true,
+  "patient": "Miss. Chandani",
+  "reg": "7014",
+  "sampleTests": [
+    "PH                                                    7.491"
+  ]
+}

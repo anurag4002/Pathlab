@@ -166,6 +166,7 @@ const ResultEntry = () => {
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const inFlightRef = useRef(false); // synchronous re-entry guard
+  const tatRef = useRef(null);
   const doctorReqRef = useRef(0); // stale referring-doctor response guard
 
   // Load pending cases (server is the source of truth).
@@ -411,6 +412,9 @@ const ResultEntry = () => {
     setBusy(mode);
     setFeedback(null);
     try {
+      // Persist pending TAT edits before saving results, so editing the
+      // date fields and clicking Save Draft / Submit never loses them.
+      await tatRef.current?.flush();
       const res =
         mode === 'draft'
           ? await saveReportResultsDraft(entry.report._id, payload)
@@ -937,7 +941,7 @@ const ResultEntry = () => {
 
                 {/* Backend status + tat timeline (display-only). */}
                 <TatTimeline report={entry.report} />
-                <ReportTatEditor report={entry.report} onSaved={report => setEntry(prev => ({ ...prev, report: { ...prev.report, ...report } }))} />
+                <ReportTatEditor ref={tatRef} report={entry.report} onSaved={report => setEntry(prev => ({ ...prev, report: { ...prev.report, ...report } }))} />
               </div>
 
               <section className="re-card" aria-labelledby="re-results-heading">

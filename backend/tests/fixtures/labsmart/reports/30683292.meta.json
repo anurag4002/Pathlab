@@ -1,0 +1,16 @@
+{
+  "id": "30683292",
+  "slug": "30683292",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30683292",
+  "scrapedAt": "2026-10-22T18:02:06.857Z",
+  "bytes": 117656,
+  "textChars": 7380,
+  "pdftotext": true,
+  "patient": "Mr. Jai Narayan",
+  "reg": "7015",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "SGOT/SGPT                                             0.93",
+    "PH                                              7.425"
+  ]
+}

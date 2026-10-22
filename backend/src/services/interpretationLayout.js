@@ -3,8 +3,6 @@
 const HEADING = /^(physiologic(?:al)? basis|clinical significance|interpretation|increased in|decreased in|causes of (?:increased|decreased) .+|(?:high|low|raised|elevated|decreased|increased)(?: levels?)?(?: causes?| values?)?(?: in| is found in| can be found in)?|causes?|notes?|comments?|method|principle|reference(?: interval| range)?|clinical (?:utility|use)|limitations?|specimen|precautions?)\s*:?\s*$/i;
 const INLINE_HEADING = /^((?:increased|decreased|high|low|elevated|raised)(?: levels?)?(?: causes?| values?)?(?: in)?|notes?|comments?|method|specimen)\s*:\s*(.+)$/i;
 const isImportNote = value => /^\s*Migrated from Labsmart\b/i.test(String(value || ''));
-const isKft = value => /^(?:kidney function(?: test)?|renal function(?: test)?)(?:\s*\((?:kft|rft)\))?$|^(?:kft|rft)$/i.test(String(value || '').trim());
-const isCbc = value => /^(?:complete blood count\b|cbc\b)/i.test(String(value || '').trim());
 const normalized = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 function interpretationBlocks(value) {
@@ -63,28 +61,25 @@ function reportNoteBlocks(section) {
     seen.add(key); blocks.push(...(title ? [{ kind: 'title', text: title }] : []), ...interpretationBlocks(content));
   };
   const tests = section.groups.flatMap(group => group.items);
-  const panelGuidance = (isKft(section.title) || isCbc(section.title)) && section.description?.trim() && !isImportNote(section.description);
-  const compactCbc = isCbc(section.title) && panelGuidance;
-  add(panelGuidance ? '' : 'Description', section.description);
+  const panelGuidance = section.description?.trim() && !isImportNote(section.description);
+  add('', section.description);
   const names = new Set(tests.map(({ result, test }) => test.parentName || test.name || result.testName || 'Test'));
   for (const { result, test } of tests) {
     const custom = typeof result.interpretationOverride === 'string';
     const name = custom ? result.testName || test.name || 'Test' : test.parentName || test.name || result.testName || 'Test';
     const prefix = names.size > 1 ? `${name} - ` : '';
     const descriptionIncluded = test.description?.trim() && normalized(test.interpretation).includes(normalized(test.description));
-    if (!compactCbc && test.description && !descriptionIncluded && test.description !== test.sourceType && !/^(?:numeric|text|document|single parameter|multiple parameters?)$/i.test(test.description.trim())) add(`${prefix}Description`, test.description);
-    // Supplied CBC/KFT reports have panel guidance, not every individual test's
-    // full imported boilerplate. Keep lab-authored changes as additional notes.
+    if (!panelGuidance && test.description && !descriptionIncluded && test.description !== test.sourceType && !/^(?:numeric|text|document|single parameter|multiple parameters?)$/i.test(test.description.trim())) add(`${prefix}Description`, test.description);
+    // A lab-authored panel interpretation replaces the individual tests' full
+    // imported boilerplate, matching the source reports. Keep explicit overrides.
     const unchangedImport = test.sourceInterpretation?.text && normalized(test.interpretation) === normalized(test.sourceInterpretation.text);
     if (custom) add(`${name} - Interpretation`, result.interpretationOverride);
-    else if (!compactCbc && (!panelGuidance || !unchangedImport)) add(`${prefix}Interpretation`, test.interpretation);
+    else if (!panelGuidance || !unchangedImport) add(`${prefix}Interpretation`, test.interpretation);
     const method = String(test.sourceInterpretation?.method || '').trim();
-    if (method && !seen.has(`method:${method}`)) {
+    // Panel guidance already replaces the imported essay block; keep Method off
+    // the notes box so it does not trail the Labsmart panel interpretation.
+    if (!panelGuidance && method && !seen.has(`method:${method}`)) {
       seen.add(`method:${method}`); blocks.push({ kind: 'detail', text: `Method: ${method}` });
-    }
-    const specimen = String(test.sampleType || '').trim();
-    if (specimen && !seen.has(`specimen:${specimen}`)) {
-      seen.add(`specimen:${specimen}`); blocks.push({ kind: 'detail', text: `Specimen: ${specimen}` });
     }
   }
   return blocks;

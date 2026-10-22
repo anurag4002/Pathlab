@@ -1,0 +1,14 @@
+{
+  "id": "30693124",
+  "slug": "kft",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30693124",
+  "scrapedAt": "2026-10-22T18:01:00.003Z",
+  "bytes": 122936,
+  "textChars": 5004,
+  "pdftotext": true,
+  "patient": "Mr. Surendra Mishra",
+  "reg": "7021",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

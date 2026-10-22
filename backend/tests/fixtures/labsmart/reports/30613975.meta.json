@@ -1,0 +1,14 @@
+{
+  "id": "30613975",
+  "slug": "30613975",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30613975",
+  "scrapedAt": "2026-10-22T18:06:33.237Z",
+  "bytes": 92603,
+  "textChars": 3163,
+  "pdftotext": true,
+  "patient": "Mr. Dharmendra Yadav",
+  "reg": "6964",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

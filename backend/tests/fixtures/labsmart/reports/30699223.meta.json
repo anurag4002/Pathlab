@@ -1,0 +1,15 @@
+{
+  "id": "30699223",
+  "slug": "30699223",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30699223",
+  "scrapedAt": "2026-10-22T18:01:31.866Z",
+  "bytes": 146146,
+  "textChars": 3865,
+  "pdftotext": true,
+  "patient": "",
+  "reg": "7026",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC"
+  ]
+}

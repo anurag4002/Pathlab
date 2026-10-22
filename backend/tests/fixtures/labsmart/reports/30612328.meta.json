@@ -1,0 +1,16 @@
+{
+  "id": "30612328",
+  "slug": "30612328",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30612328",
+  "scrapedAt": "2026-10-22T18:06:49.427Z",
+  "bytes": 158560,
+  "textChars": 5694,
+  "pdftotext": true,
+  "patient": "Mrs. Ayesha",
+  "reg": "6961",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.459"
+  ]
+}

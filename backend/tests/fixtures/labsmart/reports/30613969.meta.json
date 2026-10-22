@@ -1,0 +1,15 @@
+{
+  "id": "30613969",
+  "slug": "30613969",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30613969",
+  "scrapedAt": "2026-10-22T18:06:43.644Z",
+  "bytes": 118335,
+  "textChars": 4886,
+  "pdftotext": true,
+  "patient": "Mrs. Tarifun Nisha",
+  "reg": "6962",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "PH                                                    7.541"
+  ]
+}

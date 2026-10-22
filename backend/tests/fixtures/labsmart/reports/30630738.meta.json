@@ -1,0 +1,14 @@
+{
+  "id": "30630738",
+  "slug": "30630738",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30630738",
+  "scrapedAt": "2026-10-22T18:05:18.018Z",
+  "bytes": 93247,
+  "textChars": 3151,
+  "pdftotext": true,
+  "patient": "Mr. Annu",
+  "reg": "6978",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

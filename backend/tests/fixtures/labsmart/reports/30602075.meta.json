@@ -1,0 +1,14 @@
+{
+  "id": "30602075",
+  "slug": "30602075",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30602075",
+  "scrapedAt": "2026-10-22T18:07:28.858Z",
+  "bytes": 93807,
+  "textChars": 3164,
+  "pdftotext": true,
+  "patient": "Mr. Ram Suresh Mishra",
+  "reg": "6954",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

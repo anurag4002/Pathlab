@@ -1,0 +1,63 @@
+                                                                                                                     Scan to download
+                                                                                        7026
+Master Abhyansh Singh
+                                                                   Registered on : 22/10/2026 07:12 PM
+Age / Sex     : 3 YRS 4 months / M
+                                                                   Collected on       : 22/10/2026 06:00 PM
+Referred by   : Self
+                                                                   Received on        : 22/10/2026 06:05 PM
+Reg. no.      : 7026
+                                                                   Reported on        : 22/10/2026 07:12 PM
+
+
+                                                    HAEMATOLOGY
+                                            COMPLETE BLOOD COUNT (CBC)
+TEST                                               VALUE                         UNIT                  REFERENCE
+
+HEMOGLOBIN                                         11.7                          g/dl                  11.2 - 16.5
+TOTAL LEUKOCYTE COUNT                              13,000                        cumm                  5,000 - 19,000
+DIFFERENTIAL LEUCOCYTE COUNT
+           NEUTROPHILS                             72                            %                     40 - 80
+           LYMPHOCYTE                              20                            %                     20 - 40
+           EOSINOPHILS                        H    07                            %                     1-6
+
+           MONOCYTES                          L    01                            %                     2 - 10
+
+           BASOPHILS                               00                            %                     <2
+PLATELET COUNT                                     2.71                          lakhs/cumm            1.5 - 4.1
+TOTAL RBC COUNT                               H    5.80                          million/cumm          4.5 - 5.5
+
+HEMATOCRIT VALUE, HCT                         L    32.3                          %                     40 - 50
+
+MEAN CORPUSCULAR VOLUME, MCV                  L    55.7                          fL                    83 - 101
+
+MEAN CELL HAEMOGLOBIN, MCH                    L    20.2                          Pg                    27 - 32
+
+MEAN CELL HAEMOGLOBIN CON,                    H    36.2                          g/dl                  31.5 - 34.5
+MCHC
+
+MEAN PLATELET VOLUME, MPV                          9.2                           fL                    6.5 - 12
+R.D.W. - SD                                   L    30.2                          fL                    39 - 46
+
+R.D.W. - CV                                   H    15.8                          %                     11.6 - 14
+
+P-LCR                                              25.1                                                19.7 - 42.4
+P.D.W.                                             15.2                          fL                    9.6 - 15.2
+
+
+
+ Possible causes of abnormal parameters:
+                       High                                              Low
+
+  RBC, Hb, or          Dehydration, polycythemia, shock, chronic         Anemia, thalassemia, and other
+  HCT                  hypoxia                                           hemoglobinopathies
+  MCV                  Macrocytic anemia, liver disease                  Microcytic anemia
+  WBC                  Acute stress, infection, malignancies             Sepsis, marrow hypoplasia
+  Platelets            Risk of thrombosis                                Risk of bleeding
+
+                                                  ~~~ End of report ~~~
+
+
+
+                                                    Powered by
+

@@ -1,0 +1,14 @@
+{
+  "id": "30613971",
+  "slug": "30613971",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30613971",
+  "scrapedAt": "2026-10-22T18:06:38.231Z",
+  "bytes": 94878,
+  "textChars": 3163,
+  "pdftotext": true,
+  "patient": "Mr. Raj kumar Pandey",
+  "reg": "6963",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

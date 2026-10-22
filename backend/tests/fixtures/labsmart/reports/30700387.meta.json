@@ -1,0 +1,15 @@
+{
+  "id": "30700387",
+  "slug": "30700387",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30700387",
+  "scrapedAt": "2026-10-22T18:01:21.780Z",
+  "bytes": 113845,
+  "textChars": 4874,
+  "pdftotext": true,
+  "patient": "Mrs. Savitri",
+  "reg": "7028",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "PH                                                    7.425"
+  ]
+}

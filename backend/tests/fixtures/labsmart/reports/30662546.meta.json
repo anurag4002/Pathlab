@@ -1,0 +1,17 @@
+{
+  "id": "30662546",
+  "slug": "30662546",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30662546",
+  "scrapedAt": "2026-10-22T18:03:03.636Z",
+  "bytes": 161576,
+  "textChars": 10532,
+  "pdftotext": true,
+  "patient": "Mr. Shiv Prasad",
+  "reg": "7004",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "HIV (CARD TEST)",
+    "SGOT/SGPT                                               1.19"
+  ]
+}

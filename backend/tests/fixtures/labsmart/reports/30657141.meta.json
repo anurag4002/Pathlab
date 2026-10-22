@@ -1,0 +1,14 @@
+{
+  "id": "30657141",
+  "slug": "30657141",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30657141",
+  "scrapedAt": "2026-10-22T18:03:34.095Z",
+  "bytes": 104504,
+  "textChars": 2748,
+  "pdftotext": true,
+  "patient": "Mr. Sadab Khan",
+  "reg": "6998",
+  "sampleTests": [
+    "PH                                                    7.452"
+  ]
+}

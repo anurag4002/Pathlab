@@ -1,0 +1,43 @@
+{
+  "matchedAt": "2026-10-22T17:52:30.552Z",
+  "results": [
+    {
+      "labsmartId": "30690438",
+      "slug": "cbc",
+      "pathlabRegistration": "PPL-20261016-02645",
+      "notes": "CBC twin from parity session",
+      "status": "fail",
+      "reason": "cbc (30690438 vs PPL-20261016-02645): only 33.9% of Labsmart tokens matched (39/115). Missing eg: 7018, miss., madhu, shukla, referred, indra, kidney, care, surgical, center, 7018, 13.0",
+      "ourPages": 2,
+      "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-renders\\PPL-20261016-02645.pdf"
+    },
+    {
+      "labsmartId": "30688430",
+      "slug": "cbc-kft",
+      "pathlabRegistration": "PPL-20261016-02644",
+      "notes": "CBC + related twin from parity session",
+      "status": "fail",
+      "reason": "cbc-kft (30688430 vs PPL-20261016-02644): only 52.5% of Labsmart tokens matched (104/198). Missing eg: 7017, chandra, sekhar, singh, referred, indra, kidney, care, surgical, center, 7017, 1.33",
+      "ourPages": 2,
+      "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-renders\\PPL-20261016-02644.pdf"
+    },
+    {
+      "labsmartId": "30684127",
+      "slug": "multi",
+      "pathlabRegistration": "PPL-20261014-02643",
+      "notes": "Multi-panel twin from parity session",
+      "status": "fail",
+      "reason": "multi (30684127 vs PPL-20261014-02643): only 61.2% of Labsmart tokens matched (229/374). Missing eg: 7016, mrs., shanti, prasad, referred, indra, care, surgical, center, 7016, 10.3, platelet",
+      "ourPages": 6,
+      "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-renders\\PPL-20261014-02643.pdf"
+    },
+    {
+      "labsmartId": "30693124",
+      "slug": "kft",
+      "pathlabRegistration": null,
+      "notes": "Confirm Pathlab twin registration in DB",
+      "status": "skip",
+      "reason": "No Pathlab twin registration mapped yet"
+    }
+  ]
+}

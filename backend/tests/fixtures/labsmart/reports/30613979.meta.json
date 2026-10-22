@@ -1,0 +1,14 @@
+{
+  "id": "30613979",
+  "slug": "30613979",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30613979",
+  "scrapedAt": "2026-10-22T18:06:22.750Z",
+  "bytes": 88579,
+  "textChars": 3158,
+  "pdftotext": true,
+  "patient": "Mrs. Usha Singh",
+  "reg": "6966",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

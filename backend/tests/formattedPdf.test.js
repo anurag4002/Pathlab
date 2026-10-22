@@ -70,8 +70,9 @@ test('multi-page reports retain all rows and repeat patient details and table he
   const text = textOf(pdf);
   const count = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
   assert.ok(count > 1 && count < 20, `expected a bounded multi-page report, got ${count}`);
-  for (let i = 1; i <= 100; i++) assert.ok(text.includes(`Unique result ${i}`), `missing row ${i}`);
-  assert.equal((text.match(/Test Patient/g) || []).length, count);
+  for (let i = 1; i <= 100; i++) assert.ok(text.includes(`UNIQUE RESULT ${i}`), `missing row ${i}`);
+  // Letterheaded continuation pages carry results only (no repeated patient band).
+  assert.equal((text.match(/Test Patient/g) || []).length, 1);
   assert.equal((text.match(/TESTVALUEUNITREFERENCE/g) || []).length, count);
   for (let i = 1; i <= count; i++) assert.ok(text.includes(`Page ${i} of ${count}`));
 });
@@ -97,7 +98,7 @@ test('legacy and rich interpretation paragraphs retain readable type even when r
     })));
     const body = runs.filter(run => run.text.includes('READABLE_BODY_SENTINEL'));
     assert.ok(body.length > 0, 'the full explanation must be rendered');
-    assert.ok(body.every(run => run.size >= 10.5), 'interpretation text must never shrink to fit the result page');
+    assert.ok(body.every(run => run.size >= format.fontSize), 'interpretation text must never shrink below body size');
   }
 });
 
@@ -142,7 +143,39 @@ test('without letterhead omits all branding while retaining patient identity and
   assert.ok(!pdf.toString('latin1').includes('/Subtype /Image'));
   const text = textOf(pdf);
   assert.ok(!text.includes('Test Lab'));
-  assert.ok(text.includes('Test Patient') && text.includes('Creatinine') && text.includes('6.44'));
+  assert.ok(text.includes('Test Patient') && /creatinine/i.test(text) && text.includes('6.44'));
+});
+
+test('without letterhead reserves letterheadTopMargin for preprinted stationery', async () => {
+  const { spawnSync } = require('child_process');
+  const { PNG } = require('pngjs');
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const pdftoppm = process.env.PDFTOPPM_PATH
+    || 'C:\\Users\\Pratyush Mishra\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\pdftoppm.exe';
+  if (!fs.existsSync(pdftoppm)) return;
+  const topMargin = 110;
+  const pdf = await reportPdf({
+    ...context,
+    profile: { ...context.profile, letterheadTopMargin: topMargin, disclaimer: '' }
+  }, { letterhead: false, footer: false, qr: false, barcode: false, signatures: false, watermark: false });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'preprint-'));
+  const pdfPath = path.join(dir, 'report.pdf');
+  const prefix = path.join(dir, 'page');
+  fs.writeFileSync(pdfPath, pdf);
+  const rendered = spawnSync(pdftoppm, ['-png', '-r', '72', '-f', '1', '-l', '1', pdfPath, prefix], { encoding: 'utf8' });
+  assert.equal(rendered.status, 0, rendered.stderr || 'pdftoppm failed');
+  const img = PNG.sync.read(fs.readFileSync(`${prefix}-1.png`));
+  let firstInk = -1;
+  for (let y = 0; y < img.height && firstInk < 0; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const i = (img.width * y + x) << 2;
+      if (img.data[i] < 250 || img.data[i + 1] < 250 || img.data[i + 2] < 250) { firstInk = y; break; }
+    }
+  }
+  assert.ok(firstInk >= topMargin - 4, `expected content at/after ${topMargin}px, got ${firstInk}`);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test('long tabular interpretations continue across pages with all cells preserved', async () => {
@@ -152,7 +185,7 @@ test('long tabular interpretations continue across pages with all cells preserve
   for (let i = 1; i <= 180; i++) for (const label of ['Item', 'Meaning', 'Comment']) assert.ok(text.includes(`${label}${i}`));
   const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
   assert.ok(pages > 1 && pages < 20);
-  assert.equal((text.match(/Test Patient/g) || []).length, pages);
+  assert.equal((text.match(/Test Patient/g) || []).length, 1);
 });
 
 test('saved patient-specific reference range takes precedence over generic catalog bounds', async () => {

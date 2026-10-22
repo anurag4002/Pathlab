@@ -1,0 +1,14 @@
+{
+  "id": "30668549",
+  "slug": "30668549",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30668549",
+  "scrapedAt": "2026-10-22T18:02:21.870Z",
+  "bytes": 108935,
+  "textChars": 2741,
+  "pdftotext": true,
+  "patient": "Mrs. ATIYA SIDDIQUI",
+  "reg": "7012",
+  "sampleTests": [
+    "PH                                                    7.671"
+  ]
+}

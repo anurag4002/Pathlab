@@ -1,0 +1,16 @@
+{
+  "id": "30663140",
+  "slug": "30663140",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30663140",
+  "scrapedAt": "2026-10-22T18:02:57.949Z",
+  "bytes": 150840,
+  "textChars": 3701,
+  "pdftotext": true,
+  "patient": "Miss. Mansi",
+  "reg": "7005",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "WIDAL TEST (SLIDE METHOD)"
+  ]
+}

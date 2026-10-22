@@ -1,0 +1,18 @@
+{
+  "id": "30638028",
+  "slug": "30638028",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30638028",
+  "scrapedAt": "2026-10-22T18:05:01.333Z",
+  "bytes": 171449,
+  "textChars": 8661,
+  "pdftotext": true,
+  "patient": "Mr. Ram Asish",
+  "reg": "6981",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "URINE ROUTINE EXAMINATION",
+    "SGOT/SGPT                                      1.54",
+    "PH                                             7.456"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "30643758",
+  "slug": "30643758",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30643758",
+  "scrapedAt": "2026-10-22T18:04:39.738Z",
+  "bytes": 158719,
+  "textChars": 5692,
+  "pdftotext": true,
+  "patient": "Mrs. Yasmeen Khanam",
+  "reg": "6985",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.446"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "30618875",
+  "slug": "30618875",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30618875",
+  "scrapedAt": "2026-10-22T18:06:06.199Z",
+  "bytes": 110947,
+  "textChars": 2738,
+  "pdftotext": true,
+  "patient": "Mrs. Pushpa Devi",
+  "reg": "6969",
+  "sampleTests": [
+    "PH                                                    7.285"
+  ]
+}

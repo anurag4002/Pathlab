@@ -1,0 +1,16 @@
+{
+  "id": "30658768",
+  "slug": "30658768",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30658768",
+  "scrapedAt": "2026-10-22T18:03:23.827Z",
+  "bytes": 86088,
+  "textChars": 2962,
+  "pdftotext": true,
+  "patient": "Mr. Kuwar bahadur Singh",
+  "reg": "7000",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

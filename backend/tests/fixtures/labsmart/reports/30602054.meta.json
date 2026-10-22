@@ -1,0 +1,16 @@
+{
+  "id": "30602054",
+  "slug": "30602054",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30602054",
+  "scrapedAt": "2026-10-22T18:07:34.143Z",
+  "bytes": 99732,
+  "textChars": 3049,
+  "pdftotext": true,
+  "patient": "Mr. Lalji",
+  "reg": "6953",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    POSITIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

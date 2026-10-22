@@ -1,0 +1,17 @@
+{
+  "id": "30638477",
+  "slug": "30638477",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30638477",
+  "scrapedAt": "2026-10-22T18:04:44.960Z",
+  "bytes": 166455,
+  "textChars": 10558,
+  "pdftotext": true,
+  "patient": "Mr. Om prakash",
+  "reg": "6984",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "HIV (CARD TEST)",
+    "SGOT/SGPT                                               0.87"
+  ]
+}

@@ -1,0 +1,327 @@
+Mohd Smile
+Age / Sex : 50 years / Male                                    PPL-20261014-02643
+Reg. no. : PPL-20261014-02643                                  Registered on : 14/10/2026 05:21 PM
+                                                               Collected on : -
+                                                               Received on : -
+                                                               Reported on : 14/10/2026 07:25 PM
+
+
+                                        HAEMATOLOGY
+                                  COMPLETE BLOOD COUNT (CBC)
+TEST                                    VALUE          UNIT                 REFERENCE
+
+HEMOGLOBIN                          L   12.7           g/dl                 13 - 17
+
+TOTAL LEUKOCYTE COUNT                   10500          cumm                 4800 - 10800
+
+DIFFERENTIAL LEUCOCYTE COUNT
+
+         NEUTROPHILS                    57             %                    40 - 80
+
+         LYMPHOCYTE                     35             %                    20 - 40
+
+         EOSINOPHILS                    02             %                    1-6
+
+         MONOCYTES                      06             %                    2 - 10
+
+         BASOPHILS                      00             %                    <2
+
+PLATELET COUNT                      L   0.27           lakhs/cumm           1.5 - 4.1
+
+TOTAL RBC COUNT                         5.41           million/cumm         4.5 - 5.5
+
+HEMATOCRIT VALUE, HCT               L   35.6           %                    40 - 50
+
+MEAN CORPUSCULAR VOLUME, MCV        L   65.8           fL                   83 - 101
+
+MEAN CELL HAEMOGLOBIN, MCH          L   23.5           Pg                   27 - 32
+MEAN CELL HAEMOGLOBIN CON, MCHC     H   35.7           g/dl                 31.5 - 34.5
+
+MEAN PLATELET VOLUME, MPV               11.5           fL                   6.5 - 12
+
+P-LCR                               H   50.7           -                    19.7 - 42.4
+
+R.D.W. - CV                         H   36.4           %                    11.6 - 14
+
+P.D.W.                              H   50.7           fL                   9.6 - 15.2
+
+R.D.W. - SD                         L   36.4           fL                   39 - 46
+
+
+
+
+                                                                                                     Page 1 of 6
+ Possible causes of abnormal parameters
+
+                            High                                         Low
+
+  RBC, Hb, or HCT           Dehydration, polycythemia, shock,            Anemia, thalassemia, and
+                            chronic hypoxia                              other hemoglobinopathies
+
+  MCV                       Macrocytic anemia, liver disease             Microcytic anemia
+
+  WBC                       Acute stress, infection, malignancies        Sepsis, marrow hypoplasia
+
+  Platelets                 Risk of thrombosis                           Risk of bleeding
+
+
+                                            CLINICAL PATHOLOGY
+TEST                                         VALUE                  UNIT                REFERENCE
+
+URINE ROUTINE EXAMINATION
+
+       QUANTITY                              15                     ml                  -
+
+       COLOUR                                Yellow                 -                   Pale Yellow
+
+       TRANSPARENCY                          Clear                  -                   Clear
+
+       SPECIFIC GRAVITY                      1.015                  -                   1.005 - 1.03
+
+       PH                                    5.0                    -                   5-7
+
+       LEUKOCYTES                            Absent                 -                   Absent
+
+       BLOOD                                 Absent                 -                   Absent
+
+       PROTEIN / ALBUMIN                     Absent                 -                   Absent
+
+       SUGAR / GLUCOSE                       +++                    -                   Absent
+
+       KETONE BODIES                         Absent                 -                   Absent
+
+       BILIRUBIN                             Absent                 -                   Absent
+
+       NITRITE                               Absent                 -                   Absent
+
+       R.B.C.                                Absent                 /HPF                Absent
+
+       PUS CELLS                             Absent                 /HPF                Absent
+
+       EPITHILIAL CELLS                      Absent                 /HPF                Absent
+
+       CASTS                                 Absent                 -                   Absent
+
+       BACTERIA                              Absent                 -                   Absent
+
+       OTHERS                                Absent                 -                   Absent
+
+
+                                             BIOCHEMISTRY
+                                       KIDNEY FUNCTION TEST (KFT)
+TEST                                         VALUE                  UNIT                REFERENCE
+
+SERUM PHOSPHORUS                             3.02                   mg/dl               2.5 - 4.5
+
+SERUM CREATININE                             1.09                   mg/dl               0.72 - 1.43
+
+SERUM UREA                                   26.7                   mg/dl               18 - 55
+
+SERUM URIC ACID                              6.43                   mg/dl               3.5 - 7.2
+
+
+                                                                                                       Page 2 of 6
+                                                 BIOCHEMISTRY
+                                           KIDNEY FUNCTION TEST (KFT)
+TEST                                             VALUE                   UNIT               REFERENCE
+
+SERUM SODIUM                                     139.2                   mmol/L             136 - 146
+
+SERUM POTASSIUM                                  3.88                    mmol/L             3.5 - 5.1
+
+ICALCIUM                                         1.29                    mmol/l             1.13 - 1.33
+
+RANDOM BLOOD SUGAR                          H    168.2                   mg/dl              70 - 140
+
+PH                                               7.236                   -                  -
+
+
+
+ Creatinine is a nitrogenous waste product formed in muscle from creatine phosphate. Endogenous production of
+ creatinine is proportional to muscle mass and body weight.
+
+  Causes of Increased Serum Creatinine Level                 Causes of Decreased Serum Creatinine Level
+
+  1. Pre-renal, renal, and post-renal azotemia               1. Pregnancy
+
+  2. Large amount of dietary meat                            2. Increasing age (reduction in muscle mass)
+
+  3. Active acromegaly and gigantism
+
+
+                                                BIOCHEMISTRY
+                                           BLOOD SUGAR FASTING & PP
+TEST                                             VALUE                   UNIT               REFERENCE
+
+FASTING BLOOD SUGAR                         H    168.2                   mg/dl              70 - 100
+
+BLOOD SUGAR PP                              H    296.6                   mg/dl              < 180 mg/dl
+
+
+
+ Clinical Notes
+ Elevated glucose levels (hyperglycemia) are most often encountered clinically in the setting of diabetes mellitus, but
+ they may also occur with pancreatic neoplasms, hyperthyroidism, and adrenocortical dysfunction. Decreased
+ glucose levels (hypoglycemia) may result from endogenous or exogenous insulin excess, prolonged starvation, or
+ liver disease.
+
+  Fasting Glucose             2 hours PP Glucose                             Diagnosis
+
+  <100                        <140                                           Normal
+
+  100 to 125                  140 to 199                                     Pre Diabetes
+
+  >126                        >200                                           Diabetes
+
+ A level of 126 mg/dL or above, confirmed by repeating the test on another day, means a person has diabetes. IGT
+ (2 hrs Post meal), means a person has an increased risk of developing type 2 diabetes but does not have it yet. A
+ 2-hour glucose level of 200 mg/dL or above, confirmed by repeating the test on another day, means a person
+ has diabetes.
+
+
+
+                                                                                                                 Page 3 of 6
+                                                  BIOCHEMISTRY
+                                            LIVER FUNCTION TEST (LFT)
+TEST                                              VALUE                    UNIT                REFERENCE
+
+SERUM BILIRUBIN (TOTAL)                           0.66                     mg/dl               0.2 - 1.2
+
+SERUM BILIRUBIN (DIRECT)                          0.24                     mg/dl               0 - 0.3
+
+SERUM BILIRUBIN (INDIRECT)                        0.42                     mg/dl               0.2 - 1
+
+SGPT (ALT)                                    H   50.74                    U/I                 13 - 40
+
+SGOT (AST)                                    H   40.66                    U/I                 0 - 37
+
+SERUM PROTEIN                                     7.96                     g/dl                6.4 - 8.3
+
+SERUM ALBUMIN                                     4.89                     g/dl                3.5 - 5.2
+
+SERUM ALKALINE PHOSPHATASE                        117.3                    U/I                 44 - 147
+
+A/G RATIO                                         1.59                     -                   1.1 - 2.1
+
+GLOBULIN                                          3.07                     g/dl                1.8 - 3.6
+
+SGOT/SGPT                                         0.8                      -                   -
+
+
+
+ LFT Interpretation
+ Liver Function Blood Test gives an insight into your liver health and helps identify problems like hepatitis, cirrhosis,
+ and fatty liver disease, which may cause similar symptoms but require different treatments to recover.
+
+ Test Significance
+ Besides diagnosing liver problems, LFT’s also monitor overall liver functioning. Monitoring helps people with liver
+ disease or taking medication, as it helps screen whether the treatment works fine or requires adjustments.
+ Moreover, Liver Function Tests help determine if someone is at risk of developing liver diseases. Apart from
+ assessing your chances, this test also checks the severity of the liver damage to help the doctor plan and prescribe
+ appropriate treatment.
+
+ Increased in
+ Acute or chronic hepatitis, cirrhosis, biliary tract obstruction, toxic hepatitis, neonatal jaundice (neonatal
+ hyperbilirubinemia), congenital liver enzyme abnormalities (Dubin-Johnson, Rotor, Gilbert, Crigler-Najjar
+ syndromes), fasting, hemolytic disorders. Hepatotoxic drugs.
+
+
+                                                    BIOCHEMISTRY
+                                                    LIPID PROFILE
+TEST                                              VALUE                    UNIT                REFERENCE
+
+TOTAL CHOLESTEROL                             H   205.5                    mg/dl               125 - 200
+
+TRIGLYCERIDES                                     114.9                    mg/dl               25 - 200
+
+HDL CHOLESTEROL                                   51.25                    mg/dl               35 - 80
+
+LDL CHOLESTEROL                               H   131.27                   mg/dl               85 - 130
+
+VLDL CHOLESTEROL                                  22.98                    mg/dl               5 - 40
+
+LDL / HDL                                         2.56                     -                   1.5 - 3.5
+
+
+                                                                                                                    Page 4 of 6
+                                                    BIOCHEMISTRY
+                                                    LIPID PROFILE
+TEST                                              VALUE                    UNIT               REFERENCE
+
+TOTAL CHOLESTEROL / HDL                           4.01                     -                  3.5 - 5
+
+TG / HDL                                          2.24                     -                  -
+
+NON-HDL CHOLESTEROL                               154.25                   -                  -
+
+
+
+ Total Cholesterol - Interpretation
+ Desirable: <200 mg/dL [<5.2 mmol/L] Borderline: 200–239 mg/ dL [5.2–6.1 mmol/L] High risk: >240 mg/dL
+ [>6.2 mmol/L]
+
+ Physiological basis
+ Cholesterol level is determined by lipid metabolism, which is in turn influenced by heredity, diet, and liver, kidney,
+ thyroid, and other endocrine organ functions.
+
+ Interpretation
+
+ Increased in
+ Primary disorders: polygenic hypercholesterolemia, familial hypercholesterolemia (deficiency of LDL receptors),
+ familial combined hyperlipidemia, familial dysbetalipoproteinemia. Secondary disorders: hypothyroidism,
+ uncontrolled diabetes mellitus, nephrotic syndrome, biliary obstruction, anorexia nervosa, hepatocellular
+ carcinoma, Cushing syndrome, acute intermittent porphyria. Drugs: corticosteroids.
+
+ Decreased in
+ Severe liver disease (acute hepatitis, cirrhosis, malignancy), hyperthyroidism, severe acute or chronic illness,
+ malnutrition, malabsorption (eg, HIV), extensive burns, familial (Gaucher disease, Tangier disease),
+ abetalipoproteinemia, intestinal lymphangiectasia.
+
+ Comments
+ Coronary heart disease (CHD) risk depends on the ratio of total cholesterol to HDL cholesterol. The ratio of LDL to
+ HDL cholesterol has similar predictive ability. Treatment decisions should be based on absolute CHD risk. The risk
+ reduction is proportional to the reduction in LDL cholesterol achieved with treatment.
+
+
+ Triglycerides - Interpretation
+
+ Physiological basis
+ Dietary fat is hydrolyzed in the small intestine, absorbed and resynthesized by mucosal cells, and secreted into
+ lacteals as chylomicrons. Triglycerides in the chylomicrons are cleared from the blood by tissue lipoprotein lipase.
+ Endogenous triglyceride production occurs in the liver. These triglycerides are transported in association with
+ β-lipoproteins in very low-density lipoproteins (VLDL).
+
+
+
+
+                                                                                                                    Page 5 of 6
+Interpretation
+
+Increased in
+Hypothyroidism, diabetes mellitus, nephrotic syndrome, chronic alcoholism (fatty liver), biliary tract obstruction,
+stress, familial lipoprotein lipase deficiency, familial dysbetalipoproteinemia, familial combined hyperlipidemia,
+obesity, metabolic syndrome, viral hepatitis, cirrhosis, pancreatitis, chronic renal failure, gout, pregnancy, glycogen
+storage diseases types I, III, and VI, anorexia nervosa, dietary excess. Drugs: β-blockers, cholestyramine,
+corticosteroids, diazepam, diuretics, estrogens, oral contraceptives.
+
+Decreased in
+
+Tangier disease (α-lipoprotein deficiency), hypo- and abetalipoproteinemia, malnutrition, malabsorption,
+parenchymal liver disease, hyperthyroidism, intestinal lymphangiectasia. Drugs: ascorbic acid, clofibrate, nicotinic
+acid, gemfibrozil.
+
+Comments
+If the serum is clear, the serum triglyceride level is generally <350 mg/dL. Elevated triglycerides are now
+considered an independent risk factor for coronary artery disease and a major risk factor for acute pancreatitis,
+particularly when serum triglyceride levels are > 1000 mg/dL and can be seen when a primary lipid disorder that is
+exacerbated by alcohol or fat intake or by corticosteroid or estrogen therapy.
+
+
+                                                   ~~~ End of report ~~~
+                                  Scan QR Code to Book other Investigations , Thank You for Visit.
+
+
+
+
+                                                                                                                  Page 6 of 6
+

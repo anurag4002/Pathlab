@@ -1,0 +1,1531 @@
+{
+  "matchedAt": "2026-10-22T18:56:34.523Z",
+  "primary": "visual-page-diff",
+  "maxDiffRatio": 0.2,
+  "maskTop": 0.12,
+  "maskBottom": 0.08,
+  "dpi": 72,
+  "width": 800,
+  "passed": 80,
+  "failed": 0,
+  "results": [
+    {
+      "id": "30594117",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1692,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1692,
+          "mismatched": 122634,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30601987",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1152,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1152,
+          "mismatched": 83504,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0354,
+          "mismatched": 25667,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30602030",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1145,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1145,
+          "mismatched": 82987,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.036,
+          "mismatched": 26064,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30602054",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0673,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0673,
+          "mismatched": 48768,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30602075",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1373,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1373,
+          "mismatched": 99526,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30602095",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0677,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0677,
+          "mismatched": 49104,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30602117",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.137,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.137,
+          "mismatched": 99322,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30608263",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1049,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1049,
+          "mismatched": 76060,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0052,
+          "mismatched": 3791,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30608321",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1152,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1152,
+          "mismatched": 83489,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0359,
+          "mismatched": 26039,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30612192",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1402,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1165,
+          "mismatched": 84403,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1402,
+          "mismatched": 101609,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30612197",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1383,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1383,
+          "mismatched": 100272,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30612328",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1193,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1193,
+          "mismatched": 86435,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0362,
+          "mismatched": 26247,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30613969",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1675,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1675,
+          "mismatched": 121412,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30613971",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1372,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1372,
+          "mismatched": 99474,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30613975",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1373,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1373,
+          "mismatched": 99494,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30613978",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1371,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1371,
+          "mismatched": 99335,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30613979",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.137,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.137,
+          "mismatched": 99304,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30618696",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1367,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1367,
+          "mismatched": 99096,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30618750",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0679,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0679,
+          "mismatched": 49180,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30618875",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0879,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0879,
+          "mismatched": 63692,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30618945",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.137,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.137,
+          "mismatched": 99295,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30618969",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0681,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0681,
+          "mismatched": 49365,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30626877",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1214,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1214,
+          "mismatched": 88016,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30627070",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1195,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1195,
+          "mismatched": 86616,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0461,
+          "mismatched": 33378,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30630487",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.089,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.089,
+          "mismatched": 64487,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30630501",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1367,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1367,
+          "mismatched": 99103,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30630530",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1371,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1371,
+          "mismatched": 99377,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30630634",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1162,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1162,
+          "mismatched": 84221,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0718,
+          "mismatched": 52043,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30630738",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1366,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1366,
+          "mismatched": 98998,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30633068",
+      "status": "pass",
+      "labPages": 4,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1006,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0689,
+          "mismatched": 49969,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1006,
+          "mismatched": 72933,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30633156",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1684,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1684,
+          "mismatched": 122075,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30638028",
+      "status": "pass",
+      "labPages": 5,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1026,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0654,
+          "mismatched": 47400,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1026,
+          "mismatched": 74341,
+          "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.0354,
+          "mismatched": 25630,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30638037",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.068,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.068,
+          "mismatched": 49318,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30638044",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1381,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1381,
+          "mismatched": 100129,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30638477",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1816,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1185,
+          "mismatched": 85893,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1816,
+          "mismatched": 131635,
+          "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.0572,
+          "mismatched": 41445,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30643758",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1173,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1173,
+          "mismatched": 85046,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0359,
+          "mismatched": 26056,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30644153",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.089,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.089,
+          "mismatched": 64506,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30644379",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1372,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1372,
+          "mismatched": 99448,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30644768",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 2,
+      "worstDiffRatio": 0.0901,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0901,
+          "mismatched": 65306,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0833,
+          "mismatched": 60403,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30644909",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0679,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0679,
+          "mismatched": 49211,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30644979",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.068,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.068,
+          "mismatched": 49251,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30647391",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0352,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0352,
+          "mismatched": 25547,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30647504",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0904,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0904,
+          "mismatched": 65525,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30647891",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0888,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0888,
+          "mismatched": 64389,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30648344",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0526,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0526,
+          "mismatched": 38142,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30650669",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1036,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1036,
+          "mismatched": 75081,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30650977",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0593,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0593,
+          "mismatched": 42999,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30651150",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1287,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1187,
+          "mismatched": 86059,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1287,
+          "mismatched": 93277,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30657141",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0886,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0886,
+          "mismatched": 64213,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30658537",
+      "status": "pass",
+      "labPages": 5,
+      "ourPages": 3,
+      "worstDiffRatio": 0.122,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0674,
+          "mismatched": 48874,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.122,
+          "mismatched": 88453,
+          "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.0897,
+          "mismatched": 64989,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30658768",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0683,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0683,
+          "mismatched": 49508,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30658849",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.168,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.168,
+          "mismatched": 121763,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30659353",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0877,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0877,
+          "mismatched": 63564,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30659442",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1182,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1182,
+          "mismatched": 85675,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.036,
+          "mismatched": 26096,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30662546",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1816,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1163,
+          "mismatched": 84301,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1816,
+          "mismatched": 131640,
+          "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.057,
+          "mismatched": 41337,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30663140",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 1,
+      "worstDiffRatio": 0.058,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.058,
+          "mismatched": 42057,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668231",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1379,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1379,
+          "mismatched": 99964,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668288",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1379,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1379,
+          "mismatched": 99974,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668297",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0675,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0675,
+          "mismatched": 48913,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668332",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1516,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1516,
+          "mismatched": 109844,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668341",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0675,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0675,
+          "mismatched": 48956,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668544",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1682,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1682,
+          "mismatched": 121898,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30668549",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0881,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0881,
+          "mismatched": 63830,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30675204",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1378,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1378,
+          "mismatched": 99898,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30675863",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0883,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0883,
+          "mismatched": 63982,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30683292",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1709,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1709,
+          "mismatched": 123904,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1273,
+          "mismatched": 92245,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30684127",
+      "status": "pass",
+      "labPages": 3,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1342,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1167,
+          "mismatched": 84610,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.1342,
+          "mismatched": 97238,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30688430",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1193,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1193,
+          "mismatched": 86473,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0357,
+          "mismatched": 25906,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30690438",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1005,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1005,
+          "mismatched": 72874,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30692056",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1369,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1369,
+          "mismatched": 99189,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30692118",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.089,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.089,
+          "mismatched": 64495,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30693124",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1673,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1673,
+          "mismatched": 121245,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0119,
+          "mismatched": 8623,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30693351",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0677,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0677,
+          "mismatched": 49033,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30696412",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1193,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1193,
+          "mismatched": 86435,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.036,
+          "mismatched": 26068,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30699092",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1237,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1237,
+          "mismatched": 89682,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0341,
+          "mismatched": 24687,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30699174",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1014,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1014,
+          "mismatched": 73511,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30699223",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1012,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1012,
+          "mismatched": 73381,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30699663",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1682,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1682,
+          "mismatched": 121898,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30700387",
+      "status": "pass",
+      "labPages": 2,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1678,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.1678,
+          "mismatched": 121603,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0069,
+          "mismatched": 4983,
+          "compared": 724800
+        }
+      ]
+    },
+    {
+      "id": "30700417",
+      "status": "pass",
+      "labPages": 1,
+      "ourPages": 1,
+      "worstDiffRatio": 0.0877,
+      "pages": [
+        {
+          "page": 1,
+          "status": "pass",
+          "diffRatio": 0.0877,
+          "mismatched": 63535,
+          "compared": 724800
+        }
+      ]
+    }
+  ]
+}

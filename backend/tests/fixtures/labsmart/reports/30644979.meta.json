@@ -1,0 +1,16 @@
+{
+  "id": "30644979",
+  "slug": "30644979",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30644979",
+  "scrapedAt": "2026-10-22T18:04:13.903Z",
+  "bytes": 97262,
+  "textChars": 3050,
+  "pdftotext": true,
+  "patient": "Mr. Bhavani Prasad",
+  "reg": "6990",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    POSITIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

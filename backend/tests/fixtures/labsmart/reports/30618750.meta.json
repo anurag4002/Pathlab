@@ -1,0 +1,16 @@
+{
+  "id": "30618750",
+  "slug": "30618750",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30618750",
+  "scrapedAt": "2026-10-22T18:06:11.442Z",
+  "bytes": 95192,
+  "textChars": 2954,
+  "pdftotext": true,
+  "patient": "Mr. Abdul Salam",
+  "reg": "6968",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    NEGATIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

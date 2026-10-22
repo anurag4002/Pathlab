@@ -1,0 +1,15 @@
+{
+  "id": "30650669",
+  "slug": "30650669",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30650669",
+  "scrapedAt": "2026-10-22T18:03:49.489Z",
+  "bytes": 146464,
+  "textChars": 3890,
+  "pdftotext": true,
+  "patient": "Mrs. Prinshu Mishra",
+  "reg": "6995",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC"
+  ]
+}

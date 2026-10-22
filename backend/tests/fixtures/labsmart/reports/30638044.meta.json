@@ -1,0 +1,14 @@
+{
+  "id": "30638044",
+  "slug": "30638044",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30638044",
+  "scrapedAt": "2026-10-22T18:04:50.329Z",
+  "bytes": 103903,
+  "textChars": 3263,
+  "pdftotext": true,
+  "patient": "Mrs. Reshma Bano",
+  "reg": "6983",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

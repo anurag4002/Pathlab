@@ -1,0 +1,14 @@
+{
+  "id": "30647891",
+  "slug": "30647891",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30647891",
+  "scrapedAt": "2026-10-22T18:03:59.066Z",
+  "bytes": 105494,
+  "textChars": 2747,
+  "pdftotext": true,
+  "patient": "Mr. Tabaruk",
+  "reg": "6993",
+  "sampleTests": [
+    "PH                                                    7.413"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "30630530",
+  "slug": "30630530",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30630530",
+  "scrapedAt": "2026-10-22T18:05:29.166Z",
+  "bytes": 90612,
+  "textChars": 3159,
+  "pdftotext": true,
+  "patient": "Mrs. Mamta Singh",
+  "reg": "6976",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

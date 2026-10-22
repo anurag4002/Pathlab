@@ -1,0 +1,14 @@
+{
+  "id": "30618696",
+  "slug": "30618696",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30618696",
+  "scrapedAt": "2026-10-22T18:06:17.025Z",
+  "bytes": 88062,
+  "textChars": 3156,
+  "pdftotext": true,
+  "patient": "Mr. Sabar Ali",
+  "reg": "6967",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

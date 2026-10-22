@@ -1,0 +1,14 @@
+{
+  "id": "30675204",
+  "slug": "30675204",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30675204",
+  "scrapedAt": "2026-10-22T18:02:16.631Z",
+  "bytes": 94572,
+  "textChars": 3265,
+  "pdftotext": true,
+  "patient": "Mr. Lal bahadur",
+  "reg": "7013",
+  "sampleTests": [
+    "HIV (CARD TEST)"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "30627070",
+  "slug": "30627070",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30627070",
+  "scrapedAt": "2026-10-22T18:05:45.227Z",
+  "bytes": 163430,
+  "textChars": 5973,
+  "pdftotext": true,
+  "patient": "Mrs. Shugra Devi",
+  "reg": "6973",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.415"
+  ]
+}

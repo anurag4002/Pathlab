@@ -1,0 +1,179 @@
+                                                                                                                      Scan to download
+                                                                                         6984
+Mr. Om prakash
+                                                                    Registered on : 20/10/2026 08:54 PM
+Age / Sex     : 56 YRS / M
+                                                                    Collected on       : 20/10/2026 08:00 PM
+Referred by   : SHRI SHYAM POLYCLINIC AND HOSPITAL
+                                                                    Received on        : 20/10/2026 08:02 PM
+Reg. no.      : 6984
+                                                                    Reported on        : 20/10/2026 09:01 PM
+
+
+                                                      HAEMATOLOGY
+                                             COMPLETE BLOOD COUNT (CBC)
+TEST                                                 VALUE                        UNIT                  REFERENCE
+
+HEMOGLOBIN                                           15.9                         g/dl                  13 - 17
+TOTAL LEUKOCYTE COUNT                          H     18,000                       cumm                  4,800 - 10,800
+
+DIFFERENTIAL LEUCOCYTE COUNT
+           NEUTROPHILS                         H     81                           %                     40 - 80
+
+           LYMPHOCYTE                          L     15                           %                     20 - 40
+
+           EOSINOPHILS                               03                           %                     1-6
+           MONOCYTES                           L     01                           %                     2 - 10
+
+           BASOPHILS                                 00                           %                     <2
+PLATELET COUNT                                 L     1.27                         lakhs/cumm            1.5 - 4.1
+
+TOTAL RBC COUNT                                      4.96                         million/cumm          4.5 - 5.5
+HEMATOCRIT VALUE, HCT                                41.5                         %                     40 - 50
+MEAN CORPUSCULAR VOLUME, MCV                         83.7                         fL                    83 - 101
+MEAN CELL HAEMOGLOBIN, MCH                     H     32.1                         Pg                    27 - 32
+
+MEAN CELL HAEMOGLOBIN CON,                     H     38.3                         g/dl                  31.5 - 34.5
+MCHC
+
+MEAN PLATELET VOLUME, MPV                      H     12.9                         fL                    6.5 - 12
+
+R.D.W. - SD                                          39.4                         fL                    39 - 46
+R.D.W. - CV                                          13.7                         %                     11.6 - 14
+P-LCR                                          H     49.2                                               19.7 - 42.4
+
+P.D.W.                                         H     16.2                         fL                    9.6 - 15.2
+
+
+
+
+ Possible causes of abnormal parameters:
+                        High                                              Low
+
+  RBC, Hb, or           Dehydration, polycythemia, shock, chronic         Anemia, thalassemia, and other
+  HCT                   hypoxia                                           hemoglobinopathies
+  MCV                   Macrocytic anemia, liver disease                  Microcytic anemia
+  WBC                   Acute stress, infection, malignancies             Sepsis, marrow hypoplasia
+  Platelets             Risk of thrombosis                                Risk of bleeding
+
+TEST                                                 VALUE                        UNIT                  REFERENCE
+
+BLOOD GROUP & RH.
+     ABO                                             O
+     RH (ANTI -D)                                    POSITIVE
+
+                                             SEROLOGY & IMMUNOLOGY
+                                                          VIRAL MARKER
+TEST                                                 VALUE                        UNIT                  REFERENCE
+
+HIV (CARD TEST)
+      HIV - 1                                        NEGATIVE
+      HIV - 2                                        NEGATIVE
+HEPATITIS C VIRUS, HCV                                  NEGATIVE
+HBSAG                                                   NEGATIVE
+
+
+
+ HbsAg is the first serologic marker appearing in the serum 6-16 weeks following hepatitis B viral
+ infection. In typical HBV infection, HBsAg will be detected 2-4 weeks before the liver enzyme
+ levels (ALT) become abnormal and 3-5 weeks before the patient develops jaundice. In acute cases
+ HbsAg usually disappears 1-2 months after the onset of symptoms. Persistence of HbsAg for more
+ than 6 months indicates development of either a chronic carrier state or chronic liver disease. The
+ presence of HbsAg is frequently associated with infectivity. HbsAg when accompanied by
+ Hepatitis Be antigen and/or hepatitis B viral DNA almost always indicates infectivity.
+
+ Anti HCV card test interpretation
+ Reactive test result indicates presence of Hepatitis C virus infection. Active infection to be
+ confirmed by HCV RNA PCR test. It cannot differentiate between the stages of Hepatitis C viral
+ infection nor used to monitor the efficacy of treatment. Non-Reactive test result indicates
+ Hepatitis C virus infection is unlikely.
+
+ HIV Interpretation
+ A negative result implies that no Anti HIV-1 & HIV-2 antibodies have been detected in the sample
+ by this method. This means that either the patient has not been exposed to HIV-1 or HIV-2
+ infection or the sample has been tested during the “WINDOW PHASE” (before the development of
+ detectable levels of antibodies). A positive result suggests the possibilities of HIV-I and / or HIV-II
+ infection. However these results must be verified by a confirmatory test (IFA / WESTERN BLOT I-II)
+ before pronouncing the patient positive for HIV-1 and / or HIV-2 infection. All reactive samples
+ should be confirmed by using HIV Western Blot/PCR.
+
+                                                          BIOCHEMISTRY
+                                            BILIRUBIN TOTAL, DIRECT & INDIRECT
+TEST                                                    VALUE                        UNIT                 REFERENCE
+
+SERUM BILIRUBIN (TOTAL)                                 0.86                         mg/dl                0.2 - 1.2
+SERUM BILIRUBIN (DIRECT)                                0.12                         mg/dl                 0 - 0.3
+SERUM BILIRUBIN (INDIRECT)                              0.74                         mg/dl                 0.2 - 1
+
+TEST                                                    VALUE                        UNIT                 REFERENCE
+
+SERUM CREATININE                                        1.01                         mg/dl                0.72 - 1.43
+
+
+ Creatinine is a waste product produced by muscles from the breakdown of a compound called creatine. It is removed from the body
+ by the kidneys, which filter almost all of it from the blood and release it into the urine.
+ Creatine is part of the cycle that produces energy needed to contract muscles. Both creatine and creatinine are produced by the
+ body at a relatively constant rate. Since almost all creatinine is filtered from the blood by the kidneys and released into the urine,
+ blood levels are usually a good indicator of how well the kidneys are working.
+
+ Higher than normal level may be due to:
+ - Blockage in the urinary tract
+ - Kidney problems, such as kidney damage or failure, infection, or reduced blood flow
+ - Loss of body fluid (dehydration)
+ - Muscle problems, such as breakdown of muscle fibers
+ - Problems during pregnancy, such as seizures (eclampsia)), or high blood pressure caused by pregnancy (preeclampsia)
+
+ Lower than normal level may be due to:
+ - Myasthenia Gravis
+ - Muscular dystrophy.
+ Low serum creatinine values are rare. They almost always reflect low muscle mass.
+
+
+SERUM UREA                                              38.57                        mg/dl                 18 - 55
+
+SGPT (ALT)                                              35.11                        U/I                   13 - 40
+Physiological basis
+Intracellular enzyme involved in amino acid metabolism. Present in large concentrations in liver, kidney; in smaller amounts, in
+skeletal muscle and heart. Released with tissue damage, particularly liver injury.
+
+Interpretation
+Increased in: Acute viral hepatitis (ALT > AST), biliary tract obstruction (cholangitis, choledocholithiasis), alcoholic hepatitis and
+cirrhosis (AST > ALT), liver abscess, metastatic or primary liver cancer; nonalcoholic steatohepatitis; right heart failure, ischemia or
+hypoxia, injury to liver (“shock liver”), extensive trauma; drugs that cause cholestasis or hepatotoxicity.
+Decreased in: Pyridoxine (vitamin B6) deficiency.
+
+
+Comments
+ALT is the preferred enzyme for evaluation of liver injury.
+
+
+SGOT (AST)                                              30.68                       U/I                   0 - 37
+
+
+Physiological basis:
+Intracellular enzyme involved in amino acid metabolism. Present in large concentrations in liver, skeletal muscle, brain, red cells, and
+heart. Released into the bloodstream when tissue is damaged, especially in liver injury.
+
+Interpretation
+Increased in: Acute viral hepatitis (ALT > AST), biliary tract obstruction (cholangitis, choledocholithiasis), alcoholic hepatitis and
+cirrhosis (AST > ALT), liver abscess, metastatic or primary liver cancer; right heart failure, ischemic or hypoxic injury to liver (“shock
+liver”), extensive trauma. Drugs that cause cholestasis or hepatotoxicity.
+Decreased in: Pyridoxine (vitamin B6) deficiency
+
+
+Comments
+Test is not indicated for diagnosis of myocardial infarction.
+AST/ALT ratio >1 suggests cirrhosis in patients with hepatitis C
+
+
+RANDOM BLOOD SUGAR                                      124.56                      mg/dl                 70 - 140
+
+SGOT/SGPT                                               0.87
+  Method: Calculated
+
+                                                     ~~~ End of report ~~~
+
+
+
+                                                         Powered by
+

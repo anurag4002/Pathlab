@@ -1,0 +1,172 @@
+                                                                                            Scan to download
+                                                                     6999
+Mr. Jamal Ahmad
+                                                     Registered on : 21/10/2026 02:42 PM
+Age / Sex     : 59 YRS / M
+                                                     Collected on   : 21/10/2026 01:00 PM
+Referred by   : SHRI SHYAM POLYCLINIC AND HOSPITAL
+                                                     Received on    : 21/10/2026 01:30 PM
+Reg. no.      : 6999
+                                                     Reported on    : 21/10/2026 02:42 PM
+                                                  HAEMATOLOGY
+                                          COMPLETE BLOOD COUNT (CBC)
+TEST                                             VALUE               UNIT              REFERENCE
+
+HEMOGLOBIN                                       13.6                g/dl              13 - 17
+TOTAL LEUKOCYTE COUNT                       H    12,000                cumm            4,800 - 10,800
+
+DIFFERENTIAL LEUCOCYTE COUNT
+         NEUTROPHILS                             60                    %               40 - 80
+         LYMPHOCYTE                              33                    %               20 - 40
+         EOSINOPHILS                             05                    %               1-6
+         MONOCYTES                               02                    %               2 - 10
+         BASOPHILS                               00                    %               <2
+PLATELET COUNT                              L    1.00                  lakhs/cumm      1.5 - 4.1
+
+TOTAL RBC COUNT                             L    4.08                  million/cumm    4.5 - 5.5
+
+HEMATOCRIT VALUE, HCT                       L    35.5                  %               40 - 50
+
+MEAN CORPUSCULAR VOLUME, MCV                     87.0                  fL              83 - 101
+MEAN CELL HAEMOGLOBIN, MCH                  H    33.3                  Pg              27 - 32
+
+MEAN CELL HAEMOGLOBIN CON,                  H    38.3                  g/dl            31.5 - 34.5
+MCHC
+
+MEAN PLATELET VOLUME, MPV                   H    14.8                  fL              6.5 - 12
+
+R.D.W. - SD                                      41.1                  fL              39 - 46
+R.D.W. - CV                                      13.7                  %               11.6 - 14
+P-LCR                                       H    58.9                                  19.7 - 42.4
+
+P.D.W.                                      H    17.1                  fL              9.6 - 15.2
+
+
+
+
+ Possible causes of abnormal parameters:
+                     High                                        Low
+
+  RBC, Hb, or        Dehydration, polycythemia, shock, chronic   Anemia, thalassemia, and other
+  HCT                hypoxia                                     hemoglobinopathies
+  MCV                Macrocytic anemia, liver disease            Microcytic anemia
+  WBC                Acute stress, infection, malignancies       Sepsis, marrow hypoplasia
+  Platelets          Risk of thrombosis                          Risk of bleeding
+
+TEST                                             VALUE               UNIT              REFERENCE
+
+BLOOD GROUP & RH.
+     ABO                                         A
+     RH (ANTI -D)                                POSITIVE
+                                     SEROLOGY & IMMUNOLOGY
+                                             VIRAL MARKER
+TEST                                      VALUE                 UNIT            REFERENCE
+
+HIV (CARD TEST)
+      HIV - 1                             NEGATIVE
+      HIV - 2                             NEGATIVE
+HEPATITIS C VIRUS, HCV                    NEGATIVE
+HBSAG                                     NEGATIVE
+
+
+
+ HbsAg is the first serologic marker appearing in the serum 6-16 weeks following hepatitis B viral
+ infection. In typical HBV infection, HBsAg will be detected 2-4 weeks before the liver enzyme
+ levels (ALT) become abnormal and 3-5 weeks before the patient develops jaundice. In acute cases
+ HbsAg usually disappears 1-2 months after the onset of symptoms. Persistence of HbsAg for more
+ than 6 months indicates development of either a chronic carrier state or chronic liver disease. The
+ presence of HbsAg is frequently associated with infectivity. HbsAg when accompanied by
+ Hepatitis Be antigen and/or hepatitis B viral DNA almost always indicates infectivity.
+
+ Anti HCV card test interpretation
+ Reactive test result indicates presence of Hepatitis C virus infection. Active infection to be
+ confirmed by HCV RNA PCR test. It cannot differentiate between the stages of Hepatitis C viral
+ infection nor used to monitor the efficacy of treatment. Non-Reactive test result indicates
+ Hepatitis C virus infection is unlikely.
+
+ HIV Interpretation
+ A negative result implies that no Anti HIV-1 & HIV-2 antibodies have been detected in the sample
+ by this method. This means that either the patient has not been exposed to HIV-1 or HIV-2
+ infection or the sample has been tested during the “WINDOW PHASE” (before the development of
+ detectable levels of antibodies). A positive result suggests the possibilities of HIV-I and / or HIV-II
+ infection. However these results must be verified by a confirmatory test (IFA / WESTERN BLOT I-II)
+ before pronouncing the patient positive for HIV-1 and / or HIV-2 infection. All reactive samples
+ should be confirmed by using HIV Western Blot/PCR.
+                                                          BIOCHEMISTRY
+                                                   LIVER FUNCTION TEST (LFT)
+TEST                                                    VALUE                        UNIT                 REFERENCE
+
+SERUM BILIRUBIN (TOTAL)                           H     3.87                         mg/dl                0.2 - 1.2
+
+SERUM BILIRUBIN (DIRECT)                          H     0.54                         mg/dl                 0 - 0.3
+
+SERUM BILIRUBIN (INDIRECT)                        H     3.33                         mg/dl                 0.2 - 1
+
+SGOT (AST)                                        H     301.57                       U/I                   0 - 37
+
+SGPT (ALT)                                        H     235.45                       U/I                   13 - 40
+
+SGOT/SGPT                                               1.28
+   Method: Calculated
+
+SERUM ALKALINE PHOSPHATASE                        H     330.6                        U/I                   44 - 147
+
+SERUM PROTEIN                                     L     6.01                         g/dl                  6.4 - 8.3
+
+SERUM ALBUMIN                                     L     3.44                         g/dl                  3.5 - 5.2
+
+GLOBULIN                                                2.57                         g/dl                  1.8 - 3.6
+A/G RATIO                                               1.34                                               1.1 - 2.1
+
+
+
+ LFT Interpretation
+ Liver Function Blood Test gives an insight into your liver health and helps identify problems like
+ hepatitis, cirrhosis, and fatty liver disease, which may cause similar symptoms but require different
+ treatments to recover.
+
+ Test Significance
+ Besides diagnosing liver problems, LFT’s also monitor overall liver functioning. Monitoring helps
+ people with liver disease or taking medication, as it helps screen whether the treatment works fine
+ or requires adjustments. Moreover, Liver Function Tests help determine if someone is at risk of
+ developing liver diseases. Apart from assessing your chances, this test also checks the severity of
+ the liver damage to help the doctor plan and prescribe appropriate treatment.
+
+ Increased in: Acute or chronic hepatitis, cirrhosis, biliary tract obstruction, toxic hepatitis, neonatal
+ jaundice (neonatal hyperbilirubinemia), congenital liver enzyme abnormalities (Dubin-Johnson,
+ Rotor, Gilbert, Crigler-Najjar syndromes), fasting, hemolytic disorders. Hepatotoxic drugs.
+
+TEST                                                    VALUE                        UNIT                 REFERENCE
+
+SERUM CREATININE                                        1.40                         mg/dl                0.72 - 1.43
+
+
+ Creatinine is a waste product produced by muscles from the breakdown of a compound called creatine. It is removed from the body
+ by the kidneys, which filter almost all of it from the blood and release it into the urine.
+ Creatine is part of the cycle that produces energy needed to contract muscles. Both creatine and creatinine are produced by the
+ body at a relatively constant rate. Since almost all creatinine is filtered from the blood by the kidneys and released into the urine,
+ blood levels are usually a good indicator of how well the kidneys are working.
+
+ Higher than normal level may be due to:
+ - Blockage in the urinary tract
+ - Kidney problems, such as kidney damage or failure, infection, or reduced blood flow
+ - Loss of body fluid (dehydration)
+ - Muscle problems, such as breakdown of muscle fibers
+ - Problems during pregnancy, such as seizures (eclampsia)), or high blood pressure caused by pregnancy (preeclampsia)
+
+ Lower than normal level may be due to:
+ - Myasthenia Gravis
+ - Muscular dystrophy.
+ Low serum creatinine values are rare. They almost always reflect low muscle mass.
+
+
+SERUM UREA                                              48.96                        mg/dl                 18 - 55
+RANDOM BLOOD SUGAR   H    160.8              mg/dl   70 - 140
+
+
+                         ~~~ End of report ~~~
+
+
+
+                           Powered by
+

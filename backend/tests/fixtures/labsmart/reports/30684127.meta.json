@@ -1,0 +1,18 @@
+{
+  "id": "30684127",
+  "slug": "multi",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30684127",
+  "scrapedAt": "2026-10-22T18:01:10.780Z",
+  "bytes": 164182,
+  "textChars": 8375,
+  "pdftotext": true,
+  "patient": "Mrs. Shanti Prasad",
+  "reg": "7016",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "WIDAL TEST (SLIDE METHOD)",
+    "SGOT/SGPT                                        0.93",
+    "PH                                               7.248"
+  ]
+}

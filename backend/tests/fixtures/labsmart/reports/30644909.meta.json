@@ -1,0 +1,16 @@
+{
+  "id": "30644909",
+  "slug": "30644909",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30644909",
+  "scrapedAt": "2026-10-22T18:04:19.105Z",
+  "bytes": 100105,
+  "textChars": 3049,
+  "pdftotext": true,
+  "patient": "Mrs. Sunita Gupta",
+  "reg": "6989",
+  "sampleTests": [
+    "HIV (CARD TEST)",
+    "HEPATITIS C VIRUS, HCV                    POSITIVE",
+    "HBSAG                                     NEGATIVE"
+  ]
+}

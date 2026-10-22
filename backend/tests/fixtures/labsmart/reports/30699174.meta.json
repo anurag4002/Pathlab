@@ -1,0 +1,15 @@
+{
+  "id": "30699174",
+  "slug": "30699174",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30699174",
+  "scrapedAt": "2026-10-22T18:01:36.917Z",
+  "bytes": 146298,
+  "textChars": 3885,
+  "pdftotext": true,
+  "patient": "Mr. Sweetu Singh",
+  "reg": "7025",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC"
+  ]
+}

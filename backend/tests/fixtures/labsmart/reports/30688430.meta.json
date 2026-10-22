@@ -1,0 +1,16 @@
+{
+  "id": "30688430",
+  "slug": "cbc-kft",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30688430",
+  "scrapedAt": "2026-10-22T18:01:05.356Z",
+  "bytes": 158104,
+  "textChars": 5707,
+  "pdftotext": true,
+  "patient": "Mr. Chandra Sekhar Singh",
+  "reg": "7017",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "PH                                              7.154"
+  ]
+}

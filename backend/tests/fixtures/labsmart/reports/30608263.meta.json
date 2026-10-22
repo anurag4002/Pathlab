@@ -1,0 +1,15 @@
+{
+  "id": "30608263",
+  "slug": "30608263",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30608263",
+  "scrapedAt": "2026-10-22T18:07:12.096Z",
+  "bytes": 114564,
+  "textChars": 5131,
+  "pdftotext": true,
+  "patient": "Mr. Jagat Ram",
+  "reg": "6957",
+  "sampleTests": [
+    "URINE ROUTINE EXAMINATION",
+    "PH                                                    7.245"
+  ]
+}

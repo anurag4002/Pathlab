@@ -1,0 +1,15 @@
+{
+  "id": "30650977",
+  "slug": "30650977",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30650977",
+  "scrapedAt": "2026-10-22T18:03:44.276Z",
+  "bytes": 110957,
+  "textChars": 3346,
+  "pdftotext": true,
+  "patient": "Mr. Ankit Yadav",
+  "reg": "6996",
+  "sampleTests": [
+    "WIDAL TEST (SLIDE METHOD)",
+    "SGOT/SGPT                                   0.92"
+  ]
+}

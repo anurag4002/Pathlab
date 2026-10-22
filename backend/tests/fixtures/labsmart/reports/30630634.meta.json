@@ -1,0 +1,16 @@
+{
+  "id": "30630634",
+  "slug": "30630634",
+  "url": "https://app.labsmartlis.com/22707599/lab_reports/30630634",
+  "scrapedAt": "2026-10-22T18:05:23.756Z",
+  "bytes": 154590,
+  "textChars": 6121,
+  "pdftotext": true,
+  "patient": "",
+  "reg": "6977",
+  "sampleTests": [
+    "DIFFERENTIAL LEUCOCYTE COUNT",
+    "MCHC",
+    "HIV (CARD TEST)"
+  ]
+}
