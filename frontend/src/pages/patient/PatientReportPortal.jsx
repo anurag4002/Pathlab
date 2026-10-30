@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   FileText,
   Download,
@@ -16,7 +16,8 @@ import {
   ClipboardList,
   Plus,
   CalendarPlus,
-  CheckCircle
+  CheckCircle,
+  Phone
 } from 'lucide-react';
 import {
   requestOtp,
@@ -32,6 +33,7 @@ import {
 } from '../../services/patientPortalService';
 import formatDate from '../../utils/formatDate';
 import formatCurrency from '../../utils/formatCurrency';
+import { PublicHeader, PublicFooter, LAB_PHONE_LINK } from '../../components/public/PublicLayout';
 import './PatientPortal.css';
 
 // The patient contract may expose the existing LabProfile.googleReviewLink
@@ -71,6 +73,10 @@ const INQUIRY_STATUS_STYLE = {
 };
 
 const PatientReportPortal = () => {
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab') === 'book' ? 'book' : 'reports';
+  const requestedTest = searchParams.get('test');
+  const requestedPackage = searchParams.get('package');
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 2.5: Register, 3: Home
   const [phone, setPhone] = useState('');
   const [birthYear, setBirthYear] = useState('');
@@ -87,7 +93,7 @@ const PatientReportPortal = () => {
   const [regForm, setRegForm] = useState({ name: '', age: '', gender: '', address: '' });
 
   // Home tabs
-  const [tab, setTab] = useState('reports'); // reports | book | mine
+  const [tab, setTab] = useState(requestedTab); // reports | book | mine
   const [reports, setReports] = useState([]);
   const [fetchingReports, setFetchingReports] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -149,17 +155,26 @@ const PatientReportPortal = () => {
     }
   };
 
-  const loadCatalog = async () => {
+  const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
     try {
       const res = await getBookingCatalog();
-      if (res.success) setCatalog(res.data || { tests: [], packages: [] });
+      if (res.success) {
+        const next = res.data || { tests: [], packages: [] };
+        setCatalog(next);
+        const item = requestedPackage ? (next.packages || []).find(item => String(item._id) === requestedPackage)
+          : requestedTest ? (next.tests || []).find(item => String(item._id) === requestedTest) : null;
+        if (item) {
+          const key = `${requestedPackage ? 'pkg' : 'test'}-${item._id}`;
+          setSelected(previous => ({ ...previous, [key]: { kind: requestedPackage ? 'Package' : 'Test', refId: item._id, name: item.name, price: item.price } }));
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load bookable tests.');
     } finally {
       setCatalogLoading(false);
     }
-  };
+  }, [requestedPackage, requestedTest]);
 
   const openTab = (t) => {
     setTab(t);
@@ -181,13 +196,24 @@ const PatientReportPortal = () => {
     }
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    setTab(requestedTab);
+    if (requestedTab === 'book' && sessionStorage.getItem('ppl_patient_token')) loadCatalog();
+  }, [requestedTab, loadCatalog]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
+
   const handleBirthYearLogin = async (event) => {
     event.preventDefault(); setLoading(true); setError('');
     try {
       const response = await loginWithBirthYear(phone, birthYear);
       if (response.success) {
-        setProfiles(response.data.patients || []); setStep(3); setTab('reports');
+        setProfiles(response.data.patients || []); setStep(3); setTab(requestedTab);
         loadReports(); loadInquiries();
+        if (requestedTab === 'book') loadCatalog();
       }
     } catch (error) { setError(error.response?.data?.message || 'Unable to log in'); }
     finally { setLoading(false); }
@@ -268,9 +294,10 @@ const PatientReportPortal = () => {
         setIsNewNumber(!!res.data?.isNew || list.length === 0);
         if (!res.data?.isNew && list.length > 0) {
           setStep(3);
-          setTab('reports');
+          setTab(requestedTab);
           loadReports();
           loadInquiries();
+          if (requestedTab === 'book') loadCatalog();
         } else {
           // New number (or no profile yet): create the patient profile first.
           setRegForm({ name: '', age: '', gender: '', address: '' });
@@ -312,9 +339,10 @@ const PatientReportPortal = () => {
         setProfiles([res.data]);
         setBookFor(res.data?.name || '');
         setStep(3);
-        setTab('reports');
+        setTab(requestedTab);
         loadReports();
         loadInquiries();
+        if (requestedTab === 'book') loadCatalog();
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Could not create profile. Please try again.');
@@ -392,6 +420,7 @@ const PatientReportPortal = () => {
     patientLogout();
     setStep(1);
     setPhone('');
+    setBirthYear('');
     setDevOtp('');
     setOtp(['', '', '', '', '', '']);
     setReports([]);
@@ -401,7 +430,7 @@ const PatientReportPortal = () => {
     setGoogleReviewUrl('');
     setSelected({});
     setInquiries([]);
-    setTab('reports');
+    setTab(requestedTab);
     setCatalog({ tests: [], packages: [] });
     setBookSearch('');
     setBookFor('');
@@ -413,28 +442,33 @@ const PatientReportPortal = () => {
   const showGoogleReview = isPatientReportReviewEligible(selectedReport);
 
   return (
-    <div className="patient-portal-container">
+    <div className="public-site patient-public-page">
+      <PublicHeader active={requestedTab === 'book' ? 'book' : 'reports'} />
+      <main id="public-main" className={`patient-portal-container ${step === 3 ? 'patient-workspace' : 'patient-sign-in'}`}>
       <div className="patient-portal-nav">
-        <Link to="/" className="patient-back-link">
-          <ArrowLeft size={16} />
-          <span>Back to Pure Path Lab</span>
-        </Link>
+        <Link to="/" className="patient-back-link"><ArrowLeft size={14} /><span>Home</span></Link>
+        <span>/</span><span>{requestedTab === 'book' ? 'Book a test' : 'My reports'}</span>
       </div>
-
-      <div className="patient-portal-header">
-        <img src="/logo.jpg" alt="Pure Path Lab" className="patient-portal-logo" />
-        <h1 className="patient-portal-title">PURE PATH LAB</h1>
-        <p className="patient-portal-subtitle">Patient Diagnostic Report Portal</p>
-      </div>
+      {step !== 3 ? <section className="patient-intro">
+        <span className="public-eyebrow">YOUR PATIENT SPACE</span>
+        <h1>{requestedTab === 'book' ? <>Your next test,<br />{' '}<span>a little easier.</span></> : <>Your health records.<br />{' '}<span>Right here for you.</span></>}</h1>
+        <p>Sign in with the mobile number you gave at Pure Path Lab. Your reports and bookings will be waiting in one simple place.</p>
+        <ul>
+          <li><span><FileText size={19} /></span><div><strong>Know when your report is ready</strong><p>Check its status without a trip to the lab.</p></div></li>
+          <li><span><Download size={19} /></span><div><strong>A PDF you can keep or share</strong><p>Download your completed reports to your phone.</p></div></li>
+          <li><span><CalendarPlus size={19} /></span><div><strong>A little care for the whole family</strong><p>Request tests for yourself or a family member.</p></div></li>
+        </ul>
+        <div className="patient-intro-help"><Phone size={17} /><span>Need a hand signing in? <a href={LAB_PHONE_LINK}>Talk to the lab</a></span></div>
+      </section> : <div className="patient-workspace-heading"><span className="public-eyebrow">WELCOME TO PURE PATH LAB</span><h1>Your care, in one place.</h1><p>Keep up with your reports, plan a test, or check a booking.</p></div>}
 
       {step === 1 && (
         <div className="patient-card">
           <div className="patient-card-icon-header">
             <FileText size={24} />
           </div>
-          <h2 className="patient-step-title">View Your Report</h2>
+          <h2 className="patient-step-title">Sign in to your patient space</h2>
           <p className="patient-step-desc">
-            Enter your registered mobile number and birth year to view your reports.
+            Enter your registered mobile number and birth year. New to the lab? Use the mobile OTP option below.
           </p>
 
           {error && (
@@ -452,25 +486,27 @@ const PatientReportPortal = () => {
                 <input
                   id="patient-phone"
                   type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  pattern="[0-9]{10}"
                   className="patient-phone-input"
                   placeholder="9876543210"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   maxLength={10}
                   required
-                  autoFocus
                 />
               </div>
             </div>
 
             <div className="patient-form-group">
               <label htmlFor="patient-birth-year" className="patient-form-label">Birth Year</label>
-              <input id="patient-birth-year" className="patient-phone-input" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="e.g. 1990" value={birthYear} onChange={event => setBirthYear(event.target.value.replace(/\D/g, ''))} required />
+              <input id="patient-birth-year" autoComplete="bday-year" className="patient-phone-input" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="e.g. 1990" value={birthYear} onChange={event => setBirthYear(event.target.value.replace(/\D/g, ''))} required />
             </div>
             <button type="submit" className="patient-btn" disabled={loading}>
-              {loading ? 'Logging in...' : 'View reports'}
+              {loading ? 'Signing in…' : requestedTab === 'book' ? 'Continue to booking' : 'View my reports'}
             </button>
-            <button type="button" className="patient-link-btn" onClick={handleRequestOtp} disabled={loading}>Use mobile OTP / New patient</button>
+            <button type="button" className="patient-link-btn" onClick={handleRequestOtp} disabled={loading}>Use mobile OTP / Register as a new patient</button>
           </form>
 
           <div className="patient-security-note">
@@ -526,6 +562,7 @@ const PatientReportPortal = () => {
                 <input
                   key={idx}
                   id={`otp-input-${idx}`}
+                  aria-label={`OTP digit ${idx + 1}`}
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
@@ -786,6 +823,7 @@ const PatientReportPortal = () => {
                   type="text"
                   className="patient-text-input"
                   placeholder="Search tests or packages…"
+                  aria-label="Search bookable tests and packages"
                   value={bookSearch}
                   onChange={(e) => setBookSearch(e.target.value)}
                 />
@@ -797,6 +835,7 @@ const PatientReportPortal = () => {
                 </div>
               ) : (
                 <form onSubmit={handleBook}>
+                  <div className="patient-catalog-list" role="region" aria-label="Available tests and packages" tabIndex={0}>
                   {filteredCatalog.packages.length > 0 && (
                     <>
                       <h4 className="patient-book-group">Health Packages</h4>
@@ -838,6 +877,7 @@ const PatientReportPortal = () => {
                     })
                   )}
 
+                  </div>
                   <div className="patient-book-foot">
                     <div className="patient-form-row">
                       <div className="patient-form-group">
@@ -949,6 +989,8 @@ const PatientReportPortal = () => {
       )}
 
       {/* Report Quick View Modal */}
+      </main>
+      <PublicFooter />
       {selectedReport && (
         <div className="patient-modal-backdrop" onClick={() => setSelectedReport(null)}>
           <div className="patient-modal-content" onClick={(e) => e.stopPropagation()}>

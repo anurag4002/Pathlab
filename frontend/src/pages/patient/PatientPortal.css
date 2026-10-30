@@ -30,7 +30,7 @@
 }
 
 .patient-back-link:hover {
-  color: #2563eb;
+  color: #116a70;
 }
 
 .patient-portal-header {
@@ -50,7 +50,7 @@
 .patient-portal-title {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #1e3a8a;
+  color: #193b45;
   letter-spacing: -0.02em;
   margin: 0 0 0.25rem 0;
 }
@@ -81,8 +81,8 @@
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background-color: #eff6ff;
-  color: #2563eb;
+  background-color: #eff7f4;
+  color: #116a70;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,8 +147,8 @@
 }
 
 .patient-input-prefix:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #116a70;
+  box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
 .patient-phone-flag {
@@ -171,7 +171,7 @@
 }
 
 .patient-btn {
-  background-color: #2563eb;
+  background-color: #116a70;
   color: #ffffff;
   border: none;
   padding: 0.8125rem 1.25rem;
@@ -184,7 +184,7 @@
 }
 
 .patient-btn:hover:not(:disabled) {
-  background-color: #1d4ed8;
+  background-color: #0a5057;
 }
 
 .patient-btn:disabled {
@@ -224,8 +224,8 @@
 }
 
 .otp-digit-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #116a70;
+  box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
 .patient-resend-box {
@@ -248,7 +248,7 @@
 .patient-link-btn {
   background: none;
   border: none;
-  color: #2563eb;
+  color: #116a70;
   font-weight: 600;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -419,9 +419,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  background-color: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  background-color: #eff7f4;
+  color: #116a70;
+  border: 1px solid #cee3dd;
   padding: 0.5rem 0.875rem;
   border-radius: 6px;
   font-size: 0.8125rem;
@@ -431,7 +431,7 @@
 }
 
 .patient-view-btn:hover {
-  background-color: #dbeafe;
+  background-color: #e2efea;
 }
 
 .patient-download-btn {
@@ -544,7 +544,7 @@
 .section-subtitle {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #193b45;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   margin: 0 0 0.6rem 0;
@@ -571,14 +571,14 @@
 }
 
 .highlight-value {
-  color: #2563eb;
+  color: #116a70;
   font-weight: 700;
 }
 
 .findings-text-box,
 .impression-text-box {
   background-color: #f8fafc;
-  border-left: 3px solid #2563eb;
+  border-left: 3px solid #116a70;
   padding: 0.875rem;
   font-size: 0.875rem;
   color: #334155;
@@ -611,16 +611,16 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.875rem 1rem;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e2efea;
   border-radius: 8px;
-  background-color: #eff6ff;
+  background-color: #eff7f4;
 }
 
 .patient-google-review-copy {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  color: #1e3a8a;
+  color: #193b45;
   font-size: 0.8125rem;
 }
 
@@ -636,7 +636,7 @@
   flex-wrap: wrap;
   padding: 0.55rem 0.8rem;
   border-radius: 6px;
-  background-color: #2563eb;
+  background-color: #116a70;
   color: #ffffff;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -645,7 +645,7 @@
 }
 
 .patient-google-review-link:hover {
-  background-color: #1d4ed8;
+  background-color: #0a5057;
 }
 
 .patient-google-review-link:focus-visible {
@@ -759,8 +759,8 @@
 }
 
 .patient-tab.active {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #116a70;
+  border-color: #116a70;
   color: #fff;
 }
 
@@ -775,7 +775,7 @@
 
 .patient-tab.active .patient-tab-count {
   background: #fff;
-  color: #2563eb;
+  color: #116a70;
 }
 
 .patient-alert-success {
@@ -792,7 +792,7 @@
 }
 
 .patient-new-hint {
-  color: #1d4ed8;
+  color: #0a5057;
   font-weight: 600;
 }
 
@@ -807,8 +807,8 @@
 
 .patient-text-input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #116a70;
+  box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
 .patient-form-row {
@@ -834,8 +834,8 @@
 }
 
 .patient-book-note {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #eff7f4;
+  border: 1px solid #cee3dd;
   color: #1e40af;
   border-radius: 8px;
   padding: 10px 12px;
@@ -867,14 +867,14 @@
 }
 
 .patient-select-row.selected {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: #116a70;
+  background: #eff7f4;
 }
 
 .patient-select-row input {
   width: 16px;
   height: 16px;
-  accent-color: #2563eb;
+  accent-color: #116a70;
   flex-shrink: 0;
 }
 
@@ -939,4 +939,114 @@
   font-size: 1.25rem;
   letter-spacing: 0.3em;
   font-variant-numeric: tabular-nums;
+}
+/* Patient-facing layout shares the public site's visual language. */
+.patient-public-page { display: flex; flex-direction: column; background: #f3f8f7; }
+.patient-public-page .patient-portal-container { width: min(1080px, calc(100% - 64px)); margin: 0 auto; min-height: 0; padding: 28px 0 76px; background: transparent; align-items: stretch; flex: 1; }
+.patient-public-page .patient-portal-nav { grid-column: 1 / -1; max-width: none; margin-bottom: 38px; gap: 10px; color: #8d9e9f; font-size: 11px; }
+.patient-public-page .patient-back-link { font-size: 11px; color: #6f8789; gap: 5px; }
+.patient-public-page .patient-sign-in { display: grid; grid-template-columns: 1fr 1fr; gap: 0 92px; align-items: start; padding-bottom: 85px; }
+.patient-intro { padding-top: 8px; }
+.patient-intro h1 { font-size: 39px; line-height: 1.18; letter-spacing: -1.4px; font-weight: 700; margin: 16px 0 19px; }
+.patient-intro h1 > span { color: var(--public-brand); }
+.patient-intro > p { color: #6f8388; font-size: 14px; line-height: 1.9; max-width: 410px; }
+.patient-intro > ul { display: grid; gap: 22px; margin: 30px 0; }
+.patient-intro li { display: flex; align-items: flex-start; gap: 13px; }
+.patient-intro li > span { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px; background: #e8f2ec; border-radius: 9px; color: #4f8a79; margin-top: 1px; }
+.patient-intro li strong { font-size: 13px; font-weight: 600; }
+.patient-intro li p { color: #829195; font-size: 11px; margin-top: 3px; }
+.patient-intro-help { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #849491; padding-top: 22px; border-top: 1px solid #dfe9e5; margin-top: 30px; }
+.patient-intro-help svg { color: #58897b; flex-shrink: 0; }
+.patient-intro-help a { color: var(--public-brand); text-decoration: underline; text-underline-offset: 3px; }
+.patient-public-page .patient-card { max-width: none; border: 1px solid #e1e9e7; box-shadow: 0 8px 32px -22px #203d3b40; padding: 32px; border-radius: 12px; align-self: start; min-width: 0; }
+.patient-public-page .patient-card-icon-header { background: #eff7f3; color: #438979; margin: 0 0 20px; width: 43px; height: 43px; }
+.patient-public-page .patient-step-title { font-size: 21px; letter-spacing: -.5px; margin-bottom: 9px; line-height: 1.4; }
+.patient-public-page .patient-step-desc { text-align: left; font-size: 12px; color: #7b8b90; line-height: 1.9; margin-bottom: 23px; }
+.patient-public-page .patient-form-label { font-size: 12px; font-weight: 550; color: #425f66; }
+.patient-public-page .patient-form { gap: 19px; }
+.patient-public-page .patient-input-prefix { border-color: #dce6e3; border-radius: 6px; }
+.patient-public-page .patient-phone-flag { background: #f6f9f7; border-color: #e0e8e5; font-size: 13px; font-weight: 500; padding: 13px; }
+.patient-public-page .patient-phone-input, .patient-public-page .patient-text-input { font-size: 14px; letter-spacing: .2px; color: #243f47; width: 100%; min-width: 0; padding: 13px; border-radius: 6px; }
+.patient-public-page .patient-form-group > .patient-phone-input { border: 1px solid #dce6e3; }
+.patient-public-page .patient-text-input { border-color: #dce6e3; background: #fff; }
+.patient-public-page .patient-btn { padding: 13px 16px; min-height: 46px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+.patient-public-page .patient-link-btn { color: var(--public-brand); font-size: 11px; line-height: 1.7; }
+.patient-public-page .patient-security-note { font-size: 10px; line-height: 1.7; color: #8b9b9a; padding-top: 17px; margin-top: 22px; border-top: 1px solid #edf1ef; }
+.patient-public-page .otp-digit-container { justify-content: space-between; gap: 8px; }
+.patient-public-page .otp-digit-input { width: min(44px, 13%); min-width: 0; border-color: #dce6e3; border-radius: 6px; }
+.patient-workspace-heading { margin: 0 0 27px; }
+.patient-workspace-heading h1 { font-size: 33px; line-height: 1.3; font-weight: 700; letter-spacing: -1px; }
+.patient-workspace-heading > p { font-size: 13px; color: #7c8d91; margin-top: 8px; }
+.patient-public-page .patient-portal-topbar { border-bottom-color: #e9efec; padding-bottom: 22px; margin-bottom: 24px; }
+.patient-public-page .patient-welcome-text { font-size: 19px; font-weight: 600; letter-spacing: -.3px; }
+.patient-public-page .patient-phone-badge { color: #829492; font-size: 11px; margin-top: 6px; }
+.patient-public-page .patient-logout-btn { font-size: 11px; border-color: #dce7e2; background: white; color: #5b7a73; padding: 8px 13px; }
+.patient-public-page .patient-tabs { gap: 6px; background: #f4f8f5; border-radius: 8px; border: 1px solid #e6ede8; padding: 5px; margin-bottom: 27px; }
+.patient-public-page .patient-tab { flex: 1; border: 1px solid transparent; border-radius: 5px; padding: 11px 13px; color: #7b8c87; font-size: 12px; justify-content: center; }
+.patient-public-page .patient-tab.active { background: white; border-color: #dfe9e2; color: var(--public-brand); box-shadow: 0 2px 4px #153a2510; }
+.patient-public-page .patient-reports-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.patient-public-page .patient-report-card { padding: 22px; border-color: #e2eae5; display: flex; flex-direction: column; align-items: stretch; gap: 20px; border-radius: 9px; }
+.patient-public-page .patient-report-name { font-size: 15px; font-weight: 600; line-height: 1.5; }
+.patient-public-page .patient-report-header-line { flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+.patient-public-page .patient-report-meta-grid { gap: 9px 12px; }
+.patient-public-page .meta-item { font-size: 10px; min-width: 0; align-items: flex-start; overflow-wrap: anywhere; }
+.patient-public-page .meta-item svg { margin-top: 2px; }
+.patient-public-page .patient-report-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid #eef2ef; padding-top: 15px; margin-top: auto; }
+.patient-public-page .patient-view-btn, .patient-public-page .patient-download-btn { font-size: 11px; padding: 9px 13px; border-radius: 5px; }
+.patient-public-page .patient-view-btn { background: white; color: #47776c; border-color: #dbe8df; }
+.patient-public-page .patient-download-btn { background: var(--public-brand); }
+.patient-public-page .patient-report-pending-note { font-size: 11px; color: #8c9a96; max-width: none; }
+.patient-public-page .patient-catalog-list { max-height: 430px; overflow-y: auto; padding: 0 12px 0 0; scrollbar-color: #c2d6cd #f4f8f5; scrollbar-width: thin; }
+.patient-public-page .patient-book-note { font-size: 12px; color: #728781; line-height: 1.9; margin-bottom: 20px; }
+.patient-public-page .patient-book-note > strong { display: block; color: #4e7366; font-weight: 550; }
+.patient-public-page .patient-book-group { font-size: 12px; color: #466a5e; margin-block: 20px 12px; }
+.patient-public-page .patient-select-row { padding: 15px; font-size: 13px; border-color: #e3ebe5; margin-bottom: 9px; }
+.patient-public-page .patient-select-row.selected { border-color: #86b9a0; background: #f0f8f2; }
+.patient-public-page .patient-select-row input { accent-color: var(--public-brand); }
+.patient-public-page .patient-book-foot { background: #f7faf7; border: 1px solid #e3ece5; padding: 23px; border-radius: 8px; margin-top: 25px; gap: 17px; }
+.patient-public-page .patient-book-total { font-size: 12px; padding-block: 6px; gap: 10px; }
+.patient-public-page .patient-book-total strong { color: #376857; font-size: 14px; }
+.patient-public-page .patient-empty-state { font-size: 13px; padding: 40px 22px; }
+.patient-public-page .patient-empty-state svg { color: #8ea89d; }
+.patient-public-page .patient-modal-backdrop { z-index: 100; }
+.patient-public-page .patient-modal-body { font-size: 13px; }
+@media (max-width: 950px) {
+  .patient-public-page .patient-sign-in { gap: 0 44px; }
+  .patient-intro h1 { font-size: 33px; }
+  .patient-public-page .patient-card { padding: 27px; }
+}
+@media (max-width: 760px) {
+  .patient-public-page .patient-portal-container { width: calc(100% - 36px); padding-top: 22px; padding-bottom: 45px; }
+  .patient-public-page .patient-portal-nav { margin-bottom: 24px; }
+  .patient-public-page .patient-sign-in { grid-template-columns: 1fr; gap: 0; }
+  .patient-intro { padding-top: 0; margin-bottom: 27px; }
+  .patient-intro h1 { font-size: 32px; letter-spacing: -1px; margin-top: 11px; }
+  .patient-intro > p { font-size: 13px; max-width: 560px; }
+  .patient-intro > ul, .patient-intro-help { display: none; }
+  .patient-intro h1 > br { display: none; }
+  .patient-public-page .patient-card { padding: 25px; }
+  .patient-public-page .patient-step-title { font-size: 20px; }
+  .patient-public-page .patient-reports-list { grid-template-columns: 1fr; }
+  .patient-public-page .patient-tab { font-size: 11px; padding: 10px 7px; gap: 6px; }
+  .patient-public-page .patient-tabs { gap: 2px; }
+  .patient-public-page .patient-select-row { padding: 13px 10px; font-size: 12px; gap: 8px; }
+  .patient-public-page .patient-book-foot { padding: 17px; }
+  .patient-workspace-heading h1 { font-size: 28px; }
+}
+@media (max-width: 390px) {
+  .patient-public-page .patient-tab > svg { display: none; }
+  .patient-public-page .patient-form-row { grid-template-columns: 1fr; }
+  .patient-public-page .patient-card { padding: 20px; }
+  .patient-public-page .patient-step-title { font-size: 18px; }
+}
+
+.patient-public-page .patient-step-desc, .patient-public-page .patient-form-label, .patient-intro li p { font-size: 13px; color: #64757c; }
+.patient-public-page .patient-link-btn { min-height: 44px; font-size: 12px; }
+.patient-public-page .patient-security-note, .patient-intro-help, .patient-public-page .patient-phone-badge, .patient-public-page .meta-item { font-size: 12px; color: #64757c; }
+.patient-public-page .patient-view-btn, .patient-public-page .patient-download-btn { min-height: 44px; font-size: 12px; }
+.patient-public-page .patient-logout-btn { min-height: 44px; font-size: 12px; }
+.patient-public-page .patient-report-pending-note, .patient-workspace-heading > p, .patient-public-page .patient-book-note { font-size: 13px; color: #64757c; }
+
+@media (max-width: 760px) {
+  .patient-public-page .patient-text-input, .patient-public-page .patient-phone-input { font-size: 16px; }
 }
