@@ -1,0 +1,20 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: "127.0.0.1",
+    port: 5178,
+    strictPort: true,
+    proxy: {
+      "/hub-api": {
+        target: "http://127.0.0.1:4318",
+        rewrite: (path) => path.replace(/^\/hub-api/, "/api"),
+      },
+      "/api": "http://127.0.0.1:4118",
+      "/pathlab": "http://127.0.0.1:4118",
+      "/uploads": "http://127.0.0.1:4118",
+      "/logo.jpg": "http://127.0.0.1:4118",
+    },
+  },
+});

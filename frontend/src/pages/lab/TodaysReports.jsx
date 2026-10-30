@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import useClientPagination from '../../hooks/useClientPagination';
 import {
   getTodaysReports,
@@ -919,7 +919,7 @@ const TodaysReports = () => {
               pg.reset();
               pgPending.reset();
             }}
-            trailing={<span>Reports for today · <a href="/lab/search">Search</a></span>}
+            trailing={<span>Reports for today · <Link to="/lab/search">Search</Link></span>}
             values={{ status: statusFilter || 'All', sort: sortOrder, tab, dept, search }}
             onChange={(key, value) => {
               if (key === 'status') { setStatusFilter(value === 'All' ? '' : value); pg.reset(); }
@@ -1152,7 +1152,7 @@ const TodaysReports = () => {
             </tbody>
           </table>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-            Retry from the report detail (Enter results → Delivery) or the <a href="/settings/jobs">job queue</a>.
+            Retry from the report detail (Enter results → Delivery) or the <Link to="/settings/jobs">job queue</Link>.
           </p>
         </div>
       )}

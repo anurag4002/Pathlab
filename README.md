@@ -1,5 +1,7 @@
 # 🧪 Pure Path Lab
 
+**Unified deployment:** this repository also includes the restaurant/hotel/legal Business Hub. Run `npm run build` at the repository root to package both for one Vercel project. Path Lab remains at `/pathlab/` with its own existing login; Hub runs at `/` with separate authentication. See [the deployment guide](docs/UNIFIED-DEPLOYMENT.md). For the original standalone Lab build, use `npm run build:pathlab`.
+
 > 🏥 A modern and professional Laboratory Management System for managing patients, diagnostic cases, billing, reports, and laboratory operations from a single platform.
 
 Pure Path Lab is a full-stack pathology and diagnostic laboratory management application designed to simplify day-to-day lab operations while providing a clean and intuitive experience for administrators, laboratory staff, and patients.

@@ -1,39 +1,42 @@
 {
   "version": 2,
-  "framework": "vite",
-  "installCommand": "npm install && npm install --prefix frontend && npm install --prefix backend",
-  "buildCommand": "npm run build --prefix frontend",
-  "outputDirectory": "frontend/dist",
+  "framework": null,
+  "installCommand": "npm ci && npm ci --prefix frontend && npm ci --prefix backend && npm ci --prefix business-portal",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
     "api/index.js": {
-      "memory": 1024,
       "maxDuration": 30,
       "includeFiles": "backend/{src/assets/document-formats,node_modules/{pdfkit,fontkit,png-js,brotli}}/**"
-    }
+    },
+    "api/hub.js": { "maxDuration": 30 }
   },
-  "headers": [
+  "routes": [
+    { "src": "/hub-api(?:/(.*))?", "dest": "/api/hub.js" },
+    { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/uploads/(.*)", "dest": "/api/index.js" },
     {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "src": "/r/(.*)",
+      "status": 308,
+      "headers": { "Location": "/pathlab/r/$1" }
     },
     {
-      "source": "/uploads/(.*)",
-      "destination": "/api/index.js"
+      "src": "/patient/report",
+      "status": 308,
+      "headers": { "Location": "/pathlab/patient/report" }
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+      "src": "/reports",
+      "status": 308,
+      "headers": { "Location": "/pathlab/reports" }
+    },
+    {
+      "src": "/(?:pathlab/)?assets/(.*)",
+      "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+      "continue": true
+    },
+    { "handle": "filesystem" },
+    { "src": "/pathlab(?:/.*)?", "dest": "/pathlab/index.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

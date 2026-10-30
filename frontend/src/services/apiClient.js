@@ -46,7 +46,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('ppl_token');
       localStorage.removeItem('ppl_user');
       if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+        window.location.href = `${import.meta.env.BASE_URL}login`;
       }
     }
     return Promise.reject(error);

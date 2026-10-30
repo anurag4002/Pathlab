@@ -23,3 +23,4 @@ yarn-error.log*
 /output/document-format-editor.png
 testsprite_tests/tmp/
 testsprite_tests/tmp/config.json
+.vercel-unified/

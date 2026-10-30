@@ -16,6 +16,8 @@ const proxy = {
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Standalone Lab stays at /. The unified build explicitly selects /pathlab/.
+  base: process.env.PATHLAB_BASE_PATH || '/',
   plugins: [react(), {
     name: 'shared-formula-runtime',
     apply: 'serve',
