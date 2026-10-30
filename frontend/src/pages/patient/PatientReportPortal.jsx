@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   FileText,
@@ -11,13 +11,18 @@ import {
   Clock,
   User,
   Calendar,
-  Building,
   ExternalLink,
   ClipboardList,
   Plus,
   CalendarPlus,
   CheckCircle,
-  Phone
+  Phone,
+  ArrowRight,
+  MessageSquare,
+  ShieldCheck,
+  Search,
+  RefreshCw,
+  ChevronRight
 } from 'lucide-react';
 import {
   requestOtp,
@@ -80,6 +85,7 @@ const PatientReportPortal = () => {
   const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 2.5: Register, 3: Home
   const [phone, setPhone] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [loginMethod, setLoginMethod] = useState('birthYear');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,6 +106,41 @@ const PatientReportPortal = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
   const [pdfNotice, setPdfNotice] = useState('');
+  const [downloadError, setDownloadError] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [reportSearch, setReportSearch] = useState('');
+  const [reportFilter, setReportFilter] = useState('all');
+  const [reportPatient, setReportPatient] = useState('all');
+  const reportDialogRef = useRef(null);
+
+  const readyReports = reports.filter(report => report.downloadable !== false).length;
+  const processingReports = reports.filter(report => report.downloadable === false && /^(processing|pending|registered|collected|draft)$/i.test(report.status || '')).length;
+  const reportPatients = [...new Set(reports.map(report => report.patientName).filter(Boolean))];
+  const visibleReports = useMemo(() => reports.filter(report => {
+    const matchesSearch = `${report.testName || ''} ${report.patientName || ''} ${report.registrationNumber || ''} ${report.type || ''}`.toLowerCase().includes(reportSearch.trim().toLowerCase());
+    const matchesFilter = reportFilter === 'all' || (reportFilter === 'ready' ? report.downloadable !== false : report.downloadable === false && /^(processing|pending|registered|collected|draft)$/i.test(report.status || ''));
+    return matchesSearch && matchesFilter && (reportPatient === 'all' || report.patientName === reportPatient);
+  }).sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0)), [reports, reportSearch, reportFilter, reportPatient]);
+  const resetReportFilters = () => { setReportSearch(''); setReportFilter('all'); setReportPatient('all'); };
+
+  useEffect(() => {
+    if (!selectedReport) return;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const dialog = reportDialogRef.current;
+    dialog?.querySelector('button')?.focus();
+    const handleKey = event => {
+      if (event.key === 'Escape') setSelectedReport(null);
+      if (event.key !== 'Tab' || !dialog) return;
+      const controls = [...dialog.querySelectorAll('button:not(:disabled), a[href], [tabindex="0"]')];
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = previousOverflow; previousFocus?.focus(); };
+  }, [selectedReport]);
 
   // Booking
   const [catalog, setCatalog] = useState({ tests: [], packages: [] });
@@ -178,6 +219,7 @@ const PatientReportPortal = () => {
 
   const openTab = (t) => {
     setTab(t);
+    document.querySelector('.patient-dashboard-panel')?.scrollIntoView({ block: 'start' });
     setError('');
     setBookingDone('');
     if (t === 'book' && catalog.tests.length === 0 && catalog.packages.length === 0) loadCatalog();
@@ -406,14 +448,15 @@ const PatientReportPortal = () => {
   };
 
   const handleDownload = async (report) => {
+    setDownloadingId(report.id); setPdfNotice(''); setDownloadError('');
     try {
       const fileName = `${report.type}_Report_${report.registrationNumber}.pdf`;
       await downloadPatientReport(report.id, fileName);
       setPdfNotice(`Report PDF download started for ${report.registrationNumber || 'report'}.`);
     } catch {
       setPdfNotice('');
-      alert('Report download failed. Please contact Pure Path Lab support.');
-    }
+      setDownloadError('Couldn’t download the PDF. Please try again, or contact the lab for help.');
+    } finally { setDownloadingId(null); }
   };
 
   const handleLogout = () => {
@@ -429,6 +472,7 @@ const PatientReportPortal = () => {
     setSelectedReport(null);
     setGoogleReviewUrl('');
     setSelected({});
+    resetReportFilters(); setPdfNotice(''); setDownloadError('');
     setInquiries([]);
     setTab(requestedTab);
     setCatalog({ tests: [], packages: [] });
@@ -443,33 +487,38 @@ const PatientReportPortal = () => {
 
   return (
     <div className="public-site patient-public-page">
-      <PublicHeader active={requestedTab === 'book' ? 'book' : 'reports'} />
+      <PublicHeader active={(step === 3 ? tab === 'book' : requestedTab === 'book') ? 'book' : 'reports'} />
       <main id="public-main" className={`patient-portal-container ${step === 3 ? 'patient-workspace' : 'patient-sign-in'}`}>
       <div className="patient-portal-nav">
         <Link to="/" className="patient-back-link"><ArrowLeft size={14} /><span>Home</span></Link>
-        <span>/</span><span>{requestedTab === 'book' ? 'Book a test' : 'My reports'}</span>
+        <span>/</span><span>{step === 3 ? (tab === 'book' ? 'Book a test' : tab === 'mine' ? 'My bookings' : 'My reports') : requestedTab === 'book' ? 'Book a test' : 'My reports'}</span>
       </div>
+      <div className={step !== 3 ? 'patient-auth-shell' : 'patient-workspace-content'}>
       {step !== 3 ? <section className="patient-intro">
         <span className="public-eyebrow">YOUR PATIENT SPACE</span>
-        <h1>{requestedTab === 'book' ? <>Your next test,<br />{' '}<span>a little easier.</span></> : <>Your health records.<br />{' '}<span>Right here for you.</span></>}</h1>
-        <p>Sign in with the mobile number you gave at Pure Path Lab. Your reports and bookings will be waiting in one simple place.</p>
+        <h1>{requestedTab === 'book' ? <>A little planning.<br />{' '}<span>A little more care.</span></> : <>Your reports.<br />{' '}<span>Closer to you.</span></>}</h1>
+        <p>Your latest reports, your next test, and your family’s bookings. One familiar place to find them.</p>
         <ul>
           <li><span><FileText size={19} /></span><div><strong>Know when your report is ready</strong><p>Check its status without a trip to the lab.</p></div></li>
           <li><span><Download size={19} /></span><div><strong>A PDF you can keep or share</strong><p>Download your completed reports to your phone.</p></div></li>
           <li><span><CalendarPlus size={19} /></span><div><strong>A little care for the whole family</strong><p>Request tests for yourself or a family member.</p></div></li>
         </ul>
-        <div className="patient-intro-help"><Phone size={17} /><span>Need a hand signing in? <a href={LAB_PHONE_LINK}>Talk to the lab</a></span></div>
-      </section> : <div className="patient-workspace-heading"><span className="public-eyebrow">WELCOME TO PURE PATH LAB</span><h1>Your care, in one place.</h1><p>Keep up with your reports, plan a test, or check a booking.</p></div>}
+        <div className="patient-access-preview" aria-hidden="true">
+          <span className="patient-preview-icon"><FileText size={24} /></span>
+          <div><strong>Your care, in your hands</strong><span>View a report. Keep a PDF. Plan a visit.</span></div>
+          <ShieldCheck size={21} />
+        </div>
+      </section> : <div className="patient-workspace-heading"><div><span className="public-eyebrow">{profiles[0]?.name ? `Hello, ${profiles[0].name}` : 'YOUR PATIENT SPACE'}</span><h1>{tab === 'book' ? 'Plan your next visit.' : tab === 'mine' ? 'Your bookings, at a glance.' : 'Your reports, all together.'}</h1><p>{tab === 'book' ? 'Choose your tests and send a request. The lab team will confirm your visit.' : tab === 'mine' ? 'Track your requests and see what happens next.' : 'Find a report, check its progress, or keep a PDF for later.'}</p></div><div className="patient-session-actions"><span>+91 {phone}</span><button type="button" className="patient-logout-btn" onClick={handleLogout}>Sign out</button></div></div>}
 
       {step === 1 && (
         <div className="patient-card">
-          <div className="patient-card-icon-header">
-            <FileText size={24} />
+          <span className="patient-auth-eyebrow"><Lock size={14} /> PATIENT SIGN IN</span>
+          <h2 className="patient-step-title">Sign in to continue</h2>
+          <p className="patient-step-desc">Choose how you’d like to sign in.</p>
+          <div className="patient-login-methods" role="group" aria-label="Sign-in method">
+            <button type="button" aria-pressed={loginMethod === 'birthYear'} disabled={loading} onClick={() => { setLoginMethod('birthYear'); setError(''); }}><Calendar size={16} /> Birth year</button>
+            <button type="button" aria-pressed={loginMethod === 'otp'} disabled={loading} onClick={() => { setLoginMethod('otp'); setError(''); }}><MessageSquare size={16} /> Mobile OTP</button>
           </div>
-          <h2 className="patient-step-title">Sign in to your patient space</h2>
-          <p className="patient-step-desc">
-            Enter your registered mobile number and birth year. New to the lab? Use the mobile OTP option below.
-          </p>
 
           {error && (
             <div className="patient-alert-error" role="alert">
@@ -478,7 +527,7 @@ const PatientReportPortal = () => {
             </div>
           )}
 
-          <form onSubmit={handleBirthYearLogin} className="patient-form">
+          <form onSubmit={loginMethod === 'otp' ? handleRequestOtp : handleBirthYearLogin} className="patient-form">
             <div className="patient-form-group">
               <label htmlFor="patient-phone" className="patient-form-label">Mobile Number</label>
               <div className="patient-input-prefix">
@@ -489,30 +538,31 @@ const PatientReportPortal = () => {
                   inputMode="numeric"
                   autoComplete="tel-national"
                   pattern="[0-9]{10}"
+                  aria-describedby="patient-phone-help"
                   className="patient-phone-input"
-                  placeholder="9876543210"
+                  placeholder="10-digit mobile number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   maxLength={10}
                   required
                 />
               </div>
+              <small id="patient-phone-help" className="patient-field-hint">{loginMethod === 'otp' ? 'Enter a number you can receive messages on.' : 'Use the number registered at the lab.'}</small>
             </div>
 
-            <div className="patient-form-group">
+            {loginMethod === 'birthYear' && <div className="patient-form-group">
               <label htmlFor="patient-birth-year" className="patient-form-label">Birth Year</label>
-              <input id="patient-birth-year" autoComplete="bday-year" className="patient-phone-input" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="e.g. 1990" value={birthYear} onChange={event => setBirthYear(event.target.value.replace(/\D/g, ''))} required />
-            </div>
-            <button type="submit" className="patient-btn" disabled={loading}>
-              {loading ? 'Signing in…' : requestedTab === 'book' ? 'Continue to booking' : 'View my reports'}
+              <input id="patient-birth-year" autoComplete="bday-year" className="patient-phone-input" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} placeholder="e.g. 1990" value={birthYear} onChange={event => setBirthYear(event.target.value.replace(/\D/g, ''))} required aria-describedby="patient-year-help" />
+              <small id="patient-year-help" className="patient-field-hint">The 4-digit year you were born, as given at the lab.</small>
+            </div>}
+            {loginMethod === 'otp' && <p className="patient-otp-explainer"><MessageSquare size={17} /><span>We’ll send a 6-digit code to this number. New patients can create a profile after verification.</span></p>}
+            <button type="submit" className="patient-btn patient-sign-in-submit" disabled={loading}>
+              {loading ? (loginMethod === 'otp' ? 'Sending code…' : 'Signing in…') : loginMethod === 'otp' ? 'Send verification code' : requestedTab === 'book' ? 'Continue to booking' : 'View my reports'} <ArrowRight size={17} />
             </button>
-            <button type="button" className="patient-link-btn" onClick={handleRequestOtp} disabled={loading}>Use mobile OTP / Register as a new patient</button>
           </form>
 
-          <div className="patient-security-note">
-            <Lock size={13} />
-            <span>Your report access requires patient login</span>
-          </div>
+          {loginMethod === 'birthYear' && <p className="patient-new-patient">New to Pure Path Lab, or unsure of your birth year?<button type="button" disabled={loading} onClick={() => { setLoginMethod('otp'); setError(''); }}>Continue with mobile OTP <ArrowRight size={14} /></button></p>}
+          <div className="patient-security-note"><ShieldCheck size={15} /><span>Your reports are available after patient sign-in.</span></div>
         </div>
       )}
 
@@ -521,7 +571,8 @@ const PatientReportPortal = () => {
           <div className="patient-card-icon-header">
             <Lock size={24} />
           </div>
-          <h2 className="patient-step-title">Enter Verification Code</h2>
+          <span className="patient-auth-eyebrow">VERIFY YOUR MOBILE</span>
+          <h2 className="patient-step-title">Check your phone</h2>
           <p className="patient-step-desc">
             Enter the 6-digit OTP sent to <strong>+91 {phone}</strong>
             {isNewNumber && (
@@ -595,7 +646,7 @@ const PatientReportPortal = () => {
               </button>
             )}
             <span className="patient-dot-sep">•</span>
-            <button type="button" className="patient-link-btn" onClick={() => { setStep(1); setDevOtp(''); }}>
+            <button type="button" className="patient-link-btn" onClick={() => { setStep(1); setDevOtp(''); setOtp(['', '', '', '', '', '']); setError(''); setLoginMethod('otp'); }}>
               Change Number
             </button>
           </div>
@@ -607,7 +658,7 @@ const PatientReportPortal = () => {
           <div className="patient-card-icon-header">
             <User size={24} />
           </div>
-          <h2 className="patient-step-title">Create Your Profile</h2>
+          <h2 className="patient-step-title">Create your patient profile</h2>
           <p className="patient-step-desc">
             No profile found for <strong>+91 {phone}</strong>. Add your details to create one — it takes a few seconds.
           </p>
@@ -679,24 +730,19 @@ const PatientReportPortal = () => {
             <button type="submit" className="patient-btn" disabled={loading}>
               {loading ? 'Creating profile...' : 'Create Profile & Continue'}
             </button>
+            <button type="button" className="patient-link-btn" disabled={loading} onClick={() => { patientLogout(); setStep(1); setError(''); setOtp(['', '', '', '', '', '']); setLoginMethod('otp'); }}>Use a different mobile number</button>
           </form>
         </div>
       )}
 
       {step === 3 && (
-        <div className="patient-card patient-card-wide">
-          <div className="patient-portal-topbar">
-            <div>
-              <h2 className="patient-welcome-text">
-                {profiles[0]?.name ? `Hello, ${profiles[0].name}` : 'Your Diagnostic Reports'}
-              </h2>
-              <div className="patient-phone-badge">Registered Mobile: +91 {phone}</div>
-            </div>
-            <button type="button" className="patient-logout-btn" onClick={handleLogout}>
-              Sign Out
-            </button>
+        <div className="patient-dashboard">
+          <div className="patient-overview" aria-label="Your patient overview">
+            <button type="button" onClick={() => { openTab('reports'); setReportFilter('ready'); setReportPatient('all'); setReportSearch(''); }}><span className="patient-stat-icon"><Download size={21} /></span><span><small>Ready to download</small><strong>{fetchingReports ? '—' : readyReports}<span> report{readyReports === 1 ? '' : 's'}</span></strong></span><ChevronRight size={17} /></button>
+            <button type="button" onClick={() => { openTab('reports'); setReportFilter('processing'); setReportPatient('all'); setReportSearch(''); }}><span className="patient-stat-icon patient-stat-amber"><Clock size={21} /></span><span><small>In progress</small><strong>{fetchingReports ? '—' : processingReports}<span> report{processingReports === 1 ? '' : 's'}</span></strong></span><ChevronRight size={17} /></button>
+            <button type="button" onClick={() => openTab('mine')}><span className="patient-stat-icon patient-stat-blue"><CalendarPlus size={21} /></span><span><small>Booking requests</small><strong>{fetchingInquiries ? '—' : inquiries.length}<span> request{inquiries.length === 1 ? '' : 's'}</span></strong></span><ChevronRight size={17} /></button>
           </div>
-
+          <div className="patient-card patient-card-wide patient-dashboard-panel">
           <div className="patient-tabs" role="tablist" aria-label="Patient sections">
             {[
               { key: 'reports', label: 'My Reports', icon: FileText },
@@ -732,6 +778,13 @@ const PatientReportPortal = () => {
             </div>
           )}
 
+          {pdfNotice && !selectedReport && <p className="patient-download-notice" role="status"><CheckCircle size={16} />{pdfNotice}</p>}
+          {downloadError && <p className="patient-alert-error" role="alert"><AlertCircle size={16} />{downloadError}</p>}
+          {tab === 'reports' && <div className="patient-report-tools">
+            <div className="patient-report-section-title"><div><h2>My reports</h2><p>Most recent first · {reports.length} report{reports.length === 1 ? '' : 's'}</p></div><button type="button" className="patient-refresh" onClick={loadReports} disabled={fetchingReports}><RefreshCw size={15} className={fetchingReports ? 'spin' : ''} /> Refresh</button></div>
+            <div className="patient-report-search-row"><label className="patient-report-search"><Search size={18} /><input type="search" aria-label="Search reports" placeholder="Search by test, patient, or registration no." value={reportSearch} onChange={event => setReportSearch(event.target.value)} /></label>{reportPatients.length > 1 && <select aria-label="Filter reports by patient" value={reportPatient} onChange={event => setReportPatient(event.target.value)}><option value="all">All patients</option>{reportPatients.map(name => <option key={name} value={name}>{name}</option>)}</select>}</div>
+            <div className="patient-report-filter-row"><div role="group" aria-label="Report status">{[['all', 'All reports', reports.length], ['ready', 'Ready to download', readyReports], ['processing', 'In progress', processingReports]].map(([key, label, count]) => <button key={key} type="button" aria-pressed={reportFilter === key} onClick={() => setReportFilter(key)}>{label}<span>{count}</span></button>)}</div><span role="status">{fetchingReports ? 'Loading…' : `${visibleReports.length} shown`}</span></div>
+          </div>}
           {tab === 'reports' && (
             fetchingReports ? (
               <div className="patient-empty-state">
@@ -748,66 +801,15 @@ const PatientReportPortal = () => {
                 </button>
               </div>
             ) : (
-              <div className="patient-reports-list">
-                {reports.map((report) => (
-                  <div key={report.id} className="patient-report-card">
-                    <div className="patient-report-info">
-                      <div className="patient-report-header-line">
-                        <span className="patient-report-name">{report.testName}</span>
-                        <span className={`patient-report-badge badge-${report.status.toLowerCase()}`}>
-                          {report.status}
-                        </span>
-                      </div>
-
-                      <div className="patient-report-meta-grid">
-                        <div className="meta-item">
-                          <User size={13} />
-                          <span>Patient: <strong>{report.patientName}</strong></span>
-                        </div>
-                        <div className="meta-item">
-                          <Building size={13} />
-                          <span>Reg No: <strong>{report.registrationNumber}</strong></span>
-                        </div>
-                        <div className="meta-item">
-                          <Calendar size={13} />
-                          <span>Date: <strong>{formatDate(report.date)}</strong></span>
-                        </div>
-                        <div className="meta-item">
-                          <FileText size={13} />
-                          <span>Department: <strong>{report.type}</strong></span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="patient-report-actions">
-                      <button
-                        type="button"
-                        className="patient-view-btn"
-                        onClick={() => setSelectedReport(report)}
-                      >
-                        <Eye size={15} />
-                        <span>{report.downloadable === false ? 'View status' : 'View Report'}</span>
-                      </button>
-                      {report.downloadable !== false ? (
-                        <button
-                          type="button"
-                          className="patient-download-btn"
-                          data-testid="report-pdf-download"
-                          onClick={() => handleDownload(report)}
-                        >
-                          <Download size={15} />
-                          <span>Download PDF</span>
-                        </button>
-                      ) : (
-                        <span className="patient-report-pending-note">
-                          {report.status === 'Processing' || report.status === 'Pending'
-                            ? 'In progress — PDF available when ready'
-                            : 'PDF not ready yet'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              visibleReports.length === 0 ? <div className="patient-empty-state"><Search size={30} /><h3>No matching reports</h3><p>Try another test name, patient, or status.</p><button type="button" className="patient-view-btn" onClick={resetReportFilters}>Clear filters</button></div> :
+              <div className="patient-report-results" role="list" aria-label="Patient reports">
+                <div className="patient-report-columns" aria-hidden="true"><span>Investigation</span><span>Patient / date</span><span>Status</span><span>Report actions</span></div>
+                {visibleReports.map(report => <article key={report.id} role="listitem" className="patient-report-row">
+                  <div className="patient-report-main"><span className={`patient-report-document${report.downloadable === false ? ' is-pending' : ''}`}>{report.downloadable === false ? <Clock size={20} /> : <FileText size={20} />}</span><div><h3>{report.testName}</h3><p>{report.type} <span>·</span> Reg. no. {report.registrationNumber || '—'}</p></div></div>
+                  <div className="patient-report-person"><strong>{report.patientName}</strong><span>{formatDate(report.date)}</span></div>
+                  <div className="patient-report-readiness"><span className={`patient-report-badge badge-${String(report.status || 'pending').toLowerCase()}`}>{report.downloadable !== false ? <CheckCircle size={12} /> : <Clock size={12} />}{report.status || 'Processing'}</span><small>{report.downloadable !== false ? 'PDF available' : 'PDF not ready yet'}</small></div>
+                  <div className="patient-report-row-actions"><button type="button" className="patient-view-btn" aria-label={`View ${report.testName} for ${report.patientName}`} onClick={() => { setSelectedReport(report); setPdfNotice(''); setDownloadError(''); }}><Eye size={15} />{report.downloadable === false ? 'View status' : 'View'}</button>{report.downloadable !== false && <button type="button" className="patient-download-btn" aria-label={`Download ${report.testName} PDF for ${report.patientName}`} data-testid="report-pdf-download" disabled={downloadingId !== null} onClick={() => handleDownload(report)}><Download size={15} />{downloadingId === report.id ? 'Downloading…' : 'Download PDF'}</button>}</div>
+                </article>)}
               </div>
             )
           )}
@@ -834,7 +836,7 @@ const PatientReportPortal = () => {
                   <p>Loading bookable tests…</p>
                 </div>
               ) : (
-                <form onSubmit={handleBook}>
+                <form onSubmit={handleBook} className="patient-booking-layout">
                   <div className="patient-catalog-list" role="region" aria-label="Available tests and packages" tabIndex={0}>
                   {filteredCatalog.packages.length > 0 && (
                     <>
@@ -879,6 +881,8 @@ const PatientReportPortal = () => {
 
                   </div>
                   <div className="patient-book-foot">
+                    <div className="patient-selection-title"><h3>Your selection</h3><span>{selectedList.length} item{selectedList.length === 1 ? '' : 's'}</span></div>
+                    {selectedList.length ? <ul className="patient-selection-summary">{Object.entries(selected).map(([key, item]) => <li key={key}><span>{item.name}<small>{formatCurrency(item.price)}</small></span><button type="button" aria-label={`Remove ${item.name}`} onClick={() => toggleSelect(key, item)}><X size={15} /></button></li>)}</ul> : <p className="patient-selection-empty">Choose a test or package to build your booking.</p>}
                     <div className="patient-form-row">
                       <div className="patient-form-group">
                         <label className="patient-form-label" htmlFor="book-for">Booking for</label>
@@ -942,7 +946,7 @@ const PatientReportPortal = () => {
                 </button>
               </div>
             ) : (
-              <div className="patient-reports-list">
+              <div className="patient-reports-list patient-bookings-list">
                 {inquiries.map((inq) => (
                   <div key={inq._id} className="patient-report-card">
                     <div className="patient-report-info">
@@ -986,17 +990,19 @@ const PatientReportPortal = () => {
             )
           )}
         </div>
+        </div>
       )}
 
-      {/* Report Quick View Modal */}
+      </div>
+      {step !== 3 && <div className="patient-signin-help"><span><Phone size={17} /> Need a hand?</span><a href={LAB_PHONE_LINK}>Talk to the lab <ArrowRight size={14} /></a><Link to="/#tests">Browse tests & prices</Link></div>}
       </main>
       <PublicFooter />
       {selectedReport && (
         <div className="patient-modal-backdrop" onClick={() => setSelectedReport(null)}>
-          <div className="patient-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div ref={reportDialogRef} className="patient-modal-content" role="dialog" aria-modal="true" aria-labelledby="patient-report-dialog-title" onClick={(e) => e.stopPropagation()}>
             <div className="patient-modal-header">
               <div>
-                <h3 className="patient-modal-title">{selectedReport.testName}</h3>
+                <h3 id="patient-report-dialog-title" className="patient-modal-title">{selectedReport.testName}</h3>
                 <span className="patient-modal-subtitle">
                   {selectedReport.type} Report • {formatDate(selectedReport.date)}
                 </span>
@@ -1111,15 +1117,17 @@ const PatientReportPortal = () => {
                     className="patient-download-btn modal-download-btn"
                     data-testid="report-pdf-download"
                     onClick={() => handleDownload(selectedReport)}
+                    disabled={downloadingId !== null}
                   >
                     <Download size={16} />
-                    <span>Download Official Signed PDF</span>
+                    <span>{downloadingId === selectedReport.id ? 'Downloading…' : 'Download PDF'}</span>
                   </button>
                 ) : (
                   <p className="patient-report-pending-note" role="status">
                     Your report is {selectedReport.status || 'Processing'}. The PDF will be available once the lab completes it.
                   </p>
                 )}
+                {downloadError && <p role="alert" className="patient-alert-error">{downloadError}</p>}
                 {pdfNotice && (
                   <p role="status" data-testid="report-pdf-started">{pdfNotice}</p>
                 )}

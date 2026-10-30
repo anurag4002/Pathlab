@@ -14,7 +14,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('ppl_token');
-    if (token) {
+    if (token && !String(config.url || '').startsWith('/patient/') && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -42,6 +42,19 @@ apiClient.interceptors.response.use(
       } catch { /* Preserve the original error if the payload isn't JSON. */ }
     }
     if (error.response && error.response.status === 401) {
+      // Patient authentication has its own session and login screen.
+      // Incorrect birth years and OTPs should stay on the patient form.
+      const requestPath = String(error.config?.url || '');
+      if (requestPath.startsWith('/patient/')) {
+        if (!requestPath.startsWith('/patient/auth/')) {
+          sessionStorage.removeItem('ppl_patient_token');
+          sessionStorage.removeItem('ppl_patient_phone');
+          const patientPath = ['/patient/report', '/reports'].includes(window.location.pathname)
+            ? `${window.location.pathname}${window.location.search}` : '/patient/report';
+          window.location.href = patientPath;
+        }
+        return Promise.reject(error);
+      }
       invalidateReportPdfs();
       localStorage.removeItem('ppl_token');
       localStorage.removeItem('ppl_user');
