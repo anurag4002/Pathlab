@@ -50,6 +50,6 @@ export function PublicFooter() {
       <div><h3>For patients</h3><Link to="/#tests">Tests & prices <ArrowUpRight size={14} /></Link><Link to="/patient/report?tab=book">Book a test <ArrowUpRight size={14} /></Link><Link to="/patient/report">View your reports <ArrowUpRight size={14} /></Link><Link to="/#contact">Visit the lab <ArrowUpRight size={14} /></Link></div>
       <div><h3>Visit us</h3><p className="public-footer-detail"><MapPin size={17} /> {LAB_PROFILE.address}</p><p className="public-footer-detail"><Clock3 size={17} /><span>Mon–Sat: {LAB_PROFILE.operatingHours.weekdays}<br />Sun: {LAB_PROFILE.operatingHours.sunday}</span></p></div>
     </div>
-    <div className="public-container public-footer-bottom"><span>© {new Date().getFullYear()} Pure Path Lab. All rights reserved.</span><Link to="/login">Staff login <ArrowUpRight size={13} /></Link></div>
+    <div className="public-container public-footer-bottom"><span>© {new Date().getFullYear()} Pure Path Lab. All rights reserved.</span><Link to="/admin/login">Admin <ArrowUpRight size={13} /></Link></div>
   </footer>;
 }

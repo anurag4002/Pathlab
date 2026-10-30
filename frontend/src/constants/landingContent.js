@@ -7,8 +7,8 @@ export const LAB_PROFILE = {
   name: 'PURE PATH LAB',
   tagline: 'Diagnostic & Pathology Laboratory',
   subtitle: 'Reliable laboratory testing with a simple and secure way to access your reports.',
-  phone: '+91 98765 43210',
-  email: 'helpdesk@purepathlab.com',
+  phone: '+91 77030 21000',
+  email: 'hishivammishrahello@gmail.com',
   address: 'Sector 12, Main Healthcare Road, New Delhi, 110075',
   operatingHours: {
     weekdays: '7:00 AM – 9:00 PM',
