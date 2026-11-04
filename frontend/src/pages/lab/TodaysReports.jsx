@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import useClientPagination from '../../hooks/useClientPagination';
 import {
   getTodaysReports,
@@ -117,6 +117,7 @@ const matchesSearch = (report, q) => {
 
 const TodaysReports = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   // Every pop-up stays React state for rendering but is mirrored to the URL
   // (?upload, ?result, ?entry=<id>, ?send=<id>, ?preview=<id>, ?reject=<id>,
   // ?label=<id>, ?del=<id>) so refresh / share reopens the same view.
@@ -1092,7 +1093,7 @@ const TodaysReports = () => {
                       <Plus size={14} /> Upload report
                     </button>
                   ) : (
-                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
+                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => navigate(`/lab/result-entry?report=${report._id}`)}>
                       <FileEdit size={14} /> {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
                     </button>
                   )}

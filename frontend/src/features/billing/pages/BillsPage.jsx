@@ -32,7 +32,7 @@ import { usePermissions } from '../../../hooks/usePermission';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
-import { Plus, Printer, CreditCard, Ban, FileDown, Eye, RefreshCw, Tag } from 'lucide-react';
+import { Plus, Printer, CreditCard, Ban, FileDown, Eye, RefreshCw, Tag, FileEdit } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
@@ -771,6 +771,12 @@ const BillsPage = () => {
                     <Button variant="secondary" size="sm" onClick={() => handleDownloadPdf(bill)} icon={<FileDown size={14} />} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`}>
                   PDF
                 </Button>
+                {!bill.isVoided && ['LAB', undefined, null, ''].includes(bill.department) && (bill.patient?._id || bill.patient) && (
+                  <Button variant="secondary" size="sm" icon={<FileEdit size={14} />} data-testid="bill-results" aria-label={`Results ${bill.billNumber}`}
+                    onClick={() => navigate(`/lab/result-entry?bill=${bill._id}&patient=${bill.patient?._id || bill.patient}`)}>
+                    Results
+                  </Button>
+                )}
                 <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />} data-testid="bill-labels" aria-label={`Labels ${bill.billNumber}`}>
                   Labels
                 </Button>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
@@ -165,6 +166,10 @@ const readStoredSignature = () => { try { return localStorage.getItem(SIGNATURE_
 
 const ResultEntry = () => {
   const { user } = useAuth();
+  // ?report=<id> or ?bill=<id>&patient=<id> opens that case directly
+  // (from Bills, Today's Reports or a shared link).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedCaseRef = useRef('');
   // Frontend affordance only — the backend still checks permissions.
   const canSign = isAdmin(user);
   // Sign straight from entry: signatures load once and the last one used
@@ -595,8 +600,20 @@ const ResultEntry = () => {
     }
   };
 
+  useEffect(() => {
+    const reportId = searchParams.get('report');
+    const billId = searchParams.get('bill');
+    const patientId = searchParams.get('patient');
+    const link = reportId ? `report:${reportId}` : billId && patientId ? `bill:${billId}` : '';
+    if (!link || linkedCaseRef.current === link) return;
+    linkedCaseRef.current = link;
+    openCase(reportId ? { report: { _id: reportId } } : { bill: { _id: billId, patient: { _id: patientId } }, report: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const performBack = () => {
     setDiscardOpen(false);
+    if (searchParams.get('report') || searchParams.get('bill')) setSearchParams({}, { replace: true });
     doctorReqRef.current += 1; // drop any in-flight referrer lookup
     setView('list');
     setEntry(null);
@@ -811,6 +828,10 @@ const ResultEntry = () => {
   };
 
   const testEntries = entry?.testEntries ?? [];
+  // Next pending case from the list, so staff can work through cases
+  // without going back after each sign-off.
+  const nextCase = cases.find((row) => !isReportFinal(row?.report?.status) && !isOutsourceWork(row?.report, row?.bill)
+    && String(row?.bill?._id) !== String(entry?.bill?._id || activeRow?.bill?._id));
   const differentialTotals = differentialTotalsByRow(testEntries, values, calculated);
   const enterableCount = testEntries.filter((testEntry) => !testEntry.isDerived).length;
   const enteredCount = testEntries.filter(
@@ -1121,6 +1142,11 @@ const ResultEntry = () => {
                         <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
                           PDF
                         </Button>
+                        {nextCase && (
+                          <Button variant="secondary" onClick={() => openCase(nextCase)} disabled={busy !== null}>
+                            Next case: {nextCase.bill?.patient?.name || nextCase.bill?.billNumber || 'pending'}
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
