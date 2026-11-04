@@ -259,16 +259,19 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const padX = style.cellPadX ?? pad, padTop = style.cellPadTop ?? pad, rowExtra = style.rowExtra ?? pad * 2;
     const headerSize = style.headerSize || size;
     const headerTop = style.headerPadTop ?? padTop, headerExtra = style.headerExtra ?? rowExtra;
+    // A row may carry its own widths (e.g. a label plus text spanning the rest).
+    const widthsFor = cells => cells.widths || columns.map(c => c.width);
     const draw = (cells, heights, isHeader, index, offset, count) => {
       const h = count * lineHeight + (isHeader ? headerExtra : rowExtra);
+      const widths = widthsFor(cells);
       const banded = format.tableStyle === 'banded';
       if (isHeader && (banded || format.tableStyle === 'outlined')) doc.save().fillColor(banded ? format.accentColor : NOTE_BACKGROUND).rect(m, y, width, h).fill().restore();
       else if (banded && !isHeader && index % 2 === 0) doc.save().fillColor('#f3f4f6').rect(m, y, width, h).fill().restore();
       let x = m;
       cells.forEach((cell, j) => {
         const indent = cell.indent || 0;
-        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + padX + indent, y + (isHeader ? headerTop : padTop) + i * lineHeight, columns[j].width - padX * 2 - indent, { size: isHeader ? headerSize : size, bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: columns[j].align || 'left' });
-        x += columns[j].width;
+        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + padX + indent, y + (isHeader ? headerTop : padTop) + i * lineHeight, widths[j] - padX * 2 - indent, { size: isHeader ? headerSize : size, bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: cells.widths ? 'left' : columns[j]?.align || 'left' });
+        x += widths[j];
       });
       if (format.tableStyle === 'outlined') {
         doc.strokeColor(format.accentColor).lineWidth(0.5).moveTo(m, y).lineTo(m, y + h).moveTo(m + width, y).lineTo(m + width, y + h).stroke();
@@ -294,7 +297,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // Reference "keep in same page": a panel or multi-parameter test that
     // fits on one page is moved whole to the next page rather than split.
     if (style.keepTogether) {
-      const rowsHeight = rows.reduce((sum, cells) => sum + Math.max(...cells.map((cell, j) => lines(cell.text, columns[j].width - padX * 2 - (cell.indent || 0), cell.bold, size).length)) * lineHeight + rowExtra, 0);
+      const rowsHeight = rows.reduce((sum, cells) => sum + Math.max(...cells.map((cell, j) => lines(cell.text, widthsFor(cells)[j] - padX * 2 - (cell.indent || 0), cell.bold, size).length)) * lineHeight + rowExtra, 0);
       const whole = (showHeader ? headerHeight : 0) + titleHeight + rowsHeight + (style.tableGap ?? 12);
       // keepWith: the guidance printed under this table. Move the whole
       // section when it fits on a page; otherwise make sure the table and the
@@ -307,7 +310,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     }
     space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + rowExtra); tableHeader();
     rows.forEach((cells, index) => {
-      const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - padX * 2 - (cell.indent || 0), cell.bold, size));
+      const heights = cells.map((cell, j) => lines(cell.text, widthsFor(cells)[j] - padX * 2 - (cell.indent || 0), cell.bold, size));
       const total = Math.max(...heights.map(l => l.length)); let offset = 0;
       while (offset < total) {
         let available = Math.floor((limit - y - rowExtra) / lineHeight);
@@ -672,7 +675,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         // The reference sheet leaves missing unit/range cells blank.
         const range = r.referenceRange || t.referenceRange || (t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : '');
         const method = String(t.sourceInterpretation?.method || '').trim();
-        const label = String(name).toUpperCase() + (method ? `\nMethod: ${method}` : '');
+        const remark = String(r.remark || '').trim();
+        const label = String(name).toUpperCase() + (method ? `\nMethod: ${method}` : '') + (remark ? `\nRemark: ${remark}` : '');
         // Calculated values print with two decimals ("4.00", "0.80") like the
         // reference sheet; stored numbers lose trailing zeros.
         const value = r.derived && /^-?\d+(?:\.\d+)?$/.test(String(r.value ?? '').trim()) ? Number(r.value).toFixed(2) : r.value ?? '';
@@ -773,14 +777,26 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const titles = [];
         if (newDepartment && options.dept && unit.department) titles.push({ text: unit.department.toUpperCase(), size: 11 });
         if (unit.panel && head.title) titles.push({ text: head.title.toUpperCase(), size: 9.5 });
-        const rows = unit.sections.flatMap(section => section.groups.flatMap(groupRows));
+        // Notes / Remarks / Advice print as rows under the section, the label
+        // in the TEST column and the text across the rest (reference sheet).
+        const noteRows = section => {
+          const saved = (report.sectionNotes || []).find(item => item.key === section.key);
+          if (!saved) return [];
+          return [['Notes', saved.notes], ['Remarks', saved.remarks], ['Advice', saved.advice]].filter(([, value]) => String(value || '').trim())
+            .map(([label, value]) => Object.assign([{ text: label, bold: true }, { text: String(value).trim() }], { widths: [columns[0].width, width - columns[0].width] }));
+        };
+        const rows = unit.sections.flatMap(section => [...section.groups.flatMap(groupRows), ...noteRows(section)]);
         const noteStyle = unit.panel ? style : inlineStyle;
         // Never strand a unit: its table and guidance move to the next page
         // together when they would otherwise be cut.
         const keep = unit.split ? {} : { keepTogether: true, ...notesKeep(unit.blocks, noteStyle, reserve) };
         table(columns, rows, titles, { ...style, ...keep, tableGap: unit.blocks.length && !unit.panel ? 0 : style.tableGap });
         drawNotes(unit.blocks, noteStyle, reserve);
-        if (isLast) finishReportSection(style);
+        if (isLast) {
+          // Report-level "More details" sits above the end-of-report line.
+          if (String(report.moreDetails || '').trim()) paragraph(String(report.moreDetails).trim(), { size: style.noteSize, leading: style.noteLeading, gap: 6 });
+          finishReportSection(style);
+        }
       });
     }
   }

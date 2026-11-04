@@ -1344,17 +1344,25 @@ const TodaysReports = () => {
             auto-select (never lab-profile fields). Idempotent: the button
             disables while a sign request is in flight. */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <SignaturePicker
+          {/* In-house results are signed in Result Entry (one place, with the
+              full report and Print); uploaded reports are signed here. */}
+          {entryMode === 'upload' ? <SignaturePicker
             signatures={signatures}
             value={sigId}
             onChange={(e) => setSigId(e.target.value)}
             department={activeReport ? inferDepartment(activeReport) : ''}
             disabled={signing}
-          />
+          /> : null}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <Button variant="secondary" size="sm" onClick={handleSign} loading={signing} disabled={signing}>
-              <PenLine size={14} /> {signing ? 'Signing…' : 'Sign'}
-            </Button>
+            {entryMode === 'upload' ? (
+              <Button variant="secondary" size="sm" onClick={handleSign} loading={signing} disabled={signing}>
+                <PenLine size={14} /> {signing ? 'Signing…' : 'Sign'}
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" disabled={!activeReport?._id} onClick={() => navigate(`/lab/result-entry?report=${activeReport._id}`)}>
+                <PenLine size={14} /> Sign off in Result Entry
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={() => handleOpenPreview()} disabled={!activeReport?._id}>
               <Eye size={14} /> Preview
             </Button>

@@ -162,7 +162,7 @@ async function updatePrintSettings(req, res, next) {
   try {
     const report = await Report.findById(req.params.id);
     if (!report) return errorResponse(res, 'Report not found', 404);
-    const { sectionSettings, departmentOrder, printCategoriesFromNewPage } = req.body || {};
+    const { sectionSettings, departmentOrder, printCategoriesFromNewPage, sectionNotes, moreDetails } = req.body || {};
     if (sectionSettings !== undefined) {
       if (!Array.isArray(sectionSettings)) return errorResponse(res, 'sectionSettings must be a list', 400);
       const seen = new Set();
@@ -181,9 +181,20 @@ async function updatePrintSettings(req, res, next) {
       report.departmentOrder = [...new Set(departmentOrder.filter(name => typeof name === 'string' && name.trim()).map(name => name.trim()))];
     }
     if (printCategoriesFromNewPage !== undefined) report.printCategoriesFromNewPage = printCategoriesFromNewPage !== false;
+    if (sectionNotes !== undefined) {
+      if (!Array.isArray(sectionNotes)) return errorResponse(res, 'sectionNotes must be a list', 400);
+      const clean = value => String(value ?? '').trim().slice(0, 2000);
+      const seen = new Set();
+      report.sectionNotes = sectionNotes
+        .filter(item => item && typeof item.key === 'string' && item.key.trim() && !seen.has(item.key) && seen.add(item.key))
+        .map(item => ({ key: item.key.trim(), notes: clean(item.notes), remarks: clean(item.remarks), advice: clean(item.advice) }))
+        .filter(item => item.notes || item.remarks || item.advice);
+    }
+    if (moreDetails !== undefined) report.moreDetails = String(moreDetails ?? '').trim().slice(0, 4000);
     await report.save();
     return successResponse(res, 'Print settings saved', {
-      sectionSettings: report.sectionSettings, departmentOrder: report.departmentOrder, printCategoriesFromNewPage: report.printCategoriesFromNewPage
+      sectionSettings: report.sectionSettings, departmentOrder: report.departmentOrder, printCategoriesFromNewPage: report.printCategoriesFromNewPage,
+      sectionNotes: report.sectionNotes, moreDetails: report.moreDetails
     });
   } catch (error) { return next(error); }
 }
@@ -830,6 +841,8 @@ async function getReportForEntry(req, res, next) {
         sectionSettings: report.sectionSettings || [],
         departmentOrder: report.departmentOrder || [],
         printCategoriesFromNewPage: report.printCategoriesFromNewPage !== false,
+        sectionNotes: report.sectionNotes || [],
+        moreDetails: report.moreDetails || '',
         registrationNumber: report.registrationNumber,
         status: report.status,
         entryMode: report.entryMode || 'all',

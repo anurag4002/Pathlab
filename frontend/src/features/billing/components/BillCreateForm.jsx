@@ -640,7 +640,13 @@ const BillCreateForm = ({
       if (res.success) {
         clearBookingPrefill();
         onBillCreated?.();
-        navigate('/cases/bills');
+        // The Bills page shows a "saved" bar with the next steps for this bill.
+        const saved = res.data?.bill || res.data || {};
+        navigate('/cases/bills', { state: { savedBill: {
+          _id: saved._id, billNumber: saved.billNumber, department: saved.department,
+          patientId: saved.patient?._id || saved.patient || patientId,
+          patientName: saved.patient?.name || [patientForm.patientFirstName, patientForm.patientLastName].filter(Boolean).join(' ')
+        } } });
       }
     } catch (err) {
       setErrors({ api: getApiErrorMessage(err, 'Failed to generate invoice') });

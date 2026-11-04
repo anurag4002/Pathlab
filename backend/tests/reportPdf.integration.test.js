@@ -148,3 +148,28 @@ test('catalog, patient and lab format edits invalidate a PDF even when the repor
   assert.notEqual(formatEdit.headers.ETag, patientEdit.headers.ETag);
   await LabProfile.deleteOne({ _id: profile._id });
 });
+
+test('print settings saved from result entry change the downloaded PDF', async () => {
+  const { updatePrintSettings, getReportForEntry } = require('../src/controllers/reportController');
+  const report = await fixture();
+  const call = (fn, req) => new Promise((resolve, reject) => {
+    const res = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { resolve({ status: this.statusCode, body }); return this; } };
+    Promise.resolve(fn({ user: admin, query: {}, headers: {}, ...req }, res, reject)).catch(reject);
+  });
+  const entry = await call(getReportForEntry, { params: { id: String(report._id) } });
+  const sectionKey = entry.body.data.testEntries[0].sectionKey;
+  assert.match(sectionKey, /^panel:/, 'entry rows carry the PDF section key');
+  const bad = await call(updatePrintSettings, { params: { id: String(report._id) }, body: { sectionSettings: 'nope' } });
+  assert.equal(bad.status, 400);
+  const saved = await call(updatePrintSettings, { params: { id: String(report._id) }, body: {
+    sectionSettings: [{ key: sectionKey, skipInterpretation: true }],
+    sectionNotes: [{ key: sectionKey, notes: 'ENTRY SCREEN NOTE', remarks: '', advice: '' }],
+    moreDetails: 'ENTRY MORE DETAILS'
+  } });
+  assert.equal(saved.status, 200);
+  const text = textOf((await render(report, { qr: '0' })).bytes);
+  assert.ok(text.includes('ENTRY SCREEN NOTE') && text.includes('ENTRY MORE DETAILS'));
+  assert.ok(!text.includes('Complete catalog explanation.'), 'skip interpretation hides the guidance');
+  await call(updatePrintSettings, { params: { id: String(report._id) }, body: { sectionSettings: [{ key: sectionKey, printReady: false }] } });
+  assert.ok(!textOf((await render(report, { qr: '0' })).bytes).includes('42'), 'print ready off hides the section');
+});

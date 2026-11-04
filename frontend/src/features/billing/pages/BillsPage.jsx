@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { getBills, collectPayment, getBillById, voidBill, refundBill } from '../../../services/billService';
 import { getPatients } from '../../../services/patientService';
@@ -103,11 +103,18 @@ const DetailSection = ({ title }) => (
 const BillsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [savedBillDismissed, setSavedBillDismissed] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   // Pop-ups stay React state for rendering but are mirrored to the URL
   // (?pay=<id>, ?void=<id>, ?details=<id>, ?label=<id>) so refresh / share
   // reopens the same view instead of losing it.
+  // Only a modal that was opened clears its URL param when closed; a deep
+  // link (?details=<id>) must survive until the bills load and open it.
+  const openedModalsRef = useRef({});
   const mirrorModal = (key, isOpen, id) => {
+    if (isOpen) openedModalsRef.current[key] = true;
+    else if (!openedModalsRef.current[key]) return;
+    else openedModalsRef.current[key] = false;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -615,8 +622,27 @@ const BillsPage = () => {
     ? bills.filter((b) => String(b.department || '').toUpperCase() === String(filterDept).toUpperCase())
     : bills;
 
+  // Shown once after a bill is created: the next steps for that bill.
+  const savedBill = savedBillDismissed ? null : location.state?.savedBill;
+  const dismissSavedBill = () => { setSavedBillDismissed(true); navigate(location.pathname + location.search, { replace: true, state: null }); };
+
   return (
     <div>
+      {savedBill?._id && !isCreateView && (
+        <div className="bill-saved-bar" role="status">
+          <span><strong>Bill {savedBill.billNumber || ''} saved</strong>{savedBill.patientName ? ` for ${savedBill.patientName}` : ''}.</span>
+          <span className="bill-saved-actions">
+            {['LAB', undefined, null, ''].includes(savedBill.department) && savedBill.patientId && (
+              <Button variant="primary" size="sm" icon={<FileEdit size={14} />} onClick={() => navigate(`/lab/result-entry?bill=${savedBill._id}&patient=${savedBill.patientId}`)}>
+                Enter results
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => handleOpenPrint(savedBill)}>Print bill</Button>
+            {canBill && <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => { dismissSavedBill(); clearBookingPrefill(); navigate('/cases/bills/new'); }}>New bill</Button>}
+            <button type="button" className="bill-saved-close" aria-label="Dismiss" onClick={dismissSavedBill}>×</button>
+          </span>
+        </div>
+      )}
       <PageHeader
         title="Billing Ledger"
         subtitle="Manage patient billing receipts and outstanding balances"

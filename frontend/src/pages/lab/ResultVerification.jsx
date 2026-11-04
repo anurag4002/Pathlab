@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
 import {
   PageHeader,
@@ -6,20 +7,15 @@ import {
   DataTable,
   StatusBadge,
   LoadingSpinner,
-  ConfirmDialog,
   TatTimeline,
-  Select,
-  SignaturePreview,
   AdvancedFilterBar,
   DURATION_OPTIONS
 } from '../../components/common';
 import {
   getReports,
-  getReportForEntry,
-  signReport
+  getReportForEntry
 } from '../../services/reportService';
 import { getDoctorById } from '../../services/doctorService';
-import { getSignatures } from '../../services/setupService';
 import { isAdmin } from '../../utils/permissions';
 import formatDate from '../../utils/formatDate';
 import { formatReportTat } from '../../utils/reportTat';
@@ -102,6 +98,7 @@ const renderFlag = (flag) => {
 
 const ResultVerification = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   // Frontend affordance only — the backend's requirePermission('reports')
   // remains the authoritative check (hiding a button is not security).
   const canVerify = isAdmin(user);
@@ -127,20 +124,13 @@ const ResultVerification = () => {
   const [entryLoading, setEntryLoading] = useState(false);
   const [entryError, setEntryError] = useState(null);
   const [referrerName, setReferrerName] = useState('');
-  const [signatures, setSignatures] = useState([]);
-  const [signaturesLoading, setSignaturesLoading] = useState(true);
-  const [signaturesError, setSignaturesError] = useState('');
-  const [signatureReloadKey, setSignatureReloadKey] = useState(0);
-  const [selectedSignatureId, setSelectedSignatureId] = useState('');
 
   // Action state
   const [busy, setBusy] = useState(null); // null | 'verify'
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const inFlightRef = useRef(false); // synchronous re-entry guard
   const doctorReqRef = useRef(0); // stale referring-doctor response guard
-  const signatureRequestRef = useRef(null); // reuse the initial request in StrictMode
 
   // Load the queue (server is the source of truth) with advanced filters.
   // Only `Reported` rows offer a Review action.
@@ -183,46 +173,6 @@ const ResultVerification = () => {
     };
   }, [page, debouncedSearch, statusFilter, duration, from, to, reloadKey]);
 
-  useEffect(() => {
-    let active = true;
-    const request = signatureReloadKey === 0 && signatureRequestRef.current
-      ? signatureRequestRef.current
-      : getSignatures();
-    if (signatureReloadKey === 0) signatureRequestRef.current = request;
-    request.then((response) => {
-      if (!active) return;
-      if (!response?.success) {
-        setSignaturesError(response?.message || 'The signature service returned an unsuccessful response.');
-        setSignatures([]);
-        return;
-      }
-      const list = Array.isArray(response.data)
-        ? response.data
-        : (Array.isArray(response.data?.signatures) ? response.data.signatures : []);
-      setSignatures(list);
-      setSelectedSignatureId((current) => (
-        list.some((signature) => String(signature._id) === String(current)) ? current : ''
-      ));
-      setSignaturesError('');
-    }).catch((error) => {
-      if (active) {
-        setSignatures([]);
-        setSignaturesError(getApiErrorMessage(error, 'Failed to load signatures.'));
-      }
-    }).finally(() => {
-      if (active) setSignaturesLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [signatureReloadKey]);
-
-  const retrySignatures = () => {
-    setSignaturesLoading(true);
-    setSignaturesError('');
-    setSignatureReloadKey((key) => key + 1);
-  };
-
   // Resolve the referring doctor's display name (optional enrichment).
   const resolveReferrer = (patient, bill) => {
     const reqId = ++doctorReqRef.current;
@@ -255,7 +205,6 @@ const ResultVerification = () => {
     setEntryError(null);
     setFeedback(null);
     setReferrerName('');
-    setSelectedSignatureId('');
     setActiveRow(row);
     try {
       const res = await getReportForEntry(row._id);
@@ -273,73 +222,6 @@ const ResultVerification = () => {
     }
   };
 
-  const requestVerify = () => {
-    if (busy || inFlightRef.current) return;
-    if (!entry?.report?._id || entry.report.status !== 'Reported') return;
-    if (!canVerify) return;
-    if (signaturesLoading) {
-      setFeedback({ type: 'error', text: 'Signatures are still loading. Please try again.' });
-      return;
-    }
-    if (signaturesError) {
-      setFeedback({ type: 'error', text: signaturesError });
-      return;
-    }
-    if (!selectedSignature) {
-      setFeedback({ type: 'error', text: 'Select a signature before verifying this result.' });
-      return;
-    }
-    setConfirmOpen(true);
-  };
-
-  const performVerify = async () => {
-    if (busy || inFlightRef.current || !entry?.report?._id) return;
-    if (entry.report.status !== 'Reported' || !canVerify || !selectedSignature) {
-      setConfirmOpen(false);
-      return;
-    }
-    inFlightRef.current = true;
-    setBusy('verify');
-    setFeedback(null);
-    try {
-      const res = await signReport(entry.report._id, selectedSignature._id);
-      // The mutation response is the authoritative report state.
-      const updated = res?.data;
-      setEntry((prev) =>
-        prev
-          ? {
-              ...prev,
-              report: {
-                ...prev.report,
-                status: updated?.status ?? prev.report.status,
-                registrationNumber:
-                  updated?.registrationNumber ?? prev.report.registrationNumber,
-                tat: updated?.tat ?? prev.report.tat
-              }
-            }
-          : prev
-      );
-      setFeedback({
-        type: 'success',
-        text: res?.message || 'Result verified and signed off.'
-      });
-      // Refetch the queue so the list reflects the server's state.
-      setListLoading(true);
-      setListError(null);
-      setReloadKey((key) => key + 1);
-    } catch (err) {
-      // Status is left untouched — the server did not accept the change.
-      setFeedback({
-        type: 'error',
-        text: getApiErrorMessage(err, 'Failed to verify this result. Please try again.')
-      });
-    } finally {
-      setConfirmOpen(false);
-      setBusy(null);
-      inFlightRef.current = false;
-    }
-  };
-
   const performBack = () => {
     doctorReqRef.current += 1; // drop any in-flight referrer lookup
     setView('list');
@@ -348,7 +230,6 @@ const ResultVerification = () => {
     setReferrerName('');
     setFeedback(null);
     setEntryError(null);
-    setConfirmOpen(false);
     setBusy(null);
     // Refetch — this row's status may have changed while the review was open.
     setListLoading(true);
@@ -473,9 +354,6 @@ const ResultVerification = () => {
     debouncedSearch.trim() || statusFilter || duration || from || to
   );
   const status = entry?.report?.status;
-  const selectedSignature = selectedSignatureId
-    ? signatures.find((signature) => String(signature._id) === selectedSignatureId)
-    : null;
 
   return (
     <div className="result-verification-page">
@@ -754,71 +632,24 @@ const ResultVerification = () => {
                   emptyMessage="This result has no recorded test values."
                   renderRow={renderResultRow}
                 />
-                {status === 'Reported' && (
-                  <section className="rv-signature-picker" aria-labelledby="rv-signature-heading">
-                    <h3 id="rv-signature-heading" className="rv-card-title">Sign-off signature</h3>
-                    {signaturesLoading ? (
-                      <LoadingSpinner label="Loading signatures..." />
-                    ) : signaturesError ? (
-                      <div className="rv-signature-error" role="alert">
-                        <span>{signaturesError}</span>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={retrySignatures}
-                          disabled={signaturesLoading}
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    ) : signatures.length === 0 ? (
-                      <p className="rv-note">No signatures are available from the signature API.</p>
-                    ) : (
-                      <>
-                        <Select
-                          label="Select a signature"
-                          name="verification-signature"
-                          value={selectedSignatureId}
-                          onChange={(event) => setSelectedSignatureId(event.target.value)}
-                          options={signatures.map((signature) => ({
-                            value: signature._id,
-                            label: `${signature.name || 'Signature'}${signature.title ? ` · ${signature.title}` : ''}${signature.status ? ` · ${signature.status}` : ''}`
-                          }))}
-                          placeholder="Select a signature"
-                          disabled={busy !== null || confirmOpen}
-                        />
-                        {selectedSignature && (
-                          <SignaturePreview
-                            url={selectedSignature.imageUrl}
-                            label={selectedSignature.name || 'Selected signature'}
-                            className="rv-signature-preview"
-                          />
-                        )}
-                      </>
-                    )}
-                  </section>
-                )}
                 <div className="rv-actions">
                   {status === 'Reported' ? (
                     canVerify ? (
-                      <Button
-                        variant="primary"
-                        icon={<CheckCircle2 size={16} />}
-                        onClick={requestVerify}
-                        disabled={busy !== null}
-                      >
-                        Verify result
+                      // One place to sign: Result Entry shows the full report,
+                      // the signature choice and Print right after sign-off.
+                      <Button variant="primary" icon={<CheckCircle2 size={16} />} onClick={() => navigate(`/lab/result-entry?report=${entry.report._id}`)}>
+                        Sign off in Result Entry
                       </Button>
                     ) : (
                       <span className="rv-note">
-                        You do not have permission to verify results.
+                        You do not have permission to sign off results.
                       </span>
                     )
                   ) : (
                     <span className="rv-note">
                       {status === 'Signed'
-                        ? 'This result has already been verified.'
-                        : 'This result is not pending verification.'}
+                        ? 'This result has already been signed off.'
+                        : 'This result is not pending sign-off.'}
                     </span>
                   )}
                 </div>
@@ -828,19 +659,6 @@ const ResultVerification = () => {
         </>
       )}
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={performVerify}
-        title="Verify this laboratory result?"
-        message={`You are about to sign off report ${
-          entry?.report?.registrationNumber || ''
-        } using ${selectedSignature?.name || 'the selected signature'}. This confirms the recorded results are correct and cannot be undone.`}
-        confirmText="Verify result"
-        cancelText="Cancel"
-        confirmVariant="primary"
-        loading={busy === 'verify'}
-      />
     </div>
   );
 };

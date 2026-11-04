@@ -72,7 +72,9 @@ const ReportSchema = new mongoose.Schema({
     flag: { type: String, enum: ['N', 'L', 'H', 'C', ''], default: '' },
     derived: { type: Boolean, default: false },
     parameterCode: { type: String, default: '' },
-    referenceRange: { type: String, default: '' }
+    referenceRange: { type: String, default: '' },
+    // Per-result remark added from result entry ("+" beside the value).
+    remark: { type: String, trim: true, maxlength: 500, default: '' }
   }],
   // Per-report section text. Missing key uses the catalog; empty text hides it.
   interpretations: [{
@@ -94,6 +96,15 @@ const ReportSchema = new mongoose.Schema({
     order: { type: Number, default: null }
   }],
   departmentOrder: [{ type: String }],
+  // Notes / Remarks / Advice per printed section, and a report-level note.
+  sectionNotes: [{
+    _id: false,
+    key: { type: String, required: true },
+    notes: { type: String, trim: true, maxlength: 2000, default: '' },
+    remarks: { type: String, trim: true, maxlength: 2000, default: '' },
+    advice: { type: String, trim: true, maxlength: 2000, default: '' }
+  }],
+  moreDetails: { type: String, trim: true, maxlength: 4000, default: '' },
   printCategoriesFromNewPage: { type: Boolean, default: true },
   // Turnaround-time tracking (4 dates).
   tat: {

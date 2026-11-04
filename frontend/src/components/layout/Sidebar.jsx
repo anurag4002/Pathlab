@@ -10,6 +10,7 @@ import {
   Layers,
   Settings,
   Stethoscope,
+  FlaskConical,
   Plus,
   ChevronDown,
   ChevronRight
@@ -27,7 +28,8 @@ const ICON_MAP = {
   Radio,
   Layers,
   Settings,
-  Stethoscope
+  Stethoscope,
+  FlaskConical
 };
 
 const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {

@@ -481,3 +481,23 @@
   .ls-title-row .ls-reorder { position: static; }
   .ls-print-options, .ls-print-options-test { justify-content: flex-start; }
 }
+
+/* ---- Remarks, notes/remarks/advice, more details, case menu ---- */
+.ls-edit-test { display: inline-flex; margin-right: 6px; color: #111827; vertical-align: -1px; }
+.ls-edit-test:hover { color: #1d4ed8; }
+.ls-remark-btn { display: inline-flex; align-items: center; justify-content: center; width: 1.35rem; height: 1.35rem; margin-right: 8px; border: 0; border-radius: 999px; background: #dbeafe; color: #1d4ed8; cursor: pointer; vertical-align: middle; }
+.ls-remark-btn.has-remark { background: #1d4ed8; color: #fff; }
+.ls-remark-row td { padding: 0 6px 6px !important; }
+.ls-remark-label { margin-right: 8px; font-size: 0.8rem; color: #475569; }
+.ls-remark-input { width: min(36rem, 100%); height: 2rem; padding: 2px 8px; border: 1px solid #d1d5db; border-radius: 4px; font: inherit; font-size: 0.9rem; }
+.ls-nra { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 18px; padding: 8px 4px 4px; }
+.ls-nra-for { flex-basis: 100%; font-size: 0.8rem; color: #64748b; }
+.ls-nra-add { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 0; border-radius: 999px; background: transparent; color: #64748b; font-size: 0.85rem; cursor: pointer; }
+.ls-nra-add:hover, .ls-nra-add:focus-visible { background: #eff6ff; color: #1d4ed8; }
+.ls-nra-field { display: grid; gap: 2px; flex: 1 1 16rem; font-size: 0.8rem; color: #475569; }
+.ls-nra-field textarea, .ls-more-details textarea { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font: inherit; font-size: 0.9rem; resize: vertical; }
+.ls-more-details { display: grid; gap: 4px; margin-top: var(--space-5); font-size: 0.9rem; color: #374151; }
+.ls-case-menu { position: relative; display: inline-flex; }
+.ls-case-menu-list { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 5; display: grid; min-width: 11rem; padding: 4px 0; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); }
+.ls-case-menu-list button { padding: 8px 14px; border: 0; background: transparent; text-align: left; font: inherit; font-size: 0.9rem; cursor: pointer; }
+.ls-case-menu-list button:hover, .ls-case-menu-list button:focus-visible { background: #f1f5f9; }

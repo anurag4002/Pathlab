@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getTests, createTest, updateTest, deleteTest, getCategories } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -83,6 +84,17 @@ const TestDatabase = () => {
     fetchCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ?edit=<testId> (e.g. the pencil on result entry) opens that test.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId || !tests.length) return;
+    const test = tests.find((item) => String(item._id) === String(editId));
+    if (test) handleOpenEdit(test);
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tests, searchParams]);
 
   const handleOpenCreate = () => {
     setEditingTest(null);

@@ -241,6 +241,24 @@ test('result-entry print settings: hide, skip interpretation, new page, departme
   assert.ok(reordered.text.indexOf('BIOCHEMISTRY') < reordered.text.indexOf('HAEMATOLOGY'));
 });
 
+test('result remarks, section notes/remarks/advice and more details print on the report', async () => {
+  const testMap = { hbs: { _id: 'hbs', name: 'HBsAg', category: sero, reportSectionKey: 'panel:vm', reportSectionName: 'Viral Marker', reportSectionOrder: 0 } };
+  const report = {
+    ...context.report,
+    results: [{ test: 'hbs', testName: 'HBsAg', value: 'Negative', remark: 'REPEAT AFTER 2 WEEKS' }],
+    sectionNotes: [{ key: 'panel:vm', notes: 'RECOMMEND HCV ELISA FOR CONFIRMATION', advice: 'FOLLOW UP WITH PHYSICIAN' }],
+    moreDetails: 'SAMPLE RECEIVED HAEMOLYSED'
+  };
+  const text = textOf(await reportPdf({ ...context, report, testMap }));
+  assert.ok(text.includes('Remark: REPEAT AFTER 2 WEEKS'));
+  assert.ok(text.includes('Notes') && text.includes('RECOMMEND HCV ELISA FOR CONFIRMATION'));
+  assert.ok(text.includes('Advice') && text.includes('FOLLOW UP WITH PHYSICIAN') && !text.includes('Remarks'));
+  assert.ok(text.indexOf('SAMPLE RECEIVED HAEMOLYSED') < text.indexOf('End of report') || !text.includes('End of report'));
+  const { buildResultRows } = require('../src/services/reportCalculationService');
+  const saved = buildResultRows([{ testName: 'Free text', value: '1', remark: '  keep me  ' }], [], {});
+  assert.equal(saved.results[0].remark, 'keep me');
+});
+
 test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {
   const rich = '<h2 style="text-align:center">Clinical details</h2><p>Normal <strong>bold phrase</strong> and <em>italic phrase</em> with <u>underlined phrase</u>.</p><table><tbody><tr><th colspan="2"><p>COMBINED HEADER</p></th></tr><tr><td rowspan="2"><p>GROUP LABEL</p></td><td><p>FIRST CELL</p></td></tr><tr><td><p>SECOND CELL</p></td></tr></tbody></table><ul><li><p>Bullet detail</p></li></ul>';
   const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation: rich } } });

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, RefreshCw, Upload } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, Pencil, Plus, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
   Button,
@@ -117,7 +117,7 @@ const dedupeTestEntries = (list) => {
    trimmed non-empty values, unit carried from the test master. */
 const entryKey = (testEntry) => testEntry?.resultKey || testEntry?.testId || `name:${testEntry?.testName || ''}`;
 
-const buildResultsPayload = (testEntries, values) =>
+const buildResultsPayload = (testEntries, values, remarks = {}) =>
   (testEntries || [])
     .filter((testEntry) => !testEntry.isDerived)
     .map((testEntry) => {
@@ -127,7 +127,8 @@ const buildResultsPayload = (testEntries, values) =>
         ...(testEntry.parameterCode ? { parameterCode: testEntry.parameterCode } : {}),
         testName: testEntry.testName,
         value: String(values[key] ?? '').trim(),
-        unit: testEntry.testId ? testEntry.unit || '' : testEntry.unit || testEntry.existingUnit || ''
+        unit: testEntry.testId ? testEntry.unit || '' : testEntry.unit || testEntry.existingUnit || '',
+        ...(String(remarks[key] || '').trim() ? { remark: String(remarks[key]).trim() } : {})
       };
     })
     .filter((row) => row.value !== '');
@@ -230,6 +231,11 @@ const ResultEntry = () => {
   const [busy, setBusy] = useState(null); // null | 'draft' | 'submit'
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
   const [openInterpretations, setOpenInterpretations] = useState({});
+  const navigate = useNavigate();
+  const [remarks, setRemarks] = useState({});
+  const [openRemarks, setOpenRemarks] = useState({});
+  const [openNotes, setOpenNotes] = useState({});
+  const [signMenuOpen, setSignMenuOpen] = useState(false);
   // Print options per section (reference LIS checkboxes), saved on the report
   // immediately so the PDF reflects them.
   // Saved edits for the open report; otherwise the report's stored settings.
@@ -240,7 +246,9 @@ const ResultEntry = () => {
       reportId: entry.report._id,
       sectionSettings: entry.report.sectionSettings || [],
       departmentOrder: entry.report.departmentOrder || [],
-      printCategoriesFromNewPage: entry.report.printCategoriesFromNewPage !== false
+      printCategoriesFromNewPage: entry.report.printCategoriesFromNewPage !== false,
+      sectionNotes: entry.report.sectionNotes || [],
+      moreDetails: entry.report.moreDetails || ''
     };
   const savePrintSettings = async (next) => {
     const reportId = entry?.report?._id;
@@ -270,6 +278,19 @@ const ResultEntry = () => {
     const others = current.filter((item) => !nextKeys.includes(item.key));
     savePrintSettings({ ...printSettings, sectionSettings: [...others, ...nextKeys.map((k, order) => ({ ...sectionSetting(k), key: k, order }))] });
   };
+  const sectionNote = (key) => (printSettings?.sectionNotes || []).find((item) => item.key === key) || { key, notes: '', remarks: '', advice: '' };
+  // Notes / Remarks / Advice are edited locally and saved when the box loses focus.
+  const [noteDrafts, setNoteDrafts] = useState({});
+  const noteValue = (key, field) => noteDrafts[`${key}|${field}`] ?? sectionNote(key)[field] ?? '';
+  const saveNote = (key, field) => {
+    const draftKey = `${key}|${field}`;
+    if (!(draftKey in noteDrafts)) return;
+    const updated = { ...sectionNote(key), [field]: noteDrafts[draftKey] };
+    const others = (printSettings?.sectionNotes || []).filter((item) => item.key !== key);
+    setNoteDrafts((prev) => { const next = { ...prev }; delete next[draftKey]; return next; });
+    savePrintSettings({ ...printSettings, sectionNotes: [...others, updated] });
+  };
+  const [moreDetailsDraft, setMoreDetailsDraft] = useState(null);
   const moveDepartment = (names, name, delta) => {
     const index = names.indexOf(name), target = index + delta;
     if (index < 0 || target < 0 || target >= names.length) return;
@@ -361,6 +382,9 @@ const ResultEntry = () => {
     });
     setEntry({ ...data, testEntries });
     setValues(initial);
+    setRemarks(Object.fromEntries(testEntries.filter((t) => t.existingRemark).map((t) => [entryKey(t), t.existingRemark])));
+    setOpenRemarks({});
+    setOpenNotes({});
     setCustomResultKeys({});
     setDirty(false);
     resolveReferrer(data.patient, data.bill);
@@ -530,7 +554,7 @@ const ResultEntry = () => {
 
   const handleAction = async (mode, { quiet = false } = {}) => {
     if (busy || inFlightRef.current || !entry?.report?._id) return false;
-    const payload = buildResultsPayload(entry.testEntries, values);
+    const payload = buildResultsPayload(entry.testEntries, values, remarks);
     if (payload.length === 0) {
       setFeedback({
         type: 'error',
@@ -769,7 +793,12 @@ const ResultEntry = () => {
       <React.Fragment key={key || index}>
       <tr className={`ls-row${testEntry.parentName && testEntry.parameterCode ? ' ls-row-child' : ''}`}>
         <td className="ls-test">
-          <div className="re-test-name">{(testEntry.parentName && testEntry.parameterCode ? String(testEntry.testName || '').replace(`${testEntry.parentName}: `, '') : testEntry.testName) || 'Test'}
+          <div className="re-test-name">
+            {canSign && testEntry.testId && (
+              <Link to={`/lab/tests?edit=${testEntry.testId}`} target="_blank" rel="noopener noreferrer" className="ls-edit-test" title="Edit this test in the Test Database (opens a new tab)" aria-label={`Edit test ${testEntry.testName || ''}`}>
+                <Pencil size={13} />
+              </Link>
+            )}{(testEntry.parentName && testEntry.parameterCode ? String(testEntry.testName || '').replace(`${testEntry.parentName}: `, '') : testEntry.testName) || 'Test'}
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
           </div>
           {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && (
@@ -816,9 +845,25 @@ const ResultEntry = () => {
             autoComplete="off"
           />}
         </td>
-        <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || ''}</td>
+        <td className="re-unit">
+          {!isDerived && (
+            <button type="button" className={`ls-remark-btn${remarks[key] ? ' has-remark' : ''}`} title={remarks[key] ? 'Edit remark' : 'Add remark'} aria-label={`${remarks[key] ? 'Edit' : 'Add'} remark for ${testEntry.testName || 'test'}`}
+              aria-expanded={!!openRemarks[key]} onClick={() => setOpenRemarks((prev) => ({ ...prev, [key]: !prev[key] }))}>
+              <Plus size={13} />
+            </button>
+          )}
+          {(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || ''}
+        </td>
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
+      {(openRemarks[key] || remarks[key]) && !isDerived && (
+        <tr className="ls-remark-row"><td colSpan={5}>
+          <label className="ls-remark-label" htmlFor={`remark-${key}`}>Remark</label>
+          <input id={`remark-${key}`} className="ls-remark-input" type="text" maxLength={500} placeholder="Printed under the test name"
+            value={remarks[key] || ''} disabled={busy !== null || isReportFinal(entry?.report?.status)}
+            onChange={(event) => { const next = event.target.value; setRemarks((prev) => ({ ...prev, [key]: next })); setDirty(true); }} />
+        </td></tr>
+      )}
       <DifferentialTotalRow total={differentialTotals.get(key)} withFlagColumn />
       {openInterpretations[key] && (hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={5}>
         <InlineTestInterpretation reportId={entry.report._id} testEntry={testEntry} readOnly={['Signed', 'Verified', 'Completed'].includes(entry.report.status)} />
@@ -1104,15 +1149,62 @@ const ResultEntry = () => {
                               </React.Fragment>
                             ))}</tbody>
                           </table>
+                          {(() => {
+                            const keys = group.panel ? [group.key] : [...new Set(group.tests.map((t) => t.sectionKey))];
+                            return keys.map((sectionKey) => {
+                              const label = group.panel ? group.name : group.tests.find((t) => t.sectionKey === sectionKey)?.testName;
+                              const fields = [['notes', 'notes'], ['remarks', 'remarks'], ['advice', 'advices']];
+                              return (
+                                <div key={sectionKey} className="ls-nra">
+                                  {!group.panel && keys.length > 1 && <span className="ls-nra-for">{label}</span>}
+                                  {fields.map(([field, word]) => {
+                                    const value = noteValue(sectionKey, field);
+                                    const open = openNotes[`${sectionKey}|${field}`] || String(value).trim();
+                                    return open ? (
+                                      <label key={field} className="ls-nra-field">
+                                        <span>{field === 'advice' ? 'Advice' : field[0].toUpperCase() + field.slice(1)}</span>
+                                        <textarea rows={2} maxLength={2000} value={value} disabled={printSaving}
+                                          onChange={(event) => setNoteDrafts((prev) => ({ ...prev, [`${sectionKey}|${field}`]: event.target.value }))}
+                                          onBlur={() => saveNote(sectionKey, field)} />
+                                      </label>
+                                    ) : (
+                                      <button key={field} type="button" className="ls-nra-add" onClick={() => setOpenNotes((prev) => ({ ...prev, [`${sectionKey}|${field}`]: true }))}>
+                                        <Plus size={13} /> Add {word}{!group.panel && keys.length > 1 ? '' : ''}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       ))}
                     </div>
                     );
                   });
                 })() : <p className="re-sub">This case has no lab tests to report.</p>}
+                <label className="ls-more-details">
+                  <span>More details</span>
+                  <textarea rows={3} maxLength={4000} value={moreDetailsDraft ?? printSettings?.moreDetails ?? ''} disabled={printSaving}
+                    onChange={(event) => setMoreDetailsDraft(event.target.value)}
+                    onBlur={() => { if (moreDetailsDraft !== null) { savePrintSettings({ ...printSettings, moreDetails: moreDetailsDraft }); setMoreDetailsDraft(null); } }} />
+                </label>
               </section>
                 <div className="re-actions re-actions-bar">
                   <div className="re-action-buttons">
+                    {entry?.bill?._id && (
+                      <span className="ls-case-menu">
+                        <Button variant="secondary" aria-haspopup="menu" aria-expanded={signMenuOpen} onClick={() => setSignMenuOpen((open) => !open)} title="Bill and case actions">
+                          Case <ChevronDown size={14} />
+                        </Button>
+                        {signMenuOpen && (
+                          <span className="ls-case-menu-list" role="menu" onMouseLeave={() => setSignMenuOpen(false)}>
+                            <button type="button" role="menuitem" onClick={() => { setSignMenuOpen(false); navigate(`/cases/bills?search=${encodeURIComponent(entry.bill.billNumber || '')}&details=${entry.bill._id}`); }}>View bill</button>
+                            {canSign && <button type="button" role="menuitem" onClick={() => { setSignMenuOpen(false); navigate(`/cases/bills/edit/${entry.bill._id}`); }}>Modify case</button>}
+                          </span>
+                        )}
+                      </span>
+                    )}
                     {canSign && entry?.report?.status !== 'Signed' && (
                       <span className="ls-signoff">
                         <Button variant="primary" icon={<CheckCircle2 size={16} />} onClick={handleSign} loading={busy === 'sign'} disabled={busy !== null || !selectedSignature}

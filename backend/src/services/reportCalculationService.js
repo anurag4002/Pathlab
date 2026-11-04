@@ -33,7 +33,7 @@ function buildResultRows(entries, tests, patient = {}) {
   tests = expandTests(orderTestsBySource(tests)).map((t) => resolveReferenceRange(t, patient));
   const byId = new Map(tests.map((t) => [resultKey(t._id, t.parameterCode), t]));
   const values = {};
-  const row = (test, name, value, unit, derived) => ({
+  const row = (test, name, value, unit, derived, remark = '') => ({
     test: test?._id || null,
     testName: test?.name || name || '',
     value: value == null ? '' : String(value),
@@ -41,7 +41,8 @@ function buildResultRows(entries, tests, patient = {}) {
     flag: evaluateResult(value, test, patient).flag,
     derived,
     parameterCode: test?.parameterCode || '',
-    referenceRange: test?.referenceRange || ''
+    referenceRange: test?.referenceRange || '',
+    remark: String(remark || '').trim().slice(0, 500)
   });
   const rows = [];
   for (const entry of entries) {
@@ -53,7 +54,7 @@ function buildResultRows(entries, tests, patient = {}) {
     if (test?.code) values[test.code] = entry.value;
     if (test?.name) values[test.name] = entry.value;
     else if (entry.testName) values[entry.testName] = entry.value;
-    rows.push(row(test, entry.testName, entry.value, entry.unit, false));
+    rows.push(row(test, entry.testName, entry.value, entry.unit, false, entry.remark));
   }
   const pending = tests.filter((t) => t.isDerived && String(t.formula || '').trim());
   const skipped = [];

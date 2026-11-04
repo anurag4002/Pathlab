@@ -51,7 +51,15 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: "Today's Reports", path: '/lab/reports' },
       { title: 'Result Entry', path: '/lab/result-entry' },
       { title: 'Result Verification', path: '/lab/verification', roles: ['Admin'] },
-      { title: 'Search Reports', path: '/lab/search' },
+      { title: 'Search Reports', path: '/lab/search' }
+    ]
+  },
+  {
+    // Catalog and rate setup, kept out of the daily Lab menu.
+    title: 'Test Setup',
+    icon: 'FlaskConical',
+    roles: ['Admin', 'Employee', 'Doctor'],
+    children: [
       { title: 'Test Database', path: '/lab/tests', roles: ['Admin'] },
       { title: 'Normal Ranges', path: '/lab/normal-ranges', roles: ['Admin'] },
       { title: 'Test Packages', path: '/lab/packages', roles: ['Admin'] },
