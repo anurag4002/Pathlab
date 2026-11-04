@@ -2,6 +2,7 @@
 // narrow source columns. Join soft wraps while preserving headings and lists.
 const HEADING = /^(physiologic(?:al)? basis|clinical significance|interpretation|increased in|decreased in|causes of (?:increased|decreased) .+|(?:high|low|raised|elevated|decreased|increased)(?: levels?)?(?: causes?| values?)?(?: in| is found in| can be found in)?|causes?|notes?|comments?|method|principle|reference(?: interval| range)?|clinical (?:utility|use)|limitations?|specimen|precautions?)\s*:?\s*$/i;
 const INLINE_HEADING = /^((?:increased|decreased|high|low|elevated|raised)(?: levels?)?(?: causes?| values?)?(?: in)?|notes?|comments?|method|specimen)\s*:\s*(.+)$/i;
+const LEAD_IN = /^(?:increased|decreased|elevated|raised|high|low|reduced)(?: levels?)?(?: values?)?(?: in| is found in| can be found in)?$/i;
 const isImportNote = value => /^\s*Migrated from Labsmart\b/i.test(String(value || ''));
 const normalized = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
@@ -44,6 +45,12 @@ function interpretationBlocks(value) {
       { heading: blocks[i].text, items: blocks.slice(i + 1, middle).map(block => block.text) },
       { heading: blocks[middle].text, items: blocks.slice(middle + 1, end).map(block => block.text) }
     ] });
+  }
+  // The reference sheet runs "Increased in:" style labels into their text
+  // ("Increased in: Acute viral hepatitis ...") with the label in bold.
+  for (let i = 0; i < blocks.length - 1; i++) {
+    if (blocks[i].kind !== 'heading' || !LEAD_IN.test(blocks[i].text) || blocks[i + 1].kind !== 'paragraph') continue;
+    blocks.splice(i, 2, { kind: 'paragraph', text: `${blocks[i].text}: ${blocks[i + 1].text}`, runs: [{ text: `${blocks[i].text}: `, bold: true }, { text: blocks[i + 1].text }] });
   }
   return blocks;
 }

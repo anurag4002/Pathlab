@@ -21,6 +21,17 @@ const TestPanelSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Department the panel prints under and its position in the panel list
+  // (Labsmart files e.g. Torch Profile under Biochemistry, not by its tests).
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TestCategory',
+    default: null
+  },
+  displayOrder: {
+    type: Number,
+    default: null
+  },
   status: {
     type: String,
     enum: ['Active', 'Inactive'],

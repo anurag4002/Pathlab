@@ -18,7 +18,7 @@ async function loadReportPrintTests(report) {
   const panelIds = items.filter(item => item.itemType === 'TestPanel').map(item => item.itemId).filter(Boolean);
   const packageIds = items.filter(item => item.itemType === 'TestPackage').map(item => item.itemId).filter(Boolean);
   const [panels, packages] = await Promise.all([
-    panelIds.length ? TestPanel.find({ _id: { $in: panelIds } }).lean() : [],
+    panelIds.length ? TestPanel.find({ _id: { $in: panelIds } }).populate('category', 'name createdAt').lean() : [],
     packageIds.length ? TestPackage.find({ _id: { $in: packageIds } }).lean() : []
   ]);
   const membership = new Map();
@@ -29,7 +29,9 @@ async function loadReportPrintTests(report) {
     // by the reference sheet) rather than the order results were entered.
     (item.children || []).forEach((id, index) => membership.set(String(id), {
       reportSectionKey: `${item.type}:${item.record._id}`, reportSectionName: item.record.name,
-      reportSectionDescription: item.record.description || '', reportSectionOrder: index
+      reportSectionDescription: item.record.description || '', reportSectionOrder: index,
+      // The panel's own department and list position, when known.
+      reportSectionCategory: item.record.category || null, reportSectionRank: item.record.displayOrder ?? null
     }));
   }
   const billedTestIds = [...items.filter(item => item.itemType === 'Test').map(item => item.itemId), ...membership.keys()].filter(Boolean);

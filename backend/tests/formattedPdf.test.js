@@ -98,7 +98,9 @@ test('legacy and rich interpretation paragraphs retain readable type even when r
     })));
     const body = runs.filter(run => run.text.includes('READABLE_BODY_SENTINEL'));
     assert.ok(body.length > 0, 'the full explanation must be rendered');
-    assert.ok(body.every(run => run.size >= format.fontSize), 'interpretation text must never shrink below body size');
+    // A standalone test's guidance is set at 85% of body size, as on the
+    // Labsmart reference sheet; it must never shrink further to fit a page.
+    assert.ok(body.every(run => run.size >= format.fontSize * 0.85 - 0.01), 'interpretation text must never shrink below 85% of body size');
   }
 });
 
@@ -129,9 +131,10 @@ test('inline TLC interpretation replaces only TLC and leaves adjacent ESR guidan
 });
 
 // Labsmart parity: rules confirmed against printed Labsmart reports.
-const haem = { name: 'Haematology', createdAt: '2026-01-01T00:00:00Z' };
-const sero = { name: 'Serology & Immunology', createdAt: '2026-01-02T00:00:00Z' };
-const bio = { name: 'Biochemistry', createdAt: '2026-01-03T00:00:00Z' };
+// Imported categories are created milliseconds apart, as in production.
+const haem = { name: 'Haematology', createdAt: new Date('2026-01-01T00:00:00.100Z') };
+const sero = { name: 'Serology & Immunology', createdAt: new Date('2026-01-01T00:00:00.200Z') };
+const bio = { name: 'Biochemistry', createdAt: new Date('2026-01-01T00:00:00.300Z') };
 const pageCount = pdf => (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
 
 test('Labsmart parity: panels print only panel guidance, not imported member essays or editor round-trips', async () => {
@@ -156,9 +159,12 @@ test('Labsmart parity: departments print in category order, each on its own page
   const testMap = {
     urea: { _id: 'urea', name: 'Serum Urea', category: bio },
     hiv: { _id: 'hiv', name: 'HIV', category: sero },
-    hb: { _id: 'hb', name: 'Hemoglobin', category: haem }
+    hb: { _id: 'hb', name: 'Hemoglobin', category: haem },
+    // A panel must not pull its department ahead of the others.
+    lft: { _id: 'lft', name: 'SGOT', category: bio, reportSectionKey: 'panel:lft', reportSectionName: 'LFT', reportSectionOrder: 0 },
+    esr: { _id: 'esr', name: 'ESR', category: haem }
   };
-  const report = { ...context.report, results: ['urea', 'hiv', 'hb'].map(id => ({ test: id, testName: testMap[id].name, value: '1' })) };
+  const report = { ...context.report, results: ['urea', 'lft', 'hiv', 'hb', 'esr'].map(id => ({ test: id, testName: testMap[id].name, value: '1' })) };
   const pdf = await reportPdf({ ...context, report, testMap });
   const text = textOf(pdf);
   assert.equal(pageCount(pdf), 3);
@@ -183,6 +189,16 @@ test('Labsmart parity: standalone tests share one table, guidance sits under its
   assert.ok(!/Interpretation/.test(text), 'no "<test> - Interpretation" banner for a single standalone test');
   assert.ok(text.includes('Method: Calculated'));
   assert.ok(!/0\.9-/.test(text), 'missing unit/range print blank, not "-"');
+});
+
+test('Labsmart parity: thousands grouping, "Mr. NAME / 30 YRS / M" band and inline "Increased in:" lead-ins', async () => {
+  const testMap = { tlc: { _id: 'tlc', name: 'Total Leukocyte Count', category: haem, unit: 'cumm', interpretation: 'Increased in\nACUTE INFECTIONS and stress.' } };
+  const report = { ...context.report, results: [{ test: 'tlc', testName: 'Total Leukocyte Count', value: '7800', referenceRange: '4800 - 10800' }] };
+  const patient = { ...context.patient, title: 'Mr.', name: 'Parity TEST REPORT', age: 30, ageUnit: 'years', gender: 'Male' };
+  const text = textOf(await reportPdf({ ...context, patient, report, testMap }));
+  assert.ok(text.includes('7,800') && text.includes('4,800 - 10,800'));
+  assert.ok(text.includes('Mr. Parity TEST REPORT') && text.includes('30 YRS / M'));
+  assert.ok(text.includes('Increased in: ACUTE INFECTIONS'), 'lead-in label runs into its text');
 });
 
 test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {

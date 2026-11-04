@@ -1,0 +1,107 @@
+[
+  {
+    "order": 1,
+    "name": "Complete Blood Count (CBC)",
+    "category": "Haematology"
+  },
+  {
+    "order": 2,
+    "name": "CBC (with absolute counts)",
+    "category": "Haematology"
+  },
+  {
+    "order": 3,
+    "name": "CBC with ESR",
+    "category": "Haematology"
+  },
+  {
+    "order": 4,
+    "name": "BT & CT",
+    "category": "Haematology"
+  },
+  {
+    "order": 5,
+    "name": "Coagulation Profile",
+    "category": "Haematology"
+  },
+  {
+    "order": 6,
+    "name": "Blood Sugar Fasting & PP",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 7,
+    "name": "Liver Function Test (LFT)",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 8,
+    "name": "Bilirubin Total, Direct & Indirect",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 9,
+    "name": "Kidney Function Test (KFT)",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 10,
+    "name": "KFT without Electrolyte",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 11,
+    "name": "Lipid Profile",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 12,
+    "name": "Electrolytes Panel",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 13,
+    "name": "Arthritis Profile",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 14,
+    "name": "Protein Fraction",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 15,
+    "name": "Torch Profile",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 16,
+    "name": "Iron Studies",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 17,
+    "name": "AMH Panel",
+    "category": "Biochemistry"
+  },
+  {
+    "order": 18,
+    "name": "Viral Marker",
+    "category": "Serology & Immunology"
+  },
+  {
+    "order": 19,
+    "name": "Thyroid Function Test (TFT)",
+    "category": "Endocrinology"
+  },
+  {
+    "order": 20,
+    "name": "Free Thyroid Function Test (FTFT)",
+    "category": "Endocrinology"
+  },
+  {
+    "order": 21,
+    "name": "Pcod",
+    "category": "Endocrinology"
+  }
+]

@@ -17,7 +17,12 @@ const NOTE_BORDER = '#334155';
 const NOTE_PADDING_X = 10;
 const NOTE_PADDING_Y = 6;
 // Child rows (e.g. DLC differentials) sit just inside their parent row.
-const TEST_INDENT = 8;
+const TEST_INDENT = 3;
+// Standalone tests' guidance prints at this share of body size (reference sheet).
+const INLINE_NOTE_SCALE = 0.85;
+// The reference sheet groups thousands in results and ranges ("7,800",
+// "4,800 - 10,800"). Only plain numbers of 4+ integer digits are touched.
+const groupThousands = value => String(value ?? '').replace(/(^|[^\d.,])(\d{4,})(?=(?:\.\d+)?(?![\d,]))/g, (_, lead, digits) => lead + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 
 // One renderer for staff downloads, public QR downloads, previews and printing.
 // Page furniture is reserved before flowing content; rows and long paragraphs
@@ -188,9 +193,15 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const qrWidth = options.qr && requestOptions.qrPng ? (plainBill ? 60 : 76) : 0;
     const middleWidth = width * 0.32, leftWidth = width - middleWidth - qrWidth - 20;
     const start = y, middleX = m + leftWidth + 10, qrX = m + width - qrWidth;
-    const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${patient.ageUnit || 'YRS'}` : '', patient.gender].filter(Boolean).join(' / ');
+    // Reference style: "30 YRS / M" and the title before the name.
+    const AGE_UNITS = { years: 'YRS', year: 'YRS', yrs: 'YRS', months: 'MONTHS', month: 'MONTHS', days: 'DAYS', day: 'DAYS' };
+    const ageUnit = AGE_UNITS[String(patient.ageUnit || 'years').toLowerCase()] || String(patient.ageUnit).toUpperCase();
+    const sex = { male: 'M', female: 'F', other: 'O' }[String(patient.gender || '').toLowerCase()] || patient.gender;
+    const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${ageUnit}` : '', sex].filter(Boolean).join(' / ');
+    const title = String(patient.title || '').trim();
+    const patientName = patient.name ? (title && !patient.name.toLowerCase().startsWith(title.toLowerCase()) ? `${title} ${patient.name}` : patient.name) : '';
     const referred = context.referredName || context.doctor?.name || bill.referringDoctor?.name;
-    const identity = [patient.name || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${(kind === 'bill' ? bill.billNumber : report.registrationNumber) || patient.registrationNumber || '-'}`];
+    const identity = [patientName || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${(kind === 'bill' ? bill.billNumber : report.registrationNumber) || patient.registrationNumber || '-'}`];
     let leftY = start;
     identity.forEach((value, i) => lines(value, format.patientLayout === 'stacked' ? width : leftWidth, i === 0, i === 0 ? 12 : format.fontSize).forEach(line => {
       text(line, m, leftY, format.patientLayout === 'stacked' ? width : leftWidth, { bold: i === 0, size: i === 0 ? 12 : format.fontSize }); leftY += i === 0 ? 17 : format.fontSize + 4;
@@ -221,9 +232,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   }
   // Every page repeats the (letterhead or preprinted band and) patient band,
   // as the reference LIS prints its page header on each sheet.
+  // Where content starts on a fresh page (below letterhead / patient band).
+  let contentTop = m;
   function newPage() {
     doc.addPage();
     header();
+    contentTop = y;
   }
   function space(height) { if (y + height > limit) { newPage(); return true; } return false; }
   function paragraph(value, { bold = false, size = format.fontSize, align = 'left', shaded = false, leading = size + 4, gap = 5 } = {}) {
@@ -240,15 +254,20 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const size = style.bodySize || format.fontSize;
     const pad = style.rowPadding ?? format.rowPadding, lineHeight = style.tableLeading || size + 3;
     const titleSize = style.titleSize || 11;
+    // Horizontal inset, text offset from the row top and total vertical
+    // padding per row; result tables set these from the reference sheet.
+    const padX = style.cellPadX ?? pad, padTop = style.cellPadTop ?? pad, rowExtra = style.rowExtra ?? pad * 2;
+    const headerSize = style.headerSize || size;
+    const headerTop = style.headerPadTop ?? padTop, headerExtra = style.headerExtra ?? rowExtra;
     const draw = (cells, heights, isHeader, index, offset, count) => {
-      const h = count * lineHeight + pad * 2;
+      const h = count * lineHeight + (isHeader ? headerExtra : rowExtra);
       const banded = format.tableStyle === 'banded';
       if (isHeader && (banded || format.tableStyle === 'outlined')) doc.save().fillColor(banded ? format.accentColor : NOTE_BACKGROUND).rect(m, y, width, h).fill().restore();
       else if (banded && !isHeader && index % 2 === 0) doc.save().fillColor('#f3f4f6').rect(m, y, width, h).fill().restore();
       let x = m;
       cells.forEach((cell, j) => {
         const indent = cell.indent || 0;
-        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + pad + indent, y + pad + i * lineHeight, columns[j].width - pad * 2 - indent, { size, bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: columns[j].align || 'left' });
+        for (let i = 0; i < count; i++) text(heights[j][offset + i] || '', x + padX + indent, y + (isHeader ? headerTop : padTop) + i * lineHeight, columns[j].width - padX * 2 - indent, { size: isHeader ? headerSize : size, bold: isHeader || cell.bold, color: isHeader && banded ? '#ffffff' : '#111111', align: columns[j].align || 'left' });
         x += columns[j].width;
       });
       if (format.tableStyle === 'outlined') {
@@ -258,8 +277,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       y += h;
     };
     const headerCells = columns.map(c => ({ text: c.label }));
-    const headerLines = columns.map(c => lines(c.label, c.width - pad * 2, true, size));
-    const headerHeight = Math.max(...headerLines.map(l => l.length)) * lineHeight + pad * 2;
+    const headerLines = columns.map(c => lines(c.label, c.width - padX * 2, true, headerSize));
+    const headerHeight = Math.max(...headerLines.map(l => l.length)) * lineHeight + headerExtra;
     // A title is a string or a list of { text, size } lines (department, then panel).
     const titleLines = (Array.isArray(title) ? title : [{ text: title, size: titleSize }]).filter(line => line.text);
     const titleHeight = titleLines.reduce((sum, line) => sum + lines(line.text, width, true, line.size).length * (line.size + 2) + 3, 0);
@@ -272,13 +291,20 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     };
     // Continuations of a table on the next page keep the column header.
     const continueTable = () => { columnHeader(); };
-    space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + pad * 2); tableHeader();
+    // Reference "keep in same page": a panel or multi-parameter test that
+    // fits on one page is moved whole to the next page rather than split.
+    if (style.keepTogether) {
+      const rowsHeight = rows.reduce((sum, cells) => sum + Math.max(...cells.map((cell, j) => lines(cell.text, columns[j].width - padX * 2 - (cell.indent || 0), cell.bold, size).length)) * lineHeight + rowExtra, 0);
+      const whole = (showHeader ? headerHeight : 0) + titleHeight + rowsHeight;
+      if (y + whole > limit && whole <= limit - contentTop) newPage();
+    }
+    space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + rowExtra); tableHeader();
     rows.forEach((cells, index) => {
-      const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - pad * 2, cell.bold, size));
+      const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - padX * 2 - (cell.indent || 0), cell.bold, size));
       const total = Math.max(...heights.map(l => l.length)); let offset = 0;
       while (offset < total) {
-        let available = Math.floor((limit - y - pad * 2) / lineHeight);
-        if (available < 1 || (offset === 0 && total <= 12 && available < total)) { newPage(); continueTable(); available = Math.floor((limit - y - pad * 2) / lineHeight); }
+        let available = Math.floor((limit - y - rowExtra) / lineHeight);
+        if (available < 1 || (offset === 0 && total <= 12 && available < total)) { newPage(); continueTable(); available = Math.floor((limit - y - rowExtra) / lineHeight); }
         const count = Math.max(1, Math.min(total - offset, available));
         draw(cells, heights, false, index, offset, count); offset += count;
         if (offset < total) { newPage(); continueTable(); }
@@ -397,9 +423,9 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       const wrapped = block.runs ? richLines(block.runs, columnWidth - indent, size, bold) : lines(block.text, columnWidth - indent, bold, size);
       wrapped.forEach((line, i) => tokens.push({
         ...(block.runs ? { text: line.text, runs: line.runs, align: block.align } : { text: line }), size, bold, indent,
-        height: bold ? size + 4 : detail ? 12 : style.noteLeading,
-        before: i || !blockIndex ? 0 : title ? 16 : subheading ? 9 : 0,
-        after: i === wrapped.length - 1 ? bold ? 4 : detail ? 4 : style.noteGap : 0,
+        height: bold ? style.noteHeadingHeight ?? size + 4 : detail ? 12 : style.noteLeading,
+        before: i || !blockIndex ? 0 : title ? style.noteTitleBefore ?? 16 : subheading ? style.noteHeadingBefore ?? 9 : 0,
+        after: i === wrapped.length - 1 ? bold ? style.noteHeadingAfter ?? 4 : detail ? 4 : style.noteGap : 0,
         keepWithNext: bold,
         blockIndex, blockLine: i, blockLines: wrapped.length,
         title, color: title ? '#111827' : subheading ? '#1f2937' : detail ? '#64748b' : '#1f2937'
@@ -439,15 +465,20 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // of forcing an oversized 10.5pt band that spills an extra page.
     const noteSize = format.fontSize;
     return {
-      // Result rows use the reference sheet's pitch (measured ~13.6pt between
-      // rows), so the same tests take the same space as on Labsmart.
+      // Result table geometry measured on the reference sheet: rows 13.6pt
+      // apart with text ~4.5pt below the row top, cell text inset 3.3pt from
+      // the border, and a 12pt header row with slightly smaller bold labels.
       bodySize: format.fontSize, rowPadding: Math.min(format.rowPadding, 1.5), tableLeading: format.fontSize + 2,
+      cellPadX: 3.3, cellPadTop: 4, rowExtra: Math.max(0, 13.6 - (format.fontSize + 2)),
+      headerSize: format.fontSize * 0.875, headerPadTop: 2, headerExtra: Math.max(0, 12 - (format.fontSize + 2)),
       titleSize: 10, tableGap: 6, noteSize, noteLeading: noteSize * 1.22,
       noteGap: 4, disclaimerSize: 8, disclaimerLeading: 10, signatureHeight: 72
     };
   }
   function drawNotes(blocks, style, reserve = 0) {
     if (!blocks.length) return;
+    const padTop = style.notePadTop ?? NOTE_PADDING_Y, padBottom = style.notePadBottom ?? NOTE_PADDING_Y;
+    const topGap = style.noteTopGap ?? 10, afterGap = style.noteAfterGap ?? 4;
     // The reference sheet sets guidance on a light slate band with inset
     // content, so the box reads as annotation rather than another result table.
     const contentX = m + NOTE_PADDING_X, contentWidth = width - NOTE_PADDING_X * 2;
@@ -481,16 +512,16 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       }
     };
     const paint = (top, bottom) => { doc.save().fillColor(NOTE_BACKGROUND).rect(m, top, width, bottom - top).fill().restore(); };
-    const boxTop = y + 10;
-    let plan = planNotes(blocks, style, 1, boxTop + NOTE_PADDING_Y, limit - reserve - NOTE_PADDING_Y, contentX, contentWidth);
+    const boxTop = y + topGap;
+    let plan = planNotes(blocks, style, 1, boxTop + padTop, limit - reserve - padBottom, contentX, contentWidth);
     if (plan.fits) {
-      paint(boxTop, plan.lastY + NOTE_PADDING_Y);
+      paint(boxTop, plan.lastY + padBottom);
       plan.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
-      y = plan.lastY + NOTE_PADDING_Y + 4;
+      y = plan.lastY + padBottom + afterGap;
       return;
     }
-    const measured = planNotes(blocks, style, 1, boxTop + NOTE_PADDING_Y, boxTop + 1e6, contentX, contentWidth);
-    const notesHeight = measured.fits ? measured.lastY - boxTop - NOTE_PADDING_Y : Infinity;
+    const measured = planNotes(blocks, style, 1, boxTop + padTop, boxTop + 1e6, contentX, contentWidth);
+    const notesHeight = measured.fits ? measured.lastY - boxTop - padTop : Infinity;
     const pageBody = limit - m;
     const remaining = limit - y;
     // Only jump to a fresh page when almost nothing is left under the results.
@@ -498,20 +529,22 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // half-blank page 1 and interpretations alone on page 2.
     if (notesHeight <= pageBody * 0.55 && remaining < pageBody * 0.16) {
       newPage();
-      const retryTop = y + 10;
-      plan = planNotes(blocks, style, 1, retryTop + NOTE_PADDING_Y, limit - reserve - NOTE_PADDING_Y, contentX, contentWidth);
+      const retryTop = y + topGap;
+      plan = planNotes(blocks, style, 1, retryTop + padTop, limit - reserve - padBottom, contentX, contentWidth);
       if (plan.fits) {
-        paint(retryTop, plan.lastY + NOTE_PADDING_Y);
+        paint(retryTop, plan.lastY + padBottom);
         plan.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
-        y = plan.lastY + NOTE_PADDING_Y + 4;
+        y = plan.lastY + padBottom + afterGap;
         return;
       }
     }
     const { tokens } = noteLines(blocks, style, 1, contentWidth);
-    y += 10;
+    y += topGap;
+    if (y + padTop + (tokens[0]?.height || 0) > limit - Math.max(0, reserve)) newPage();
+    paint(y, y + padTop); y += padTop;
     // Always leave room for end-of-report / disclaimer AND the notes box
     // bottom pad so finishReportSection cannot orphan onto a blank page.
-    const flowLimit = limit - Math.max(0, reserve) - NOTE_PADDING_Y - 4;
+    const flowLimit = limit - Math.max(0, reserve) - padBottom - afterGap;
     tokens.forEach((line, i) => {
       const height = line.before + line.height + line.after;
       let keep = 0, last = i;
@@ -530,10 +563,11 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       drawLine(line, contentX, y, contentWidth - line.indent);
       y += line.height + line.after;
     });
-    paint(y, y + NOTE_PADDING_Y);
-    y += NOTE_PADDING_Y + 4;
+    paint(y, y + padBottom);
+    y += padBottom + afterGap;
   }
   header();
+  contentTop = y;
   if (kind === 'bill') {
     const bill = context.bill || {};
     heading(format.billTitle);
@@ -578,10 +612,14 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         // Legacy calculated rows without a catalog identity belong with the
         // measurements that produced them, rather than an extra report page.
         if (result.derived && !result.test && sections.size) key = [...sections.keys()].at(-1);
-        const deptName = parent.category?.name || test.category?.name || parent.categoryName || test.categoryName || '';
+        // A panel prints under its own department when one is recorded.
+        const sectionCategory = panelSection && parent.reportSectionCategory?.name ? parent.reportSectionCategory : null;
+        const deptName = sectionCategory?.name || parent.category?.name || test.category?.name || parent.categoryName || test.categoryName || '';
         // Departments print in catalog category order (Haematology, Serology,
         // Clinical Pathology, ... Biochemistry), as on the reference reports.
-        const deptRank = Date.parse(parent.category?.createdAt || test.category?.createdAt || '');
+        // Full millisecond precision: imported categories are created within
+        // the same second, and Date.parse(String(date)) would drop the ms.
+        const deptRank = new Date((sectionCategory || parent.category)?.createdAt || test.category?.createdAt || NaN).getTime();
         if (!sections.has(key)) sections.set(key, {
           key,
           interpretationOverride: (report.interpretations || []).find(item => item.key === key)?.text,
@@ -590,6 +628,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
           department: deptName,
           rank: Number.isFinite(deptRank) ? deptRank : Infinity,
           seq: sections.size,
+          // Panels follow the panel list order; standalone tests the catalog order.
+          order: Number(panelSection ? parent.reportSectionRank : parent.displayOrder ?? parent.sourceDefinition?.order),
           description: parent.reportSectionDescription || '', groups: [{ category: '', items: [] }]
         });
         const section = sections.get(key);
@@ -619,7 +659,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         // Calculated values print with two decimals ("4.00", "0.80") like the
         // reference sheet; stored numbers lose trailing zeros.
         const value = r.derived && /^-?\d+(?:\.\d+)?$/.test(String(r.value ?? '').trim()) ? Number(r.value).toFixed(2) : r.value ?? '';
-        const cells = [{ text: label, bold, indent }, { text: value, bold }, { text: r.unit || t.unit || '', bold }, { text: range, bold }];
+        const cells = [{ text: label, bold, indent }, { text: groupThousands(value), bold }, { text: r.unit || t.unit || '', bold }, { text: groupThousands(range), bold }];
         if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: r.flag && r.flag !== 'N' ? r.flag : '', bold });
         return cells;
       };
@@ -655,25 +695,27 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       // the order results were entered.
       const ordered = [...sections.values()].sort((a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1)
         || (a.rank === Infinity && a.department !== b.department ? a.seq - b.seq : 0)
-        || Number(b.panel || false) - Number(a.panel || false) || a.seq - b.seq);
-      // Standalone guidance sits directly under its own row (body size kept
-      // for legibility).
-      const inlineStyle = style;
-      let department, standaloneSeen = false, pending = null;
-      // Consecutive standalone tests share one table until one of them has
-      // guidance; the next rows then continue without repeating the header.
-      const flush = (blocks = [], reserve = 0) => {
-        if (!pending) return;
-        table(columns, pending.rows, pending.titles, { ...style, header: pending.header, tableGap: blocks.length ? 2 : style.tableGap });
-        pending = null;
-        drawNotes(blocks, inlineStyle, reserve);
-      };
+        || Number(b.panel || false) - Number(a.panel || false)
+        || (Number.isFinite(a.order) && Number.isFinite(b.order) ? a.order - b.order : 0) || a.seq - b.seq);
+      // Standalone guidance sits directly under its own row in a smaller face,
+      // as on the reference sheet (measured ~85% of body size, 1.23 leading).
+      const inlineSize = INLINE_NOTE_SCALE * style.noteSize;
+      const inlineLeading = inlineSize * 1.23;
+      // Measured on the reference sheet: one line pitch throughout (headings
+      // included), a blank line before each heading, ~13pt above the first
+      // line and 6pt below the last, 6.5pt between the row box and the band.
+      const inlineStyle = { ...style, noteSize: inlineSize, noteLeading: inlineLeading, noteGap: 0,
+        noteHeadingHeight: inlineLeading, noteHeadingAfter: 0, noteHeadingBefore: inlineLeading, noteTitleBefore: inlineLeading,
+        notePadTop: 12.5, notePadBottom: 5, noteTopGap: 6.5, noteAfterGap: 6 };
+      // Each standalone test is its own bordered box (15.5pt for one row,
+      // 5pt apart); only the first of a run carries the column header.
+      const boxStyle = { ...style, rowExtra: Math.max(0, 15.5 - (format.fontSize + 2)), cellPadTop: 4 };
+      let department, standaloneSeen = false;
       ordered.forEach((section, index) => {
         const isLast = index === ordered.length - 1;
         const reserve = isLast ? endingHeight(style) : 0;
         const newDepartment = index === 0 || section.department !== department;
         if (newDepartment) {
-          flush();
           // Each department starts on its own page with the patient band.
           if (index > 0) newPage();
           department = section.department; standaloneSeen = false;
@@ -684,13 +726,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const rows = section.groups.flatMap(groupRows);
         const blocks = options.interpretation ? reportNoteBlocks(section) : [];
         if (section.panel) {
-          flush();
-          table(columns, rows, titles, style);
+          table(columns, rows, titles, { ...style, keepTogether: true });
           drawNotes(blocks, style, reserve);
         } else {
-          if (!pending) pending = { rows: [], titles, header: !standaloneSeen };
-          pending.rows.push(...rows); standaloneSeen = true;
-          if (blocks.length || isLast) flush(blocks, reserve);
+          table(columns, rows, titles, { ...boxStyle, header: !standaloneSeen, tableGap: blocks.length ? 0 : 5, keepTogether: rows.length > 1 });
+          standaloneSeen = true;
+          drawNotes(blocks, inlineStyle, reserve);
         }
         if (isLast) finishReportSection(style);
       });
