@@ -4,13 +4,12 @@ Age / Sex : 48 YRS / Female                                                     
 Reg. no. : 6989                                                                                  Reported on : -
 
 
-                                                       SEROLOGY & IMMUNOLOGY
-                                                            VIRAL MARKER
-TEST                                                       VALUE                         UNIT                  REFERENCE
-HIV - 1                                                    NEGATIVE                      -                     -
-HIV - 2                                                    NEGATIVE                      -                     -
-HEPATITIS C VIRUS, HCV                                     POSITIVE                      -                     -
-HBSAG                                                      NEGATIVE                      -                     -
+                                                     SEROLOGY & IMMUNOLOGY
+TEST                                                       VALUE                        UNIT                   REFERENCE
+HIV - 1                                                    NEGATIVE
+HIV - 2                                                    NEGATIVE
+HEPATITIS C VIRUS, HCV                                     POSITIVE
+HBSAG                                                      NEGATIVE
 
 
   HbsAg

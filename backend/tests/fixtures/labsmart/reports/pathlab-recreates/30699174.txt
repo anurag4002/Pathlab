@@ -4,8 +4,7 @@ Age / Sex : 30 YRS / Male                                                       
 Reg. no. : 7025                                                                          Reported on : -
 
 
-                                                  HAEMATOLOGY
-                                            COMPLETE BLOOD COUNT (CBC)
+                                                         HAEMATOLOGY
 TEST                                                VALUE                     UNIT                     REFERENCE
 HEMOGLOBIN                                     L    11.1                      g/dl                     13 - 17
 TOTAL LEUKOCYTE COUNT                               6300                      cumm                     4,800 - 10,800

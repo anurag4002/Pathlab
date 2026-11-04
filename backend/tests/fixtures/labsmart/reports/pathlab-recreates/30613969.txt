@@ -1,16 +1,15 @@
-Mrs. Tarifun Nisha                                                                                Registered on : -
-                                                                                                  Collected on : -
-Age / Sex : 37 YRS / Female                                                                       Received on : -
-Reg. no. : 6962                                                                                   Reported on : -
+Mrs. Tarifun Nisha                                                                               Registered on : -
+                                                                                                 Collected on : -
+Age / Sex : 37 YRS / Female                                                                      Received on : -
+Reg. no. : 6962                                                                                  Reported on : -
 
 
-                                                       SEROLOGY & IMMUNOLOGY
-                                                            VIRAL MARKER
-TEST                                                       VALUE                         UNIT                   REFERENCE
-HIV - 1                                                    NEGATIVE                      -                      -
-HIV - 2                                                    NEGATIVE                      -                      -
-HEPATITIS C VIRUS, HCV                                     NEGATIVE                      -                      -
-HBSAG                                                      NEGATIVE                      -                      -
+                                                     SEROLOGY & IMMUNOLOGY
+TEST                                                       VALUE                        UNIT                   REFERENCE
+HIV - 1                                                    NEGATIVE
+HIV - 2                                                    NEGATIVE
+HEPATITIS C VIRUS, HCV                                     NEGATIVE
+HBSAG                                                      NEGATIVE
 
 
   HbsAg
@@ -32,35 +31,41 @@ HBSAG                                                      NEGATIVE             
   However these results must be verified by a confirmatory test (IFA / WESTERN BLOT I-II) before pronouncing the patient positive for
   HIV-1 and / or HIV-2 infection. All reactive samples should be confirmed by using HIV Western Blot/PCR.
 
-                                                               BIOCHEMISTRY
-                                                               BIOCHEMISTRY
-TEST                                                       VALUE                         UNIT                   REFERENCE
-RANDOM BLOOD SUGAR                                         125.3                         mg/dl                  70 - 140
 
-                                                           BIOCHEMISTRY
-                                                     KIDNEY FUNCTION TEST (KFT)
-TEST                                                       VALUE                         UNIT                   REFERENCE
-SERUM UREA                                            H    70.88                         mg/dl                  13 - 40
-SERUM CREATININE                                      H    5.09                          mg/dl                  0.55 - 1.13
-SERUM PHOSPHORUS                                           4.45                          mg/dl                  2.5 - 4.5
-SERUM URIC ACID                                            5.68                          mg/dl                  2.6 - 6
-SERUM SODIUM                                               136.5                         mmol/L                 136 - 146
-SERUM POTASSIUM                                            4.80                          mmol/L                 3.5 - 5.1
-ICALCIUM                                                   1.18                          mmol/l                 1.13 - 1.33
+
+
                                                                                                                                          Page 1 of 2
-Creatinine is a nitrogenous waste product formed in muscle from creatine phosphate. Endogenous production of creatinine is
-proportional to muscle mass and body weight.
-
- Causes of Increased Serum Creatinine Level                        Causes of Decreased Serum Creatinine Level
- 1. Pre-renal, renal, and post-renal azotemia                      1. Pregnancy
- 2. Large amount of dietary meat                                   2. Increasing age (reduction in muscle mass)
- 3. Active acromegaly and gigantism
+Mrs. Tarifun Nisha                                                                         Registered on : -
+                                                                                           Collected on : -
+Age / Sex : 37 YRS / Female                                                                Received on : -
+Reg. no. : 6962                                                                            Reported on : -
 
 
-                                                       ~~~ End of report ~~~
+                                                          BIOCHEMISTRY
+TEST                                                   VALUE                      UNIT                   REFERENCE
+RANDOM BLOOD SUGAR                                     125.3                      mg/dl                  70 - 140
+SERUM UREA                                         H   70.88                      mg/dl                  13 - 40
+SERUM CREATININE                                   H   5.09                       mg/dl                  0.55 - 1.13
+SERUM PHOSPHORUS                                       4.45                       mg/dl                  2.5 - 4.5
+SERUM URIC ACID                                        5.68                       mg/dl                  2.6 - 6
+SERUM SODIUM                                           136.5                      mmol/L                 136 - 146
+SERUM POTASSIUM                                        4.80                       mmol/L                 3.5 - 5.1
+ICALCIUM                                               1.18                       mmol/l                 1.13 - 1.33
+
+
+  Creatinine is a nitrogenous waste product formed in muscle from creatine phosphate. Endogenous production of creatinine is
+  proportional to muscle mass and body weight.
+
+   Causes of Increased Serum Creatinine Level                        Causes of Decreased Serum Creatinine Level
+   1. Pre-renal, renal, and post-renal azotemia                      1. Pregnancy
+   2. Large amount of dietary meat                                   2. Increasing age (reduction in muscle mass)
+   3. Active acromegaly and gigantism
+
+
+                                                         ~~~ End of report ~~~
 
 
 
 
-                                                                                                                             Page 2 of 2
+                                                                                                                               Page 2 of 2
 

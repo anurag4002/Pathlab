@@ -71,8 +71,8 @@ test('multi-page reports retain all rows and repeat patient details and table he
   const count = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
   assert.ok(count > 1 && count < 20, `expected a bounded multi-page report, got ${count}`);
   for (let i = 1; i <= 100; i++) assert.ok(text.includes(`UNIQUE RESULT ${i}`), `missing row ${i}`);
-  // Letterheaded continuation pages carry results only (no repeated patient band).
-  assert.equal((text.match(/Test Patient/g) || []).length, 1);
+  // Every page repeats the patient band, as the reference LIS page header does.
+  assert.equal((text.match(/Test Patient/g) || []).length, count);
   assert.equal((text.match(/TESTVALUEUNITREFERENCE/g) || []).length, count);
   for (let i = 1; i <= count; i++) assert.ok(text.includes(`Page ${i} of ${count}`));
 });
@@ -126,6 +126,63 @@ test('inline TLC interpretation replaces only TLC and leaves adjacent ESR guidan
   const omitted = textOf(await reportPdf({ ...context, report, testMap }));
   assert.ok(!omitted.includes('ORIGINAL TLC GUIDANCE') && !omitted.includes('EDITED TLC GUIDANCE'));
   assert.ok(omitted.includes('ORIGINAL ESR GUIDANCE'));
+});
+
+// Labsmart parity: rules confirmed against printed Labsmart reports.
+const haem = { name: 'Haematology', createdAt: '2026-01-01T00:00:00Z' };
+const sero = { name: 'Serology & Immunology', createdAt: '2026-01-02T00:00:00Z' };
+const bio = { name: 'Biochemistry', createdAt: '2026-01-03T00:00:00Z' };
+const pageCount = pdf => (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
+
+test('Labsmart parity: panels print only panel guidance, not imported member essays or editor round-trips', async () => {
+  const imported = 'Physiological basis\nIMPORTED TLC ESSAY about white cells.\nInterpretation\nIncreased in: infections.';
+  const testMap = {
+    tlc: { _id: 'tlc', name: 'TLC', category: haem, reportSectionKey: 'panel:cbc', reportSectionName: 'Complete Blood Count (CBC)', reportSectionDescription: 'CBC PANEL GUIDANCE', reportSectionOrder: 0, interpretation: imported, sourceInterpretation: { text: imported } },
+    hb: { _id: 'hb', name: 'Hemoglobin', category: haem, reportSectionKey: 'panel:cbc', reportSectionName: 'Complete Blood Count (CBC)', reportSectionDescription: 'CBC PANEL GUIDANCE', reportSectionOrder: 1 }
+  };
+  // The rich editor saves the catalog text as HTML, dropping a heading word.
+  const roundTrip = '<h3>Physiological basis</h3><p>IMPORTED TLC ESSAY about white cells.</p><h3>Increased in</h3><p>infections.</p>';
+  const report = { ...context.report, results: [{ test: 'tlc', testName: 'TLC', value: '5000' }, { test: 'hb', testName: 'Hemoglobin', value: '14' }], interpretations: [{ key: 'result:tlc', text: roundTrip }] };
+  const text = textOf(await reportPdf({ ...context, report, testMap }));
+  assert.ok(text.includes('CBC PANEL GUIDANCE'));
+  assert.ok(!text.includes('IMPORTED TLC ESSAY'), 'imported member essay must not print inside a panel');
+  // Rows follow the panel definition, not result entry order.
+  assert.ok(text.indexOf('HEMOGLOBIN') > text.indexOf('TLC'));
+  report.interpretations[0].text = '<p>GENUINE LAB EDIT for this patient only.</p>';
+  assert.ok(textOf(await reportPdf({ ...context, report, testMap })).includes('GENUINE LAB EDIT'));
+});
+
+test('Labsmart parity: departments print in category order, each on its own page with the patient band', async () => {
+  const testMap = {
+    urea: { _id: 'urea', name: 'Serum Urea', category: bio },
+    hiv: { _id: 'hiv', name: 'HIV', category: sero },
+    hb: { _id: 'hb', name: 'Hemoglobin', category: haem }
+  };
+  const report = { ...context.report, results: ['urea', 'hiv', 'hb'].map(id => ({ test: id, testName: testMap[id].name, value: '1' })) };
+  const pdf = await reportPdf({ ...context, report, testMap });
+  const text = textOf(pdf);
+  assert.equal(pageCount(pdf), 3);
+  assert.equal((text.match(/Test Patient/g) || []).length, 3);
+  const at = label => text.indexOf(label);
+  assert.ok(at('HAEMATOLOGY') < at('SEROLOGY & IMMUNOLOGY') && at('SEROLOGY & IMMUNOLOGY') < at('BIOCHEMISTRY'));
+});
+
+test('Labsmart parity: standalone tests share one table, guidance sits under its row, method in the row, blanks not dashes', async () => {
+  const testMap = {
+    creat: { _id: 'creat', name: 'Serum Creatinine', category: bio, unit: 'mg/dl', interpretation: 'CREATININE INLINE GUIDANCE' },
+    urea: { _id: 'urea', name: 'Serum Urea', category: bio, unit: 'mg/dl' },
+    ratio: { _id: 'ratio', name: 'SGOT/SGPT', category: bio, sourceInterpretation: { method: 'Calculated' } }
+  };
+  const report = { ...context.report, results: [{ test: 'creat', testName: 'Serum Creatinine', value: '1.2' }, { test: 'urea', testName: 'Serum Urea', value: '30' }, { test: 'ratio', testName: 'SGOT/SGPT', value: '0.9' }] };
+  const pdf = await reportPdf({ ...context, report, testMap });
+  const text = textOf(pdf);
+  assert.equal(pageCount(pdf), 1);
+  assert.equal((text.match(/TESTVALUEUNITREFERENCE/g) || []).length, 1, 'continuation rows after guidance do not repeat the header');
+  assert.equal((text.match(/BIOCHEMISTRY/g) || []).length, 1);
+  assert.ok(text.indexOf('SERUM CREATININE') < text.indexOf('CREATININE INLINE GUIDANCE') && text.indexOf('CREATININE INLINE GUIDANCE') < text.indexOf('SERUM UREA'));
+  assert.ok(!/Interpretation/.test(text), 'no "<test> - Interpretation" banner for a single standalone test');
+  assert.ok(text.includes('Method: Calculated'));
+  assert.ok(!/0\.9-/.test(text), 'missing unit/range print blank, not "-"');
 });
 
 test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {
@@ -185,7 +242,7 @@ test('long tabular interpretations continue across pages with all cells preserve
   for (let i = 1; i <= 180; i++) for (const label of ['Item', 'Meaning', 'Comment']) assert.ok(text.includes(`${label}${i}`));
   const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
   assert.ok(pages > 1 && pages < 20);
-  assert.equal((text.match(/Test Patient/g) || []).length, 1);
+  assert.equal((text.match(/Test Patient/g) || []).length, pages);
 });
 
 test('saved patient-specific reference range takes precedence over generic catalog bounds', async () => {

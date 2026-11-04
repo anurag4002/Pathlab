@@ -4,13 +4,12 @@ Age / Sex : 55 YRS / Male                                                       
 Reg. no. : 6964                                                                                  Reported on : -
 
 
-                                                       SEROLOGY & IMMUNOLOGY
-                                                            VIRAL MARKER
-TEST                                                       VALUE                         UNIT                  REFERENCE
-HIV - 1                                                    NEGATIVE                      -                     -
-HIV - 2                                                    NEGATIVE                      -                     -
-HEPATITIS C VIRUS, HCV                                     NEGATIVE                      -                     -
-HBSAG                                                      NEGATIVE                      -                     -
+                                                     SEROLOGY & IMMUNOLOGY
+TEST                                                       VALUE                        UNIT                   REFERENCE
+HIV - 1                                                    NEGATIVE
+HIV - 2                                                    NEGATIVE
+HEPATITIS C VIRUS, HCV                                     NEGATIVE
+HBSAG                                                      NEGATIVE
 
 
   HbsAg

@@ -1,20 +1,28 @@
-Mr. Nand lal                                                                                     Registered on : -
+Mr. Nand lal                                  Registered on : -
+                                              Collected on : -
+Age / Sex : 25 YRS / Male                     Received on : -
+Reg. no. : 7009                               Reported on : -
+
+
+TEST                        VALUE      UNIT                 REFERENCE
+RH (ANTI -D)                POSITIVE
+
+
+
+
+                                                                        Page 1 of 2
+Mr. Nand lal                                                                                     Registered on : -
                                                                                                  Collected on : -
 Age / Sex : 25 YRS / Male                                                                        Received on : -
 Reg. no. : 7009                                                                                  Reported on : -
 
 
-                                                               HAEMATOLOGY
-TEST                                                       VALUE                         UNIT                  REFERENCE
-RH (ANTI -D)                                               POSITIVE                      -                     -
-
-                                                       SEROLOGY & IMMUNOLOGY
-                                                            VIRAL MARKER
-TEST                                                       VALUE                         UNIT                  REFERENCE
-HIV - 1                                                    NEGATIVE                      -                     -
-HIV - 2                                                    NEGATIVE                      -                     -
-HEPATITIS C VIRUS, HCV                                     POSITIVE                      -                     -
-HBSAG                                                      NEGATIVE                      -                     -
+                                                     SEROLOGY & IMMUNOLOGY
+TEST                                                       VALUE                        UNIT                   REFERENCE
+HIV - 1                                                    NEGATIVE
+HIV - 2                                                    NEGATIVE
+HEPATITIS C VIRUS, HCV                                     POSITIVE
+HBSAG                                                      NEGATIVE
 
 
   HbsAg
@@ -41,5 +49,5 @@ HBSAG                                                      NEGATIVE             
 
 
 
-                                                                                                                                         Page 1 of 1
+                                                                                                                                         Page 2 of 2
 

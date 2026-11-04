@@ -1,5 +1,5 @@
 {
-  "matchedAt": "2026-10-22T18:54:36.961Z",
+  "matchedAt": "2026-11-04T13:29:23.704Z",
   "primary": "interpretations",
   "interpretationMin": 0.75,
   "resultsMin": 0.65,
@@ -164,7 +164,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 1,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30608263.pdf"
     },
     {
@@ -205,7 +205,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 3,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30612192.pdf"
     },
     {
@@ -474,7 +474,7 @@
         "Complete Blood Count (CBC)"
       ],
       "essaysUsed": [],
-      "ourPages": 1,
+      "ourPages": 2,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30626877.pdf"
     },
     {
@@ -494,7 +494,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 3,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30627070.pdf"
     },
     {
@@ -611,7 +611,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 3,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30633068.pdf"
     },
     {
@@ -716,7 +716,7 @@
         "SGPT (ALT)",
         "SGOT (AST)"
       ],
-      "ourPages": 3,
+      "ourPages": 4,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30638477.pdf"
     },
     {
@@ -967,7 +967,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 3,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30651150.pdf"
     },
     {
@@ -1011,7 +1011,7 @@
       "essaysUsed": [
         "SERUM CREATININE"
       ],
-      "ourPages": 3,
+      "ourPages": 4,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30658537.pdf"
     },
     {
@@ -1115,7 +1115,7 @@
         "SGPT (ALT)",
         "SGOT (AST)"
       ],
-      "ourPages": 3,
+      "ourPages": 4,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30662546.pdf"
     },
     {
@@ -1212,7 +1212,7 @@
         "Viral Marker"
       ],
       "essaysUsed": [],
-      "ourPages": 1,
+      "ourPages": 2,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30668332.pdf"
     },
     {
@@ -1333,7 +1333,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 3,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30683292.pdf"
     },
     {
@@ -1354,7 +1354,7 @@
         "Kidney Function Test (KFT)"
       ],
       "essaysUsed": [],
-      "ourPages": 2,
+      "ourPages": 4,
       "ourPdf": "D:\\Pathlab\\backend\\tests\\fixtures\\labsmart\\reports\\pathlab-recreates\\30684127.pdf"
     },
     {

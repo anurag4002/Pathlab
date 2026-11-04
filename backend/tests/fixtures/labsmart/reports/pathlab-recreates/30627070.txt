@@ -4,8 +4,7 @@ Age / Sex : 55 YRS / Female                                                     
 Reg. no. : 6973                                                                   Reported on : -
 
 
-                                                  HAEMATOLOGY
-                                            COMPLETE BLOOD COUNT (CBC)
+                                                         HAEMATOLOGY
 TEST                                                VALUE              UNIT                     REFERENCE
 HEMOGLOBIN                                     L    10.6               g/dl                     12 - 15
 TOTAL LEUKOCYTE COUNT                               6800               cumm                     4,800 - 10,800
@@ -37,45 +36,54 @@ P.D.W.                                         H    16.4               fL       
    Platelets                   Risk of thrombosis                           Risk of bleeding
 
 
-                                               SEROLOGY & IMMUNOLOGY
-                                               SEROLOGY & IMMUNOLOGY
-TEST                                                VALUE              UNIT                     REFERENCE
-C-REACTIVE PROTEIN, CRP (QUALITATIVE)          H    17.54              mg/L                     < 6 mg/L
+
+
+                                                                                                                 Page 1 of 3
+Mrs. Shugra Devi                                                 Registered on : -
+                                                                 Collected on : -
+Age / Sex : 55 YRS / Female                                      Received on : -
+Reg. no. : 6973                                                  Reported on : -
+
+
+                                        SEROLOGY & IMMUNOLOGY
+TEST                                        VALUE         UNIT                 REFERENCE
+C-REACTIVE PROTEIN, CRP (QUALITATIVE)   H   17.54         mg/L                 < 6 mg/L
 
 
 
 
-                                                                                                                 Page 1 of 2
-                                                         BIOCHEMISTRY
-                                                         BIOCHEMISTRY
-TEST                                                  VALUE                        UNIT               REFERENCE
-RANDOM BLOOD SUGAR                                H   178.9                        mg/dl              70 - 140
-
-                                                       BIOCHEMISTRY
-                                                 KIDNEY FUNCTION TEST (KFT)
-TEST                                                  VALUE                        UNIT               REFERENCE
-SERUM UREA                                            38.46                        mg/dl              21 - 43
-SERUM CREATININE                                      1.01                         mg/dl              0.55 - 1.13
-SERUM PHOSPHORUS                                  H   10.50                        mg/dl              2.5 - 4.5
-SERUM URIC ACID                                   H   6.60                         mg/dl              2.6 - 6
-SERUM SODIUM                                          136.8                        mmol/L             136 - 146
-SERUM POTASSIUM                                       4.88                         mmol/L             3.5 - 5.1
-ICALCIUM                                              1.13                         mmol/l             1.13 - 1.33
+                                                                                           Page 2 of 3
+Mrs. Shugra Devi                                                                           Registered on : -
+                                                                                           Collected on : -
+Age / Sex : 55 YRS / Female                                                                Received on : -
+Reg. no. : 6973                                                                            Reported on : -
 
 
- Creatinine is a nitrogenous waste product formed in muscle from creatine phosphate. Endogenous production of creatinine is
- proportional to muscle mass and body weight.
-
-  Causes of Increased Serum Creatinine Level                        Causes of Decreased Serum Creatinine Level
-  1. Pre-renal, renal, and post-renal azotemia                      1. Pregnancy
-  2. Large amount of dietary meat                                   2. Increasing age (reduction in muscle mass)
-  3. Active acromegaly and gigantism
-
-
-                                                        ~~~ End of report ~~~
-
-
+                                                          BIOCHEMISTRY
+TEST                                                   VALUE                      UNIT                   REFERENCE
+RANDOM BLOOD SUGAR                                 H   178.9                      mg/dl                  70 - 140
+SERUM UREA                                             38.46                      mg/dl                  21 - 43
+SERUM CREATININE                                       1.01                       mg/dl                  0.55 - 1.13
+SERUM PHOSPHORUS                                   H   10.50                      mg/dl                  2.5 - 4.5
+SERUM URIC ACID                                    H   6.60                       mg/dl                  2.6 - 6
+SERUM SODIUM                                           136.8                      mmol/L                 136 - 146
+SERUM POTASSIUM                                        4.88                       mmol/L                 3.5 - 5.1
+ICALCIUM                                               1.13                       mmol/l                 1.13 - 1.33
 
 
-                                                                                                                              Page 2 of 2
+  Creatinine is a nitrogenous waste product formed in muscle from creatine phosphate. Endogenous production of creatinine is
+  proportional to muscle mass and body weight.
+
+   Causes of Increased Serum Creatinine Level                        Causes of Decreased Serum Creatinine Level
+   1. Pre-renal, renal, and post-renal azotemia                      1. Pregnancy
+   2. Large amount of dietary meat                                   2. Increasing age (reduction in muscle mass)
+   3. Active acromegaly and gigantism
+
+
+                                                         ~~~ End of report ~~~
+
+
+
+
+                                                                                                                               Page 3 of 3
 

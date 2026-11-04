@@ -16,7 +16,8 @@ const NOTE_BACKGROUND = '#f1f5f9';
 const NOTE_BORDER = '#334155';
 const NOTE_PADDING_X = 10;
 const NOTE_PADDING_Y = 6;
-const TEST_INDENT = 28;
+// Child rows (e.g. DLC differentials) sit just inside their parent row.
+const TEST_INDENT = 8;
 
 // One renderer for staff downloads, public QR downloads, previews and printing.
 // Page furniture is reserved before flowing content; rows and long paragraphs
@@ -218,14 +219,11 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     }
     rule(bottom + 5); y = bottom + 13;
   }
-  // Report continuation pages carry content only, like the reference sheet;
-  // repeating the full letterhead and patient band on every page both wastes
-  // space and forces sections apart. Bills keep their header on every page.
-  // Preprinted stationery still needs the top blank band on every sheet.
+  // Every page repeats the (letterhead or preprinted band and) patient band,
+  // as the reference LIS prints its page header on each sheet.
   function newPage() {
     doc.addPage();
-    if (plainBill) header();
-    else y = options.letterhead ? m : preprintTop;
+    header();
   }
   function space(height) { if (y + height > limit) { newPage(); return true; } return false; }
   function paragraph(value, { bold = false, size = format.fontSize, align = 'left', shaded = false, leading = size + 4, gap = 5 } = {}) {
@@ -262,18 +260,28 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const headerCells = columns.map(c => ({ text: c.label }));
     const headerLines = columns.map(c => lines(c.label, c.width - pad * 2, true, size));
     const headerHeight = Math.max(...headerLines.map(l => l.length)) * lineHeight + pad * 2;
-    const titleHeight = title ? lines(title, width, true, titleSize).length * (titleSize + 2) + 3 : 0;
-    const tableHeader = () => { heading(title, { size: titleSize, leading: titleSize + 2, gap: 3 }); draw(headerCells, headerLines, true, 0, 0, Math.max(...headerLines.map(l => l.length))); };
-    space(headerHeight + titleHeight + lineHeight + pad * 2); tableHeader();
+    // A title is a string or a list of { text, size } lines (department, then panel).
+    const titleLines = (Array.isArray(title) ? title : [{ text: title, size: titleSize }]).filter(line => line.text);
+    const titleHeight = titleLines.reduce((sum, line) => sum + lines(line.text, width, true, line.size).length * (line.size + 2) + 3, 0);
+    const showHeader = style.header !== false;
+    const columnHeader = () => draw(headerCells, headerLines, true, 0, 0, Math.max(...headerLines.map(l => l.length)));
+    const tableHeader = () => {
+      titleLines.forEach(line => heading(line.text, { size: line.size, leading: line.size + 2, gap: 3 }));
+      if (showHeader) columnHeader();
+      else if (format.tableStyle === 'outlined') rule(y);
+    };
+    // Continuations of a table on the next page keep the column header.
+    const continueTable = () => { columnHeader(); };
+    space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + pad * 2); tableHeader();
     rows.forEach((cells, index) => {
       const heights = cells.map((cell, j) => lines(cell.text, columns[j].width - pad * 2, cell.bold, size));
       const total = Math.max(...heights.map(l => l.length)); let offset = 0;
       while (offset < total) {
         let available = Math.floor((limit - y - pad * 2) / lineHeight);
-        if (available < 1 || (offset === 0 && total <= 12 && available < total)) { newPage(); tableHeader(); available = Math.floor((limit - y - pad * 2) / lineHeight); }
+        if (available < 1 || (offset === 0 && total <= 12 && available < total)) { newPage(); continueTable(); available = Math.floor((limit - y - pad * 2) / lineHeight); }
         const count = Math.max(1, Math.min(total - offset, available));
         draw(cells, heights, false, index, offset, count); offset += count;
-        if (offset < total) { newPage(); tableHeader(); }
+        if (offset < total) { newPage(); continueTable(); }
       }
     });
     if (format.tableStyle === 'outlined') rule(y);
@@ -431,7 +439,9 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // of forcing an oversized 10.5pt band that spills an extra page.
     const noteSize = format.fontSize;
     return {
-      bodySize: format.fontSize, rowPadding: format.rowPadding, tableLeading: format.fontSize + 2,
+      // Result rows use the reference sheet's pitch (measured ~13.6pt between
+      // rows), so the same tests take the same space as on Labsmart.
+      bodySize: format.fontSize, rowPadding: Math.min(format.rowPadding, 1.5), tableLeading: format.fontSize + 2,
       titleSize: 10, tableGap: 6, noteSize, noteLeading: noteSize * 1.22,
       noteGap: 4, disclaimerSize: 8, disclaimerLeading: 10, signatureHeight: 72
     };
@@ -560,42 +570,56 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         // Billed/panel sections must stay one table. Splitting by each catalog
         // test's department (e.g. some CBC rows HAEMATOLOGY, others blank)
         // reprinted the panel heading dozens of times and inflated page counts.
-        const panelSection = !!parent.reportSectionKey;
-        const category = options.dept && !panelSection ? test.category?.name || test.categoryName || '' : '';
+        // Billed panels/packages group under their own title; a "test:" section
+        // key is still a standalone test.
+        const panelSection = /^(?:panel|package):/.test(String(parent.reportSectionKey || ''));
         let key = parent.reportSectionKey || (parent._id ? `test:${parent._id}`
           : parent.categoryName ? `category:${parent.categoryName}` : Object.keys(parent).length ? `name:${parent.name || result.testName || 'Tests'}` : 'uncatalogued');
         // Legacy calculated rows without a catalog identity belong with the
         // measurements that produced them, rather than an extra report page.
         if (result.derived && !result.test && sections.size) key = [...sections.keys()].at(-1);
+        const deptName = parent.category?.name || test.category?.name || parent.categoryName || test.categoryName || '';
+        // Departments print in catalog category order (Haematology, Serology,
+        // Clinical Pathology, ... Biochemistry), as on the reference reports.
+        const deptRank = Date.parse(parent.category?.createdAt || test.category?.createdAt || '');
         if (!sections.has(key)) sections.set(key, {
           key,
           interpretationOverride: (report.interpretations || []).find(item => item.key === key)?.text,
           title: parent.reportSectionName || parent.name || parent.categoryName || result.testName || '',
-          showHeading: panelSection,
-          department: '',
-          description: parent.reportSectionDescription || '', groups: []
+          panel: panelSection,
+          department: deptName,
+          rank: Number.isFinite(deptRank) ? deptRank : Infinity,
+          seq: sections.size,
+          description: parent.reportSectionDescription || '', groups: [{ category: '', items: [] }]
         });
         const section = sections.get(key);
-        if (options.dept && !section.department) {
-          const deptName = test.category?.name || test.categoryName || '';
-          if (deptName) section.department = deptName;
-        }
+        if (!section.department && deptName) { section.department = deptName; section.rank = Number.isFinite(deptRank) ? deptRank : Infinity; }
         const groups = section.groups;
-        if (!groups.length || groups[groups.length - 1].category !== category) groups.push({ category, items: [] });
         const resultKey = result.test ? `${result.test?._id || result.test}${result.parameterCode ? `:${result.parameterCode}` : ''}` : `name:${result.testName}`;
         const override = (report.interpretations || []).find(item => item.key === `result:${resultKey}`);
         if (parent.parameters?.length && result.parameterCode !== parent.parameters[0].code &&
           (report.interpretations || []).some(item => item.key.startsWith(`result:${parent._id}:`))) test.interpretation = '';
-        groups[groups.length - 1].items.push({ result: { ...(result.toObject ? result.toObject() : result), interpretationOverride: override?.text }, test });
+        groups[0].items.push({ result: { ...(result.toObject ? result.toObject() : result), interpretationOverride: override?.text }, test,
+          order: parent.reportSectionOrder ?? Number.MAX_SAFE_INTEGER, seq: groups[0].items.length });
       });
+      // Panel rows follow the panel definition; a test's parameters stay together.
+      for (const section of sections.values()) {
+        if (section.panel) section.groups[0].items.sort((a, b) => a.order - b.order || a.seq - b.seq);
+      }
       const flag = options.flags ? Math.max(width * 0.04, format.flagPlacement === 'last' ? format.fontSize * 3 + format.rowPadding * 2 : 20) : 0;
       const columns = [{ label: 'TEST', width: width * 0.4 - flag }, { label: 'VALUE', width: width * 0.2 }, { label: 'UNIT', width: width * 0.15 }, { label: 'REFERENCE', width: width * 0.25 }];
       if (options.flags) columns.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { label: format.flagPlacement === 'last' ? 'FLAG' : '', width: flag, align: 'center' });
       if (!sections.size) sections.set('empty', { title: '', groups: [] });
       const style = sectionStyle();
       const cellsFor = (name, bold, r, t, indent = 0) => {
-        const range = r.referenceRange || t.referenceRange || (t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : '-');
-        const cells = [{ text: String(name).toUpperCase(), bold, indent }, { text: r.value ?? '', bold }, { text: r.unit || t.unit || '-', bold }, { text: range, bold }];
+        // The reference sheet leaves missing unit/range cells blank.
+        const range = r.referenceRange || t.referenceRange || (t.normalLow != null && t.normalHigh != null ? `${t.normalLow} - ${t.normalHigh}` : '');
+        const method = String(t.sourceInterpretation?.method || '').trim();
+        const label = String(name).toUpperCase() + (method ? `\nMethod: ${method}` : '');
+        // Calculated values print with two decimals ("4.00", "0.80") like the
+        // reference sheet; stored numbers lose trailing zeros.
+        const value = r.derived && /^-?\d+(?:\.\d+)?$/.test(String(r.value ?? '').trim()) ? Number(r.value).toFixed(2) : r.value ?? '';
+        const cells = [{ text: label, bold, indent }, { text: value, bold }, { text: r.unit || t.unit || '', bold }, { text: range, bold }];
         if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: r.flag && r.flag !== 'N' ? r.flag : '', bold });
         return cells;
       };
@@ -627,20 +651,47 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         return rows;
       };
       reportHeading();
-      const ordered = [...sections.values()];
+      // Department order, then billed panels before standalone tests, then
+      // the order results were entered.
+      const ordered = [...sections.values()].sort((a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1)
+        || (a.rank === Infinity && a.department !== b.department ? a.seq - b.seq : 0)
+        || Number(b.panel || false) - Number(a.panel || false) || a.seq - b.seq);
+      // Standalone guidance sits directly under its own row (body size kept
+      // for legibility).
+      const inlineStyle = style;
+      let department, standaloneSeen = false, pending = null;
+      // Consecutive standalone tests share one table until one of them has
+      // guidance; the next rows then continue without repeating the header.
+      const flush = (blocks = [], reserve = 0) => {
+        if (!pending) return;
+        table(columns, pending.rows, pending.titles, { ...style, header: pending.header, tableGap: blocks.length ? 2 : style.tableGap });
+        pending = null;
+        drawNotes(blocks, inlineStyle, reserve);
+      };
       ordered.forEach((section, index) => {
         const isLast = index === ordered.length - 1;
-        const tables = section.groups.map(group => ({
-          rows: groupRows(group),
-          // Panel: department once + panel name once. Standalone: category only.
-          title: (section.showHeading
-            ? [...new Set([section.department, section.title].filter(Boolean))]
-            : [group.category].filter(Boolean)
-          ).join('\n').toUpperCase()
-        }));
-        tables.forEach(item => table(columns, item.rows, item.title, style));
+        const reserve = isLast ? endingHeight(style) : 0;
+        const newDepartment = index === 0 || section.department !== department;
+        if (newDepartment) {
+          flush();
+          // Each department starts on its own page with the patient band.
+          if (index > 0) newPage();
+          department = section.department; standaloneSeen = false;
+        }
+        const titles = [];
+        if (newDepartment && options.dept && section.department) titles.push({ text: section.department.toUpperCase(), size: 11 });
+        if (section.panel && section.title) titles.push({ text: section.title.toUpperCase(), size: 9.5 });
+        const rows = section.groups.flatMap(groupRows);
         const blocks = options.interpretation ? reportNoteBlocks(section) : [];
-        drawNotes(blocks, style, isLast ? endingHeight(style) : 0);
+        if (section.panel) {
+          flush();
+          table(columns, rows, titles, style);
+          drawNotes(blocks, style, reserve);
+        } else {
+          if (!pending) pending = { rows: [], titles, header: !standaloneSeen };
+          pending.rows.push(...rows); standaloneSeen = true;
+          if (blocks.length || isLast) flush(blocks, reserve);
+        }
         if (isLast) finishReportSection(style);
       });
     }

@@ -8,7 +8,8 @@ const APP_PANEL_FIXTURE = path.join(FIXTURE_DIR, 'panels.app.json');
 
 function normalize(value) {
   return String(value || '')
-    .replace(/<[^>]+>/g, ' ')
+    // Only real tags: clinical text such as "<1 ng/mL ... >200" must survive.
+    .replace(/<\/?[a-z][a-z0-9]*(?:\s[^<>]*)?\/?>/gi, ' ')
     .replace(/&nbsp;|&#xa0;|&#160;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')

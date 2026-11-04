@@ -99,7 +99,9 @@ test('PDF for every Labsmart website panel matches that panel interpretation', a
       assertCovers(text, panel.text, `PDF ${panel.name}`, 0.85);
       assert.equal((text.match(/~~~ End of report ~~~/g) || []).length, 1, panel.name);
       assert.ok(pages >= 1 && pages <= 4, `${panel.name} pages=${pages}`);
-      assert.ok(!/method\s*:\s*calculated/i.test(text), panel.name);
+      // Labsmart prints a calculated member's method under its row (e.g.
+      // SGOT/SGPT in LFT), never inside the panel interpretation box.
+      assert.ok(text.indexOf('Method: Calculated') < text.indexOf('~~~ End of report ~~~'), panel.name);
     } catch (error) {
       failures.push(error.message);
     }

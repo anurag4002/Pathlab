@@ -4,8 +4,7 @@ Age / Sex : 29 YRS / Female                                                     
 Reg. no. : 6995                                                                          Reported on : -
 
 
-                                                  HAEMATOLOGY
-                                            COMPLETE BLOOD COUNT (CBC)
+                                                         HAEMATOLOGY
 TEST                                                VALUE                     UNIT                     REFERENCE
 HEMOGLOBIN                                          12.5                      g/dl                     12 - 15
 TOTAL LEUKOCYTE COUNT                          H    12600                     cumm                     4,800 - 10,800

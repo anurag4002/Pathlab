@@ -1,33 +1,33 @@
 {
-  "matchedAt": "2026-10-22T18:56:34.523Z",
+  "matchedAt": "2026-11-04T13:31:16.595Z",
   "primary": "visual-page-diff",
   "maxDiffRatio": 0.2,
   "maskTop": 0.12,
   "maskBottom": 0.08,
   "dpi": 72,
   "width": 800,
-  "passed": 80,
-  "failed": 0,
+  "passed": 72,
+  "failed": 8,
   "results": [
     {
       "id": "30594117",
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1692,
+      "worstDiffRatio": 0.1467,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1692,
-          "mismatched": 122634,
+          "diffRatio": 0.1467,
+          "mismatched": 106325,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0479,
+          "mismatched": 34737,
           "compared": 724800
         }
       ]
@@ -37,20 +37,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1152,
+      "worstDiffRatio": 0.1087,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1152,
-          "mismatched": 83504,
+          "diffRatio": 0.1087,
+          "mismatched": 78772,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0354,
-          "mismatched": 25667,
+          "diffRatio": 0.058,
+          "mismatched": 42005,
           "compared": 724800
         }
       ]
@@ -60,20 +60,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1145,
+      "worstDiffRatio": 0.1079,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1145,
-          "mismatched": 82987,
+          "diffRatio": 0.1079,
+          "mismatched": 78170,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.036,
-          "mismatched": 26064,
+          "diffRatio": 0.0589,
+          "mismatched": 42719,
           "compared": 724800
         }
       ]
@@ -83,13 +83,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0673,
+      "worstDiffRatio": 0.0667,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0673,
-          "mismatched": 48768,
+          "diffRatio": 0.0667,
+          "mismatched": 48332,
           "compared": 724800
         }
       ]
@@ -99,13 +99,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1373,
+      "worstDiffRatio": 0.1325,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1373,
-          "mismatched": 99526,
+          "diffRatio": 0.1325,
+          "mismatched": 96009,
           "compared": 724800
         }
       ]
@@ -115,13 +115,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0677,
+      "worstDiffRatio": 0.0672,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0677,
-          "mismatched": 49104,
+          "diffRatio": 0.0672,
+          "mismatched": 48677,
           "compared": 724800
         }
       ]
@@ -131,13 +131,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.137,
+      "worstDiffRatio": 0.1322,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.137,
-          "mismatched": 99322,
+          "diffRatio": 0.1322,
+          "mismatched": 95805,
           "compared": 724800
         }
       ]
@@ -146,21 +146,14 @@
       "id": "30608263",
       "status": "pass",
       "labPages": 2,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1049,
+      "ourPages": 1,
+      "worstDiffRatio": 0.1035,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1049,
-          "mismatched": 76060,
-          "compared": 724800
-        },
-        {
-          "page": 2,
-          "status": "pass",
-          "diffRatio": 0.0052,
-          "mismatched": 3791,
+          "diffRatio": 0.1035,
+          "mismatched": 75016,
           "compared": 724800
         }
       ]
@@ -170,44 +163,50 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1152,
+      "worstDiffRatio": 0.1087,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1152,
-          "mismatched": 83489,
+          "diffRatio": 0.1087,
+          "mismatched": 78778,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0359,
-          "mismatched": 26039,
+          "diffRatio": 0.0587,
+          "mismatched": 42565,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30612192",
-      "status": "pass",
+      "status": "fail",
       "labPages": 2,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1402,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1459,
+      "reason": "page count lab=2 pathlab=3",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1165,
-          "mismatched": 84403,
+          "diffRatio": 0.1083,
+          "mismatched": 78528,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1402,
-          "mismatched": 101609,
+          "diffRatio": 0.1459,
+          "mismatched": 105731,
           "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -216,13 +215,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1383,
+      "worstDiffRatio": 0.1382,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1383,
-          "mismatched": 100272,
+          "diffRatio": 0.1382,
+          "mismatched": 100159,
           "compared": 724800
         }
       ]
@@ -232,20 +231,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1193,
+      "worstDiffRatio": 0.1129,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1193,
-          "mismatched": 86435,
+          "diffRatio": 0.1129,
+          "mismatched": 81825,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0362,
-          "mismatched": 26247,
+          "diffRatio": 0.0591,
+          "mismatched": 42846,
           "compared": 724800
         }
       ]
@@ -255,20 +254,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1675,
+      "worstDiffRatio": 0.1459,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1675,
-          "mismatched": 121412,
+          "diffRatio": 0.1459,
+          "mismatched": 105719,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0468,
+          "mismatched": 33894,
           "compared": 724800
         }
       ]
@@ -278,13 +277,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1372,
+      "worstDiffRatio": 0.1324,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1372,
-          "mismatched": 99474,
+          "diffRatio": 0.1324,
+          "mismatched": 95957,
           "compared": 724800
         }
       ]
@@ -294,13 +293,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1373,
+      "worstDiffRatio": 0.1324,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1373,
-          "mismatched": 99494,
+          "diffRatio": 0.1324,
+          "mismatched": 95977,
           "compared": 724800
         }
       ]
@@ -310,13 +309,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1371,
+      "worstDiffRatio": 0.1322,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1371,
-          "mismatched": 99335,
+          "diffRatio": 0.1322,
+          "mismatched": 95818,
           "compared": 724800
         }
       ]
@@ -326,13 +325,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.137,
+      "worstDiffRatio": 0.1322,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.137,
-          "mismatched": 99304,
+          "diffRatio": 0.1322,
+          "mismatched": 95787,
           "compared": 724800
         }
       ]
@@ -342,13 +341,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1367,
+      "worstDiffRatio": 0.1319,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1367,
-          "mismatched": 99096,
+          "diffRatio": 0.1319,
+          "mismatched": 95579,
           "compared": 724800
         }
       ]
@@ -358,13 +357,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0679,
+      "worstDiffRatio": 0.0673,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0679,
-          "mismatched": 49180,
+          "diffRatio": 0.0673,
+          "mismatched": 48753,
           "compared": 724800
         }
       ]
@@ -374,13 +373,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0879,
+      "worstDiffRatio": 0.0787,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0879,
-          "mismatched": 63692,
+          "diffRatio": 0.0787,
+          "mismatched": 57058,
           "compared": 724800
         }
       ]
@@ -390,13 +389,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.137,
+      "worstDiffRatio": 0.1321,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.137,
-          "mismatched": 99295,
+          "diffRatio": 0.1321,
+          "mismatched": 95778,
           "compared": 724800
         }
       ]
@@ -406,13 +405,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0681,
+      "worstDiffRatio": 0.0675,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0681,
-          "mismatched": 49365,
+          "diffRatio": 0.0675,
+          "mismatched": 48929,
           "compared": 724800
         }
       ]
@@ -421,38 +420,51 @@
       "id": "30626877",
       "status": "pass",
       "labPages": 2,
-      "ourPages": 1,
-      "worstDiffRatio": 0.1214,
+      "ourPages": 2,
+      "worstDiffRatio": 0.114,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1214,
-          "mismatched": 88016,
+          "diffRatio": 0.114,
+          "mismatched": 82618,
+          "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "pass",
+          "diffRatio": 0.0237,
+          "mismatched": 17171,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30627070",
-      "status": "pass",
+      "status": "fail",
       "labPages": 2,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1195,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1116,
+      "reason": "page count lab=2 pathlab=3",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1195,
-          "mismatched": 86616,
+          "diffRatio": 0.1116,
+          "mismatched": 80909,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0461,
-          "mismatched": 33378,
+          "diffRatio": 0.0438,
+          "mismatched": 31782,
           "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -461,13 +473,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.089,
+      "worstDiffRatio": 0.0797,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.089,
-          "mismatched": 64487,
+          "diffRatio": 0.0797,
+          "mismatched": 57799,
           "compared": 724800
         }
       ]
@@ -477,13 +489,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1367,
+      "worstDiffRatio": 0.1319,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1367,
-          "mismatched": 99103,
+          "diffRatio": 0.1319,
+          "mismatched": 95586,
           "compared": 724800
         }
       ]
@@ -493,13 +505,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1371,
+      "worstDiffRatio": 0.1323,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1371,
-          "mismatched": 99377,
+          "diffRatio": 0.1323,
+          "mismatched": 95860,
           "compared": 724800
         }
       ]
@@ -509,20 +521,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1162,
+      "worstDiffRatio": 0.1093,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1162,
-          "mismatched": 84221,
+          "diffRatio": 0.1079,
+          "mismatched": 78194,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0718,
-          "mismatched": 52043,
+          "diffRatio": 0.1093,
+          "mismatched": 79189,
           "compared": 724800
         }
       ]
@@ -532,13 +544,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1366,
+      "worstDiffRatio": 0.1317,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1366,
-          "mismatched": 98998,
+          "diffRatio": 0.1317,
+          "mismatched": 95481,
           "compared": 724800
         }
       ]
@@ -547,21 +559,28 @@
       "id": "30633068",
       "status": "pass",
       "labPages": 4,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1006,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1023,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0689,
-          "mismatched": 49969,
+          "diffRatio": 0.0555,
+          "mismatched": 40220,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1006,
-          "mismatched": 72933,
+          "diffRatio": 0.1021,
+          "mismatched": 74020,
+          "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.1023,
+          "mismatched": 74138,
           "compared": 724800
         }
       ]
@@ -571,20 +590,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1684,
+      "worstDiffRatio": 0.1467,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1684,
-          "mismatched": 122075,
+          "diffRatio": 0.1467,
+          "mismatched": 106316,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0474,
+          "mismatched": 34374,
           "compared": 724800
         }
       ]
@@ -594,27 +613,27 @@
       "status": "pass",
       "labPages": 5,
       "ourPages": 3,
-      "worstDiffRatio": 0.1026,
+      "worstDiffRatio": 0.1019,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0654,
-          "mismatched": 47400,
+          "diffRatio": 0.0555,
+          "mismatched": 40222,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1026,
-          "mismatched": 74341,
+          "diffRatio": 0.1019,
+          "mismatched": 73871,
           "compared": 724800
         },
         {
           "page": 3,
           "status": "pass",
-          "diffRatio": 0.0354,
-          "mismatched": 25630,
+          "diffRatio": 0.0658,
+          "mismatched": 47716,
           "compared": 724800
         }
       ]
@@ -624,13 +643,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.068,
+      "worstDiffRatio": 0.0675,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.068,
-          "mismatched": 49318,
+          "diffRatio": 0.0675,
+          "mismatched": 48891,
           "compared": 724800
         }
       ]
@@ -640,36 +659,37 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1381,
+      "worstDiffRatio": 0.138,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1381,
-          "mismatched": 100129,
+          "diffRatio": 0.138,
+          "mismatched": 100026,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30638477",
-      "status": "pass",
+      "status": "fail",
       "labPages": 3,
-      "ourPages": 3,
-      "worstDiffRatio": 0.1816,
+      "ourPages": 4,
+      "worstDiffRatio": 0.1918,
+      "reason": "page count lab=3 pathlab=4",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1185,
-          "mismatched": 85893,
+          "diffRatio": 0.1091,
+          "mismatched": 79088,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1816,
-          "mismatched": 131635,
+          "diffRatio": 0.1918,
+          "mismatched": 138982,
           "compared": 724800
         },
         {
@@ -678,6 +698,11 @@
           "diffRatio": 0.0572,
           "mismatched": 41445,
           "compared": 724800
+        },
+        {
+          "page": 4,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -686,20 +711,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1173,
+      "worstDiffRatio": 0.1109,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1173,
-          "mismatched": 85046,
+          "diffRatio": 0.1109,
+          "mismatched": 80345,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0359,
-          "mismatched": 26056,
+          "diffRatio": 0.0591,
+          "mismatched": 42842,
           "compared": 724800
         }
       ]
@@ -709,13 +734,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.089,
+      "worstDiffRatio": 0.0797,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.089,
-          "mismatched": 64506,
+          "diffRatio": 0.0797,
+          "mismatched": 57784,
           "compared": 724800
         }
       ]
@@ -725,13 +750,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1372,
+      "worstDiffRatio": 0.1324,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1372,
-          "mismatched": 99448,
+          "diffRatio": 0.1324,
+          "mismatched": 95931,
           "compared": 724800
         }
       ]
@@ -741,20 +766,20 @@
       "status": "pass",
       "labPages": 3,
       "ourPages": 2,
-      "worstDiffRatio": 0.0901,
+      "worstDiffRatio": 0.1153,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0901,
-          "mismatched": 65306,
+          "diffRatio": 0.0668,
+          "mismatched": 48406,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0833,
-          "mismatched": 60403,
+          "diffRatio": 0.1153,
+          "mismatched": 83567,
           "compared": 724800
         }
       ]
@@ -764,13 +789,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0679,
+      "worstDiffRatio": 0.0673,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0679,
-          "mismatched": 49211,
+          "diffRatio": 0.0673,
+          "mismatched": 48775,
           "compared": 724800
         }
       ]
@@ -780,13 +805,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.068,
+      "worstDiffRatio": 0.0673,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.068,
-          "mismatched": 49251,
+          "diffRatio": 0.0673,
+          "mismatched": 48815,
           "compared": 724800
         }
       ]
@@ -796,13 +821,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0352,
+      "worstDiffRatio": 0.0342,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0352,
-          "mismatched": 25547,
+          "diffRatio": 0.0342,
+          "mismatched": 24780,
           "compared": 724800
         }
       ]
@@ -812,13 +837,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0904,
+      "worstDiffRatio": 0.078,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0904,
-          "mismatched": 65525,
+          "diffRatio": 0.078,
+          "mismatched": 56528,
           "compared": 724800
         }
       ]
@@ -828,13 +853,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0888,
+      "worstDiffRatio": 0.0798,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0888,
-          "mismatched": 64389,
+          "diffRatio": 0.0798,
+          "mismatched": 57862,
           "compared": 724800
         }
       ]
@@ -844,13 +869,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0526,
+      "worstDiffRatio": 0.0454,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0526,
-          "mismatched": 38142,
+          "diffRatio": 0.0454,
+          "mismatched": 32918,
           "compared": 724800
         }
       ]
@@ -860,13 +885,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1036,
+      "worstDiffRatio": 0.1026,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1036,
-          "mismatched": 75081,
+          "diffRatio": 0.1026,
+          "mismatched": 74347,
           "compared": 724800
         }
       ]
@@ -876,37 +901,43 @@
       "status": "pass",
       "labPages": 3,
       "ourPages": 1,
-      "worstDiffRatio": 0.0593,
+      "worstDiffRatio": 0.0583,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0593,
-          "mismatched": 42999,
+          "diffRatio": 0.0583,
+          "mismatched": 42249,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30651150",
-      "status": "pass",
+      "status": "fail",
       "labPages": 2,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1287,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1425,
+      "reason": "page count lab=2 pathlab=3",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1187,
-          "mismatched": 86059,
+          "diffRatio": 0.1098,
+          "mismatched": 79564,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1287,
-          "mismatched": 93277,
+          "diffRatio": 0.1425,
+          "mismatched": 103320,
           "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -915,13 +946,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0886,
+      "worstDiffRatio": 0.0794,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0886,
-          "mismatched": 64213,
+          "diffRatio": 0.0794,
+          "mismatched": 57559,
           "compared": 724800
         }
       ]
@@ -930,28 +961,35 @@
       "id": "30658537",
       "status": "pass",
       "labPages": 5,
-      "ourPages": 3,
-      "worstDiffRatio": 0.122,
+      "ourPages": 4,
+      "worstDiffRatio": 0.135,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0674,
-          "mismatched": 48874,
+          "diffRatio": 0.0552,
+          "mismatched": 40006,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.122,
-          "mismatched": 88453,
+          "diffRatio": 0.0995,
+          "mismatched": 72090,
           "compared": 724800
         },
         {
           "page": 3,
           "status": "pass",
-          "diffRatio": 0.0897,
-          "mismatched": 64989,
+          "diffRatio": 0.1267,
+          "mismatched": 91839,
+          "compared": 724800
+        },
+        {
+          "page": 4,
+          "status": "pass",
+          "diffRatio": 0.135,
+          "mismatched": 97874,
           "compared": 724800
         }
       ]
@@ -961,13 +999,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0683,
+      "worstDiffRatio": 0.0677,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0683,
-          "mismatched": 49508,
+          "diffRatio": 0.0677,
+          "mismatched": 49081,
           "compared": 724800
         }
       ]
@@ -977,20 +1015,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.168,
+      "worstDiffRatio": 0.1463,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.168,
-          "mismatched": 121763,
+          "diffRatio": 0.1463,
+          "mismatched": 106019,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0469,
+          "mismatched": 33988,
           "compared": 724800
         }
       ]
@@ -1000,13 +1038,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0877,
+      "worstDiffRatio": 0.0785,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0877,
-          "mismatched": 63564,
+          "diffRatio": 0.0785,
+          "mismatched": 56862,
           "compared": 724800
         }
       ]
@@ -1016,51 +1054,57 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1182,
+      "worstDiffRatio": 0.1114,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1182,
-          "mismatched": 85675,
+          "diffRatio": 0.1114,
+          "mismatched": 80773,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.036,
-          "mismatched": 26096,
+          "diffRatio": 0.0593,
+          "mismatched": 43016,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30662546",
-      "status": "pass",
+      "status": "fail",
       "labPages": 3,
-      "ourPages": 3,
-      "worstDiffRatio": 0.1816,
+      "ourPages": 4,
+      "worstDiffRatio": 0.1917,
+      "reason": "page count lab=3 pathlab=4",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1163,
-          "mismatched": 84301,
+          "diffRatio": 0.1071,
+          "mismatched": 77657,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1816,
-          "mismatched": 131640,
+          "diffRatio": 0.1917,
+          "mismatched": 138932,
           "compared": 724800
         },
         {
           "page": 3,
           "status": "pass",
           "diffRatio": 0.057,
-          "mismatched": 41337,
+          "mismatched": 41309,
           "compared": 724800
+        },
+        {
+          "page": 4,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -1069,13 +1113,13 @@
       "status": "pass",
       "labPages": 3,
       "ourPages": 1,
-      "worstDiffRatio": 0.058,
+      "worstDiffRatio": 0.0562,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.058,
-          "mismatched": 42057,
+          "diffRatio": 0.0562,
+          "mismatched": 40756,
           "compared": 724800
         }
       ]
@@ -1085,13 +1129,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1379,
+      "worstDiffRatio": 0.1377,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1379,
-          "mismatched": 99964,
+          "diffRatio": 0.1377,
+          "mismatched": 99834,
           "compared": 724800
         }
       ]
@@ -1101,13 +1145,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1379,
+      "worstDiffRatio": 0.1378,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1379,
-          "mismatched": 99974,
+          "diffRatio": 0.1378,
+          "mismatched": 99844,
           "compared": 724800
         }
       ]
@@ -1117,30 +1161,36 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0675,
+      "worstDiffRatio": 0.0669,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0675,
-          "mismatched": 48913,
+          "diffRatio": 0.0669,
+          "mismatched": 48477,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30668332",
-      "status": "pass",
+      "status": "fail",
       "labPages": 1,
-      "ourPages": 1,
-      "worstDiffRatio": 0.1516,
+      "ourPages": 2,
+      "worstDiffRatio": 0.1145,
+      "reason": "page count lab=1 pathlab=2",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1516,
-          "mismatched": 109844,
+          "diffRatio": 0.1145,
+          "mismatched": 83005,
           "compared": 724800
+        },
+        {
+          "page": 2,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -1149,13 +1199,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0675,
+      "worstDiffRatio": 0.0669,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0675,
-          "mismatched": 48956,
+          "diffRatio": 0.0669,
+          "mismatched": 48520,
           "compared": 724800
         }
       ]
@@ -1165,20 +1215,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1682,
+      "worstDiffRatio": 0.1461,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1682,
-          "mismatched": 121898,
+          "diffRatio": 0.1461,
+          "mismatched": 105872,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0475,
+          "mismatched": 34427,
           "compared": 724800
         }
       ]
@@ -1188,13 +1238,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0881,
+      "worstDiffRatio": 0.0789,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0881,
-          "mismatched": 63830,
+          "diffRatio": 0.0789,
+          "mismatched": 57204,
           "compared": 724800
         }
       ]
@@ -1204,13 +1254,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1378,
+      "worstDiffRatio": 0.1376,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1378,
-          "mismatched": 99898,
+          "diffRatio": 0.1376,
+          "mismatched": 99764,
           "compared": 724800
         }
       ]
@@ -1220,60 +1270,79 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0883,
+      "worstDiffRatio": 0.0791,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0883,
-          "mismatched": 63982,
+          "diffRatio": 0.0791,
+          "mismatched": 57300,
           "compared": 724800
         }
       ]
     },
     {
       "id": "30683292",
-      "status": "pass",
+      "status": "fail",
       "labPages": 2,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1709,
+      "ourPages": 3,
+      "worstDiffRatio": 0.1512,
+      "reason": "page count lab=2 pathlab=3",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1709,
-          "mismatched": 123904,
+          "diffRatio": 0.1512,
+          "mismatched": 109614,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1273,
-          "mismatched": 92245,
+          "diffRatio": 0.1422,
+          "mismatched": 103033,
           "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
     {
       "id": "30684127",
-      "status": "pass",
+      "status": "fail",
       "labPages": 3,
-      "ourPages": 2,
-      "worstDiffRatio": 0.1342,
+      "ourPages": 4,
+      "worstDiffRatio": 0.1092,
+      "reason": "page count lab=3 pathlab=4",
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1167,
-          "mismatched": 84610,
+          "diffRatio": 0.1092,
+          "mismatched": 79172,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.1342,
-          "mismatched": 97238,
+          "diffRatio": 0.1048,
+          "mismatched": 75926,
           "compared": 724800
+        },
+        {
+          "page": 3,
+          "status": "pass",
+          "diffRatio": 0.0696,
+          "mismatched": 50410,
+          "compared": 724800
+        },
+        {
+          "page": 4,
+          "status": "fail",
+          "reason": "extra Pathlab page"
         }
       ]
     },
@@ -1282,20 +1351,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1193,
+      "worstDiffRatio": 0.1123,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1193,
-          "mismatched": 86473,
+          "diffRatio": 0.1123,
+          "mismatched": 81414,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0357,
-          "mismatched": 25906,
+          "diffRatio": 0.0595,
+          "mismatched": 43140,
           "compared": 724800
         }
       ]
@@ -1305,13 +1374,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1005,
+      "worstDiffRatio": 0.0997,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1005,
-          "mismatched": 72874,
+          "diffRatio": 0.0997,
+          "mismatched": 72270,
           "compared": 724800
         }
       ]
@@ -1321,13 +1390,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1369,
+      "worstDiffRatio": 0.132,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1369,
-          "mismatched": 99189,
+          "diffRatio": 0.132,
+          "mismatched": 95672,
           "compared": 724800
         }
       ]
@@ -1337,13 +1406,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.089,
+      "worstDiffRatio": 0.0801,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.089,
-          "mismatched": 64495,
+          "diffRatio": 0.0801,
+          "mismatched": 58049,
           "compared": 724800
         }
       ]
@@ -1353,20 +1422,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1673,
+      "worstDiffRatio": 0.1507,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1673,
-          "mismatched": 121245,
+          "diffRatio": 0.1507,
+          "mismatched": 109194,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0119,
-          "mismatched": 8623,
+          "diffRatio": 0.0514,
+          "mismatched": 37259,
           "compared": 724800
         }
       ]
@@ -1376,13 +1445,13 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 1,
-      "worstDiffRatio": 0.0677,
+      "worstDiffRatio": 0.0671,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0677,
-          "mismatched": 49033,
+          "diffRatio": 0.0671,
+          "mismatched": 48606,
           "compared": 724800
         }
       ]
@@ -1392,20 +1461,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1193,
+      "worstDiffRatio": 0.1123,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1193,
-          "mismatched": 86435,
+          "diffRatio": 0.1123,
+          "mismatched": 81418,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.036,
-          "mismatched": 26068,
+          "diffRatio": 0.0593,
+          "mismatched": 43006,
           "compared": 724800
         }
       ]
@@ -1415,20 +1484,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1237,
+      "worstDiffRatio": 0.1115,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1237,
-          "mismatched": 89682,
+          "diffRatio": 0.1115,
+          "mismatched": 80823,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0341,
-          "mismatched": 24687,
+          "diffRatio": 0.0587,
+          "mismatched": 42540,
           "compared": 724800
         }
       ]
@@ -1438,13 +1507,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1014,
+      "worstDiffRatio": 0.1007,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1014,
-          "mismatched": 73511,
+          "diffRatio": 0.1007,
+          "mismatched": 72976,
           "compared": 724800
         }
       ]
@@ -1454,13 +1523,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.1012,
+      "worstDiffRatio": 0.1007,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1012,
-          "mismatched": 73381,
+          "diffRatio": 0.1007,
+          "mismatched": 72984,
           "compared": 724800
         }
       ]
@@ -1470,20 +1539,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1682,
+      "worstDiffRatio": 0.1464,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1682,
-          "mismatched": 121898,
+          "diffRatio": 0.1464,
+          "mismatched": 106127,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0471,
+          "mismatched": 34174,
           "compared": 724800
         }
       ]
@@ -1493,20 +1562,20 @@
       "status": "pass",
       "labPages": 2,
       "ourPages": 2,
-      "worstDiffRatio": 0.1678,
+      "worstDiffRatio": 0.146,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.1678,
-          "mismatched": 121603,
+          "diffRatio": 0.146,
+          "mismatched": 105846,
           "compared": 724800
         },
         {
           "page": 2,
           "status": "pass",
-          "diffRatio": 0.0069,
-          "mismatched": 4983,
+          "diffRatio": 0.0467,
+          "mismatched": 33841,
           "compared": 724800
         }
       ]
@@ -1516,13 +1585,13 @@
       "status": "pass",
       "labPages": 1,
       "ourPages": 1,
-      "worstDiffRatio": 0.0877,
+      "worstDiffRatio": 0.0784,
       "pages": [
         {
           "page": 1,
           "status": "pass",
-          "diffRatio": 0.0877,
-          "mismatched": 63535,
+          "diffRatio": 0.0784,
+          "mismatched": 56850,
           "compared": 724800
         }
       ]

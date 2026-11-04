@@ -4,8 +4,7 @@ Age / Sex : 27 YRS / Male                                                       
 Reg. no. : 6996                                                                                   Reported on : -
 
 
-                                                             BIOCHEMISTRY
-                                                       LIVER FUNCTION TEST (LFT)
+                                                               BIOCHEMISTRY
 TEST                                                       VALUE                         UNIT                   REFERENCE
 SERUM BILIRUBIN (TOTAL)                                    0.66                          mg/dl                  0.2 - 1.2
 SERUM BILIRUBIN (DIRECT)                                   0.14                          mg/dl                  0 - 0.3

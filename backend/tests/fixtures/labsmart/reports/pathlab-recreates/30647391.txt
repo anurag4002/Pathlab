@@ -5,7 +5,6 @@ Reg. no. : 6991                                                              Rep
 
 
                                         SEROLOGY & IMMUNOLOGY
-                                        SEROLOGY & IMMUNOLOGY
 TEST                                        VALUE                     UNIT                 REFERENCE
 C-REACTIVE PROTEIN, CRP (QUALITATIVE)   H   76.28                     mg/L                 < 6 mg/L
 
