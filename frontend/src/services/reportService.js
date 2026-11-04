@@ -80,6 +80,12 @@ export const getReportForEntry = async (id) => {
   return response.data;
 };
 
+// Per-section print options / ordering chosen on result entry.
+export const updateReportPrintSettings = async (id, settings) => {
+  const response = await apiClient.put(`/reports/${id}/print-settings`, settings);
+  return response.data;
+};
+
 export const signReport = async (id, signatureId) => {
   const response = await apiClient.post(`/reports/${id}/sign`, { signatureId });
   return response.data;

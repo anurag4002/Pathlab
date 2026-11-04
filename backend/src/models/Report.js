@@ -80,6 +80,21 @@ const ReportSchema = new mongoose.Schema({
     key: { type: String, required: true },
     text: { type: String, default: '' }
   }],
+  // Per-section print options set from result entry (reference LIS:
+  // Print ready / Keep in same page / Print from new page / Page break
+  // after / Skip interpretation) and the lab's chosen order.
+  sectionSettings: [{
+    _id: false,
+    key: { type: String, required: true },
+    printReady: { type: Boolean, default: true },
+    keepTogether: { type: Boolean, default: true },
+    newPage: { type: Boolean, default: false },
+    pageBreakAfter: { type: Boolean, default: false },
+    skipInterpretation: { type: Boolean, default: false },
+    order: { type: Number, default: null }
+  }],
+  departmentOrder: [{ type: String }],
+  printCategoriesFromNewPage: { type: Boolean, default: true },
   // Turnaround-time tracking (4 dates).
   tat: {
     registered: { type: Date, default: Date.now },

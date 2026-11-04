@@ -295,8 +295,15 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // fits on one page is moved whole to the next page rather than split.
     if (style.keepTogether) {
       const rowsHeight = rows.reduce((sum, cells) => sum + Math.max(...cells.map((cell, j) => lines(cell.text, columns[j].width - padX * 2 - (cell.indent || 0), cell.bold, size).length)) * lineHeight + rowExtra, 0);
-      const whole = (showHeader ? headerHeight : 0) + titleHeight + rowsHeight;
-      if (y + whole > limit && whole <= limit - contentTop) newPage();
+      const whole = (showHeader ? headerHeight : 0) + titleHeight + rowsHeight + (style.tableGap ?? 12);
+      // keepWith: the guidance printed under this table. Move the whole
+      // section when it fits on a page; otherwise make sure the table and the
+      // opening lines of its guidance (keepMin) start on the same page.
+      const withNotes = whole + (style.keepWith || 0), page = limit - contentTop;
+      if (y + withNotes > limit) {
+        if (withNotes <= page) newPage();
+        else if (y + whole + (style.keepMin || 0) > limit && whole + (style.keepMin || 0) <= page) newPage();
+      }
     }
     space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + rowExtra); tableHeader();
     rows.forEach((cells, index) => {
@@ -474,6 +481,16 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       titleSize: 10, tableGap: 6, noteSize, noteLeading: noteSize * 1.22,
       noteGap: 4, disclaimerSize: 8, disclaimerLeading: 10, signatureHeight: 72
     };
+  }
+  // Height a guidance band will take, and the minimum that must follow its
+  // table (band padding plus the first few lines) when it cannot fit whole.
+  function notesKeep(blocks, style, reserve = 0) {
+    if (!blocks.length) return { keepWith: reserve, keepMin: 0 };
+    const padTop = style.notePadTop ?? NOTE_PADDING_Y, padBottom = style.notePadBottom ?? NOTE_PADDING_Y;
+    const topGap = style.noteTopGap ?? 10, afterGap = style.noteAfterGap ?? 4;
+    const plan = planNotes(blocks, style, 1, padTop, 1e9, m + NOTE_PADDING_X, width - NOTE_PADDING_X * 2);
+    const full = topGap + (plan.fits ? plan.lastY : 1e9) + padBottom + afterGap + reserve;
+    return { keepWith: full, keepMin: Math.min(full, topGap + padTop + 4 * style.noteLeading + padBottom) };
   }
   function drawNotes(blocks, style, reserve = 0) {
     if (!blocks.length) return;
@@ -693,10 +710,26 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       reportHeading();
       // Department order, then billed panels before standalone tests, then
       // the order results were entered.
-      const ordered = [...sections.values()].sort((a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1)
+      const defaultOrder = [...sections.values()].sort((a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1)
         || (a.rank === Infinity && a.department !== b.department ? a.seq - b.seq : 0)
         || Number(b.panel || false) - Number(a.panel || false)
         || (Number.isFinite(a.order) && Number.isFinite(b.order) ? a.order - b.order : 0) || a.seq - b.seq);
+      // Per-report print options chosen on result entry: hidden sections are
+      // dropped, and the lab's department / section order wins over defaults.
+      const settingsFor = key => (report.sectionSettings || []).find(item => item.key === key) || {};
+      const departmentOrder = report.departmentOrder || [];
+      const departmentIndex = name => { const i = departmentOrder.indexOf(name); return i < 0 ? Infinity : i; };
+      const naturalDepartments = [...new Set(defaultOrder.map(section => section.department))];
+      const ordered = defaultOrder
+        .filter(section => settingsFor(section.key).printReady !== false)
+        .map((section, index) => ({ section, index }))
+        .sort((a, b) => {
+          const da = departmentIndex(a.section.department), db = departmentIndex(b.section.department);
+          if (a.section.department !== b.section.department) return da !== db ? da - db : naturalDepartments.indexOf(a.section.department) - naturalDepartments.indexOf(b.section.department);
+          const oa = settingsFor(a.section.key).order, ob = settingsFor(b.section.key).order;
+          return (Number.isFinite(oa) && Number.isFinite(ob) && oa !== ob ? oa - ob : 0) || a.index - b.index;
+        })
+        .map(item => item.section);
       // Standalone guidance sits directly under its own row in a smaller face,
       // as on the reference sheet (measured ~85% of body size, 1.23 leading).
       const inlineSize = INLINE_NOTE_SCALE * style.noteSize;
@@ -707,32 +740,46 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       const inlineStyle = { ...style, noteSize: inlineSize, noteLeading: inlineLeading, noteGap: 0,
         noteHeadingHeight: inlineLeading, noteHeadingAfter: 0, noteHeadingBefore: inlineLeading, noteTitleBefore: inlineLeading,
         notePadTop: 12.5, notePadBottom: 5, noteTopGap: 6.5, noteAfterGap: 6 };
-      // Each standalone test is its own bordered box (15.5pt for one row,
-      // 5pt apart); only the first of a run carries the column header.
-      const boxStyle = { ...style, rowExtra: Math.max(0, 15.5 - (format.fontSize + 2)), cellPadTop: 4 };
-      let department, standaloneSeen = false;
-      ordered.forEach((section, index) => {
-        const isLast = index === ordered.length - 1;
+      // Render units: each panel on its own; consecutive standalone tests of a
+      // department share one table (with its column header) until a test that
+      // has guidance — the guidance prints under it and the next tests start a
+      // fresh table, so every group of rows carries a header.
+      const units = [];
+      for (const section of ordered) {
+        const settings = settingsFor(section.key);
+        const blocks = options.interpretation && !settings.skipInterpretation ? reportNoteBlocks(section) : [];
+        const last = units.at(-1);
+        if (!section.panel && !settings.newPage && last && !last.panel && !last.closed && last.department === section.department) last.sections.push(section);
+        else units.push({ panel: !!section.panel, department: section.department, sections: [section], newPage: !!settings.newPage });
+        const unit = units.at(-1);
+        unit.blocks = blocks;
+        if (settings.keepTogether === false) unit.split = true;
+        if (settings.pageBreakAfter) unit.breakAfter = true;
+        if (section.panel || blocks.length || settings.pageBreakAfter) unit.closed = true;
+      }
+      let department;
+      units.forEach((unit, index) => {
+        const isLast = index === units.length - 1;
         const reserve = isLast ? endingHeight(style) : 0;
-        const newDepartment = index === 0 || section.department !== department;
+        const newDepartment = index === 0 || unit.department !== department;
         if (newDepartment) {
-          // Each department starts on its own page with the patient band.
-          if (index > 0) newPage();
-          department = section.department; standaloneSeen = false;
+          // Each department starts on its own page with the patient band
+          // (unless the lab switched off "Print categories from new page").
+          if (index > 0 && report.printCategoriesFromNewPage !== false) newPage();
+          department = unit.department;
         }
+        if (index > 0 && !(newDepartment && report.printCategoriesFromNewPage !== false) && (unit.newPage || units[index - 1].breakAfter) && y > contentTop + 1) newPage();
+        const head = unit.sections[0];
         const titles = [];
-        if (newDepartment && options.dept && section.department) titles.push({ text: section.department.toUpperCase(), size: 11 });
-        if (section.panel && section.title) titles.push({ text: section.title.toUpperCase(), size: 9.5 });
-        const rows = section.groups.flatMap(groupRows);
-        const blocks = options.interpretation ? reportNoteBlocks(section) : [];
-        if (section.panel) {
-          table(columns, rows, titles, { ...style, keepTogether: true });
-          drawNotes(blocks, style, reserve);
-        } else {
-          table(columns, rows, titles, { ...boxStyle, header: !standaloneSeen, tableGap: blocks.length ? 0 : 5, keepTogether: rows.length > 1 });
-          standaloneSeen = true;
-          drawNotes(blocks, inlineStyle, reserve);
-        }
+        if (newDepartment && options.dept && unit.department) titles.push({ text: unit.department.toUpperCase(), size: 11 });
+        if (unit.panel && head.title) titles.push({ text: head.title.toUpperCase(), size: 9.5 });
+        const rows = unit.sections.flatMap(section => section.groups.flatMap(groupRows));
+        const noteStyle = unit.panel ? style : inlineStyle;
+        // Never strand a unit: its table and guidance move to the next page
+        // together when they would otherwise be cut.
+        const keep = unit.split ? {} : { keepTogether: true, ...notesKeep(unit.blocks, noteStyle, reserve) };
+        table(columns, rows, titles, { ...style, ...keep, tableGap: unit.blocks.length && !unit.panel ? 0 : style.tableGap });
+        drawNotes(unit.blocks, noteStyle, reserve);
         if (isLast) finishReportSection(style);
       });
     }

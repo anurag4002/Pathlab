@@ -7,12 +7,12 @@ const fields = ['registered', 'collected', 'received', 'reported'];
 
 // `ref.flush()` persists pending edits. Case-level save buttons call it before
 // saving results so TAT edits are never silently dropped.
-const ReportTatEditor = forwardRef(function ReportTatEditor({ report, onSaved }, ref) {
-  return <ReportTatForm key={report?._id} report={report} onSaved={onSaved} apiRef={ref} />;
+const ReportTatEditor = forwardRef(function ReportTatEditor({ report, onSaved, compact = false }, ref) {
+  return <ReportTatForm key={report?._id} report={report} onSaved={onSaved} apiRef={ref} compact={compact} />;
 });
 export default ReportTatEditor;
 
-function ReportTatForm({ report, onSaved, apiRef }) {
+function ReportTatForm({ report, onSaved, apiRef, compact }) {
   const [draft, setDraft] = useState({});
   const values = { ...Object.fromEntries(fields.map(key => [key, toLabDateTime(report?.tat?.[key])])), ...draft };
   const [busy, setBusy] = useState(false);
@@ -38,6 +38,26 @@ function ReportTatForm({ report, onSaved, apiRef }) {
   useImperativeHandle(apiRef || fallbackRef, () => ({
     flush: async () => { if (dirty) return save(); }
   }));
+  const setPart = (key, part, next) => {
+    const [datePart = '', timePart = ''] = String(values[key] || '').split('T');
+    const combined = part === 'date' ? (next ? `${next}T${timePart || '00:00'}` : '') : (datePart ? `${datePart}T${next || '00:00'}` : '');
+    setMessage(null); setDraft(prev => ({ ...prev, [key]: combined }));
+  };
+  if (compact) return <fieldset disabled={busy} className="ls-tat">
+    <legend className="sr-only">Report date and time (IST)</legend>
+    {fields.map(key => {
+      const [datePart = '', timePart = ''] = String(values[key] || '').split('T');
+      const label = `${key[0].toUpperCase()}${key.slice(1)} on:`;
+      return <div key={key} className="ls-tat-row">
+        <label htmlFor={`tat-${report?._id}-${key}-date`}>{label}</label>
+        <input id={`tat-${report?._id}-${key}-date`} type="date" className="ls-tat-input" value={datePart} aria-label={`${label} date`} required={key === 'registered'}
+          onChange={e => setPart(key, 'date', e.target.value)} onBlur={() => { if (dirty) save().catch(() => {}); }} />
+        <input type="time" className="ls-tat-input ls-tat-time" value={timePart.slice(0, 5)} aria-label={`${label} time`} disabled={!datePart}
+          onChange={e => setPart(key, 'time', e.target.value)} onBlur={() => { if (dirty) save().catch(() => {}); }} />
+      </div>;
+    })}
+    {message && <p className={`ls-tat-message${message.error ? ' is-error' : ''}`} role={message.error ? 'alert' : 'status'}>{message.text}</p>}
+  </fieldset>;
   return <fieldset disabled={busy} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 12, margin: '16px 0' }}>
     <legend>Report date and time (IST)</legend>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>

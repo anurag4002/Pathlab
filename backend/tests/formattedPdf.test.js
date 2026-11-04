@@ -183,7 +183,10 @@ test('Labsmart parity: standalone tests share one table, guidance sits under its
   const pdf = await reportPdf({ ...context, report, testMap });
   const text = textOf(pdf);
   assert.equal(pageCount(pdf), 1);
-  assert.equal((text.match(/TESTVALUEUNITREFERENCE/g) || []).length, 1, 'continuation rows after guidance do not repeat the header');
+  // Rows after a test's guidance start a new table with its own header, so
+  // no group of results is printed without column labels.
+  assert.equal((text.match(/TESTVALUEUNITREFERENCE/g) || []).length, 2, 'a new header follows the guidance');
+  assert.ok(text.indexOf('CREATININE INLINE GUIDANCE') < text.lastIndexOf('TESTVALUEUNITREFERENCE'));
   assert.equal((text.match(/BIOCHEMISTRY/g) || []).length, 1);
   assert.ok(text.indexOf('SERUM CREATININE') < text.indexOf('CREATININE INLINE GUIDANCE') && text.indexOf('CREATININE INLINE GUIDANCE') < text.indexOf('SERUM UREA'));
   assert.ok(!/Interpretation/.test(text), 'no "<test> - Interpretation" banner for a single standalone test');
@@ -199,6 +202,43 @@ test('Labsmart parity: thousands grouping, "Mr. NAME / 30 YRS / M" band and inli
   assert.ok(text.includes('7,800') && text.includes('4,800 - 10,800'));
   assert.ok(text.includes('Mr. Parity TEST REPORT') && text.includes('30 YRS / M'));
   assert.ok(text.includes('Increased in: ACUTE INFECTIONS'), 'lead-in label runs into its text');
+});
+
+test('a panel and its guidance are never cut across pages when they fit on one page', async () => {
+  const pageTexts = pdf => [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)].map(match => {
+    try { return [...zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1').matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join(''); } catch { return ''; }
+  }).filter(text => /Test Patient/.test(text));
+  const filler = Array.from({ length: 30 }, (_, i) => ({ test: `f${i}`, testName: `Filler ${i}`, value: '1' }));
+  // Filler is an earlier panel in the same department, so the CBC follows it.
+  const testMap = Object.fromEntries(filler.map((r, i) => [r.test, { _id: r.test, name: r.testName, category: haem, reportSectionKey: 'panel:fill', reportSectionName: 'Filler panel', reportSectionOrder: i, reportSectionRank: 1 }]));
+  const cbc = Array.from({ length: 14 }, (_, i) => `c${i}`);
+  cbc.forEach((id, i) => { testMap[id] = { _id: id, name: `Cbc row ${i}`, category: haem, reportSectionKey: 'panel:cbc', reportSectionName: 'Complete Blood Count (CBC)', reportSectionDescription: 'CBC PANEL NOTE '.repeat(12), reportSectionOrder: i, reportSectionRank: 2 }; });
+  const report = { ...context.report, results: [...filler, ...cbc.map(id => ({ test: id, testName: testMap[id].name, value: '2' }))] };
+  const pages = pageTexts(await reportPdf({ ...context, report, testMap }));
+  const holder = pages.findIndex(text => text.includes('COMPLETE BLOOD COUNT (CBC)'));
+  assert.ok(holder > 0, 'panel moved past the filler rows');
+  assert.ok(pages[holder].includes('CBC ROW 13') && pages[holder].includes('CBC PANEL NOTE'), 'whole panel with its note on one page');
+});
+
+test('result-entry print settings: hide, skip interpretation, new page, department order, same-page categories', async () => {
+  const testMap = {
+    hb: { _id: 'hb', name: 'Hemoglobin', category: haem, interpretation: 'HB GUIDANCE' },
+    esr: { _id: 'esr', name: 'ESR', category: haem },
+    urea: { _id: 'urea', name: 'Serum Urea', category: bio, interpretation: 'UREA GUIDANCE' }
+  };
+  const base = { ...context.report, results: ['hb', 'esr', 'urea'].map(id => ({ test: id, testName: testMap[id].name, value: '1' })) };
+  const render = async extra => { const pdf = await reportPdf({ ...context, report: { ...base, ...extra }, testMap }); return { text: textOf(pdf), pages: pageCount(pdf) }; };
+  const plain = await render({});
+  assert.equal(plain.pages, 2);
+  assert.ok(plain.text.includes('HB GUIDANCE') && plain.text.includes('ESR'));
+  const hidden = await render({ sectionSettings: [{ key: 'test:esr', printReady: false }, { key: 'test:hb', skipInterpretation: true }] });
+  assert.ok(!hidden.text.includes('ESR') && !hidden.text.includes('HB GUIDANCE') && hidden.text.includes('UREA GUIDANCE'));
+  const sameSheet = await render({ printCategoriesFromNewPage: false });
+  assert.equal(sameSheet.pages, 1);
+  const forced = await render({ printCategoriesFromNewPage: false, sectionSettings: [{ key: 'test:urea', newPage: true }] });
+  assert.equal(forced.pages, 2);
+  const reordered = await render({ departmentOrder: ['Biochemistry', 'Haematology'] });
+  assert.ok(reordered.text.indexOf('BIOCHEMISTRY') < reordered.text.indexOf('HAEMATOLOGY'));
 });
 
 test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {

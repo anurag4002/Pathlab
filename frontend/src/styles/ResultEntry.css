@@ -300,3 +300,184 @@
 .re-differential-total .form-helper { min-height: 0; margin: 4px 0 0; }
 .re-differential-complete output { color: #166534; }
 .re-differential-warning output, .re-differential-warning .form-helper { color: #b45309; }
+
+/* Entry action bar: stays in view on long reports so Save / Submit / Sign
+   are always one click away, like the reference LIS footer. */
+.re-actions-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-4) calc(-1 * var(--space-4)) 0;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.re-sign-picker {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  min-width: 16rem;
+}
+
+.re-signature-preview {
+  max-height: 2.75rem;
+}
+
+.re-action-buttons {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.re-actions-bar > .re-sub {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .re-sign-picker,
+  .re-action-buttons {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .re-action-buttons .btn {
+    flex: 1;
+  }
+}
+
+/* ---- Lab report entry laid out like the printed report (reference LIS) ---- */
+.ls-report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+.ls-title { margin: 0 0 var(--space-1); font-size: 1.75rem; font-weight: 600; color: var(--color-text, #111827); }
+.ls-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.ls-chip { padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 500; }
+.ls-chip-reg { background: #fef9c3; color: #a16207; }
+.ls-chip-sex { background: #ede9fe; color: #6d28d9; }
+.ls-status { display: flex; align-items: center; gap: var(--space-2); font-size: 0.9rem; }
+
+.ls-sheet {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-4) var(--space-5);
+}
+.ls-patient-box {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(18rem, 1.3fr) auto;
+  gap: var(--space-4);
+  align-items: start;
+  border: 1px solid #111827;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.ls-patient { display: grid; grid-template-columns: max-content 1fr; gap: 6px var(--space-4); margin: 0; font-size: 0.95rem; }
+.ls-patient dt { color: #374151; }
+.ls-patient dd { margin: 0; color: #111827; }
+.ls-dates { min-width: 0; }
+.ls-barcode { align-self: center; }
+
+.ls-dept { margin-top: var(--space-5); }
+.ls-dept-title { text-align: center; font-size: 1.45rem; font-weight: 400; letter-spacing: 0.02em; margin: var(--space-4) 0 var(--space-2); color: #111827; }
+.ls-panel-title { text-align: center; font-size: 1.2rem; font-weight: 400; margin: var(--space-2) 0 var(--space-3); color: #111827; }
+.ls-group { margin-bottom: var(--space-5); }
+
+.ls-table { width: 100%; border-collapse: collapse; }
+.ls-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 4px 6px;
+  border-top: 1px solid #111827;
+  border-bottom: 1px solid #111827;
+  color: #111827;
+}
+.ls-table td { padding: 6px; vertical-align: top; border: 0; }
+.ls-table .ls-test { width: 38%; }
+.ls-table .ls-flag { width: 2.5rem; text-align: center; }
+.ls-table .re-result-cell { width: 22%; }
+.ls-row-child .ls-test { padding-left: 2.25rem; }
+.ls-derived input { border-color: #f59e0b; }
+.ls-table tbody tr:last-child td { border-bottom: 1px solid #111827; }
+
+@media (max-width: 900px) {
+  .ls-patient-box { grid-template-columns: 1fr; }
+  .ls-barcode { justify-self: start; }
+  .ls-sheet { padding: var(--space-3); }
+}
+@media (max-width: 640px) {
+  .ls-table thead { display: none; }
+  .ls-table, .ls-table tbody, .ls-table tr, .ls-table td { display: block; width: 100% !important; }
+  .ls-table tr { border-bottom: 1px solid var(--color-border, #e5e7eb); padding: var(--space-2) 0; }
+  .ls-row-child .ls-test { padding-left: 1rem; }
+}
+
+/* ---- Reference-LIS entry: flags, options, reorder, compact dates & bar ---- */
+.re-flag-letter { font-weight: 700; color: #111827; }
+.re-flag-critical { color: #b91c1c; }
+.ls-table .ls-row td { padding-top: 4px; padding-bottom: 4px; }
+.ls-table .ls-row .form-group { margin: 0; }
+.ls-table .ls-row input.form-control,
+.ls-table .ls-row select.form-control { height: 2.25rem; padding: 4px 10px; }
+.ls-table .ls-row .form-helper { margin: 2px 0 0; font-size: 0.75rem; }
+.ls-table .re-test-name { font-size: 0.95rem; }
+.ls-pill {
+  margin-top: 4px;
+  padding: 1px 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 999px;
+  background: transparent;
+  color: #475569;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.ls-pill:hover, .ls-pill:focus-visible { background: #f1f5f9; color: #1d4ed8; }
+.re-interp-row td { padding: 4px 6px 10px; }
+
+.ls-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-style: italic; color: #1d4ed8; cursor: pointer; }
+.ls-check input { width: 0.95rem; height: 0.95rem; accent-color: #2563eb; }
+.ls-check-top { font-style: normal; color: #374151; margin: 0 0 var(--space-3); }
+.ls-print-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; margin: 0 0 6px; }
+.ls-print-options-test { justify-content: flex-end; }
+.ls-test-options td { padding: 2px 6px 0 !important; }
+
+.ls-title-row { position: relative; display: flex; justify-content: center; align-items: center; }
+.ls-title-row .ls-reorder { position: absolute; right: 0; }
+.ls-reorder { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.78rem; color: #374151; background: #fff; }
+.ls-reorder button { display: inline-flex; padding: 2px; border: 0; background: transparent; cursor: pointer; color: #374151; border-radius: 4px; }
+.ls-reorder button:hover:not(:disabled) { background: #f1f5f9; }
+.ls-reorder button:disabled { opacity: 0.35; cursor: default; }
+.ls-group.is-hidden-from-print .ls-table { opacity: 0.55; }
+
+.ls-tat { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+.ls-tat-row { display: grid; grid-template-columns: 7.5rem minmax(8.5rem, 1fr) 6.5rem; align-items: center; gap: 8px; }
+.ls-tat-row label { font-size: 0.95rem; color: #374151; }
+.ls-tat-input { height: 2rem; padding: 2px 8px; border: 1px solid #d1d5db; border-radius: 4px; font: inherit; font-size: 0.9rem; min-width: 0; }
+.ls-tat-message { margin: 2px 0 0; font-size: 0.78rem; color: #166534; }
+.ls-tat-message.is-error { color: #b91c1c; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.re-actions-bar { justify-content: flex-start; align-items: center; }
+.re-actions-bar .re-action-buttons { margin-left: 0; align-items: center; }
+.ls-signoff { display: inline-flex; align-items: center; }
+.ls-signoff .btn { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.ls-signoff-select { height: 2.5rem; padding: 0 8px; border: 1px solid #2563eb; border-left: 0; border-radius: 0 6px 6px 0; background: #eff6ff; color: #1d4ed8; font: inherit; font-size: 0.85rem; max-width: 12rem; }
+.ls-signoff:not(:has(select)) .btn { border-radius: 6px; }
+.ls-bar-note { flex-basis: auto !important; margin-left: auto !important; }
+.ls-bar-note:empty { display: none; }
+@media (max-width: 640px) {
+  .ls-tat-row { grid-template-columns: 1fr 1fr; }
+  .ls-tat-row label { grid-column: 1 / -1; }
+  .ls-title-row { flex-direction: column; gap: 4px; }
+  .ls-title-row .ls-reorder { position: static; }
+  .ls-print-options, .ls-print-options-test { justify-content: flex-start; }
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, FileEdit, RefreshCw, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, RefreshCw, Upload } from 'lucide-react';
 import {
   PageHeader,
   Button,
@@ -8,7 +8,6 @@ import {
   Input,
   LoadingSpinner,
   ConfirmDialog,
-  TatTimeline,
   AdvancedFilterBar,
   Modal,
   FileUploader,
@@ -21,10 +20,15 @@ import {
   saveReportResultsDraft,
   submitReportResults,
   uploadReport,
-  attachReportFile
+  attachReportFile,
+  signReport,
+  updateReportPrintSettings
 } from '../../services/reportService';
+import { getSignatures } from '../../services/setupService';
+import { downloadReportPdf } from '../../services/publicService';
+import { isAdmin } from '../../utils/permissions';
+import useAuth from '../../hooks/useAuth';
 import { getDoctorById } from '../../services/doctorService';
-import formatDate from '../../utils/formatDate';
 import { buildCalculatedResults } from '../../utils/reportResults';
 import { compileReportFormulas, calculateLocalResults } from '../../utils/localReportCalculations';
 import formatCurrency from '../../utils/formatCurrency';
@@ -34,6 +38,8 @@ import DifferentialTotalRow from '../../components/lab/DifferentialTotalRow';
 import { differentialTotalsByRow } from '../../utils/differentialCount';
 import '../../styles/ResultEntry.css';
 import ReportTatEditor from '../../components/lab/ReportTatEditor';
+import ReportPrintActions from '../../components/lab/ReportPrintActions';
+import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
 import { hasInterpretation } from '../../utils/interpretationContent';
 
@@ -127,7 +133,62 @@ const buildResultsPayload = (testEntries, values) =>
 
 const isReportFinal = (status) => ['Reported', 'Signed', 'Verified', 'Completed'].includes(status);
 
+// Groups entry rows the way the printed report reads: department (lab order,
+// then category order), its panels (panel order), then its single tests.
+function groupEntriesForReport(testEntries, sectionSetting, deptOrder) {
+  const settingOrder = (key) => sectionSetting(key).order;
+  const departments = [];
+  for (const test of testEntries) {
+    const deptName = test.sectionDepartment || test.categoryName || 'Tests';
+    let dept = departments.find((d) => d.name === deptName);
+    if (!dept) { dept = { name: deptName, rank: test.sectionDepartmentRank ?? Infinity, groups: [], first: departments.length }; departments.push(dept); }
+    const panel = /^(panel|package):/.test(test.sectionKey || '');
+    const groupKey = panel ? test.sectionKey : 'single';
+    let group = dept.groups.find((g) => g.key === groupKey);
+    if (!group) { group = { key: groupKey, name: panel ? test.panelName || test.packageName : '', panel, rank: test.sectionRank ?? Infinity, first: dept.groups.length, tests: [] }; dept.groups.push(group); }
+    group.tests.push(test);
+  }
+  const deptIndex = (name) => { const i = deptOrder.indexOf(name); return i < 0 ? Infinity : i; };
+  departments.sort((a, b) => (deptIndex(a.name) - deptIndex(b.name)) || (a.rank - b.rank) || (a.first - b.first));
+  departments.forEach((dept) => {
+    dept.groups.sort((a, b) => Number(!a.panel) - Number(!b.panel)
+      || ((Number.isFinite(settingOrder(a.key)) && Number.isFinite(settingOrder(b.key))) ? settingOrder(a.key) - settingOrder(b.key) : 0)
+      || (a.rank - b.rank) || (a.first - b.first));
+    const single = dept.groups.find((g) => !g.panel);
+    if (single) single.tests.sort((a, b) => (a.sectionRank ?? Infinity) - (b.sectionRank ?? Infinity));
+  });
+  return departments;
+}
+
+const SIGNATURE_KEY = 'pathlab.resultEntry.signatureId';
+const readStoredSignature = () => { try { return localStorage.getItem(SIGNATURE_KEY) || ''; } catch { return ''; } };
+
 const ResultEntry = () => {
+  const { user } = useAuth();
+  // Frontend affordance only — the backend still checks permissions.
+  const canSign = isAdmin(user);
+  // Sign straight from entry: signatures load once and the last one used
+  // is preselected, so routine sign-off is a single click.
+  const [signatures, setSignatures] = useState([]);
+  const [signaturesError, setSignaturesError] = useState('');
+  const [signatureId, setSignatureId] = useState(readStoredSignature);
+  useEffect(() => {
+    if (!canSign) return undefined;
+    let active = true;
+    getSignatures().then((response) => {
+      if (!active) return;
+      const list = Array.isArray(response?.data) ? response.data : (Array.isArray(response?.data?.signatures) ? response.data.signatures : []);
+      setSignatures(list);
+      setSignatureId((current) => (list.some((item) => String(item._id) === String(current)) ? current : list[0]?._id || ''));
+      setSignaturesError(response?.success === false ? response.message || 'Could not load signatures.' : '');
+    }).catch((error) => { if (active) setSignaturesError(getApiErrorMessage(error, 'Could not load signatures.')); });
+    return () => { active = false; };
+  }, [canSign]);
+  const chooseSignature = (value) => {
+    setSignatureId(value);
+    try { localStorage.setItem(SIGNATURE_KEY, value); } catch { /* per-browser convenience only */ }
+  };
+  const selectedSignature = signatures.find((item) => String(item._id) === String(signatureId)) || null;
   // Server state — pending case list
   const [cases, setCases] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -163,6 +224,53 @@ const ResultEntry = () => {
   // Action state
   const [busy, setBusy] = useState(null); // null | 'draft' | 'submit'
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
+  const [openInterpretations, setOpenInterpretations] = useState({});
+  // Print options per section (reference LIS checkboxes), saved on the report
+  // immediately so the PDF reflects them.
+  // Saved edits for the open report; otherwise the report's stored settings.
+  const [printOverride, setPrintOverride] = useState(null);
+  const [printSaving, setPrintSaving] = useState(false);
+  const printSettings = !entry?.report?._id ? null
+    : printOverride?.reportId === entry.report._id ? printOverride : {
+      reportId: entry.report._id,
+      sectionSettings: entry.report.sectionSettings || [],
+      departmentOrder: entry.report.departmentOrder || [],
+      printCategoriesFromNewPage: entry.report.printCategoriesFromNewPage !== false
+    };
+  const savePrintSettings = async (next) => {
+    const reportId = entry?.report?._id;
+    if (!reportId) return;
+    const previous = printOverride;
+    setPrintOverride({ ...next, reportId });
+    setPrintSaving(true);
+    try {
+      await updateReportPrintSettings(reportId, next);
+    } catch (err) {
+      setPrintOverride(previous);
+      setFeedback({ type: 'error', text: getApiErrorMessage(err, 'Could not save print settings. Please try again.') });
+    } finally { setPrintSaving(false); }
+  };
+  const sectionSetting = (key) => ({ printReady: true, keepTogether: true, newPage: false, pageBreakAfter: false, skipInterpretation: false, order: null,
+    ...((printSettings?.sectionSettings || []).find((item) => item.key === key) || {}) });
+  const toggleSection = (key, field) => {
+    const current = printSettings?.sectionSettings || [];
+    const updated = { ...sectionSetting(key), key, [field]: !sectionSetting(key)[field] };
+    savePrintSettings({ ...printSettings, sectionSettings: [...current.filter((item) => item.key !== key), updated] });
+  };
+  const moveSection = (keys, key, delta) => {
+    const index = keys.indexOf(key), target = index + delta;
+    if (index < 0 || target < 0 || target >= keys.length) return;
+    const nextKeys = [...keys]; [nextKeys[index], nextKeys[target]] = [nextKeys[target], nextKeys[index]];
+    const current = printSettings?.sectionSettings || [];
+    const others = current.filter((item) => !nextKeys.includes(item.key));
+    savePrintSettings({ ...printSettings, sectionSettings: [...others, ...nextKeys.map((k, order) => ({ ...sectionSetting(k), key: k, order }))] });
+  };
+  const moveDepartment = (names, name, delta) => {
+    const index = names.indexOf(name), target = index + delta;
+    if (index < 0 || target < 0 || target >= names.length) return;
+    const next = [...names]; [next[index], next[target]] = [next[target], next[index]];
+    savePrintSettings({ ...printSettings, departmentOrder: next });
+  };
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const inFlightRef = useRef(false); // synchronous re-entry guard
@@ -395,8 +503,28 @@ const ResultEntry = () => {
     setDirty(true);
   };
 
-  const handleAction = async (mode) => {
-    if (busy || inFlightRef.current || !entry?.report?._id) return;
+  // Sign the report, submitting the current values first when needed.
+  const handleSign = async () => {
+    if (busy || inFlightRef.current || !entry?.report?._id || !canSign) return;
+    if (!selectedSignature) { setFeedback({ type: 'error', text: 'Choose a signature before signing.' }); return; }
+    const alreadySubmitted = isReportFinal(entry.report.status);
+    if (!alreadySubmitted && !(await handleAction('submit', { quiet: true }))) return;
+    inFlightRef.current = true;
+    setBusy('sign');
+    try {
+      const res = await signReport(entry.report._id, selectedSignature._id);
+      setEntry((prev) => (prev ? { ...prev, report: { ...prev.report, status: res?.data?.status ?? 'Signed' } } : prev));
+      setFeedback({ type: 'success', text: `Results ${alreadySubmitted ? '' : 'submitted and '}signed by ${selectedSignature.name || 'the selected signatory'}.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: getApiErrorMessage(err, 'Results are saved, but signing failed. Please try again.') });
+    } finally {
+      setBusy(null);
+      inFlightRef.current = false;
+    }
+  };
+
+  const handleAction = async (mode, { quiet = false } = {}) => {
+    if (busy || inFlightRef.current || !entry?.report?._id) return false;
     const payload = buildResultsPayload(entry.testEntries, values);
     if (payload.length === 0) {
       setFeedback({
@@ -406,7 +534,7 @@ const ResultEntry = () => {
             ? 'Enter a value for at least one test before saving.'
             : 'Enter a value for at least one test before submitting.'
       });
-      return;
+      return false;
     }
     inFlightRef.current = true;
     setBusy(mode);
@@ -437,7 +565,7 @@ const ResultEntry = () => {
             }
           : prev
       );
-      setFeedback({
+      if (!quiet) setFeedback({
         type: 'success',
         text:
           res?.message ||
@@ -450,6 +578,7 @@ const ResultEntry = () => {
         setListError(null);
         setReloadKey((key) => key + 1);
       }
+      return true;
     } catch (err) {
       // Entered values are untouched — the user can correct and retry.
       setFeedback({
@@ -459,6 +588,7 @@ const ResultEntry = () => {
             ? getApiErrorMessage(err, 'Failed to save draft. Please try again.')
             : getApiErrorMessage(err, 'Failed to submit results. Please try again.')
       });
+      return false;
     } finally {
       setBusy(null);
       inFlightRef.current = false;
@@ -618,20 +748,22 @@ const ResultEntry = () => {
     // Show the locally calculated value immediately (read-only).
     const calcRow = isDerived ? calculated[key] : null;
     const displayValue = isDerived ? calcRow?.value ?? '' : values[key] ?? '';
-    const subLine = [testEntry.testCode, testEntry.packageName, testEntry.panelName, testEntry.formulaInput ? 'Formula input' : '']
-      .filter(Boolean)
-      .join(' · ');
     return (
       <React.Fragment key={key || index}>
-      <tr>
-        <td>
-          <div className="re-test-name">{testEntry.testName || 'Test'}
+      <tr className={`ls-row${testEntry.parentName && testEntry.parameterCode ? ' ls-row-child' : ''}`}>
+        <td className="ls-test">
+          <div className="re-test-name">{(testEntry.parentName && testEntry.parameterCode ? String(testEntry.testName || '').replace(`${testEntry.parentName}: `, '') : testEntry.testName) || 'Test'}
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
           </div>
-          {subLine ? <div className="re-sub">{subLine}</div> : null}
+          {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && (
+            <button type="button" className="ls-pill" aria-expanded={!!openInterpretations[key]}
+              onClick={() => setOpenInterpretations(prev => ({ ...prev, [key]: !prev[key] }))}>
+              {openInterpretations[key] ? 'Hide interpretation' : 'Interpretation'}
+            </button>
+          )}
         </td>
-        <td className="re-result-cell">
-          <div className="re-flag-slot"><RangeFlagBadge value={String(displayValue).replace(/,/g, '')} test={testEntry} /></div>
+        <td className="ls-flag"><RangeFlagBadge variant="letter" value={String(displayValue).replace(/,/g, '')} test={testEntry} /></td>
+        <td className={`re-result-cell${isDerived ? ' ls-derived' : ''}`}>
           {!isDerived && testEntry.resultOptions?.length > 0 && <Select
             name={`result-option-${key}`} aria-label={`Result option for ${testEntry.testName || 'test'}`}
             value={customResultKeys[key] || (displayValue && !testEntry.resultOptions.includes(displayValue)) ? '__other__' : displayValue}
@@ -660,18 +792,18 @@ const ResultEntry = () => {
             helperText={
               isDerived
                 ? calcRow
-                  ? 'Calculated automatically from entered results.'
-                  : calculationErrors[key] || 'Enter the required input results to calculate.'
+                  ? undefined
+                  : calculationErrors[key] || undefined
                 : testEntry.legacyScalar ? 'Previous entry retained. Use the separate parameter fields for new results.' : undefined
             }
             autoComplete="off"
           />}
         </td>
-        <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || '—'}</td>
+        <td className="re-unit">{(testEntry.testId ? testEntry.unit : testEntry.unit || testEntry.existingUnit || calcRow?.unit) || ''}</td>
         <td className="re-range">{formatReferenceRange(testEntry)}</td>
       </tr>
-      <DifferentialTotalRow total={differentialTotals.get(key)} />
-      {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={4}>
+      <DifferentialTotalRow total={differentialTotals.get(key)} withFlagColumn />
+      {openInterpretations[key] && (hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={5}>
         <InlineTestInterpretation reportId={entry.report._id} testEntry={testEntry} readOnly={['Signed', 'Verified', 'Completed'].includes(entry.report.status)} />
       </td></tr>}
       </React.Fragment>
@@ -692,7 +824,7 @@ const ResultEntry = () => {
 
   return (
     <div className="result-entry-page">
-      <PageHeader
+      {view === 'list' && <PageHeader
         title="Result Entry"
         subtitle="Enter in-lab results or upload outsource PDF/image reports for pending cases."
         action={
@@ -718,7 +850,7 @@ const ResultEntry = () => {
             </div>
           ) : null
         }
-      />
+      />}
 
       {view === 'list' ? (
         listError ? (
@@ -814,12 +946,6 @@ const ResultEntry = () => {
             >
               Back to cases
             </Button>
-            {entry ? (
-              <div className="re-topbar-meta">
-                <span className="re-reg">{entry.report?.registrationNumber || '—'}</span>
-                <StatusBadge status={entry.report?.status} />
-              </div>
-            ) : null}
           </div>
 
           {feedback ? (
@@ -856,136 +982,155 @@ const ResultEntry = () => {
             </div>
           ) : entry ? (
             <>
-              <div className="re-info-grid">
-                <section className="re-card" aria-labelledby="re-patient-heading">
-                  <h2 id="re-patient-heading" className="re-card-title">
-                    Patient
-                  </h2>
-                  <dl className="re-fields">
-                    <div className="re-field">
-                      <dt>Name</dt>
-                      <dd>{entry.patient?.name || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Patient ID</dt>
-                      <dd>{entry.patient?.registrationNumber || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Age</dt>
-                      <dd>
-                        {entry.patient?.age != null && entry.patient.age !== ''
-                          ? `${entry.patient.age} ${entry.patient.ageUnit || 'years'}`
-                          : '—'}
-                      </dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Gender</dt>
-                      <dd>{entry.patient?.gender || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Phone</dt>
-                      <dd>{entry.patient?.phone || '—'}</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section className="re-card" aria-labelledby="re-case-heading">
-                  <h2 id="re-case-heading" className="re-card-title">
-                    Case
-                  </h2>
-                  <dl className="re-fields">
-                    <div className="re-field">
-                      <dt>Report No</dt>
-                      <dd>{entry.report?.registrationNumber || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Registered</dt>
-                      <dd>
-                        {entry.report?.tat?.registered
-                          ? formatDate(entry.report.tat.registered)
-                          : '—'}
-                      </dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Referring Doctor</dt>
-                      <dd>{referrerName || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Invoice No</dt>
-                      <dd>{entry.bill?.billNumber || '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Invoice Date</dt>
-                      <dd>{entry.bill?.date ? formatDate(entry.bill.date) : '—'}</dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Amount</dt>
-                      <dd>
-                        {entry.bill?.totalAmount != null
-                          ? formatCurrency(entry.bill.totalAmount)
-                          : '—'}
-                      </dd>
-                    </div>
-                    <div className="re-field">
-                      <dt>Payment</dt>
-                      <dd>
-                        {entry.bill?.paymentStatus ? (
-                          <StatusBadge status={entry.bill.paymentStatus} />
-                        ) : (
-                          '—'
-                        )}
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                {/* Backend status + tat timeline (display-only). */}
-                <TatTimeline report={entry.report} />
-                <ReportTatEditor ref={tatRef} report={entry.report} onSaved={report => setEntry(prev => ({ ...prev, report: { ...prev.report, ...report } }))} />
+              <div className="ls-report-head">
+                <div>
+                  <h1 className="ls-title">Lab report</h1>
+                  <div className="ls-chips">
+                    <span className="ls-chip ls-chip-reg">Reg no. {entry.report?.registrationNumber || '—'}{entry.bill?.billNumber ? ` | Bill ${entry.bill.billNumber}` : ''}</span>
+                    {entry.patient?.gender && <span className="ls-chip ls-chip-sex">{String(entry.patient.gender).toUpperCase()}</span>}
+                  </div>
+                  <div className="ls-status">Status: <StatusBadge status={entry.report?.status} /></div>
+                </div>
+                <span className="re-count">
+                  {enterableCount > 0 ? `${enteredCount} of ${enterableCount} entered` : `${testEntries.length} tests`}
+                  {printSaving ? ' · saving print options…' : ''}
+                </span>
               </div>
 
-              <section className="re-card" aria-labelledby="re-results-heading">
-                <div className="re-section-head">
-                  <h2 id="re-results-heading" className="re-card-title">
-                    Test Results
-                  </h2>
-                  <span className="re-count">
-                    {enterableCount > 0
-                      ? `${enteredCount} of ${enterableCount} entered`
-                      : `${testEntries.length} tests`}
-                  </span>
+              <section className="ls-sheet" aria-label="Lab report entry">
+                <div className="ls-patient-box">
+                  <dl className="ls-patient">
+                    <dt>Patient Name:</dt><dd>{[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ') || '—'}</dd>
+                    <dt>Age / Sex:</dt><dd>{entry.patient?.age != null && entry.patient.age !== '' ? `${entry.patient.age} ${({ years: 'YRS', months: 'MONTHS', days: 'DAYS' })[entry.patient.ageUnit || 'years'] || entry.patient.ageUnit}` : '—'}{entry.patient?.gender ? ` / ${String(entry.patient.gender).charAt(0).toUpperCase()}` : ''}</dd>
+                    <dt>Referred By:</dt><dd>{referrerName || 'Self'}</dd>
+                    <dt>Reg. no.</dt><dd>{entry.report?.registrationNumber || '—'}</dd>
+                    {entry.bill?.totalAmount != null && <><dt>Bill:</dt><dd>{formatCurrency(entry.bill.totalAmount)} {entry.bill?.paymentStatus ? <StatusBadge status={entry.bill.paymentStatus} /> : null}</dd></>}
+                  </dl>
+                  <div className="ls-dates">
+                    <ReportTatEditor compact ref={tatRef} report={entry.report} onSaved={report => setEntry(prev => ({ ...prev, report: { ...prev.report, ...report } }))} />
+                  </div>
+                  {entry.bill?._id && (
+                    <div className="ls-barcode">
+                      <BarcodeSvg billId={entry.bill._id} billNumber={entry.bill.billNumber} height={40} />
+                    </div>
+                  )}
                 </div>
-                {testEntries.length ? Object.entries(testEntries.reduce((groups, test) => {
-                  const group = test.panelName || test.packageName || test.parentName || test.categoryName || 'Tests';
-                  (groups[group] ||= []).push(test);
-                  return groups;
-                }, Object.create(null))).map(([name, tests]) => <div key={name} className="re-test-group">
-                  <h3>{name}</h3>
-                  <DataTable className="re-results-table" headers={['Test', 'Value', 'Unit', 'Reference Range']} data={tests} renderRow={renderTestRow} />
-                </div>) : <p className="re-sub">This case has no lab tests to report.</p>}
-                {isReportFinal(entry?.report?.status) ? (
-                  <p className="re-sub" role="status">Results already submitted — no further action. Go back to pick another case.</p>
-                ) : (
-                <div className="re-actions">
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleAction('draft')}
-                    loading={busy === 'draft'}
-                    disabled={busy !== null}
-                  >
-                    Save Draft
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleAction('submit')}
-                    loading={busy === 'submit'}
-                    disabled={busy !== null}
-                  >
-                    Submit Result
-                  </Button>
-                </div>
-                )}
+
+                <label className="ls-check ls-check-top">
+                  <input type="checkbox" checked={printSettings?.printCategoriesFromNewPage !== false} disabled={printSaving}
+                    onChange={() => savePrintSettings({ ...printSettings, printCategoriesFromNewPage: printSettings?.printCategoriesFromNewPage === false })} />
+                  Print categories from new page (PDF only)
+                </label>
+                {testEntries.length ? (() => {
+                  // Same grouping and order as the printed report: department,
+                  // then panels (by panel order), then that department's tests.
+                  const departments = groupEntriesForReport(testEntries.map((test) => ({ ...test })), sectionSetting, [...(printSettings?.departmentOrder || [])]);
+                  const deptNames = departments.map((d) => d.name);
+                  const reorder = (label, onUp, onDown, upDisabled, downDisabled) => (
+                    <span className="ls-reorder" role="group" aria-label={`Reorder ${label}`}>
+                      Reorder
+                      <button type="button" onClick={onUp} disabled={upDisabled || printSaving} aria-label={`Move ${label} up`}><ChevronUp size={14} /></button>
+                      <button type="button" onClick={onDown} disabled={downDisabled || printSaving} aria-label={`Move ${label} down`}><ChevronDown size={14} /></button>
+                    </span>
+                  );
+                  const check = (key, field, label, invert = false) => (
+                    <label className="ls-check">
+                      <input type="checkbox" checked={invert ? !sectionSetting(key)[field] : !!sectionSetting(key)[field]} disabled={printSaving} onChange={() => toggleSection(key, field)} />
+                      {label}
+                    </label>
+                  );
+                  return departments.map((dept, deptIdx) => {
+                    const panelKeys = dept.groups.filter((g) => g.panel).map((g) => g.key);
+                    return (
+                    <div key={dept.name} className="ls-dept">
+                      <div className="ls-title-row">
+                        <h2 className="ls-dept-title">{dept.name.toUpperCase()}</h2>
+                        {departments.length > 1 && reorder(dept.name, () => moveDepartment(deptNames, dept.name, -1), () => moveDepartment(deptNames, dept.name, 1), deptIdx === 0, deptIdx === departments.length - 1)}
+                      </div>
+                      {dept.groups.map((group) => (
+                        <div key={group.key} className={`ls-group${group.panel && !sectionSetting(group.key).printReady ? ' is-hidden-from-print' : ''}`}>
+                          {group.panel && (
+                            <>
+                              <div className="ls-title-row ls-title-row-panel">
+                                <h3 className="ls-panel-title">{String(group.name || '').toUpperCase()}</h3>
+                                {panelKeys.length > 1 && reorder(group.name, () => moveSection(panelKeys, group.key, -1), () => moveSection(panelKeys, group.key, 1), panelKeys[0] === group.key, panelKeys.at(-1) === group.key)}
+                              </div>
+                              <div className="ls-print-options">
+                                {check(group.key, 'printReady', 'Print ready')}
+                                {check(group.key, 'keepTogether', 'Keep in same page')}
+                                {check(group.key, 'newPage', 'Print from new page')}
+                                {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                {check(group.key, 'skipInterpretation', 'Skip interpretation')}
+                              </div>
+                            </>
+                          )}
+                          <table className="ls-table">
+                            <thead>
+                              <tr><th>TEST</th><th className="ls-flag" aria-label="Flag" /><th>VALUE</th><th>UNIT</th><th>REFERENCE</th></tr>
+                            </thead>
+                            <tbody>{group.tests.map((test, index) => (
+                              <React.Fragment key={entryKey(test) || index}>
+                                {!group.panel && (!index || group.tests[index - 1].sectionKey !== test.sectionKey) && (
+                                  <tr className="ls-test-options"><td colSpan={5}>
+                                    <div className="ls-print-options ls-print-options-test">
+                                      {check(test.sectionKey, 'printReady', 'Print ready')}
+                                      {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                      {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
+                                    </div>
+                                  </td></tr>
+                                )}
+                                {renderTestRow(test, index)}
+                              </React.Fragment>
+                            ))}</tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+                    );
+                  });
+                })() : <p className="re-sub">This case has no lab tests to report.</p>}
               </section>
+                <div className="re-actions re-actions-bar">
+                  <div className="re-action-buttons">
+                    {canSign && entry?.report?.status !== 'Signed' && (
+                      <span className="ls-signoff">
+                        <Button variant="primary" icon={<CheckCircle2 size={16} />} onClick={handleSign} loading={busy === 'sign'} disabled={busy !== null || !selectedSignature}
+                          title={selectedSignature ? `Sign as ${selectedSignature.name || 'selected signature'}` : 'Add a signature in Setup to sign off'}>
+                          Sign off
+                        </Button>
+                        {signatures.length > 1 && (
+                          <select className="ls-signoff-select" aria-label="Sign as" value={signatureId} disabled={busy !== null} onChange={(event) => chooseSignature(event.target.value)}>
+                            {signatures.map((item) => <option key={item._id} value={item._id}>{item.name || 'Signature'}{item.title ? ` · ${item.title}` : ''}</option>)}
+                          </select>
+                        )}
+                      </span>
+                    )}
+                    {!isReportFinal(entry?.report?.status) && (
+                      <>
+                        <Button variant="secondary" icon={<CheckCircle2 size={16} />} onClick={() => handleAction('submit')} loading={busy === 'submit'} disabled={busy !== null}>
+                          Final
+                        </Button>
+                        <Button variant="secondary" onClick={() => handleAction('draft')} loading={busy === 'draft'} disabled={busy !== null}>
+                          Save only
+                        </Button>
+                      </>
+                    )}
+                    {isReportFinal(entry?.report?.status) && (
+                      <>
+                        <ReportPrintActions reportId={entry.report._id} disabled={busy !== null} size="md" />
+                        <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
+                          PDF
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  <p className="re-sub ls-bar-note" role="status">
+                    {signaturesError && canSign ? signaturesError
+                      : entry?.report?.status === 'Signed' ? 'Report signed and ready to print.'
+                        : isReportFinal(entry?.report?.status) ? (canSign ? 'Results final. Sign off or print the report.' : 'Results final. An admin can sign off this report.')
+                          : canSign && !signatures.length ? 'Add a signature in Setup to sign off from here.' : ''}
+                  </p>
+                </div>
             </>
           ) : null}
         </>

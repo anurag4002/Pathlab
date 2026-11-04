@@ -25,9 +25,15 @@ export const FLAG_STYLES = {
   CRITICAL_HIGH: { bg: '#fee2e2', fg: '#991b1b', label: 'Critical High' }
 };
 
-const RangeFlagBadge = ({ value, test }) => {
+const LETTERS = { LOW: 'L', HIGH: 'H', CRITICAL_LOW: 'L*', CRITICAL_HIGH: 'H*' };
+
+const RangeFlagBadge = ({ value, test, variant = 'badge' }) => {
   const flag = getRangeFlag(value, test);
   if (!flag) return null;
+  if (variant === 'letter') {
+    if (flag === 'NORMAL') return null;
+    return <span className={`re-flag-letter${flag.startsWith('CRITICAL') ? ' re-flag-critical' : ''}`} title={FLAG_STYLES[flag].label}>{LETTERS[flag]}</span>;
+  }
   const s = FLAG_STYLES[flag];
   return (
     <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: s.bg, color: s.fg, padding: '2px 8px', borderRadius: '999px', whiteSpace: 'nowrap' }}>

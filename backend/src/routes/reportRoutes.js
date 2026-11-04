@@ -24,6 +24,7 @@ router.post('/:id/resend', requirePermission('reports'), reportController.resend
 router.post('/:id/comments', requirePermission('reports'), reportController.addReportComment);
 router.get('/:id/delivery-status', requirePermission('reports'), reportController.getDeliveryStatus);
 router.put('/:id/tat', requirePermission('reports'), reportController.updateTat);
+router.put('/:id/print-settings', requirePermission('reports'), reportController.updatePrintSettings);
 router.get('/:id/interpretations', requirePermission('reports'), reportController.getInterpretations);
 router.put('/:id/interpretations', requirePermission('reports'), reportController.updateInterpretations);
 router.get('/:id/pdf', reportController.reportPdfDownload);

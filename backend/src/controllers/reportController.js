@@ -156,7 +156,40 @@ const deleteReport = async (req, res, next) => {
   }
 };
 
+// PUT /reports/:id/print-settings — per-section print options and ordering
+// chosen on the result-entry screen. Only known fields are stored.
+async function updatePrintSettings(req, res, next) {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return errorResponse(res, 'Report not found', 404);
+    const { sectionSettings, departmentOrder, printCategoriesFromNewPage } = req.body || {};
+    if (sectionSettings !== undefined) {
+      if (!Array.isArray(sectionSettings)) return errorResponse(res, 'sectionSettings must be a list', 400);
+      const seen = new Set();
+      report.sectionSettings = sectionSettings.filter(item => item && typeof item.key === 'string' && item.key.trim() && !seen.has(item.key) && seen.add(item.key)).map(item => ({
+        key: item.key.trim(),
+        printReady: item.printReady !== false,
+        keepTogether: item.keepTogether !== false,
+        newPage: item.newPage === true,
+        pageBreakAfter: item.pageBreakAfter === true,
+        skipInterpretation: item.skipInterpretation === true,
+        order: Number.isFinite(Number(item.order)) && item.order !== null && item.order !== '' ? Number(item.order) : null
+      }));
+    }
+    if (departmentOrder !== undefined) {
+      if (!Array.isArray(departmentOrder)) return errorResponse(res, 'departmentOrder must be a list', 400);
+      report.departmentOrder = [...new Set(departmentOrder.filter(name => typeof name === 'string' && name.trim()).map(name => name.trim()))];
+    }
+    if (printCategoriesFromNewPage !== undefined) report.printCategoriesFromNewPage = printCategoriesFromNewPage !== false;
+    await report.save();
+    return successResponse(res, 'Print settings saved', {
+      sectionSettings: report.sectionSettings, departmentOrder: report.departmentOrder, printCategoriesFromNewPage: report.printCategoriesFromNewPage
+    });
+  } catch (error) { return next(error); }
+}
+
 module.exports = {
+  updatePrintSettings,
   getReports,
   uploadReport,
   attachReportFile,
@@ -692,23 +725,23 @@ async function getReportForEntry(req, res, next) {
         ? TestPackage.find({ _id: { $in: packageIds } }).populate('includedTests', 'name').lean()
         : Promise.resolve([]),
       panelIds.length
-        ? TestPanel.find({ _id: { $in: panelIds } }).populate('tests', 'name').lean()
+        ? TestPanel.find({ _id: { $in: panelIds } }).populate('tests', 'name').populate('category', 'name createdAt').lean()
         : Promise.resolve([])
     ]);
     packages.forEach((pkg) => {
       (pkg.includedTests || []).forEach((t) => {
-        allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name });
+        allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name, sectionKey: `package:${pkg._id}` });
       });
     });
     panels.forEach((panel) => {
       (panel.tests || []).forEach((t) => {
-        allTests.push({ type: 'Test', itemId: t._id, name: t.name, panelName: panel.name });
+        allTests.push({ type: 'Test', itemId: t._id, name: t.name, panelName: panel.name, sectionKey: `panel:${panel._id}`, sectionCategory: panel.category || null, sectionRank: panel.displayOrder ?? null });
       });
     });
 
     // Get full test details
     const testIds = [...new Set(allTests.map(t => t.itemId).filter(Boolean))];
-    const catalog = await Test.find().populate('category', 'name').lean();
+    const catalog = await Test.find().populate('category', 'name createdAt').lean();
     const tests = includeFormulaDependencies(catalog.filter((t) => testIds.some((id) => String(id) === String(t._id))), catalog);
     for (const test of tests) {
       if (!allTests.some((t) => String(t.itemId) === String(test._id))) {
@@ -775,6 +808,12 @@ async function getReportForEntry(req, res, next) {
         formula: test?.formula || '',
         packageName: t.packageName,
         panelName: t.panelName,
+        // Same key the PDF groups by, so print options set here apply there.
+        sectionKey: t.sectionKey || (t.itemId ? `test:${t.itemId}` : 'uncatalogued'),
+        // Department and position the printed report uses for this row.
+        sectionDepartment: t.sectionCategory?.name || test?.category?.name || '',
+        sectionDepartmentRank: new Date((t.sectionCategory || test?.category)?.createdAt || NaN).getTime() || null,
+        sectionRank: t.sectionKey?.startsWith('panel:') ? t.sectionRank ?? null : test?.displayOrder ?? null,
         parentName: test?.parentName || '',
         formulaInput: !!t.formulaInput,
         existingValue: row?.value || '',
@@ -788,6 +827,9 @@ async function getReportForEntry(req, res, next) {
     return successResponse(res, 'Report loaded for entry', {
       report: {
         _id: report._id,
+        sectionSettings: report.sectionSettings || [],
+        departmentOrder: report.departmentOrder || [],
+        printCategoriesFromNewPage: report.printCategoriesFromNewPage !== false,
         registrationNumber: report.registrationNumber,
         status: report.status,
         entryMode: report.entryMode || 'all',
