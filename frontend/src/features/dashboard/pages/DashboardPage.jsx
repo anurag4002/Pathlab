@@ -300,7 +300,10 @@ const getReportTestNames = (report) => {
   const names = (Array.isArray(report?.results) ? report.results : [])
     .map((result) => result?.testName)
     .filter(Boolean);
-  if (names.length > 0) return names.join(', ');
+  // A big panel report has hundreds of rows; show a short, readable summary.
+  const unique = [...new Set(names.map((name) => name.split(':')[0].trim()))];
+  if (unique.length > 3) return `${unique.slice(0, 3).join(', ')} +${unique.length - 3} more`;
+  if (unique.length > 0) return unique.join(', ');
   return report?.test?.name || '—';
 };
 

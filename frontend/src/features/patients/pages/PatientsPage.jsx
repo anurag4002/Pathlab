@@ -268,8 +268,9 @@ const PatientsPage = () => {
                   Edit
                 </Button>
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   size="sm"
+                  className="btn-quiet-danger"
                   onClick={() => setDeleteTarget(patient)}
                   icon={<Trash2 size={16} strokeWidth={2.25} />}
                   title="Delete patient"

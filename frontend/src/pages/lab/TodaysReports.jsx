@@ -893,7 +893,7 @@ const TodaysReports = () => {
   return (
     <div>
       <PageHeader
-        title="Laboratory Reports Completed"
+        title="Today's Reports"
         subtitle="View diagnostic PDF findings completed today and upload clinical reports"
         action={
           <div style={{ display: 'flex', gap: '8px' }}>

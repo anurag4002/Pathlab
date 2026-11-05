@@ -12,13 +12,12 @@ export const BILL_STATUS_OPTIONS = [
 ];
 
 export const BILL_TABLE_HEADERS = [
-  'Bill Number',
+  'Bill / Date',
   'Patient Name',
   'Total Amount',
   'Discount',
   'Paid',
   'Due',
   'Status',
-  'Date',
   'Actions'
 ];

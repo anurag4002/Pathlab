@@ -142,3 +142,7 @@ body {
     print-color-adjust: exact;
   }
 }
+
+/* Destructive row actions that should not shout (confirmation still asked). */
+.btn.btn-quiet-danger { color: #b91c1c; border-color: #fecaca; }
+.btn.btn-quiet-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }

@@ -32,12 +32,12 @@ import { usePermissions } from '../../../hooks/usePermission';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
-import { Plus, Printer, CreditCard, Ban, FileDown, Eye, RefreshCw, Tag, FileEdit } from 'lucide-react';
+import { Plus, Printer, CreditCard, FileDown, Eye, RefreshCw, Tag, FileEdit } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
-import { WhatsAppShare } from '../../../components/common';
+import { WhatsAppShare, RowMenu } from '../../../components/common';
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
@@ -748,6 +748,7 @@ const BillsPage = () => {
       />
 
       <DataTable
+        className="bills-table"
         headers={BILL_TABLE_HEADERS}
         data={visibleBills}
         loading={loading}
@@ -766,7 +767,10 @@ const BillsPage = () => {
         }}
         renderRow={(bill) => (
           <tr key={bill._id}>
-            <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{bill.billNumber}</td>
+            <td>
+              <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{bill.billNumber}</div>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{formatDate(bill.date)}</div>
+            </td>
             <td>{bill.patient?.name || 'Walk-in Patient'}</td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{formatCurrency(bill.totalAmount)}</td>
             <td>{formatCurrency(bill.discount || 0)}</td>
@@ -787,47 +791,41 @@ const BillsPage = () => {
                 {bill.isVoided && <StatusBadge status="Voided" />}
               </div>
             </td>
-            <td>{formatDate(bill.date)}</td>
             <td>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                <Button variant="secondary" size="sm" onClick={() => openDetails(bill)} icon={<Eye size={14} />} data-testid="bill-details" aria-label={`Details ${bill.billNumber}`}>
-                  Details
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleOpenPrint(bill)} icon={<Printer size={14} />} data-testid="bill-print" aria-label={`Print ${bill.billNumber}`}>
-                  Print
-                </Button>
-                    <Button variant="secondary" size="sm" onClick={() => handleDownloadPdf(bill)} icon={<FileDown size={14} />} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`}>
-                  PDF
-                </Button>
-                {!bill.isVoided && <WhatsAppShare kind="bill" id={bill._id} phone={bill.patient?.phone} name={bill.patient?.name} billNumber={bill.billNumber} iconOnly />}
+              {/* Main actions keep labels; the rest are icon buttons with
+                  tooltips and admin-only changes sit under More. */}
+              <div className="bill-row-actions">
                 {!bill.isVoided && ['LAB', undefined, null, ''].includes(bill.department) && (bill.patient?._id || bill.patient) && (
                   <Button variant="secondary" size="sm" icon={<FileEdit size={14} />} data-testid="bill-results" aria-label={`Results ${bill.billNumber}`}
                     onClick={() => navigate(`/lab/result-entry?bill=${bill._id}&patient=${bill.patient?._id || bill.patient}`)}>
                     Results
                   </Button>
                 )}
-                <Button variant="secondary" size="sm" onClick={() => setLabelTarget(bill)} icon={<Tag size={14} />} data-testid="bill-labels" aria-label={`Labels ${bill.billNumber}`}>
-                  Labels
-                </Button>
                 {bill.dueAmount > 0 && (
                   <Button variant="primary" size="sm" onClick={() => handleOpenPayment(bill)} icon={<CreditCard size={14} />} data-testid="bill-pay" aria-label={`Pay ${bill.billNumber}`}>
                     Pay
                   </Button>
                 )}
+                <span className="bill-row-break" aria-hidden="true" />
+                <Button variant="secondary" size="sm" className="bill-icon-btn" onClick={() => openDetails(bill)} data-testid="bill-details" aria-label={`Details ${bill.billNumber}`} title="Details">
+                  <Eye size={14} />
+                </Button>
+                <Button variant="secondary" size="sm" className="bill-icon-btn" onClick={() => handleOpenPrint(bill)} data-testid="bill-print" aria-label={`Print ${bill.billNumber}`} title="Print bill">
+                  <Printer size={14} />
+                </Button>
+                <Button variant="secondary" size="sm" className="bill-icon-btn" onClick={() => handleDownloadPdf(bill)} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`} title="Download PDF">
+                  <FileDown size={14} />
+                </Button>
+                {!bill.isVoided && <WhatsAppShare kind="bill" id={bill._id} phone={bill.patient?.phone} name={bill.patient?.name} billNumber={bill.billNumber} iconOnly />}
+                <Button variant="secondary" size="sm" className="bill-icon-btn" onClick={() => setLabelTarget(bill)} data-testid="bill-labels" aria-label={`Labels ${bill.billNumber}`} title="Print labels">
+                  <Tag size={14} />
+                </Button>
                 {isAdmin && !bill.isVoided && (
-                  <Button variant="danger" size="sm" onClick={() => setVoidTarget(bill)} icon={<Ban size={14} />} data-testid="bill-void" aria-label={`Void ${bill.billNumber}`}>
-                    Void
-                  </Button>
-                )}
-                {isAdmin && !bill.isVoided && (
-                  <Button variant="secondary" size="sm" onClick={() => openRefund(bill)} data-testid="bill-refund" aria-label={`Refund ${bill.billNumber}`}>
-                    Refund
-                  </Button>
-                )}
-                {isAdmin && !bill.isVoided && (
-                  <Button variant="secondary" size="sm" onClick={() => openEditBill(bill)} data-testid="bill-edit" aria-label={`Edit ${bill.billNumber}`}>
-                    Edit
-                  </Button>
+                  <RowMenu label={`More actions for bill ${bill.billNumber}`} items={[
+                    { label: 'Edit bill', onClick: () => openEditBill(bill), testId: 'bill-edit', ariaLabel: `Edit ${bill.billNumber}` },
+                    { label: 'Refund', onClick: () => openRefund(bill), testId: 'bill-refund', ariaLabel: `Refund ${bill.billNumber}` },
+                    { label: 'Void bill', onClick: () => setVoidTarget(bill), danger: true, testId: 'bill-void', ariaLabel: `Void ${bill.billNumber}` }
+                  ]} />
                 )}
               </div>
             </td>

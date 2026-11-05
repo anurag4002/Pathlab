@@ -22,3 +22,4 @@ export { default as TestCombobox } from './TestCombobox/TestCombobox';
 export { default as PatientPicker } from './PatientPicker/PatientPicker';
 export { default as BranchFilter } from './BranchFilter';
 export { default as WhatsAppShare } from './WhatsAppShare/WhatsAppShare';
+export { default as RowMenu } from './RowMenu/RowMenu';

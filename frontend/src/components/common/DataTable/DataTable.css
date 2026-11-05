@@ -142,3 +142,13 @@
 .data-table td .tat-wrap > span {
   white-space: normal !important;
 }
+
+/* On phones a frozen actions column covers most of the row; let it scroll
+   with the rest so the record's own columns come first. */
+@media (max-width: 640px) {
+  .data-table.sticky-actions th:last-child,
+  .data-table.sticky-actions td:last-child {
+    position: static;
+    box-shadow: none;
+  }
+}

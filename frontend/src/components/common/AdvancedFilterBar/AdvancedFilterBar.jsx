@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from '../Button/Button';
 import Select from '../Select/Select';
 import DatePicker from '../DatePicker/DatePicker';
@@ -46,8 +46,19 @@ const AdvancedFilterBar = ({
   className = ''
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const canCollapse = showToggle && fields.length > collapseAfter;
-  const visible = canCollapse && !expanded ? fields.slice(0, collapseAfter) : fields;
+  // On phones a tall stack of filters pushes the list off screen: show the
+  // first field and a Filters toggle for the rest.
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 640px)');
+    if (!query) return undefined;
+    const update = () => setNarrow(query.matches);
+    query.addEventListener?.('change', update);
+    return () => query.removeEventListener?.('change', update);
+  }, []);
+  const limit = narrow ? 1 : collapseAfter;
+  const canCollapse = (showToggle || narrow) && fields.length > limit;
+  const visible = canCollapse && !expanded ? fields.slice(0, limit) : fields;
 
   const setValue = (key, value) => onChange?.(key, value);
 
@@ -170,7 +181,7 @@ const AdvancedFilterBar = ({
           )}
           {canCollapse && (
             <Button variant="secondary" size="sm" onClick={() => setExpanded((v) => !v)}>
-              {expanded ? 'Show less' : 'Show all filters'}
+              {expanded ? (narrow ? 'Fewer filters' : 'Show less') : narrow ? `Filters (${fields.length - limit} more)` : 'Show all filters'}
             </Button>
           )}
           {actions}
