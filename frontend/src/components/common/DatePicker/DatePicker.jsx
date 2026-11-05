@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import '../Input/Input.css';
 
 const DatePicker = ({
@@ -13,7 +13,8 @@ const DatePicker = ({
   id,
   ...props
 }) => {
-  const inputId = id || name;
+  const autoId = useId();
+  const inputId = id || autoId;
 
   return (
     <div className={`form-group ${className}`}>

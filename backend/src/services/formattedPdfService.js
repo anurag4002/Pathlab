@@ -3,7 +3,7 @@ const { resolveFormat } = require('./documentTemplateService');
 const { encode } = require('./code39Service');
 const { resolveReferenceRange } = require('./referenceRangeService');
 const { expandTests } = require('./testDefinitions');
-const { reportNoteBlocks } = require('./interpretationLayout');
+const { reportNoteBlocks, documentBlocks } = require('./interpretationLayout');
 const assets = path.join(__dirname, '../assets/document-formats');
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
 const date = value => {
@@ -362,6 +362,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const columnWidth = (contentWidth - (columns - 1) * 14) / columns;
     const tokens = [];
     blocks.forEach((block, blockIndex) => {
+      if (block.kind === 'gap') { tokens.push({ text: '', size: style.noteSize, indent: 0, height: style.noteLeading * 0.6, before: 0, after: 0, blockIndex, blockLine: 0, blockLines: 1 }); return; }
       if (block.richRows) {
         const grid = [], occupied = [];
         block.richRows.forEach((row, r) => {
@@ -410,7 +411,11 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const parameterTable = block.kind === 'table' && rows.length && /^parameter$/i.test(String(rows[0][0] || '').trim());
         if (parameterTable) rows[0] = ['', ...rows[0].slice(1)];
         const cellCount = Math.max(...rows.map(row => row.length));
-        const cellWidths = cellCount === 3 ? [0.24, 0.38, 0.38].map(ratio => columnWidth * ratio) : Array(cellCount).fill(columnWidth / cellCount);
+        // Document grids (Widal titres) give the row label a wider first column.
+        const numbered = block.grid && cellCount === 3 && /^s\.?\s*no\.?$/i.test(String(rows[0]?.[0] || '').trim());
+        const cellWidths = numbered ? [0.12, 0.58, 0.3].map(ratio => columnWidth * ratio)
+          : block.grid && cellCount >= 4 ? [0.3, ...Array(cellCount - 1).fill(0.7 / (cellCount - 1))].map(ratio => columnWidth * ratio)
+          : cellCount === 3 ? [0.24, 0.38, 0.38].map(ratio => columnWidth * ratio) : Array(cellCount).fill(columnWidth / cellCount);
         rows.forEach((row, rowIndex) => {
           const cellBold = j => parameterTable && rowIndex > 0 && j === 0;
           const cellLines = Array.from({ length: cellCount }, (_, j) => lines(row[j] || '', cellWidths[j] - 10, cellBold(j), style.noteSize));
@@ -496,8 +501,10 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const full = topGap + (plan.fits ? plan.lastY : 1e9) + padBottom + afterGap + reserve;
     return { keepWith: full, keepMin: Math.min(full, topGap + padTop + 4 * style.noteLeading + padBottom) };
   }
-  function drawNotes(blocks, style, reserve = 0) {
+  function drawNotes(blocks, style, reserve = 0, { plain = false } = {}) {
     if (!blocks.length) return;
+    // Document tests print on white with solid grid lines; guidance on a band.
+    const border = () => (plain ? doc.strokeColor('#555555').lineWidth(0.5) : doc.strokeColor(NOTE_BORDER).lineWidth(0.55).dash(1.1, { space: 1.4 }));
     const padTop = style.notePadTop ?? NOTE_PADDING_Y, padBottom = style.notePadBottom ?? NOTE_PADDING_Y;
     const topGap = style.noteTopGap ?? 10, afterGap = style.noteAfterGap ?? 4;
     // The reference sheet sets guidance on a light slate band with inset
@@ -507,7 +514,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       if (line.richCells) {
         line.richCells.forEach(cell => {
           const left = x + cell.x, right = left + cell.width;
-          doc.strokeColor(NOTE_BORDER).lineWidth(0.55).dash(1.1, { space: 1.4 });
+          border();
           doc.moveTo(left, top).lineTo(left, top + line.height).moveTo(right, top).lineTo(right, top + line.height);
           if (line.rowTop && cell.startRow === line.tableRow) doc.moveTo(left, top).lineTo(right, top);
           if (line.rowBottom && cell.endRow === line.tableRow) doc.moveTo(left, top + line.height).lineTo(right, top + line.height);
@@ -515,7 +522,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
           drawRich(cell.runs, left + 6, top + line.textInset, cell.width - 12, line.size, cell.align);
         });
       } else if (line.comparison) {
-        doc.strokeColor(NOTE_BORDER).lineWidth(0.55).dash(1.1, { space: 1.4 });
+        border();
         let borderX = x;
         for (const cellWidth of line.cellWidths) { doc.moveTo(borderX, top).lineTo(borderX, top + line.height); borderX += cellWidth; }
         doc.moveTo(borderX, top).lineTo(borderX, top + line.height);
@@ -532,7 +539,19 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         else text(line.text, x + line.indent, top, lineWidth, line);
       }
     };
-    const paint = (top, bottom) => { doc.save().fillColor(NOTE_BACKGROUND).rect(m, top, width, bottom - top).fill().restore(); };
+    const paint = (top, bottom) => { if (!plain) doc.save().fillColor(NOTE_BACKGROUND).rect(m, top, width, bottom - top).fill().restore(); };
+    if (plain && drawDocumentBox()) return;
+    function drawDocumentBox() {
+      // One bordered box; it moves to the next page whole when it fits there.
+      const plan = (top, bottom) => planNotes(blocks, style, 1, top + padTop, bottom, contentX, contentWidth);
+      let boxTop = y + topGap, placed = plan(boxTop, limit - reserve - padBottom);
+      if (!placed.fits) { newPage(); boxTop = y + topGap; placed = plan(boxTop, limit - reserve - padBottom); }
+      if (!placed.fits) return false;
+      placed.placements.forEach(line => drawLine(line, line.x, line.y, line.width));
+      doc.strokeColor('#333333').lineWidth(0.7).rect(m, boxTop, width, placed.lastY + padBottom - boxTop).stroke();
+      y = placed.lastY + padBottom + afterGap;
+      return true;
+    }
     const boxTop = y + topGap;
     let plan = planNotes(blocks, style, 1, boxTop + padTop, limit - reserve - padBottom, contentX, contentWidth);
     if (plan.fits) {
@@ -715,8 +734,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       reportHeading();
       // Department order, then billed panels before standalone tests, then
       // the order results were entered.
+      // Within a department the reference prints the result table first and
+      // Document tests (Widal, FNAC, Culture ...) after it.
+      const documentOnly = section => !section.panel && section.groups.some(group => group.items.length) && section.groups.every(group => group.items.every(item => item.test?.sourceType === 'Document'));
       const defaultOrder = [...sections.values()].sort((a, b) => (a.rank === b.rank ? 0 : a.rank < b.rank ? -1 : 1)
         || (a.rank === Infinity && a.department !== b.department ? a.seq - b.seq : 0)
+        || (a.department === b.department ? Number(documentOnly(a)) - Number(documentOnly(b)) : 0)
         || Number(b.panel || false) - Number(a.panel || false)
         || (Number.isFinite(a.order) && Number.isFinite(b.order) ? a.order - b.order : 0) || a.seq - b.seq);
       // Per-report print options chosen on result entry: hidden sections are
@@ -754,9 +777,14 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const settings = settingsFor(section.key);
         const blocks = options.interpretation && !settings.skipInterpretation ? reportNoteBlocks(section) : [];
         const last = units.at(-1);
-        if (!section.panel && !settings.newPage && last && !last.panel && !last.closed && last.department === section.department) last.sections.push(section);
+        // Document tests (Widal, FNAC, PAP smear ...) print as their own box.
+        const items = section.groups.flatMap(group => group.items);
+        const documentSection = !section.panel && items.length > 0 && items.every(item => item.test?.sourceType === 'Document');
+        if (documentSection) units.push({ document: true, department: section.department, sections: [section], newPage: !!settings.newPage });
+        else if (!section.panel && !settings.newPage && last && !last.panel && !last.closed && !last.document && last.department === section.department) last.sections.push(section);
         else units.push({ panel: !!section.panel, department: section.department, sections: [section], newPage: !!settings.newPage });
         const unit = units.at(-1);
+        if (unit.document) unit.closed = true;
         unit.blocks = blocks;
         if (settings.keepTogether === false) unit.split = true;
         if (settings.pageBreakAfter) unit.breakAfter = true;
@@ -775,6 +803,22 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         }
         if (index > 0 && !(newDepartment && report.printCategoriesFromNewPage !== false) && (unit.newPage || units[index - 1].breakAfter) && y > contentTop + 1) newPage();
         const head = unit.sections[0];
+        if (unit.document) {
+          if (newDepartment && options.dept && unit.department) heading(unit.department.toUpperCase());
+          const docStyle = { ...style, noteGap: 1.5, noteTitleBefore: 0, notePadTop: 6, notePadBottom: 8, noteTopGap: 4, noteAfterGap: 6 };
+          head.groups.flatMap(group => group.items).forEach(({ result, test }) => {
+            const title = test.name || result.testName || 'Report';
+            const body = documentBlocks(result.value);
+            const blocks = [{ kind: 'paragraph', text: title, runs: [{ text: title, bold: true }], align: 'center' }, { kind: 'gap' }, ...body];
+            drawNotes(blocks, docStyle, isLast && !unit.blocks.length ? reserve : 0, { plain: true });
+          });
+          drawNotes(unit.blocks, inlineStyle, reserve);
+          if (isLast) {
+            if (String(report.moreDetails || '').trim()) paragraph(String(report.moreDetails).trim(), { size: style.noteSize, leading: style.noteLeading, gap: 6 });
+            finishReportSection(style);
+          }
+          return;
+        }
         const titles = [];
         if (newDepartment && options.dept && unit.department) titles.push({ text: unit.department.toUpperCase(), size: 11 });
         if (unit.panel && head.title) titles.push({ text: head.title.toUpperCase(), size: 9.5 });

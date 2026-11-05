@@ -792,6 +792,7 @@ async function getReportForEntry(req, res, next) {
         testName: test?.legacyScalar ? `${test.name} (previous entry)` : test?.name || t.name || 'Test',
         testCode: test?.code || '',
         sourceType: test?.sourceType || '',
+        documentTemplate: test?.sourceType === 'Document' ? test?.documentTemplate || '' : '',
         displayOrder: test?.displayOrder ?? null,
         category: test?.category,
         categoryName: test?.category?.name || '',

@@ -18,7 +18,7 @@ const Select = ({
 }) => {
   // Always link the label to the field, even when no id/name is given.
   const autoId = useId();
-  const selectId = id || name || autoId;
+  const selectId = id || autoId;
 
   return (
     <div className={`form-group ${className}`}>

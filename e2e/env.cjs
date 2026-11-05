@@ -67,6 +67,8 @@ async function start() {
     Object.defineProperty(socket, 'remoteAddress', { value: '127.0.0.1' });
     const req = new http.IncomingMessage(socket);
     req.method = method; req.url = url;
+    // The stand-in socket never connects; a real client request is not "aborted".
+    const emit = req.emit.bind(req); req.emit = (event, ...args) => (event === 'aborted' ? false : emit(event, ...args));
     req.headers = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
     if (body && body.length) req.headers['content-length'] = String(body.length);
     if (body && body.length) req.push(body);

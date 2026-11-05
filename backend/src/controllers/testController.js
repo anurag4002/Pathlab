@@ -14,7 +14,7 @@ const ALLOWED_TEST_FIELDS = [
   'referenceRange', 'maleReferenceRange', 'femaleReferenceRange',
   'price', 'description', 'interpretation', 'status',
   'normalLow', 'normalHigh', 'criticalLow', 'criticalHigh',
-  'ageMin', 'ageMax', 'sexApplicable', 'isDerived', 'formula', 'referenceRanges', 'parameters', 'resultOptions'
+  'ageMin', 'ageMax', 'sexApplicable', 'isDerived', 'formula', 'referenceRanges', 'parameters', 'resultOptions', 'documentTemplate'
 ];
 
 const sanitizeTestPayload = (body = {}) => {
@@ -23,7 +23,7 @@ const sanitizeTestPayload = (body = {}) => {
     if (body[key] !== undefined) out[key] = body[key] === '' ? null : body[key];
   }
   // Keep string empties as '' for legacy display fields
-  for (const key of ['unit', 'referenceRange', 'maleReferenceRange', 'femaleReferenceRange', 'description', 'interpretation', 'formula']) {
+  for (const key of ['unit', 'referenceRange', 'maleReferenceRange', 'femaleReferenceRange', 'description', 'interpretation', 'formula', 'documentTemplate']) {
     if (body[key] === '') out[key] = '';
   }
   if (out.formula === null) out.formula = '';

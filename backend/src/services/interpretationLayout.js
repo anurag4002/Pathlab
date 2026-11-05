@@ -55,6 +55,32 @@ function interpretationBlocks(value) {
   return blocks;
 }
 
+// Document-type tests (Widal, FNAC, PAP smear ...) print their findings as
+// written: one paragraph per line, "| a | b |" lines (or tab-separated lines)
+// as a grid, blank lines as spacing. No heading guessing, so "Comment: ..."
+// stays on one line as on the reference sheet. HTML from the rich editor
+// keeps its own structure.
+const isTableLine = line => /^\|.*\|$/.test(line.trim());
+const tableCells = line => line.trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+function documentBlocks(value) {
+  const { isRichInterpretation, richInterpretationBlocks } = require('./richInterpretation');
+  if (isRichInterpretation(value)) return richInterpretationBlocks(value);
+  const blocks = [];
+  let rows = [];
+  const flushTable = () => { if (rows.length) blocks.push({ kind: 'table', rows, grid: true }); rows = []; };
+  for (const raw of String(value || '').replace(/\r\n?/g, '\n').split('\n')) {
+    if (isTableLine(raw)) { rows.push(tableCells(raw)); continue; }
+    if (raw.includes('\t') && raw.trim()) { rows.push(raw.split('\t').map(cell => cell.trim())); continue; }
+    flushTable();
+    const line = raw.trim();
+    if (!line) { if (blocks.length && blocks.at(-1).kind !== 'gap') blocks.push({ kind: 'gap' }); continue; }
+    blocks.push({ kind: 'paragraph', text: line });
+  }
+  flushTable();
+  while (blocks.at(-1)?.kind === 'gap') blocks.pop();
+  return blocks;
+}
+
 // Word content of plain or rich (HTML) guidance, used to recognise a saved
 // report "override" that is really the catalog text reformatted by the editor.
 function interpretationWords(value) {
@@ -138,4 +164,4 @@ function reportNoteBlocks(section) {
   return blocks;
 }
 
-module.exports = { interpretationBlocks, reportNoteBlocks, sameInterpretation, isPanelSection };
+module.exports = { documentBlocks, interpretationBlocks, reportNoteBlocks, sameInterpretation, isPanelSection };

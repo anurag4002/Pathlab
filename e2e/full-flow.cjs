@@ -349,6 +349,116 @@ async function download(page, trigger) {
     assert.match(await page.locator('main').innerText(), /E2E Patient One/);
   });
 
+  await step('X-ray: create a case for the patient, it is listed', async () => {
+    await page.goto(BASE + '/xray/today', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /Create X-Ray Case/ }).click();
+    const d = page.getByRole('dialog'); await d.waitFor();
+    await d.getByPlaceholder(/name, phone|search patient/i).first().fill('E2E Patient'); await page.waitForTimeout(1000);
+    await page.getByRole('option', { name: /E2E Patient One/ }).or(d.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
+    await d.getByRole('button', { name: 'Save Case' }).click(); await page.waitForTimeout(800);
+    assert.match(await d.innerText(), /Enter findings or upload a PDF report/, 'empty X-ray case is refused');
+    await d.locator('#xray-findings').fill('E2E: Chest PA view. No active lung lesion.');
+    await d.getByRole('button', { name: 'Save Case' }).click(); await page.waitForTimeout(1500);
+    assert.equal(await page.getByRole('dialog').count(), 0, 'modal closed: ' + (await page.getByRole('dialog').innerText().catch(() => '')).slice(0, 200));
+    assert.match(await page.locator('main').innerText(), /E2E Patient One/);
+  });
+
+  await step('expenses: record ₹200, listed, daily business shows it', async () => {
+    await page.goto(BASE + '/business/expenses', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /Record Expense/ }).click();
+    const d = page.getByRole('dialog'); await d.waitFor();
+    const cat = d.getByLabel('Category Classification');
+    if (!(await cat.inputValue())) await cat.selectOption({ index: 1 });
+    await d.getByLabel('Spent On (name)').fill('E2E reagents');
+    await d.getByLabel('Charged Amount (INR)').fill('200');
+    const method = d.getByLabel('Paid Method'); if (!(await method.inputValue())) await method.selectOption({ index: 1 });
+    await d.getByRole('button').last().click(); await page.waitForTimeout(1500);
+    assert.equal(await page.getByRole('dialog').count(), 0, 'modal closed: ' + (await page.getByRole('dialog').innerText().catch(() => '')).slice(0, 200));
+    assert.match(await page.locator('main').innerText(), /E2E reagents/);
+    await page.goto(BASE + '/business/daily', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
+    const text = await page.locator('main').innerText();
+    assert.match(text, /Expenses\s*₹200/i); assert.match(text, /Net\s*₹350/i);
+  });
+
+  await step('catalog: add a new test, bill it, result 130 is flagged High', async () => {
+    await page.goto(BASE + '/lab/tests', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /Add New Test/ }).click();
+    const d = page.getByRole('dialog'); await d.waitFor();
+    await d.getByLabel('Test Code').fill('E2EGLU');
+    await d.getByLabel('Test Name').fill('E2E Glucose Fasting');
+    const cat = d.getByLabel('Test Category'); if (!(await cat.inputValue())) await cat.selectOption({ index: 1 });
+    const sample = d.getByLabel('Sample Collection Type'); if (await sample.count() && !(await sample.inputValue())) await sample.selectOption({ index: 1 }).catch(() => sample.fill('Serum'));
+    await d.locator('select[name=unit]').selectOption('mg/dL');
+    await d.getByLabel('Price (INR)').fill('120');
+    await d.getByLabel('Default Range').fill('70-100');
+    await d.getByRole('button', { name: 'Save Test' }).click(); await page.waitForTimeout(1500);
+    assert.equal(await page.getByRole('dialog').count(), 0, 'modal closed: ' + (await page.getByRole('dialog').innerText().catch(() => '')).slice(0, 200));
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');
+    await page.getByRole('option', { name: /E2E Patient One/ }).or(page.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
+    await page.getByPlaceholder(/Search all tests/i).fill('E2E Glucose');
+    await page.getByRole('button', { name: /E2E Glucose Fasting/ }).first().click();
+    await page.getByRole('button', { name: 'Create Invoice' }).click();
+    await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(1000);
+    assert.match(await page.locator('.bill-saved-bar').innerText(), /saved/);
+    await page.locator('.bill-saved-bar button', { hasText: 'Enter results' }).click();
+    await page.locator('.ls-sheet').waitFor({ timeout: 20000 });
+    const row = page.locator('tr.ls-row', { hasText: /E2E Glucose Fasting/i }).first();
+    await row.locator('input.form-control').first().fill('130'); await page.locator('.ls-title').click(); await page.waitForTimeout(600);
+    assert.match(await row.innerText(), /\bH\b|High/);
+    assert.match(await row.innerText(), /70\s*-\s*100/);
+    assert.match(await row.innerText(), /mg\/dL/);
+  });
+
+  await step('document test: Widal starts from its template and prints the titre grid', async () => {
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');
+    await page.getByRole('option', { name: /E2E Patient One/ }).or(page.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
+    await page.getByPlaceholder(/Search all tests/i).fill('Widal (Tube');
+    await page.getByRole('button', { name: /Widal \(Tube Method\)/ }).first().click();
+    await page.getByRole('button', { name: 'Create Invoice' }).click();
+    await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(1000);
+    await page.locator('.bill-saved-bar button', { hasText: 'Enter results' }).click();
+    await page.locator('.ls-sheet').waitFor({ timeout: 20000 });
+    const box = page.locator('textarea.re-document-result').first();
+    const template = await box.inputValue();
+    assert.match(template, /Tube agglutination test/); assert.match(template, /\| S TYPHI "O" \|/);
+    await box.fill(template.replace('<POSTIVE/NEGATIVE>', 'POSITIVE'));
+    await page.locator('.re-actions-bar button', { hasText: /^Final$/ }).click(); await page.waitForTimeout(1500);
+    const { target } = await download(page, () => page.locator('.re-actions-bar button', { hasText: /^PDF$/ }).click());
+    const text = pdfText(target);
+    assert.match(text, /Widal \(Tube Method\)/);
+    assert.match(text, /1:30\s+1:60\s+1:120\s+1:240\s+1:480/);
+    assert.match(text, /S PARATYPHI "BH"\s+\+\s+\+\s+-\s+-\s+-/);
+    assert.match(text, /Comment: WIDAL TEST POSITIVE/);
+  });
+
+  await step('patient portal: sign in with mobile OTP and see the signed report', async () => {
+    const ctx = await context.browser().newContext({ viewport: { width: 390, height: 844 } });
+    await ctx.route(/\/(api|uploads)\//, async route => { const r = route.request(); const res = await env.inject({ method: r.method(), url: r.url().replace(/^https?:\/\/[^/]+/, ''), headers: r.headers(), body: r.postDataBuffer() }); return route.fulfill({ status: res.status, headers: res.headers, body: res.body }); });
+    const p = await ctx.newPage();
+    await p.goto(BASE + '/patient/report', { waitUntil: 'networkidle' });
+    await p.getByRole('button', { name: /Mobile OTP/ }).click();
+    await p.locator('#patient-phone').fill('9876500002');
+    const before = env.sent.length;
+    await p.getByRole('button', { name: /Send verification code/ }).click();
+    await p.locator('#otp-input-0').waitFor({ timeout: 15000 });
+    const message = env.sent.slice(before).map(m => m.text || JSON.stringify(m.vars || {})).join(' ');
+    let code = (message.match(/\b(\d{6})\b/) || [])[1];
+    if (!code && await p.getByTestId('dev-otp-code').count()) code = (await p.getByTestId('dev-otp-code').innerText()).trim();
+    assert.ok(code, 'OTP delivered (recorded, not sent)');
+    for (let i = 0; i < 6; i++) await p.locator(`#otp-input-${i}`).fill(code[i]);
+    const verify = p.getByRole('button', { name: /verify/i }).first(); if (await verify.isEnabled().catch(() => false)) await verify.click().catch(() => {});
+    await p.waitForTimeout(2500);
+    const text = await p.locator('body').innerText();
+    await p.screenshot({ path: require('path').join(require('./config.cjs').OUT, 'portal.png'), fullPage: true });
+    assert.match(text, /E2E Patient One/i);
+    assert.match(text, /Complete Blood Count/i, 'report shows its test names');
+    assert.doesNotMatch(text, /VIRAL MARKER|Viral Marker/i, 'report of the voided bill is hidden');
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1), false, 'no sideways scroll on phone');
+    await ctx.close();
+  });
+
   console.log(results.join('\n'));
   await browser.close(); await env.stop();
 })().catch(e => { console.error(e); process.exit(1); });

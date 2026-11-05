@@ -117,6 +117,8 @@ const TestDatabase = () => {
       price: String(test.price || 0),
       description: test.description || '',
       interpretation: test.interpretation || '',
+      sourceType: test.sourceType || '',
+      documentTemplate: test.documentTemplate || '',
       status: test.status,
       normalLow: test.normalLow ?? '',
       normalHigh: test.normalHigh ?? '',
@@ -533,6 +535,15 @@ const TestDatabase = () => {
                 placeholder="Write clinical advice guideline..."
               />
             </div>
+            {formData.sourceType === 'Document' && <div className="form-group" style={{ marginTop: 12, marginBottom: 0 }}>
+              <label className="form-label" htmlFor="test-document-template">Report template (Document test)</label>
+              <textarea id="test-document-template"
+                value={formData.documentTemplate || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, documentTemplate: e.target.value }))}
+                className="form-control" rows={10} style={{ fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '0.8125rem' }}
+                placeholder={'Findings text staff start from on result entry.\n| S TYPHI "O" | + | + | - |   <- a line like this prints as a table row'} />
+              <p className="form-hint">Each line prints as written. Lines that start and end with | print as a table; the first such line is the header.</p>
+            </div>}
           </section>
 
         </form>

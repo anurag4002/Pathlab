@@ -18,7 +18,7 @@ const Input = ({
 }) => {
   // Always link the label to the field, even when no id/name is given.
   const autoId = useId();
-  const inputId = id || name || autoId;
+  const inputId = id || autoId;
 
   return (
     <div className={`form-group ${className}`}>

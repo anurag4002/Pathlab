@@ -72,6 +72,9 @@ const TestSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Document-type tests (Widal, FNAC, PAP smear ...): the starting text of
+  // the findings on result entry. "| a | b |" lines print as a table.
+  documentTemplate: { type: String, default: '' },
   interpretation: {
     type: String,
     trim: true

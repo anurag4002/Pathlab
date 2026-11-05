@@ -118,8 +118,22 @@ const getPatientReports = async (req, res, next) => {
     const labReports = await Report.find({ patient: { $in: patientIds } })
       .populate('patient', 'name registrationNumber age gender')
       .populate('test', 'name code category referenceRange unit')
-      .populate('bill', 'billNumber totalAmount paidAmount dueAmount')
+      .populate('bill', 'billNumber totalAmount paidAmount dueAmount isVoided cancelled')
       .sort({ createdAt: -1 });
+    // A voided or cancelled bill's reports are not the patient's any more.
+    const activeLabReports = labReports.filter(r => !r.bill?.isVoided && !r.bill?.cancelled);
+    // Name the tests a multi-test report holds ("CBC, Serum Creatinine")
+    // instead of a generic "In-house Laboratory Report".
+    // ...using what was billed ("Complete Blood Count (CBC), Serum Creatinine").
+    const BillItem = require('../models/BillItem');
+    const billIds = [...new Set(activeLabReports.map(r => r.bill?._id).filter(Boolean).map(String))];
+    const billItems = billIds.length ? await BillItem.find({ billId: { $in: billIds } }).select('billId name reportDepartment').lean() : [];
+    const summary = names => {
+      const unique = [...new Set(names.map(name => String(name || '').trim()).filter(Boolean))];
+      return unique.length > 3 ? `${unique.slice(0, 3).join(', ')} +${unique.length - 3} more` : unique.join(', ');
+    };
+    const billedNames = new Map(billIds.map(id => [id, summary(billItems.filter(item => String(item.billId) === id && !item.reportDepartment).map(item => item.name))]));
+    const resultTestNames = (r) => billedNames.get(String(r.bill?._id || '')) || summary((r.results || []).map(x => String(x?.testName || '').split(':')[0]));
 
     // 2. Fetch USG Reports
     const usgReports = await USGCase.find({ patient: { $in: patientIds } })
@@ -149,7 +163,7 @@ const getPatientReports = async (req, res, next) => {
 
     // Format into unified response list
     const reports = [
-      ...labReports.map(r => {
+      ...activeLabReports.map(r => {
         const rawStatus = r.status || 'Registered';
         const mode = r.entryMode || 'all';
         const fallbackName = mode === 'outsource'
@@ -160,7 +174,7 @@ const getPatientReports = async (req, res, next) => {
         return {
           id: r._id,
           type: 'Pathology',
-          testName: r.test ? r.test.name : fallbackName,
+          testName: r.test ? r.test.name : (resultTestNames(r) || fallbackName),
           testCode: r.test ? r.test.code : (mode === 'outsource' ? 'OUT' : 'LAB'),
           patientName: r.patient ? r.patient.name : 'N/A',
           registrationNumber: r.registrationNumber,

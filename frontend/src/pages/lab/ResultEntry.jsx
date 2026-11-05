@@ -378,8 +378,11 @@ const ResultEntry = () => {
     const initial = {};
     testEntries.forEach((testEntry) => {
       const key = entryKey(testEntry);
+      // Document tests (Widal, FNAC, PAP smear ...) start from the lab's
+      // template so staff only fill in the findings.
+      const template = !isReportFinal(data.report?.status) && testEntry.sourceType === 'Document' ? testEntry.documentTemplate || '' : '';
       initial[key] =
-        testEntry.existingValue != null ? String(testEntry.existingValue) : '';
+        testEntry.existingValue != null && String(testEntry.existingValue) !== '' ? String(testEntry.existingValue) : template;
     });
     setEntry({ ...data, testEntries });
     setValues(initial);
@@ -823,7 +826,9 @@ const ResultEntry = () => {
               handleValueChange(key, next === '__other__' ? '' : next);
             }} />}
           {!isDerived && testEntry.sourceType === 'Document' ? <textarea
-            id={`result-${key}`} name={`result-${key}`} className="form-control re-document-result" rows={4}
+            id={`result-${key}`} name={`result-${key}`} className="form-control re-document-result"
+            rows={Math.min(16, Math.max(4, String(displayValue || '').split('\n').length + 1))}
+            title='Each line prints as written. Lines like "| S TYPHI O | + | - |" print as a table.'
             aria-label={`Result value for ${testEntry.testName || 'test'}`} placeholder="Enter report findings"
             value={displayValue} onChange={event => handleValueChange(key, event.target.value)}
             disabled={busy !== null || isReportFinal(entry?.report?.status)} /> :
