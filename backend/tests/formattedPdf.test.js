@@ -259,6 +259,12 @@ test('result remarks, section notes/remarks/advice and more details print on the
   assert.equal(saved.results[0].remark, 'keep me');
 });
 
+test('reports without a referring doctor print Referred by : Self', async () => {
+  assert.ok(textOf(await reportPdf(context)).includes('Referred by : Self'));
+  const named = textOf(await reportPdf({ ...context, referredName: 'Dr. Gupta' }));
+  assert.ok(named.includes('Referred by : Dr. Gupta') && !named.includes('Referred by : Self'));
+});
+
 test('rich text headings, merged table cells and formatting render as PDF content without HTML markup', async () => {
   const rich = '<h2 style="text-align:center">Clinical details</h2><p>Normal <strong>bold phrase</strong> and <em>italic phrase</em> with <u>underlined phrase</u>.</p><table><tbody><tr><th colspan="2"><p>COMBINED HEADER</p></th></tr><tr><td rowspan="2"><p>GROUP LABEL</p></td><td><p>FIRST CELL</p></td></tr><tr><td><p>SECOND CELL</p></td></tr></tbody></table><ul><li><p>Bullet detail</p></li></ul>';
   const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation: rich } } });

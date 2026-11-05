@@ -16,14 +16,18 @@ before(async () => {
 });
 
 function textOf(pdf) {
-  return [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].map(match => {
+  // Read each stream by its declared /Length: compressed bytes can contain
+  // "endstream", which cut streams short with a delimiter search.
+  const source = pdf.toString('latin1');
+  const out = [];
+  for (const match of source.matchAll(/\/Length (\d+)[^>]*>>\s*stream\r?\n/g)) {
+    const start = match.index + match[0].length;
     try {
-      const stream = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1');
-      return [...stream.matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join('');
-    } catch {
-      return '';
-    }
-  }).join('\n');
+      const stream = zlib.inflateSync(Buffer.from(source.slice(start, start + Number(match[1])), 'latin1')).toString('latin1');
+      out.push([...stream.matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join(''));
+    } catch { /* not a compressed text stream */ }
+  }
+  return out.join('\n');
 }
 
 function pageCount(pdf) {

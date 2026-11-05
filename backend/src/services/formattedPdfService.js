@@ -200,7 +200,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${ageUnit}` : '', sex].filter(Boolean).join(' / ');
     const title = String(patient.title || '').trim();
     const patientName = patient.name ? (title && !patient.name.toLowerCase().startsWith(title.toLowerCase()) ? `${title} ${patient.name}` : patient.name) : '';
-    const referred = context.referredName || context.doctor?.name || bill.referringDoctor?.name;
+    // Reports without a referring doctor print "Self", as the reference sheet does.
+    const referred = context.referredName || context.doctor?.name || bill.referringDoctor?.name || (kind === 'bill' ? '' : 'Self');
     const identity = [patientName || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${(kind === 'bill' ? bill.billNumber : report.registrationNumber) || patient.registrationNumber || '-'}`];
     let leftY = start;
     identity.forEach((value, i) => lines(value, format.patientLayout === 'stacked' ? width : leftWidth, i === 0, i === 0 ? 12 : format.fontSize).forEach(line => {
