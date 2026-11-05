@@ -1,3 +1,4 @@
+const { findOrCreate } = require('../utils/findOrCreate');
 const crypto = require('crypto');
 const LabProfile = require('../models/LabProfile');
 const OnboardingProgress = require('../models/OnboardingProgress');
@@ -106,8 +107,9 @@ const uploadAsset = (field) => async (req, res, next) => {
 
 const getOnboarding = async (req, res, next) => {
   try {
-    let doc = await OnboardingProgress.findOne({ key: 'default' });
-    if (!doc) doc = await OnboardingProgress.create({ key: 'default', steps: {} });
+    // Atomic find-or-create: the dashboard asks twice at once on a fresh lab,
+    // and find-then-create raced into a duplicate-key 500.
+    const doc = await findOrCreate(OnboardingProgress, { key: 'default' }, { steps: {} });
     const done = ONBOARDING_STEPS.filter((s) => doc.steps.get(s.key)).length;
     return successResponse(res, 'Onboarding progress loaded', {
       steps: ONBOARDING_STEPS.map((s) => ({ ...s, done: !!doc.steps.get(s.key) })),

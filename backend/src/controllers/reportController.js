@@ -745,7 +745,7 @@ async function getReportForEntry(req, res, next) {
       });
     });
     panels.forEach((panel) => {
-      (panel.tests || []).forEach((t) => {
+      [...new Map((panel.tests || []).map((t) => [String(t._id), t])).values()].forEach((t) => {
         allTests.push({ type: 'Test', itemId: t._id, name: t.name, panelName: panel.name, sectionKey: `panel:${panel._id}`, sectionCategory: panel.category || null, sectionRank: panel.displayOrder ?? null });
       });
     });

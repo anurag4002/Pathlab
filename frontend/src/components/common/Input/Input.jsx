@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import './Input.css';
 
 const Input = ({
@@ -16,7 +16,9 @@ const Input = ({
   id,
   ...props
 }) => {
-  const inputId = id || name;
+  // Always link the label to the field, even when no id/name is given.
+  const autoId = useId();
+  const inputId = id || name || autoId;
 
   return (
     <div className={`form-group ${className}`}>

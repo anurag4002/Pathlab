@@ -1,11 +1,8 @@
 const SmsCredit = require('../models/SmsCredit');
+const { findOrCreate } = require('../utils/findOrCreate');
 
 async function ledger() {
-  let doc = await SmsCredit.findOne({ key: 'default' });
-  if (!doc) {
-    doc = await SmsCredit.create({ key: 'default', balance: 100, history: [{ kind: 'topup', credits: 100, note: 'Initial credits' }] });
-  }
-  return doc;
+  return findOrCreate(SmsCredit, { key: 'default' }, { balance: 100, history: [{ kind: 'topup', credits: 100, note: 'Initial credits' }] });
 }
 
 async function getBalance() {

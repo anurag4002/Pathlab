@@ -27,7 +27,7 @@ async function loadReportPrintTests(report) {
     ...panels.map(record => ({ record, type: 'panel', children: record.tests }))]) {
     // reportSectionOrder keeps rows in the panel's defined order (as printed
     // by the reference sheet) rather than the order results were entered.
-    (item.children || []).forEach((id, index) => membership.set(String(id), {
+    (item.children || []).forEach((id, index) => (membership.get(String(id))?.reportSectionKey === `${item.type}:${item.record._id}`) || membership.set(String(id), {
       reportSectionKey: `${item.type}:${item.record._id}`, reportSectionName: item.record.name,
       reportSectionDescription: item.record.description || '', reportSectionOrder: index,
       // The panel's own department and list position, when known.

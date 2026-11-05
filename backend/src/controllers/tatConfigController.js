@@ -1,3 +1,4 @@
+const { findOrCreate } = require('../utils/findOrCreate');
 const TatConfig = require('../models/TatConfig');
 const Activity = require('../models/Activity');
 const { successResponse, errorResponse } = require('../utils/response');
@@ -29,8 +30,7 @@ const validate = (obj) => {
 
 const getTatConfig = async (req, res, next) => {
   try {
-    let doc = await TatConfig.findOne({ key: 'default' });
-    if (!doc) doc = await TatConfig.create({ key: 'default', ...DEFAULTS });
+    const doc = await findOrCreate(TatConfig, { key: 'default' }, { ...DEFAULTS });
     return successResponse(res, 'TAT config loaded', doc);
   } catch (error) {
     next(error);

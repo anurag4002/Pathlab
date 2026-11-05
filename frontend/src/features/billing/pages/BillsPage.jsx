@@ -726,9 +726,8 @@ const BillsPage = () => {
           { key: 'patient', label: 'Patient', type: 'select', size: 'lg', options: patients.map((p) => ({ value: p._id, label: `${p.name} (${p.registrationNumber})` })), placeholder: 'All Patients' },
           { key: 'from', label: 'From', type: 'date' },
           { key: 'to', label: 'To', type: 'date' },
-          { key: 'voided', label: 'Voided bills', type: 'select', options: [
-            { value: '', label: 'Exclude voided bills' },
-            { value: 'true', label: 'Include voided bills' }
+          { key: 'voided', label: 'Voided bills', type: 'select', placeholder: 'Hide voided bills', options: [
+            { value: 'true', label: 'Show voided bills too' }
           ] },
           { key: 'branch', type: 'custom', size: 'md', render: ({ value, onChange }) => (
             <BranchFilter value={value} onChange={onChange} />

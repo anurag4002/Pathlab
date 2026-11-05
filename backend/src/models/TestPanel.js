@@ -41,4 +41,27 @@ const TestPanelSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// A panel lists each test once. Imported panels repeated tests whose names
+// contain a comma ("Hematocrit Value, Hct"); keep the first position.
+const uniqueIds = (list = []) => {
+  const seen = new Set();
+  return list.filter((id) => {
+    const key = String(id?._id || id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+TestPanelSchema.pre('validate', function dedupeTests(next) {
+  if (Array.isArray(this.tests)) this.tests = uniqueIds(this.tests);
+  next();
+});
+TestPanelSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function dedupeUpdatedTests(next) {
+  const update = this.getUpdate() || {};
+  if (Array.isArray(update.tests)) update.tests = uniqueIds(update.tests);
+  if (Array.isArray(update.$set?.tests)) update.$set.tests = uniqueIds(update.$set.tests);
+  next();
+});
+TestPanelSchema.statics.uniqueTestIds = uniqueIds;
+
 module.exports = mongoose.model('TestPanel', TestPanelSchema);

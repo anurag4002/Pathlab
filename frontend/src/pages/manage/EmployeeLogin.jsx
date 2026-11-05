@@ -259,7 +259,7 @@ const EmployeeLogin = () => {
     const payload = {
       name: nextForm.name.trim(),
       email: nextForm.email.trim(),
-      phone: (nextForm.phone || '').trim() || `9${String(Date.now()).slice(-9)}`,
+      phone: (nextForm.phone || '').trim(),
       role: nextForm.role || 'Employee',
       status: nextForm.status || 'Active',
       branch: nextForm.branch || undefined,

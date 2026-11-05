@@ -211,7 +211,7 @@ const TestPanels = () => {
             <td style={{ fontWeight: '600' }}>{panel.name}</td>
             <td>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {panel.tests?.map(t => (
+                {[...new Map((panel.tests || []).map((x) => [String(x?._id || x), x])).values()]?.map(t => (
                   <span key={t._id} style={{ fontSize: '0.75rem', backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
                     {t.code}
                   </span>

@@ -82,7 +82,7 @@ const ReferralBusiness = () => {
   return (
     <div>
       <PageHeader
-        title="Referreral Doctor Wise Report"
+        title="Referral Doctor Wise Report"
         subtitle="Filter by period, download cases data, print business — Labsmart parity"
         action={
           <div style={{ display: 'flex', gap: '8px' }}>

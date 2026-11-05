@@ -26,3 +26,17 @@ describe('onboarding constants', () => {
     }
   });
 });
+
+it('singleton settings survive simultaneous first requests (no duplicate-key 500)', async () => {
+  const mongoose = require('mongoose');
+  const { MongoMemoryServer } = require('mongodb-memory-server');
+  const { findOrCreate } = require('../src/utils/findOrCreate');
+  const server = await MongoMemoryServer.create();
+  const connection = await mongoose.createConnection(server.getUri()).asPromise();
+  const Model = connection.model('SingletonProbe', new mongoose.Schema({ key: { type: String, unique: true }, count: Number }));
+  await Model.init();
+  const docs = await Promise.all(Array.from({ length: 8 }, () => findOrCreate(Model, { key: 'default' }, { count: 1 })));
+  require('node:assert/strict').ok(docs.every((doc) => doc && doc.key === 'default'));
+  require('node:assert/strict').equal(await Model.countDocuments(), 1);
+  await connection.close(); await server.stop();
+});
