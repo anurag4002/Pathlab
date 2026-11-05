@@ -1,12 +1,9 @@
 .row-menu { position: relative; display: inline-flex; }
 .row-menu-trigger { display: inline-flex; align-items: center; justify-content: center; }
 .row-menu-list {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 20;
+  position: fixed;
+  z-index: 1000;
   display: grid;
-  min-width: 9.5rem;
   padding: 4px 0;
   background: #fff;
   border: 1px solid var(--color-border, #e5e7eb);
