@@ -8,7 +8,9 @@
     "backend": "npm start --prefix backend",
     "frontend": "npm run dev --prefix frontend",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
-    "seed": "npm run seed --prefix backend"
+    "seed": "npm run seed --prefix backend",
+    "e2e": "node e2e/full-flow.cjs",
+    "e2e:crawl": "node e2e/crawl.cjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
