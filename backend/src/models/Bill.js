@@ -129,6 +129,12 @@ const BillSchema = new mongoose.Schema({
     default: null,
     index: true
   },
+  // Google review request sent to the patient (Google Reviews page).
+  reviewRequest: {
+    askedAt: { type: Date, default: null },
+    askedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    channel: { type: String, enum: ['whatsapp', 'manual', null], default: null }
+  },
   // Fraud guard: void instead of hard delete (P-9).
   isVoided: {
     type: Boolean,

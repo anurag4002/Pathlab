@@ -645,7 +645,8 @@ const BillCreateForm = ({
         navigate('/cases/bills', { state: { savedBill: {
           _id: saved._id, billNumber: saved.billNumber, department: saved.department,
           patientId: saved.patient?._id || saved.patient || patientId,
-          patientName: saved.patient?.name || [patientForm.patientFirstName, patientForm.patientLastName].filter(Boolean).join(' ')
+          patientName: saved.patient?.name || [patientForm.patientFirstName, patientForm.patientLastName].filter(Boolean).join(' '),
+          phone: saved.patient?.phone || patientForm.patientPhone || ''
         } } });
       }
     } catch (err) {

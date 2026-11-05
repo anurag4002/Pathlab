@@ -12,6 +12,12 @@ export const SIDEBAR_NAV_ITEMS = [
     roles: ['Admin', 'Employee', 'Doctor']
   },
   {
+    title: 'Google Reviews',
+    path: '/reviews',
+    icon: 'Star',
+    roles: ['Admin', 'Employee']
+  },
+  {
     title: 'Business',
     icon: 'TrendingUp',
     roles: ['Admin'],

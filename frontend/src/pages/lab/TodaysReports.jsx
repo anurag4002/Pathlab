@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { WhatsAppShare } from '../../components/common';
+
 import useClientPagination from '../../hooks/useClientPagination';
 import {
   getTodaysReports,
@@ -1115,6 +1117,9 @@ const TodaysReports = () => {
                     >
                       <Download size={14} />
                     </button>
+                  )}
+                  {['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && (
+                    <WhatsAppShare kind="report" id={report._id} phone={report.patient?.phone} name={report.patient?.name} iconOnly />
                   )}
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openSend(report)} title="Send report notification">
                     <Send size={14} />

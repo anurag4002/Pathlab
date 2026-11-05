@@ -187,6 +187,9 @@ const getBills = async (filters = {}) => {
   if (filters.hasDue === 'true' || filters.hasDue === true) {
     query.dueAmount = { $gt: 0 };
   }
+  // Google Reviews page: who has / has not been asked for a review.
+  if (filters.reviewStatus === 'asked') query['reviewRequest.askedAt'] = { $ne: null };
+  if (filters.reviewStatus === 'pending') query['reviewRequest.askedAt'] = null;
   if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
   if (filters.dailyCaseNo) query.dailyCaseNo = { $regex: String(filters.dailyCaseNo), $options: 'i' };
   if (filters.regNo || filters.regno || filters.registrationNumber) {
@@ -255,6 +258,7 @@ const getBills = async (filters = {}) => {
       .populate('referringDoctor', 'name clinicHospital contact')
       .populate('agent', 'name phone')
       .populate('createdBy', 'name')
+      .populate('reviewRequest.askedBy', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

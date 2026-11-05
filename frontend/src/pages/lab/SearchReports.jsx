@@ -4,6 +4,8 @@ import { getReports } from '../../services/reportService';
 import { getTests } from '../../services/testService';
 import { getDoctors } from '../../services/doctorService';
 import { downloadReportPdf } from '../../services/publicService';
+import { WhatsAppShare } from '../../components/common';
+
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
@@ -159,6 +161,9 @@ const SearchReports = () => {
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <ReportPrintActions reportId={report._id} />
+                {['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && (
+                  <WhatsAppShare kind="report" id={report._id} phone={report.patient?.phone} name={report.patient?.name} iconOnly />
+                )}
                 <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)}>
                   <FileDown size={14} /> PDF
                 </button>

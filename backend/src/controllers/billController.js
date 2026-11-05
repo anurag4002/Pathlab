@@ -30,6 +30,7 @@ const getBills = async (req, res, next) => {
       uhid: req.query.uhid,
       dailyCaseNo: req.query.dailyCaseNo,
       includeVoided: req.query.includeVoided === 'true' || req.query.includeVoided === '1',
+      reviewStatus: req.query.reviewStatus,
       page: req.query.page,
       limit: req.query.limit
     };
@@ -115,7 +116,26 @@ const collectPayment = async (req, res, next) => {
   }
 };
 
+// PUT /bills/:id/review-request — mark (or undo) that the patient was asked
+// for a Google review. Body: { asked: boolean, channel?: 'whatsapp' | 'manual' }.
+const updateReviewRequest = async (req, res, next) => {
+  try {
+    const Bill = require('../models/Bill');
+    const bill = await Bill.findById(req.params.id);
+    if (!bill) return errorResponse(res, 'Bill not found', 404);
+    assertBranchAccess(req, bill.branch);
+    const asked = req.body?.asked !== false;
+    bill.reviewRequest = asked
+      ? { askedAt: new Date(), askedBy: req.user._id, channel: req.body?.channel === 'whatsapp' ? 'whatsapp' : 'manual' }
+      : { askedAt: null, askedBy: null, channel: null };
+    await bill.save();
+    await bill.populate('reviewRequest.askedBy', 'name');
+    return successResponse(res, asked ? 'Marked as asked for a review' : 'Review request cleared', { _id: bill._id, reviewRequest: bill.reviewRequest });
+  } catch (error) { return next(error); }
+};
+
 module.exports = {
+  updateReviewRequest,
   getBills,
   getBillById,
   createBill,

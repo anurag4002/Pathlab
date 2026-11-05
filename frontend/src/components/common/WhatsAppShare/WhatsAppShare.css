@@ -1,0 +1,7 @@
+.wa-share { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.wa-share .btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.wa-share .wa-share-btn { color: #15803d; border-color: #86efac; }
+.wa-share .wa-share-btn:hover:not(:disabled) { background: #f0fdf4; }
+.wa-share .wa-share-review { color: #a16207; border-color: #fde68a; }
+.wa-share .wa-share-review:hover:not(:disabled) { background: #fefce8; }
+.wa-share-error { max-width: 16rem; font-size: 0.72rem; color: #b91c1c; white-space: normal; }

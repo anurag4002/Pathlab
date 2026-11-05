@@ -21,3 +21,4 @@ export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export { default as TestCombobox } from './TestCombobox/TestCombobox';
 export { default as PatientPicker } from './PatientPicker/PatientPicker';
 export { default as BranchFilter } from './BranchFilter';
+export { default as WhatsAppShare } from './WhatsAppShare/WhatsAppShare';

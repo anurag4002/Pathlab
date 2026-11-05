@@ -173,3 +173,26 @@ test('print settings saved from result entry change the downloaded PDF', async (
   await call(updatePrintSettings, { params: { id: String(report._id) }, body: { sectionSettings: [{ key: sectionKey, printReady: false }] } });
   assert.ok(!textOf((await render(report, { qr: '0' })).bytes).includes('42'), 'print ready off hides the section');
 });
+
+test('Google Reviews: mark a bill as asked, filter by status, undo', async () => {
+  const { updateReviewRequest } = require('../src/controllers/billController');
+  const billService = require('../src/services/billService');
+  for (const model of ['Agent', 'User', 'Doctor']) require(`../src/models/${model}`);
+  const report = await fixture();
+  const call = (fn, req) => new Promise((resolve, reject) => {
+    const res = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { resolve({ status: this.statusCode, body }); return this; } };
+    Promise.resolve(fn({ user: admin, query: {}, headers: {}, ...req }, res, reject)).catch(reject);
+  });
+  const ids = list => (list.bills || list).map(bill => String(bill._id));
+  assert.ok(ids(await billService.getBills({ reviewStatus: 'pending', limit: 200 })).includes(String(report.bill)));
+  const asked = await call(updateReviewRequest, { params: { id: String(report.bill) }, body: { asked: true, channel: 'whatsapp' } });
+  assert.equal(asked.status, 200);
+  assert.ok(asked.body.data.reviewRequest.askedAt && asked.body.data.reviewRequest.channel === 'whatsapp');
+  // The test admin is not a stored user, so check the saved id directly.
+  const Bill = require('../src/models/Bill');
+  assert.equal(String((await Bill.findById(report.bill).lean()).reviewRequest.askedBy), String(admin._id));
+  assert.ok(ids(await billService.getBills({ reviewStatus: 'asked', limit: 200 })).includes(String(report.bill)));
+  assert.ok(!ids(await billService.getBills({ reviewStatus: 'pending', limit: 200 })).includes(String(report.bill)));
+  await call(updateReviewRequest, { params: { id: String(report.bill) }, body: { asked: false } });
+  assert.ok(ids(await billService.getBills({ reviewStatus: 'pending', limit: 200 })).includes(String(report.bill)));
+});

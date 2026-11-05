@@ -37,6 +37,7 @@ import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
+import { WhatsAppShare } from '../../../components/common';
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
@@ -638,6 +639,7 @@ const BillsPage = () => {
               </Button>
             )}
             <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => handleOpenPrint(savedBill)}>Print bill</Button>
+            <WhatsAppShare kind="bill" id={savedBill._id} phone={savedBill.phone} name={savedBill.patientName} billNumber={savedBill.billNumber} label="Send bill on WhatsApp" />
             {canBill && <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => { dismissSavedBill(); clearBookingPrefill(); navigate('/cases/bills/new'); }}>New bill</Button>}
             <button type="button" className="bill-saved-close" aria-label="Dismiss" onClick={dismissSavedBill}>×</button>
           </span>
@@ -797,6 +799,7 @@ const BillsPage = () => {
                     <Button variant="secondary" size="sm" onClick={() => handleDownloadPdf(bill)} icon={<FileDown size={14} />} data-testid="bill-pdf" aria-label={`PDF ${bill.billNumber}`}>
                   PDF
                 </Button>
+                {!bill.isVoided && <WhatsAppShare kind="bill" id={bill._id} phone={bill.patient?.phone} name={bill.patient?.name} billNumber={bill.billNumber} iconOnly />}
                 {!bill.isVoided && ['LAB', undefined, null, ''].includes(bill.department) && (bill.patient?._id || bill.patient) && (
                   <Button variant="secondary" size="sm" icon={<FileEdit size={14} />} data-testid="bill-results" aria-label={`Results ${bill.billNumber}`}
                     onClick={() => navigate(`/lab/result-entry?bill=${bill._id}&patient=${bill.patient?._id || bill.patient}`)}>

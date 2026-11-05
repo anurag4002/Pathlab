@@ -26,6 +26,8 @@ export const voidBill = async (id, reason) => {
 };
 
 export const refundBill = async (id, data) => (await apiClient.post(`/bills/${id}/refund`, data)).data;
+// Google Reviews page: mark (asked: true) or clear (asked: false) a review request.
+export const updateReviewRequest = async (id, data) => (await apiClient.put(`/bills/${id}/review-request`, data)).data;
 export const updateBill = async (id, data) => (await apiClient.put(`/bills/${id}`, data)).data;
 export const getCashbook = async (params = {}) => (await apiClient.get('/bills/cashbook', { params })).data;
 export const createManualCashEntry = async (data) => (await apiClient.post('/bills/cashbook', data)).data;

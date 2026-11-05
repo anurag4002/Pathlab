@@ -12,7 +12,8 @@ import {
   AdvancedFilterBar,
   Modal,
   FileUploader,
-  Select
+  Select,
+  WhatsAppShare
 } from '../../components/common';
 import {
   getPendingLabCases,
@@ -1234,6 +1235,7 @@ const ResultEntry = () => {
                         <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
                           PDF
                         </Button>
+                        <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ')} size="md" label="Send on WhatsApp" />
                         {nextCase && (
                           <Button variant="secondary" onClick={() => openCase(nextCase)} disabled={busy !== null}>
                             Next case: {nextCase.bill?.patient?.name || nextCase.bill?.billNumber || 'pending'}
