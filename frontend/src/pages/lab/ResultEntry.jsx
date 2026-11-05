@@ -41,6 +41,7 @@ import { differentialTotalsByRow } from '../../utils/differentialCount';
 import '../../styles/ResultEntry.css';
 import ReportTatEditor from '../../components/lab/ReportTatEditor';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
+import DocumentResultEditor from '../../components/lab/DocumentResultEditor';
 import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
 import { hasInterpretation } from '../../utils/interpretationContent';
@@ -825,13 +826,7 @@ const ResultEntry = () => {
               setCustomResultKeys((prev) => ({ ...prev, [key]: next === '__other__' }));
               handleValueChange(key, next === '__other__' ? '' : next);
             }} />}
-          {!isDerived && testEntry.sourceType === 'Document' ? <textarea
-            id={`result-${key}`} name={`result-${key}`} className="form-control re-document-result"
-            rows={Math.min(16, Math.max(4, String(displayValue || '').split('\n').length + 1))}
-            title='Each line prints as written. Lines like "| S TYPHI O | + | - |" print as a table.'
-            aria-label={`Result value for ${testEntry.testName || 'test'}`} placeholder="Enter report findings"
-            value={displayValue} onChange={event => handleValueChange(key, event.target.value)}
-            disabled={busy !== null || isReportFinal(entry?.report?.status)} /> :
+          {!isDerived && testEntry.sourceType === 'Document' ? <span className="re-document-hint">Findings below</span> :
           (isDerived || !testEntry.resultOptions?.length || customResultKeys[key] || (displayValue && !testEntry.resultOptions.includes(displayValue))) && <Input
             id={`result-${key}`}
             name={`result-${key}`}
@@ -868,6 +863,13 @@ const ResultEntry = () => {
           <input id={`remark-${key}`} className="ls-remark-input" type="text" maxLength={500} placeholder="Printed under the test name"
             value={remarks[key] || ''} disabled={busy !== null || isReportFinal(entry?.report?.status)}
             onChange={(event) => { const next = event.target.value; setRemarks((prev) => ({ ...prev, [key]: next })); setDirty(true); }} />
+        </td></tr>
+      )}
+      {!isDerived && testEntry.sourceType === 'Document' && (
+        <tr className="ls-document-row"><td colSpan={5}>
+          <DocumentResultEditor id={`result-${key}`} label={`Result value for ${testEntry.testName || 'test'}`}
+            value={displayValue} onChange={(next) => handleValueChange(key, next)}
+            disabled={busy !== null || isReportFinal(entry?.report?.status)} />
         </td></tr>
       )}
       <DifferentialTotalRow total={differentialTotals.get(key)} withFlagColumn />

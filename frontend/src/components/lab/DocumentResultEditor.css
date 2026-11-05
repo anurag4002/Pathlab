@@ -1,0 +1,42 @@
+.doc-editor { width: 100%; }
+.doc-editor-sheet {
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background: var(--surface, #fff);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8125rem;
+}
+.doc-editor-line {
+  display: block; width: 100%; border: 1px solid transparent; border-radius: 4px;
+  background: transparent; color: inherit; font: inherit; line-height: 1.45;
+  padding: 0.15rem 0.3rem; resize: none; overflow: hidden;
+}
+.doc-editor-line:hover:not(:disabled) { border-color: var(--border-color, #e2e8f0); }
+.doc-editor-line:focus { outline: none; border-color: var(--primary, #2563eb); background: var(--surface-muted, #f8fafc); }
+.doc-editor-gap { height: 0.45rem; }
+.doc-editor-table-wrap { margin: 0.35rem 0; overflow-x: auto; }
+.doc-editor-table { border-collapse: collapse; width: 100%; min-width: 360px; }
+.doc-editor-table td { border: 1px solid #94a3b8; padding: 0; }
+.doc-editor-table tr:first-child td { background: var(--surface-muted, #f1f5f9); font-weight: 600; }
+.doc-editor-table td.doc-editor-label { min-width: 9rem; }
+.doc-editor-table input {
+  width: 100%; border: 0; background: transparent; color: inherit; font: inherit;
+  padding: 0.25rem 0.4rem; min-width: 2.5rem;
+}
+.doc-editor-table input:focus { outline: 2px solid var(--primary, #2563eb); outline-offset: -2px; background: #fff; }
+.doc-editor-add {
+  margin-top: 0.25rem; border: 0; background: none; color: var(--primary, #2563eb);
+  font-size: 0.75rem; cursor: pointer; padding: 0.1rem 0;
+}
+.doc-editor-bar {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+  margin-top: 0.3rem; font-size: 0.7rem; color: var(--text-muted, #64748b);
+}
+.doc-editor-switch {
+  border: 1px solid var(--border-color, #cbd5e1); background: var(--surface, #fff); color: inherit;
+  border-radius: 4px; padding: 0.15rem 0.5rem; font-size: 0.7rem; cursor: pointer; white-space: nowrap;
+}
+.doc-editor-text { font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; }
+@media (max-width: 640px) {
+  .doc-editor-bar span { display: none; }
+}

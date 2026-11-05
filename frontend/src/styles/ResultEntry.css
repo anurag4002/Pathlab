@@ -503,3 +503,8 @@
 .ls-case-menu-list { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 5; display: grid; min-width: 11rem; padding: 4px 0; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); }
 .ls-case-menu-list button { padding: 8px 14px; border: 0; background: transparent; text-align: left; font: inherit; font-size: 0.9rem; cursor: pointer; }
 .ls-case-menu-list button:hover, .ls-case-menu-list button:focus-visible { background: #f1f5f9; }
+
+/* Document tests (Widal, FNAC, PAP, Culture): findings editor spans the row */
+.ls-document-row td { padding: 0.25rem 0.75rem 0.75rem 1.5rem; }
+.re-document-hint { font-size: 0.75rem; color: var(--text-muted, #64748b); font-style: italic; }
+@media (max-width: 640px) { .ls-document-row td { padding-left: 0.5rem; padding-right: 0.5rem; } }

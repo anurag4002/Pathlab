@@ -420,16 +420,28 @@ async function download(page, trigger) {
     await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(1000);
     await page.locator('.bill-saved-bar button', { hasText: 'Enter results' }).click();
     await page.locator('.ls-sheet').waitFor({ timeout: 20000 });
-    const box = page.locator('textarea.re-document-result').first();
-    const template = await box.inputValue();
-    assert.match(template, /Tube agglutination test/); assert.match(template, /\| S TYPHI "O" \|/);
-    await box.fill(template.replace('<POSTIVE/NEGATIVE>', 'POSITIVE'));
+    // The findings show as the printed layout: the titre grid is a real table.
+    const editor = page.locator('.ls-document-row .doc-editor').first();
+    const cells = editor.locator('.doc-editor-table input');
+    assert.equal(await cells.count(), 30, 'Widal grid 5 x 6');
+    assert.equal(await cells.nth(1).inputValue(), '1:30');
+    assert.equal(await cells.nth(6).inputValue(), 'S TYPHI "O"');
+    assert.match(await editor.locator('textarea.doc-editor-line').first().inputValue(), /Tube agglutination test/);
+    await page.locator('.ls-document-row').first().screenshot({ path: require('path').join(require('./config.cjs').OUT, 'widal-entry.png') });
+    await cells.nth(28).fill('+'); // S PARATYPHI "BH" at 1:240
+    const comment = editor.locator('textarea.doc-editor-line').nth(1);
+    assert.equal(await comment.inputValue(), 'Comment: WIDAL TEST <POSTIVE/NEGATIVE>');
+    await comment.fill('Comment: WIDAL TEST POSITIVE');
+    // Edit as text shows the same findings with the grid as "| a | b |" lines.
+    await editor.getByRole('button', { name: 'Edit as text' }).click();
+    assert.match(await page.locator('.ls-document-row textarea.doc-editor-text').inputValue(), /\| S PARATYPHI "BH" \| \+ \| \+ \| - \| \+ \| - \|/);
+    await page.locator('.ls-document-row').getByRole('button', { name: 'Show as report' }).click();
     await page.locator('.re-actions-bar button', { hasText: /^Final$/ }).click(); await page.waitForTimeout(1500);
     const { target } = await download(page, () => page.locator('.re-actions-bar button', { hasText: /^PDF$/ }).click());
     const text = pdfText(target);
     assert.match(text, /Widal \(Tube Method\)/);
     assert.match(text, /1:30\s+1:60\s+1:120\s+1:240\s+1:480/);
-    assert.match(text, /S PARATYPHI "BH"\s+\+\s+\+\s+-\s+-\s+-/);
+    assert.match(text, /S PARATYPHI "BH"\s+\+\s+\+\s+-\s+\+\s+-/);
     assert.match(text, /Comment: WIDAL TEST POSITIVE/);
   });
 
