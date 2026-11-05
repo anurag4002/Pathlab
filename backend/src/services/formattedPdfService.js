@@ -310,7 +310,15 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       }
     }
     space((showHeader ? headerHeight : 0) + titleHeight + lineHeight + rowExtra); tableHeader();
+    const rowHeight = cells => Math.max(...cells.map((cell, j) => lines(cell.text, widthsFor(cells)[j] - padX * 2 - (cell.indent || 0), cell.bold, size).length)) * lineHeight + rowExtra;
     rows.forEach((cells, index) => {
+      // A multi-parameter test (parent row, sub-headings, parameters) moves
+      // whole to the next page instead of splitting, when it fits on a page.
+      if (cells.group && rows[index - 1]?.group !== cells.group) {
+        let groupHeight = 0;
+        for (let j = index; j < rows.length && rows[j].group === cells.group; j++) groupHeight += rowHeight(rows[j]);
+        if (y + groupHeight > limit && groupHeight <= limit - contentTop - headerHeight) { newPage(); continueTable(); }
+      }
       const heights = cells.map((cell, j) => lines(cell.text, widthsFor(cells)[j] - padX * 2 - (cell.indent || 0), cell.bold, size));
       const total = Math.max(...heights.map(l => l.length)); let offset = 0;
       while (offset < total) {
@@ -704,13 +712,13 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: r.flag && r.flag !== 'N' ? r.flag : '', bold });
         return cells;
       };
-      const parentCells = name => {
-        const cells = [{ text: String(name).toUpperCase() }, { text: '' }, { text: '' }, { text: '' }];
+      const parentCells = (name, indent = 0) => {
+        const cells = [{ text: String(name).toUpperCase(), indent }, { text: '' }, { text: '' }, { text: '' }];
         if (options.flags) cells.splice(format.flagPlacement === 'before-value' ? 1 : 4, 0, { text: '' });
         return cells;
       };
       const groupRows = group => {
-        const rows = []; let parentName = '';
+        const rows = []; let parentName = '', subheading = '';
         group.items.forEach(({ result: r, test: t }) => {
           const child = !!(r.parameterCode && t.parentName);
           const name = child ? (r.testName || t.name || '').replace(`${t.parentName}: `, '') : r.testName || t.sourceFieldName || t.name || '';
@@ -718,14 +726,21 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
           if (child) {
             // Parameterised tests print their parent once, then the measured
             // children indented underneath, as on the reference sheet.
+            const groupKey = `test:${t._id || t.parentName}`;
             if (parentName !== t.parentName) {
               const previous = rows.at(-1)?.[0]?.text;
-              if (String(previous || '').toUpperCase() !== String(t.parentName).toUpperCase()) rows.push(parentCells(t.parentName));
-              parentName = t.parentName;
+              if (String(previous || '').toUpperCase() !== String(t.parentName).toUpperCase()) rows.push(Object.assign(parentCells(t.parentName), { group: groupKey }));
+              parentName = t.parentName; subheading = '';
             }
-            rows.push(cellsFor(name, bold, r, t, TEST_INDENT));
+            // Nested tests (Urine / Stool / Semen / Fluid examination) print
+            // their sub-headings ("PHYSICAL EXAMINATION") with the parameters
+            // indented one more step under them.
+            const nextHeading = String(t.subheading || '').trim();
+            if (nextHeading && nextHeading !== subheading) rows.push(Object.assign([{ text: nextHeading.toUpperCase(), indent: TEST_INDENT, bold: true }], { group: groupKey, widths: [width] }));
+            if (nextHeading) subheading = nextHeading;
+            rows.push(Object.assign(cellsFor(name, bold, r, t, subheading ? TEST_INDENT * 2 : TEST_INDENT), { group: groupKey }));
           } else {
-            parentName = '';
+            parentName = ''; subheading = '';
             rows.push(cellsFor(name, bold, r, t));
           }
         });

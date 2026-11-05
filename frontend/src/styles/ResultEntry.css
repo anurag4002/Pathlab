@@ -406,6 +406,8 @@
 .ls-table .ls-flag { width: 2.5rem; text-align: center; }
 .ls-table .re-result-cell { width: 22%; }
 .ls-row-child .ls-test { padding-left: 2.25rem; }
+/* Nested tests: "PHYSICAL EXAMINATION" style sub-headings between parameters */
+.ls-subheading-row td { padding: 0.5rem 0.75rem 0.25rem 1.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; color: var(--text-muted, #475569); text-transform: uppercase; }
 .ls-derived input { border-color: #f59e0b; }
 .ls-table tbody tr:last-child td { border-bottom: 1px solid #111827; }
 

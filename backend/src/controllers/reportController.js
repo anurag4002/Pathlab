@@ -827,6 +827,7 @@ async function getReportForEntry(req, res, next) {
         sectionDepartmentRank: new Date((t.sectionCategory || test?.category)?.createdAt || NaN).getTime() || null,
         sectionRank: t.sectionKey?.startsWith('panel:') ? t.sectionRank ?? null : test?.displayOrder ?? null,
         parentName: test?.parentName || '',
+        subheading: test?.subheading || '',
         formulaInput: !!t.formulaInput,
         existingValue: row?.value || '',
         existingUnit: row?.unit || '',

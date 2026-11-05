@@ -1,0 +1,6 @@
+{
+  "Urine Routine Examination": [["Quantity", "PHYSICAL EXAMINATION"], ["Protein / Albumin", "CHEMICAL EXAMINATION"], ["R.B.C.", "MICROSCOPIC EXAMINATION"]],
+  "Semen Examination": [["Quantity", "PHYSICAL AND CHEMICAL CHARACTERISTICS"], ["Total Sperm Count", "MICROSCOPIC EXAMINATION"]],
+  "Stool Routine Examination": [["Colour", "MACROSCOPIC"], ["OVA", "MICROSCOPIC"]],
+  "Fluid Examination": [["Coagulum", "PHYSICAL EXAMINATION"], ["Protein", "CHEMICAL EXAMINATION"], ["Total Leukocyte Count", "MICROSCOPIC EXAMINATION"]]
+}

@@ -1151,6 +1151,9 @@ const ResultEntry = () => {
                                     </div>
                                   </td></tr>
                                 )}
+                                {test.subheading && (!index || group.tests[index - 1].subheading !== test.subheading || group.tests[index - 1].parentName !== test.parentName) && (
+                                  <tr className="ls-subheading-row"><td colSpan={5}>{test.subheading}</td></tr>
+                                )}
                                 {renderTestRow(test, index)}
                               </React.Fragment>
                             ))}</tbody>

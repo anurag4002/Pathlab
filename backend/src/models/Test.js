@@ -104,6 +104,8 @@ const TestSchema = new mongoose.Schema({
   referenceRanges: [ReferenceRangeSchema],
   parameters: [{
     _id: false, code: { type: String, required: true }, name: { type: String, required: true },
+    // Sub-heading this parameter prints under (nested tests: "PHYSICAL EXAMINATION").
+    subheading: { type: String, default: '' },
     sourceFieldId: { type: String }, sourceFieldName: { type: String }, sourceRange: { type: mongoose.Schema.Types.Mixed },
     referenceAgeDaysPerYear: { type: Number, default: 365.25 },
     unit: { type: String, default: '' }, referenceRange: { type: String, default: '' },

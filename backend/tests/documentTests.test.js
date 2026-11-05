@@ -58,3 +58,23 @@ test('report PDF prints a Document test as its own titled box, after the result 
   assert.ok(text.indexOf('DENGUE IGG') < text.indexOf('Widal (Tube Method)'), 'result table before the document box');
   assert.equal(text.includes('WIDAL (TUBE METHOD)'), false, 'not printed as a one-line table row');
 });
+
+test('nested tests print sub-headings with parameters indented under them', async () => {
+  const format = { ...REFERENCE_FORMAT, useReferenceBranding: false };
+  const profile = { labName: 'Doc Lab', documentFormats: [format], reportFormatId: 'reference', showLetterheadByDefault: false, showFooterByDefault: false, showWatermark: false, showBarcode: false, showQR: false, showSignatures: false };
+  const category = { name: 'CLINICAL PATHOLOGY', createdAt: new Date('2024-01-01') };
+  const stool = { _id: 'stool', name: 'Stool Routine Examination', category, reportSectionKey: 'test:stool', parameters: [
+    { code: 'C', name: 'Colour', subheading: 'MACROSCOPIC' }, { code: 'M', name: 'Mucus', subheading: 'MACROSCOPIC' }, { code: 'O', name: 'OVA', subheading: 'MICROSCOPIC' }] };
+  const { expandTests } = require('../src/services/testDefinitions');
+  const testMap = {};
+  const results = expandTests([stool]).map(t => { testMap[`stool:${t.parameterCode}`] = { ...t, reportSectionKey: 'test:stool' }; return { test: 'stool', parameterCode: t.parameterCode, testName: t.name, value: '10' }; });
+  // The renderer looks tests up by "<id>:<parameterCode>".
+  const pdf = await reportPdf({ profile, patient: { name: 'P', age: 30, gender: 'Male' }, bill: { billNumber: 'N1', department: 'LAB' },
+    report: { registrationNumber: 'N1', results }, testMap: { ...testMap, stool: { ...stool } } },
+  { letterhead: false, footer: false, watermark: false, barcode: false, qr: false, signatures: false, pageno: true, interpretation: true, endline: true, dept: true });
+  const text = textOf(pdf);
+  const order = ['STOOL ROUTINE EXAMINATION', 'MACROSCOPIC', 'COLOUR', 'MUCUS', 'MICROSCOPIC', 'OVA'].map(word => text.indexOf(word));
+  assert.ok(order.every(i => i >= 0), JSON.stringify(order));
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
+  assert.equal(text.split('MACROSCOPIC').length - 1, 1, 'each sub-heading printed once');
+});
