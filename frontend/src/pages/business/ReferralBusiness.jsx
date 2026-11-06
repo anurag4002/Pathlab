@@ -5,6 +5,9 @@ import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Eye, FileSpreadsheet, Printer } from 'lucide-react';
 import { PageHeader, DataTable, Modal, Button, AdvancedFilterBar } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import printReport from '../../utils/printReport';
+import { money, dayLabel, periodLabel, sum } from '../../utils/reportFormat';
 
 const ReferralBusiness = () => {
   const todayStr = new Date().toISOString().split('T')[0];
@@ -79,6 +82,39 @@ const ReferralBusiness = () => {
     a.click();
   };
 
+  const isV2 = useUiVersion() === 'v2';
+  // Print: one line per doctor (what each is owed); "with bills" adds each
+  // doctor's bill list so it can be handed over as a statement.
+  const printReferrals = (withBills) => {
+    const rows = filteredReport;
+    printReport({
+      title: withBills ? 'Referral doctors - statements' : 'Referral doctors',
+      period: periodLabel(startDate, endDate),
+      filters: [search && `Search: ${search}`],
+      summary: [
+        { label: 'Doctors', value: String(rows.length) },
+        { label: 'Bills', value: String(sum(rows, (r) => r.billsCount)) },
+        { label: 'Billed', value: money(sum(rows, (r) => r.totalBillsAmount)) },
+        { label: 'Commission', value: money(sum(rows, (r) => r.totalCommission)) },
+      ],
+      sections: [
+        {
+          title: 'Summary',
+          columns: [{ label: 'Doctor' }, { label: 'Clinic / contact' }, { label: 'Bills', align: 'right' }, { label: 'Commission %', align: 'right' }, { label: 'Billed', align: 'right' }, { label: 'Commission', align: 'right' }],
+          rows: rows.map((r) => [r.doctorName, r.clinicHospital || r.contact || '', String(r.billsCount ?? 0), `${r.commissionPercentage ?? 0}%`, money(r.totalBillsAmount), money(r.totalCommission)]),
+          totals: ['Total', '', String(sum(rows, (r) => r.billsCount)), '', money(sum(rows, (r) => r.totalBillsAmount)), money(sum(rows, (r) => r.totalCommission))],
+          empty: 'No referred bills in this period.',
+        },
+        ...(withBills ? rows.map((r) => ({
+          title: `${r.doctorName} - ${r.commissionPercentage ?? 0}% commission`,
+          columns: [{ label: 'Date' }, { label: 'Bill no' }, { label: 'Patient' }, { label: 'Bill amount', align: 'right' }, { label: 'Commission', align: 'right' }],
+          rows: (r.billsList || []).map((b) => [dayLabel(b.date), b.billNumber, b.patientName, money(b.amount), money(b.commissionAmount)]),
+          totals: ['Total', '', `${(r.billsList || []).length} bills`, money(sum(r.billsList || [], (b) => b.amount)), money(sum(r.billsList || [], (b) => b.commissionAmount))],
+        })) : []),
+      ],
+    });
+  };
+
   return (
     <div>
       <PageHeader
@@ -87,8 +123,8 @@ const ReferralBusiness = () => {
         action={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="secondary" size="sm" onClick={downloadCsv}>Download cases data</Button>
-            <Button variant="secondary" size="sm" onClick={() => window.print()} icon={<Printer size={14} />}>Print</Button>
-            <Button variant="secondary" size="sm" onClick={() => window.print()}>Print Business</Button>
+            <Button variant="secondary" size="sm" onClick={() => printReferrals(false)} icon={<Printer size={14} />}>Print</Button>
+            <Button variant="secondary" size="sm" onClick={() => printReferrals(true)}>{isV2 ? 'Print with bills' : 'Print Business'}</Button>
           </div>
         }
       />

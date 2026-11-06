@@ -234,7 +234,8 @@ const DataExport = () => {
               name="export-start-date"
               label="From"
               value={customStart}
-              onChange={(event) => setCustomStart(event.target.value)}
+              onChange={(event) => { const v = event.target.value; setCustomStart(v); if (v && customEnd && v > customEnd) setCustomEnd(v); }}
+              max={customEnd || undefined}
               error={rangeError || undefined}
               required
             />
@@ -242,7 +243,8 @@ const DataExport = () => {
               name="export-end-date"
               label="To"
               value={customEnd}
-              onChange={(event) => setCustomEnd(event.target.value)}
+              onChange={(event) => { const v = event.target.value; setCustomEnd(v); if (v && customStart && v < customStart) setCustomStart(v); }}
+              min={customStart || undefined}
               error={rangeError || undefined}
               required
             />

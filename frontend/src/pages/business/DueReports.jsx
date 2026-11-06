@@ -6,7 +6,9 @@ import { PAYMENT_METHODS } from '../../constants/billConstants';
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Printer } from 'lucide-react';
+import printReport, { fetchAllPages } from '../../utils/printReport';
+import { money, dayLabel, sum } from '../../utils/reportFormat';
 import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge, AdvancedFilterBar, IdentityCell, StatGroup } from '../../components/common';
 import { useUiVersion } from '../../utils/uiVersion';
 import { getSummary } from '../../services/dashboardService';
@@ -110,11 +112,45 @@ const DueReports = () => {
     }
   };
 
+  // Print: every bill with money still to collect (all pages), oldest first.
+  const [printing, setPrinting] = useState(false);
+  const printDues = async () => {
+    setPrinting(true);
+    try {
+      const all = (await fetchAllPages(async (p, size) => {
+        const res = await getBills({ search: debouncedSearch, paymentStatus: 'Outstanding', page: p, limit: size });
+        return { items: res?.data?.bills || [], pages: res?.data?.pagination?.pages || 1 };
+      })).filter((b) => b.paymentStatus !== 'Paid' && Number(b.dueAmount) > 0)
+        .filter((b) => !deptFilter || String(b.department || '').toUpperCase() === deptFilter.toUpperCase())
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      const daysOld = (d) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
+      await printReport({
+        title: 'Dues - money still to collect',
+        period: `As on ${dayLabel(new Date().toISOString().slice(0, 10))}`,
+        filters: [deptFilter && `Department: ${deptFilter}`, debouncedSearch && `Search: ${debouncedSearch}`],
+        summary: [
+          { label: 'Bills with a balance', value: String(all.length) },
+          { label: 'Billed', value: money(sum(all, (b) => b.totalAmount)) },
+          { label: 'Received', value: money(sum(all, (b) => b.paidAmount)) },
+          { label: 'Still to collect', value: money(sum(all, (b) => b.dueAmount)) },
+        ],
+        sections: [{
+          columns: [{ label: 'Bill no' }, { label: 'Patient' }, { label: 'Phone' }, { label: 'Bill date' }, { label: 'Days', align: 'right' }, { label: 'Amount', align: 'right' }, { label: 'Received', align: 'right' }, { label: 'Still to collect', align: 'right' }],
+          rows: all.map((b) => [b.billNumber, b.patient?.name || 'Walk-in', b.patient?.phone || '', dayLabel(b.date), String(daysOld(b.date)), money(b.totalAmount), money(b.paidAmount), money(b.dueAmount)]),
+          totals: ['Total', `${all.length} bills`, '', '', '', money(sum(all, (b) => b.totalAmount)), money(sum(all, (b) => b.paidAmount)), money(sum(all, (b) => b.dueAmount))],
+          empty: 'Nothing to collect - every bill is paid.',
+        }],
+        note: 'Days = days since the bill was made. Oldest bills first.',
+      });
+    } catch { notify('Could not prepare the print. Try again.'); } finally { setPrinting(false); }
+  };
+
   return (
     <div>
       <PageHeader
         title="Outstanding Balances Due"
         subtitle="Trace and collect partial or unpaid balances on patient invoice files"
+        action={<Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printDues} loading={printing}>Print</Button>}
       />
       {!canCollect && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)', marginBottom: '1rem' }}>

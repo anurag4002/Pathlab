@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import printReport from '../../utils/printReport';
+import { money, dayLabel, sum } from '../../utils/reportFormat';
 import { Download, Printer, RefreshCw } from 'lucide-react';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { getExpenses } from '../../services/expenseService';
@@ -423,6 +425,56 @@ const MonthlyBusiness = () => {
     .filter((entry) => hasValue(entry?.expenses))
     .map((entry) => ({ label: String(entry.date).slice(8, 10), value: Number(entry.expenses) }));
 
+  // Print: the month on one sheet - totals, a line per day, payment modes,
+  // departments and expense categories (no charts, no buttons).
+  const printMonthly = () => {
+    if (!report || !monthRange) return;
+    const split = Array.isArray(report.caseSplit) ? report.caseSplit : [];
+    const modes = report.incomeSplit && typeof report.incomeSplit === 'object' && !Array.isArray(report.incomeSplit) ? Object.entries(report.incomeSplit) : [];
+    const days = dailyOverview.filter((d) => Number(d.income) || Number(d.expenses) || Number(d.net));
+    printReport({
+      title: 'Monthly business',
+      period: monthRange.label,
+      summary: [
+        { label: 'Bills', value: String(caseTotals?.billedCases ?? 0) },
+        { label: 'Billed', value: money(caseTotals?.billed) },
+        { label: 'Received', value: money(report.totalIncome) },
+        { label: 'Still to collect', value: money(caseTotals?.due) },
+        { label: 'Spent', value: money(report.totalExpenses) },
+        { label: 'Refunded', value: money(report.totalRefunds) },
+        { label: 'Profit', value: money(report.netIncome) },
+      ],
+      sections: [
+        {
+          title: 'Day by day',
+          columns: [{ label: 'Date' }, { label: 'Received', align: 'right' }, { label: 'Spent', align: 'right' }, { label: 'Profit', align: 'right' }],
+          rows: days.map((d) => [dayLabel(String(d.date).slice(0, 10)), money(d.income), money(d.expenses), money(d.net)]),
+          totals: ['Total', money(sum(days, (d) => d.income)), money(sum(days, (d) => d.expenses)), money(sum(days, (d) => d.net))],
+          empty: 'No business recorded this month.',
+        },
+        modes.length > 0 && {
+          title: 'Received by payment mode',
+          columns: [{ label: 'Mode' }, { label: 'Received', align: 'right' }],
+          rows: modes.map(([mode, amount]) => [mode, money(amount)]),
+          totals: ['Total', money(sum(modes, ([, amount]) => amount))],
+        },
+        split.length > 0 && {
+          title: 'By department',
+          columns: [{ label: 'Department' }, { label: 'Bills', align: 'right' }, { label: 'Billed', align: 'right' }, { label: 'Received', align: 'right' }, { label: 'Still to collect', align: 'right' }],
+          rows: split.map((c) => [c.department, String(c.count ?? ''), money(c.billed), money(c.collected), money(c.due)]),
+          totals: ['Total', String(sum(split, (c) => c.count)), money(sum(split, (c) => c.billed)), money(sum(split, (c) => c.collected)), money(sum(split, (c) => c.due))],
+        },
+        expenseCategories.length > 0 && {
+          title: 'Expenses by category',
+          columns: [{ label: 'Category' }, { label: 'Spent', align: 'right' }],
+          rows: expenseCategories.map((c) => [c.category, money(c.total)]),
+          totals: ['Total', money(sum(expenseCategories, (c) => c.total))],
+        },
+      ],
+      note: 'Received counts payments made this month. Billed and still to collect are for bills dated this month. Days with no business are left out.',
+    });
+  };
+
   return (
     <div>
       <PageHeader
@@ -430,7 +482,7 @@ const MonthlyBusiness = () => {
         subtitle="Server-backed monthly collections, expenses, case activity, and ledger details"
         action={
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => window.print()}>
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printMonthly} disabled={!report}>
               Print
             </Button>
             <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={handleRefresh}>

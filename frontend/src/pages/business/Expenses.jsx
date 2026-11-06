@@ -5,7 +5,9 @@ import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
 import { EXPENSE_CATEGORIES } from '../../constants/businessConstants';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
-import { Plus, Edit2, Trash2, Landmark } from 'lucide-react';
+import { Plus, Edit2, Trash2, Landmark, Printer } from 'lucide-react';
+import printReport from '../../utils/printReport';
+import { money, dayLabel, sum } from '../../utils/reportFormat';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 import { notify } from '../../components/common/Toast/toast';
@@ -42,6 +44,38 @@ const Expenses = () => {
   const pg = useClientPagination(expenses, 10);
 
   const allCats = cats || EXPENSE_CATEGORIES;
+
+  // Print: every expense loaded for the chosen month / year / search,
+  // with a total per category.
+  const printExpenses = () => {
+    const list = Array.isArray(expenses) ? expenses : [];
+    const monthName = month ? new Date(2000, Number(month) - 1, 1).toLocaleString('en-IN', { month: 'long' }) : '';
+    const byCat = Object.entries(list.reduce((acc, e) => { const k = e.category || 'Other'; acc[k] = (acc[k] || 0) + (Number(e.amount) || 0); return acc; }, {})).sort((a, b) => b[1] - a[1]);
+    printReport({
+      title: 'Expenses',
+      period: [monthName, year].filter(Boolean).join(' ') || 'All dates',
+      filters: [filterText && `Search: ${filterText}`],
+      summary: [
+        { label: 'Spent', value: money(sum(list, (e) => e.amount)) },
+        { label: 'Entries', value: String(list.length) },
+      ],
+      sections: [
+        byCat.length > 1 && {
+          title: 'By category',
+          columns: [{ label: 'Category' }, { label: 'Spent', align: 'right' }],
+          rows: byCat.map(([cat, amount]) => [cat, money(amount)]),
+          totals: ['Total', money(sum(byCat, ([, amount]) => amount))],
+        },
+        {
+          title: 'All expenses',
+          columns: [{ label: 'Date' }, { label: 'Category' }, { label: 'Details' }, { label: 'Paid by' }, { label: 'Amount', align: 'right' }],
+          rows: list.map((e) => [dayLabel(e.date), e.category || '', e.description || e.name || '', e.paymentMethod || '', money(e.amount)]),
+          totals: ['Total', `${list.length} entries`, '', '', money(sum(list, (e) => e.amount))],
+          empty: 'No expenses for these filters.',
+        },
+      ],
+    });
+  };
 
   const fetchExpensesData = async () => {
     setLoading(true);
@@ -167,11 +201,14 @@ const Expenses = () => {
         title="Expense Voucher Register"
         subtitle="Record general clinic facility operational costs, medical supplies, rents, and bills"
         action={
-          canFinance ? (
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printExpenses}>Print</Button>
+            {canFinance ? (
             <Button variant="primary" onClick={handleOpenCreate}>
               <Plus size={16} /> Record Expense
             </Button>
-          ) : undefined
+            ) : null}
+          </div>
         }
       />
       {!canFinance && (

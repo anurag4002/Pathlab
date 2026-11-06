@@ -175,6 +175,28 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
     await page.evaluate(() => sessionStorage.clear());
   });
 
+  await step('business: print has every row; Daily lists unpaid bills too', async () => {
+    const billCount = await env.mongoose.model('Bill').countDocuments({ isVoided: { $ne: true } });
+    await page.goto(BASE + '/business/cases', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    await page.evaluate(() => { window.__pplPrinted = null; window.__pplPrintCapture = (html) => { window.__pplPrinted = html; }; });
+    await page.getByRole('button', { name: /^Print$/ }).click();
+    await page.waitForFunction(() => window.__pplPrinted, null, { timeout: 8000 });
+    const html = await page.evaluate(() => window.__pplPrinted);
+    const rows = (html.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g) || []).length;
+    assert.equal(rows, billCount, 'case-wise print lists every bill');
+    assert.doesNotMatch(html, /button|Physical Signature/i, 'no app buttons or bill footer on paper');
+    await page.goto(BASE + '/business/daily', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
+    assert.ok(await page.getByRole('tab', { name: `Bills made (${billCount})` }).count(), 'every bill made today is listed, paid or not');
+    // A date range cannot run backwards: picking a To before From moves From.
+    await page.getByRole('button', { name: /^Filters/ }).first().click();
+    const panel = page.getByRole('dialog', { name: 'Filters' });
+    const earlier = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 3); return d.toLocaleDateString('en-CA'); });
+    assert.equal(await panel.getByLabel('To', { exact: true }).getAttribute('min'), await panel.getByLabel('From', { exact: true }).inputValue(), 'To cannot be before From');
+    await panel.getByLabel('To', { exact: true }).fill(earlier); await page.waitForTimeout(300);
+    assert.equal(await panel.getByLabel('From', { exact: true }).inputValue(), earlier, 'From follows when To moves earlier');
+    await page.keyboard.press('Escape');
+  });
+
   await step('dues: summary matches the dashboard balance', async () => {
     await page.goto(BASE + '/business/dues', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
     assert.match(await page.locator('.stat-group').innerText(), /Total balance due\s*₹0\.00[\s\S]*Bills with a balance\s*0/);

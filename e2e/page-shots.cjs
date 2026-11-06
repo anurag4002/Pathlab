@@ -3,6 +3,7 @@
 //   W=390 H=844 node e2e/page-shots.cjs -> phone size
 //   UI=v2 ...                             -> the new look (pages-v2/)
 //   ONLY=/dashboard,/cases/bills ...      -> just these routes
+//   PRINT=1 ...                           -> what Print gives (print media, full page) in print[-v2]/
 const fs = require('fs');
 const path = require('path');
 const { start } = require('./env.cjs');
@@ -36,7 +37,7 @@ const routes = [...fs.readFileSync(path.resolve(__dirname, '../frontend/src/rout
   for (let i = 0; i < 4; i++) await call('POST', '/api/expenses', { category: 'Reagents', name: `Reagent lot ${i + 1}`, amount: 450 + i * 120, paymentMethod: 'Cash', date: new Date().toISOString() });
 
   const width = Number(process.env.W || 1440), height = Number(process.env.H || 900);
-  const dir = path.join(OUT, `${width < 600 ? 'pages-phone' : 'pages'}${process.env.UI === 'v2' ? '-v2' : ''}`);
+  const dir = path.join(OUT, `${process.env.PRINT ? 'print' : width < 600 ? 'pages-phone' : 'pages'}${process.env.UI === 'v2' ? '-v2' : ''}`);
   fs.mkdirSync(dir, { recursive: true });
   const { browser, page } = await openBrowser(env, { width, height });
   await login(page, env.admin.email, env.admin.password);
@@ -47,7 +48,33 @@ const routes = [...fs.readFileSync(path.resolve(__dirname, '../frontend/src/rout
     await page.goto(BASE + route, { waitUntil: 'networkidle', timeout: 60000 }).catch(() => {});
     await page.waitForTimeout(900);
     const file = path.join(dir, `${route.replace(/^\//, '').replace(/\//g, '__') || 'root'}.png`);
-    await page.screenshot({ path: file });
+    if (process.env.PRINT) {
+      // Reports with the shared print: click Print and capture what would be printed.
+      await page.evaluate(() => { window.__pplPrinted = null; window.__pplPrintCapture = (html) => { window.__pplPrinted = html; }; });
+      const printButton = page.getByRole('button', { name: /^Print$/ }).first();
+      if (await printButton.count()) {
+        await printButton.click().catch(() => {});
+        await page.waitForFunction(() => window.__pplPrinted, null, { timeout: 8000 }).catch(() => {});
+        const html = await page.evaluate(() => window.__pplPrinted);
+        if (html) {
+          const paper = await browser.newPage({ viewport: { width: 794, height: 1123 } });
+          await paper.setContent(html, { waitUntil: 'load' });
+          await paper.emulateMedia({ media: 'print' });
+          await paper.screenshot({ path: file, fullPage: true });
+          await paper.close();
+          console.log(route, '->', path.basename(file), '(shared print)');
+          continue;
+        }
+      }
+      await page.emulateMedia({ media: 'print' });
+      await page.setViewportSize({ width: 794, height: 1123 }); // A4 at 96 dpi
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: file, fullPage: true });
+      await page.emulateMedia({ media: 'screen' });
+      await page.setViewportSize({ width, height });
+    } else {
+      await page.screenshot({ path: file });
+    }
     console.log(route, '->', path.basename(file));
   }
   await browser.close(); await env.stop();

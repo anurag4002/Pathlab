@@ -6,6 +6,10 @@ import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { PageHeader, DataTable, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
 import { Printer, Mail, FileDown } from 'lucide-react';
+import { useUiVersion } from '../../utils/uiVersion';
+import printReport, { fetchAllPages } from '../../utils/printReport';
+import { caseTypeLabel, money, dayLabel, periodLabel, sum, downloadCsv } from '../../utils/reportFormat';
+import { notify } from '../../components/common/Toast/toast';
 
 export const CASE_TYPES_13 = ['LabCase','UsgCase','DigitalXrayCase','XrayCase','OutsourceLabCase','EcgCase','CtScanCase','MriCase','EpsCase','OpgCase','CardiologyCase','EegCase','MammographyCase'];
 
@@ -53,15 +57,56 @@ const CaseWiseReport = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, startDate, endDate, page, limit, selectedTypes.join(','), centre, excludeCancelled]);
 
-  const exportCsv = () => {
-    const rows = [['Invoice','RegCode','Patient','Type','Centre','ReferredBy','Date','Gross','Status']];
-    bills.forEach((b) => rows.push([b.billNumber, b.patient?.registrationNumber || '', b.patient?.name || '', b.caseType || '', b.collectionCentre || '', b.referringDoctor?.name || 'Self', b.date || '', b.totalAmount, b.paymentStatus]));
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `case-wise-${Date.now()}.csv`;
-    a.click();
+  const isV2 = useUiVersion() === 'v2';
+  // Print and download use every bill for the filters, not just this page.
+  const fetchAllBills = () => fetchAllPages(async (p, size) => {
+    const res = await getBills({
+      search: debouncedSearch || undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+      caseType: selectedTypes.length ? selectedTypes.join(',') : undefined,
+      collectionCentre: centre || undefined,
+      excludeCancelled: excludeCancelled ? 'true' : undefined,
+      page: p, limit: size
+    });
+    return { items: res?.data?.bills || [], pages: res?.data?.pagination?.pages || 1 };
+  });
+  const statusOf = (b) => (b.isVoided || b.cancelled ? 'Cancelled' : b.paymentStatus || '');
+  const [busy, setBusy] = useState('');
+
+  const exportCsv = async () => {
+    setBusy('csv');
+    try {
+      const all = await fetchAllBills();
+      downloadCsv(`case-wise-${startDate || 'all'}-${endDate || 'dates'}.csv`,
+        ['Bill no', 'Reg no', 'Patient', 'Type', 'Centre', 'Referred by', 'Date', 'Amount', 'Received', 'Still to collect', 'Status'],
+        all.map((b) => [b.billNumber, b.patient?.registrationNumber || '', b.patient?.name || '', caseTypeLabel(b.caseType), b.collectionCentre || 'Main', b.referringDoctor?.name || 'Self', dayLabel(b.date), b.totalAmount, b.paidAmount, b.dueAmount, statusOf(b)]));
+    } catch { notify('Could not download the report. Try again.'); } finally { setBusy(''); }
+  };
+
+  const printCases = async () => {
+    setBusy('print');
+    try {
+      const all = await fetchAllBills();
+      const live = all.filter((b) => !(b.isVoided || b.cancelled));
+      await printReport({
+        title: 'Case-wise report',
+        period: periodLabel(startDate, endDate),
+        filters: [selectedTypes.length ? selectedTypes.map(caseTypeLabel).join(', ') : 'All case types', centre && `Centre: ${centre}`, excludeCancelled ? 'Cancelled bills left out' : 'Cancelled bills included', debouncedSearch && `Search: ${debouncedSearch}`],
+        summary: [
+          { label: 'Bills', value: String(live.length) },
+          { label: 'Billed', value: money(sum(live, (b) => b.totalAmount)) },
+          { label: 'Received', value: money(sum(live, (b) => b.paidAmount)) },
+          { label: 'Still to collect', value: money(sum(live, (b) => b.dueAmount)) },
+        ],
+        sections: [{
+          columns: [{ label: 'Bill no' }, { label: 'Patient' }, { label: 'Type' }, { label: 'Referred by' }, { label: 'Date' }, { label: 'Amount', align: 'right' }, { label: 'Received', align: 'right' }, { label: 'Status' }],
+          rows: all.map((b) => [b.billNumber, [b.patient?.name || 'Walk-in', b.patient?.registrationNumber].filter(Boolean).join(' · '), caseTypeLabel(b.caseType), b.referringDoctor?.name || 'Self', dayLabel(b.date), money(b.totalAmount), money(b.paidAmount), statusOf(b)]),
+          totals: ['Total', `${live.length} bills`, '', '', '', money(sum(live, (b) => b.totalAmount)), money(sum(live, (b) => b.paidAmount)), ''],
+          empty: 'No bills for these filters.',
+        }],
+      });
+    } catch { notify('Could not prepare the print. Try again.'); } finally { setBusy(''); }
   };
 
   return (
@@ -71,9 +116,9 @@ const CaseWiseReport = () => {
         subtitle="Filter by 13 case types, collection centre, exclude cancelled — Labsmart parity"
         action={
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="secondary" size="sm" onClick={() => window.print()} icon={<Printer size={14} />}>Print</Button>
-            <Button variant="secondary" size="sm" onClick={() => { window.location.href = `mailto:?subject=Case-wise report&body=${encodeURIComponent(`Case-wise ${startDate} to ${endDate}: ${paginationInfo.total} cases`)}`; }} icon={<Mail size={14} />}>Email</Button>
-            <Button variant="secondary" size="sm" onClick={exportCsv} icon={<FileDown size={14} />}>Export</Button>
+            <Button variant="secondary" size="sm" onClick={printCases} loading={busy === 'print'} icon={<Printer size={14} />}>Print</Button>
+            {!isV2 && <Button variant="secondary" size="sm" onClick={() => { window.location.href = `mailto:?subject=Case-wise report&body=${encodeURIComponent(`Case-wise ${startDate} to ${endDate}: ${paginationInfo.total} cases`)}`; }} icon={<Mail size={14} />}>Email</Button>}
+            <Button variant="secondary" size="sm" onClick={exportCsv} loading={busy === 'csv'} icon={<FileDown size={14} />}>{isV2 ? 'Download (CSV)' : 'Export'}</Button>
           </div>
         }
       />
@@ -133,7 +178,7 @@ const CaseWiseReport = () => {
                       }}
                     >
                       <input type="checkbox" checked={selectedTypes.includes(t)} onChange={() => { toggleType(t); goToPage(1); }} />
-                      {t}
+                      {isV2 ? caseTypeLabel(t) : t}
                     </label>
                   ))}
                 </div>
@@ -144,7 +189,7 @@ const CaseWiseReport = () => {
       />
 
       <DataTable
-        headers={['Invoice Ref', 'Patient Reg Code', 'Patient Name', 'Type', 'Centre', 'Referred By', 'Registered Date', 'Gross Price', 'Status']}
+        headers={isV2 ? ['Bill no', 'Patient', 'Type', 'Referred by', 'Date', 'Amount', 'Status'] : ['Invoice Ref', 'Patient Reg Code', 'Patient Name', 'Type', 'Centre', 'Referred By', 'Registered Date', 'Gross Price', 'Status']}
         data={bills}
         loading={loading}
         emptyMessage="No diagnostic cases found for the selected filters."
@@ -152,7 +197,17 @@ const CaseWiseReport = () => {
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by invoice number..."
         pagination={{ total: paginationInfo.total, page, limit, pages: paginationInfo.pages, onPageChange: goToPage, onLimitChange: setLimit }}
-        renderRow={(bill) => (
+        renderRow={(bill) => isV2 ? (
+          <tr key={bill._id}>
+            <td style={{ fontWeight: 600 }}>{bill.billNumber}</td>
+            <td><div style={{ fontWeight: 500 }}>{bill.patient?.name || 'Walk-in'}</div><div style={{ color: '#71717a', fontSize: '0.8rem' }}>{bill.patient?.registrationNumber}</div></td>
+            <td>{caseTypeLabel(bill.caseType)}</td>
+            <td>{bill.referringDoctor?.name || 'Self'}</td>
+            <td style={{ whiteSpace: 'nowrap' }}>{dayLabel(bill.date)}</td>
+            <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{money(bill.totalAmount)}</td>
+            <td><StatusBadge status={statusOf(bill)} /></td>
+          </tr>
+        ) : (
           <tr key={bill._id}>
             <td style={{ fontWeight: '600' }}>{bill.billNumber}</td>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{bill.patient?.registrationNumber}</td>

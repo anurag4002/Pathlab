@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getTransactions } from '../../services/transactionService';
 import { getDailyBusiness } from '../../services/dashboardService';
-import { PageHeader, AdvancedFilterBar } from '../../components/common';
+import { PageHeader, AdvancedFilterBar, Button } from '../../components/common';
+import { Printer } from 'lucide-react';
+import printReport, { fetchAllPages } from '../../utils/printReport';
+import { money, dateTimeLabel, periodLabel, sum } from '../../utils/reportFormat';
+import { notify } from '../../components/common/Toast/toast';
 import { PAYMENT_METHODS } from '../../constants/billConstants';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
@@ -81,9 +85,54 @@ const Cashbook = () => {
   const ledgerIncome = ledger?.totalIncome ?? null;
   const reconciled = ledgerIncome === null ? null : Math.abs(Number(ledgerIncome) - income) < 1;
 
+  // Print: every payment and refund for the filters (all pages).
+  const [printing, setPrinting] = useState(false);
+  const printCashbook = async () => {
+    setPrinting(true);
+    try {
+      const all = await fetchAllPages(async (p, size) => {
+        const res = await getTransactions({ search: debouncedSearch || undefined, paymentMethod: mode || undefined, type: type || undefined, startDate, endDate, page: p, limit: size });
+        return { items: res?.data?.transactions || [], pages: res?.data?.pagination?.pages || 1 };
+      }, { pageSize: 200 });
+      const ins = all.filter((t) => t.type !== 'Refund');
+      const outs = all.filter((t) => t.type === 'Refund');
+      const modes = [...new Set(all.map((t) => t.paymentMethod || 'Other'))];
+      await printReport({
+        title: 'Cashbook',
+        period: periodLabel(startDate, endDate),
+        filters: [mode && `Mode: ${mode}`, type && `Type: ${type}`, debouncedSearch && `Search: ${debouncedSearch}`],
+        summary: [
+          { label: 'Received', value: money(sum(ins, (t) => t.amount)) },
+          { label: 'Refunded', value: money(sum(outs, (t) => t.amount)) },
+          { label: 'Net', value: money(sum(ins, (t) => t.amount) - sum(outs, (t) => t.amount)) },
+          { label: 'Entries', value: String(all.length) },
+        ],
+        sections: [
+          modes.length > 1 && {
+            title: 'By payment mode',
+            columns: [{ label: 'Mode' }, { label: 'Received', align: 'right' }, { label: 'Refunded', align: 'right' }, { label: 'Net', align: 'right' }],
+            rows: modes.map((m) => {
+              const got = sum(ins.filter((t) => (t.paymentMethod || 'Other') === m), (t) => t.amount);
+              const back = sum(outs.filter((t) => (t.paymentMethod || 'Other') === m), (t) => t.amount);
+              return [m, money(got), money(back), money(got - back)];
+            }),
+          },
+          {
+            title: 'Entries',
+            columns: [{ label: 'Time' }, { label: 'Bill no' }, { label: 'Patient' }, { label: 'Mode' }, { label: 'Received by' }, { label: 'In', align: 'right' }, { label: 'Out', align: 'right' }],
+            rows: all.map((t) => [dateTimeLabel(t.date || t.createdAt), t.bill?.billNumber || '', t.patient?.name || 'Walk-in', t.paymentMethod || '', t.receivedBy?.name || '', t.type === 'Refund' ? '' : money(t.amount), t.type === 'Refund' ? money(t.amount) : '']),
+            totals: ['Total', '', '', '', '', money(sum(ins, (t) => t.amount)), money(sum(outs, (t) => t.amount))],
+            empty: 'No entries in this period.',
+          },
+        ],
+      });
+    } catch { notify('Could not prepare the print. Try again.'); } finally { setPrinting(false); }
+  };
+
   return (
     <div>
-      <PageHeader title="Cashbook" subtitle="Cash in / out for a date window, reconciled against the business ledger" />
+      <PageHeader title="Cashbook" subtitle="Cash in / out for a date window, reconciled against the business ledger"
+        action={<Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printCashbook} loading={printing}>Print</Button>} />
       {!canView && (
         <p style={{ fontSize: '0.82rem', color: 'var(--color-warning, #a16207)' }}>
           Your role has no finance permission — this view is cosmetic; the server still enforces access.

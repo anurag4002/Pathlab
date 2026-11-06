@@ -83,6 +83,10 @@ const AdvancedFilterBar = ({
   useEffect(() => () => clearTimeout(searchTimer.current), []);
   const setValue = (key, value) => {
     onChange?.(key, value);
+    // A date range can never run backwards: moving one end past the other
+    // brings the other end along.
+    if (value && key === 'from' && values.to && value > values.to) onChange?.('to', value);
+    if (value && key === 'to' && values.from && value < values.from) onChange?.('from', value);
     const field = fields.find((f) => f.key === key);
     const isSearchText = field && (field.type === 'text' || field.type === 'search' || !field.type) && /search/i.test(`${field.key} ${field.label || ''}`);
     if (isV2 && isSearchText) {
@@ -165,6 +169,8 @@ const AdvancedFilterBar = ({
             name={f.key}
             value={value ?? ''}
             onChange={(e) => setValue(f.key, e.target.value)}
+            min={f.key === 'to' && values.from ? values.from : undefined}
+            max={f.key === 'from' && values.to ? values.to : undefined}
           />
         </div>
       );

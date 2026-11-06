@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import printReport, { fetchAllPages } from '../../utils/printReport';
+import { getBills } from '../../services/billService';
+import { useUiVersion } from '../../utils/uiVersion';
+import { caseTypeLabel, money, dayLabel, dateTimeLabel, periodLabel, sum } from '../../utils/reportFormat';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { getExpenses } from '../../services/expenseService';
 import { downloadServerCsv } from '../../services/exportService';
@@ -86,6 +90,10 @@ const DailyBusiness = () => {
 
   const [data, setData] = useState(null);
   const [expensesList, setExpensesList] = useState([]);
+  // Every bill made in the period, paid or not (the payments list only
+  // knows bills that received money).
+  const [periodBills, setPeriodBills] = useState(null);
+  const isV2 = useUiVersion() === 'v2';
   const [loading, setLoading] = useState(false);
   // Separate error per fetch group so one group's failure never clears the
   // other's data, and a failed load never renders as "all zeros".
@@ -120,10 +128,15 @@ const DailyBusiness = () => {
     // would collapse a single-day window to one instant, so pass end-of-day —
     // the same instant the expenses endpoint computes via setHours(23,59,59,999).
     const endParam = endDate ? `${endDate}T23:59:59.999` : endDate;
-    const [bizRes, expRes] = await Promise.allSettled([
+    const [bizRes, expRes, billsRes] = await Promise.allSettled([
       getDailyBusiness(startDate, endParam),
-      getExpenses({ startDate, endDate: endParam })
+      getExpenses({ startDate, endDate: endParam }),
+      fetchAllPages(async (p, size) => {
+        const res = await getBills({ startDate, endDate, excludeCancelled: 'true', page: p, limit: size });
+        return { items: res?.data?.bills || [], pages: res?.data?.pagination?.pages || 1 };
+      })
     ]);
+    setPeriodBills(billsRes.status === 'fulfilled' ? billsRes.value : null);
     if (bizRes.status === 'fulfilled' && bizRes.value?.success) {
       setData(bizRes.value.data);
     } else {
@@ -231,7 +244,7 @@ const DailyBusiness = () => {
   const getFilteredTransactions = () => (data?.transactions || []).filter((tx) => matchSearch(tx) && matchCashier(tx) && matchDeptTx(tx));
 
   const getFilteredBills = () => {
-    const list = data?.transactions?.map(tx => tx.bill).filter(Boolean) || [];
+    const list = periodBills || data?.transactions?.map(tx => tx.bill).filter(Boolean) || [];
     const uniqueBills = Array.from(new Map(list.map(b => [b._id, b])).values());
     const deptScoped = uniqueBills.filter(matchDeptBill);
     if (!searchQuery.trim()) return deptScoped;
@@ -251,7 +264,7 @@ const DailyBusiness = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fTx = useMemo(() => getFilteredTransactions(), [data, searchQuery, cashierFilter, deptFilter]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fBills = useMemo(() => getFilteredBills(), [data, searchQuery, deptFilter]);
+  const fBills = useMemo(() => getFilteredBills(), [data, periodBills, searchQuery, deptFilter]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fExp = useMemo(() => getFilteredExpenses(), [expensesList, searchQuery]);
   const pgTx = useClientPagination(fTx, 10);
@@ -259,6 +272,67 @@ const DailyBusiness = () => {
   const pgExp = useClientPagination(fExp, 10);
   const pgSplit = useClientPagination(data?.caseSplit || [], 10);
   const resetPages = () => { pgTx.reset(); pgBills.reset(); pgExp.reset(); pgSplit.reset(); };
+
+  // Print: the whole day (or range) on paper - every payment and expense,
+  // not only the first page of each table.
+  const printDaily = () => {
+    const payments = fTx.filter((tx) => tx.type !== 'Refund');
+    const refunds = fTx.filter((tx) => tx.type === 'Refund');
+    const modes = [...new Set([...fTx.map((tx) => tx.paymentMethod || 'Other'), ...fExp.map((e) => e.paymentMethod || 'Other')])];
+    const byMode = modes.map((mode) => {
+      const got = sum(payments.filter((tx) => (tx.paymentMethod || 'Other') === mode), (tx) => tx.amount);
+      const back = sum(refunds.filter((tx) => (tx.paymentMethod || 'Other') === mode), (tx) => tx.amount);
+      const spent = sum(fExp.filter((e) => (e.paymentMethod || 'Other') === mode), (e) => e.amount);
+      return [mode, money(got), money(back), money(spent), money(got - back - spent)];
+    });
+    const split = data?.caseSplit || [];
+    printReport({
+      title: 'Daily business',
+      period: periodLabel(startDate, endDate),
+      filters: [cashierFilter !== 'All' && `Received by: ${cashierFilter}`, deptFilter && `Department: ${deptFilter}`, searchQuery && `Search: ${searchQuery}`],
+      summary: [
+        { label: 'Received', value: money(totalIncome) },
+        { label: 'Refunded', value: money(totalRefunds) },
+        { label: 'Spent', value: money(totalExpenses) },
+        { label: 'Profit', value: money(netIncome) },
+      ],
+      sections: [
+        modes.length > 0 && {
+          title: 'By payment mode',
+          columns: [{ label: 'Mode' }, { label: 'Received', align: 'right' }, { label: 'Refunded', align: 'right' }, { label: 'Spent', align: 'right' }, { label: 'In hand', align: 'right' }],
+          rows: byMode,
+        },
+        split.length > 0 && {
+          title: 'By department',
+          columns: [{ label: 'Department' }, { label: 'Bills', align: 'right' }, { label: 'Billed', align: 'right' }, { label: 'Received', align: 'right' }, { label: 'Still to collect', align: 'right' }],
+          rows: split.map((c) => [caseTypeLabel(c.department) === c.department ? c.department : caseTypeLabel(c.department), String(c.count ?? ''), money(c.billed), money(c.collected), money(c.due)]),
+          totals: ['Total', String(sum(split, (c) => c.count)), money(sum(split, (c) => c.billed)), money(sum(split, (c) => c.collected)), money(sum(split, (c) => c.due))],
+        },
+        {
+          title: `Money received (${payments.length})`,
+          columns: [{ label: 'Time' }, { label: 'Bill no' }, { label: 'Patient' }, { label: 'Mode' }, { label: 'Received by' }, { label: 'Amount', align: 'right' }],
+          rows: fTx.map((tx) => [dateTimeLabel(tx.date), tx.bill?.billNumber || '', tx.patient?.name || 'Walk-in', tx.paymentMethod || '', tx.receivedBy?.name || '', `${tx.type === 'Refund' ? 'Refund -' : ''}${money(tx.amount)}`]),
+          totals: ['Total', '', '', '', '', money(sum(payments, (tx) => tx.amount) - sum(refunds, (tx) => tx.amount))],
+          empty: 'No money received in this period.',
+        },
+        {
+          title: `Bills made (${fBills.length})`,
+          columns: [{ label: 'Bill no' }, { label: 'Patient' }, { label: 'Amount', align: 'right' }, { label: 'Received', align: 'right' }, { label: 'Still to collect', align: 'right' }],
+          rows: fBills.map((b) => [b.billNumber, b.patient?.name || 'Walk-in', money(b.totalAmount), money(b.paidAmount), money(b.dueAmount)]),
+          totals: ['Total', `${fBills.length} bills`, money(sum(fBills, (b) => b.totalAmount)), money(sum(fBills, (b) => b.paidAmount)), money(sum(fBills, (b) => b.dueAmount))],
+          empty: 'No bills were made in this period.',
+        },
+        {
+          title: `Expenses (${fExp.length})`,
+          columns: [{ label: 'Date' }, { label: 'Category' }, { label: 'Details' }, { label: 'Paid by' }, { label: 'Amount', align: 'right' }],
+          rows: fExp.map((e) => [dayLabel(e.date), e.category || '', e.description || e.name || '', e.paymentMethod || '', money(e.amount)]),
+          totals: ['Total', '', '', '', money(sum(fExp, (e) => e.amount))],
+          empty: 'No expenses in this period.',
+        },
+      ],
+      note: 'Profit = received - refunded - spent. "In hand" is per payment mode.',
+    });
+  };
 
   const handleEmailSummary = async () => {
     const to = prompt('Recipient email for daily business summary:');
@@ -293,7 +367,7 @@ const DailyBusiness = () => {
         subtitle="Operational ledger tracing invoice sales, expenses logs, and payments"
         action={
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => window.print()}>
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printDaily} disabled={!data}>
               Print
             </Button>
             <Button
@@ -521,8 +595,8 @@ const DailyBusiness = () => {
                 key: 'tab',
                 type: 'segmented',
                 options: [
-                  { value: 'transactions', label: `Transactions (${fTx.length})` },
-                  { value: 'bills', label: `Bills (${fBills.length})` },
+                  { value: 'transactions', label: isV2 ? `Money received (${fTx.length})` : `Transactions (${fTx.length})` },
+                  { value: 'bills', label: isV2 ? `Bills made (${fBills.length})` : `Bills (${fBills.length})` },
                   { value: 'expenses', label: `Expenses (${fExp.length})` }
                 ]
               },
@@ -560,7 +634,7 @@ const DailyBusiness = () => {
             <DataTable
               headers={['ID Ref', 'Patient Name', 'Date & Time', 'Method', 'Received By', 'Amount']}
               data={pgTx.paged}
-              emptyMessage="No transactions matched filters."
+              emptyMessage={isV2 ? (searchQuery || cashierFilter !== 'All' || deptFilter ? 'No payments match these filters.' : 'No money was received in this period. Bills made but not paid are under "Bills made".') : 'No transactions matched filters.'}
               pagination={{
                 total: pgTx.total,
                 page: pgTx.page,
@@ -588,7 +662,7 @@ const DailyBusiness = () => {
             <DataTable
               headers={['Bill Number', 'Patient Name', 'Date', 'Gross Total', 'Paid Amount', 'Due Balance', 'Status']}
               data={pgBills.paged}
-              emptyMessage="No bills matched filters."
+              emptyMessage={isV2 ? 'No bills were made in this period.' : 'No bills matched filters.'}
               pagination={{
                 total: pgBills.total,
                 page: pgBills.page,
@@ -617,7 +691,7 @@ const DailyBusiness = () => {
             <DataTable
               headers={['Date', 'Category Classification', 'Description', 'Method', 'Amount Charged']}
               data={pgExp.paged}
-              emptyMessage="No expenses logs matched filters."
+              emptyMessage={isV2 ? 'No expenses were recorded in this period.' : 'No expenses logs matched filters.'}
               pagination={{
                 total: pgExp.total,
                 page: pgExp.page,
