@@ -287,3 +287,9 @@
 
 .sidebar-new-bill-kbd { margin-left: auto; padding: 0.1rem 0.4rem; font: 600 0.68rem/1.4 var(--font-family-base, inherit); letter-spacing: 0.02em; color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.18); border-radius: 999px; }
 @media (hover: none) { .sidebar-new-bill-kbd { display: none; } }
+
+/* New look: "Daily work" links above the sections */
+.sidebar-section { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-2, 0.5rem); }
+.sidebar-section-label { padding: 0.6rem 0.75rem 0.3rem; font-size: 0.7rem; font-weight: 600; color: var(--color-text-muted, #94a3b8); letter-spacing: 0.02em; }
+.sidebar-daily-link { padding-top: 0.45rem !important; padding-bottom: 0.45rem !important; }
+.sidebar-daily-link .sidebar-count { margin-left: auto; }

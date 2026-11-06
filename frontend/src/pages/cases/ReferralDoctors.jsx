@@ -4,6 +4,8 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -11,6 +13,7 @@ const STATUS_OPTIONS = [
 ];
 
 const ReferralDoctors = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -165,7 +168,7 @@ const ReferralDoctors = () => {
       />
 
       <DataTable
-        headers={['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
+        headers={isV2 ? ['Doctor', 'Commission', 'Status', ''] : ['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No referral doctor profiles matching your query."
@@ -179,13 +182,23 @@ const ReferralDoctors = () => {
         }}
         renderRow={(doctor) => (
           <tr key={doctor._id}>
-            <td style={{ fontWeight: '600' }}>{doctor.name}</td>
-            <td>{doctor.phone}</td>
-            <td>{doctor.clinicHospital || 'Walk-in'}</td>
-            <td>{doctor.address || 'N/A'}</td>
-            <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>
-              {doctor.referralPercentage}%
-            </td>
+            {isV2 ? (
+              <>
+                <td><IdentityCell name={doctor.name} meta={[doctor.clinicHospital && doctor.clinicHospital !== 'Walk-in' ? doctor.clinicHospital : '']}
+                  copy={doctor.phone && !/^0+$/.test(doctor.phone) ? { value: doctor.phone, label: 'phone' } : undefined} /></td>
+                <td className="num">{doctor.referralPercentage}%</td>
+              </>
+            ) : (
+              <>
+                <td style={{ fontWeight: '600' }}>{doctor.name}</td>
+                <td>{doctor.phone}</td>
+                <td>{doctor.clinicHospital || 'Walk-in'}</td>
+                <td>{doctor.address || 'N/A'}</td>
+                <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>
+                  {doctor.referralPercentage}%
+                </td>
+              </>
+            )}
             <td>
               <StatusBadge status={doctor.status} />
             </td>

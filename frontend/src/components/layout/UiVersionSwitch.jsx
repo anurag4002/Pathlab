@@ -10,7 +10,7 @@ export default function UiVersionSwitch() {
       onClick={() => setUiVersion(isV2 ? 'classic' : 'v2')} title={isV2 ? 'Switch back to the classic look' : 'Try the new look'}>
       <Sparkles size={14} aria-hidden="true" />
       <span className="header-ui-switch-label">New look</span>
-      <span className="ui-switch" aria-hidden="true"><span /></span>
+      <span className={`ui-switch${isV2 ? ' is-on' : ''}`} aria-hidden="true"><span /></span>
     </button>
   );
 }

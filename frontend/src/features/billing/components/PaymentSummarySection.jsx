@@ -1,4 +1,5 @@
 import React from 'react';
+import { useUiVersion } from '../../../utils/uiVersion';
 import { RefreshCw } from 'lucide-react';
 import { Input, Select, Button } from '../../../components/common';
 import { PAYMENT_METHODS } from '../../../constants/billConstants';
@@ -45,9 +46,91 @@ const PaymentSummarySection = ({
     onSubmit();
   };
 
+  // New look: discount is rare - hidden behind "+ Add discount" unless used.
+  const isV2 = useUiVersion() === 'v2';
+  const [showDiscount, setShowDiscount] = React.useState(false);
+  const discountInUse = Number(discountPercent) > 0 || Number(discountValue) > 0;
+
+  // New look, new bill: one tidy payment bar. Every cell is a label on top
+  // and a 40px value or field below, so everything lines up in one row.
+  if (isV2 && !isEditMode) {
+    const sub = Number(subtotal) || 0;
+    const isPercent = discountMode !== 'amount';
+    const discountShown = showDiscount || discountInUse || !!errors?.discount;
+    const setDiscount = (raw) => {
+      if (raw === '') { (isPercent ? setDiscountPercent : setDiscountValue)?.(''); return; }
+      const n = Number(raw);
+      if (Number.isNaN(n)) return;
+      if (isPercent) setDiscountPercent?.(Math.min(100, Math.max(0, n)));
+      else setDiscountValue?.(Math.max(0, n));
+    };
+    const discountAmount = isPercent ? (sub * (Number(discountPercent) || 0)) / 100 : Number(discountValue) || 0;
+    const discountError = errors?.discount || (discountAmount > sub && sub > 0 ? 'More than the total' : '');
+    return (
+      <div className="bill-form-card bill-pay" onKeyDown={onFieldEnter}>
+        <div className="pay-cell">
+          <span className="pay-label">{discountShown && discountAmount > 0 ? 'Total after discount' : 'Total'}</span>
+          <span className="pay-value pay-value--total">{formatCurrency(totalAmount)}</span>
+        </div>
+
+        <div className="pay-cell">
+          <span className="pay-label">Discount</span>
+          {discountShown ? (
+            <div className="pay-control pay-discount">
+              <input type="number" min={0} className={`form-control${discountError ? ' has-error' : ''}`} autoFocus={showDiscount && !discountInUse}
+                value={isPercent ? discountPercent : discountValue} onChange={(e) => setDiscount(e.target.value)}
+                aria-label={isPercent ? 'Discount percent' : 'Discount amount'} placeholder="0" />
+              <div className="pay-discount-mode" role="group" aria-label="Discount in">
+                <button type="button" className={isPercent ? 'is-on' : ''} aria-pressed={isPercent} onClick={() => setDiscountMode?.('percent')}>%</button>
+                <button type="button" className={!isPercent ? 'is-on' : ''} aria-pressed={!isPercent} onClick={() => setDiscountMode?.('amount')}>₹</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="pay-control pay-add-discount" onClick={() => setShowDiscount(true)}>+ Add</button>
+          )}
+          {discountError && <span className="pay-error" role="alert">{discountError}</span>}
+        </div>
+
+        <div className="pay-cell">
+          <label className="pay-label" htmlFor="bill-amount-received">Amount received now</label>
+          <div className="pay-control pay-amount">
+            <span aria-hidden="true">₹</span>
+            <input id="bill-amount-received" type="number" min={0} className={`form-control${errors?.paidAmount ? ' has-error' : ''}`}
+              value={paidAmount} placeholder="0" onChange={(e) => setPaidAmount(Math.max(0, Number(e.target.value)))} />
+          </div>
+          {errors?.paidAmount && <span className="pay-error" role="alert">{errors.paidAmount}</span>}
+        </div>
+
+        <div className="pay-cell">
+          <label className="pay-label" htmlFor="bill-paid-by">Paid by</label>
+          <select id="bill-paid-by" className="form-control pay-control" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+            {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div className="pay-cell">
+          <span className="pay-label">Still to pay</span>
+          <span className="pay-value-row">
+            <span className={`pay-value ${dueAmount > 0 ? 'is-due' : totalAmount > 0 ? 'is-clear' : ''}`}>{formatCurrency(dueAmount)}</span>
+            {dueAmount > 0 && (
+              <button type="button" className="pay-full" onClick={() => setPaidAmount(totalAmount)} title="Patient pays the full amount">Paid in full</button>
+            )}
+          </span>
+        </div>
+
+        <div className="pay-cell pay-cell--action">
+          <Button variant="primary" onClick={onSubmit} loading={submitting} disabled={submitting}
+            title={submitHint ? `${submitLabel} (Enter in Amount received, or ${submitHint})` : undefined}>
+            {submitLabel}{submitHint && <kbd className="pay-kbd">{submitHint.replace('+', ' ')}</kbd>}
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="bill-form-card" onKeyDown={onFieldEnter}>
+    <div className={`bill-form-card${isV2 ? ' bill-pay' : ''}`} onKeyDown={onFieldEnter}>
       <div
+        className="bill-pay-title"
         style={{
           fontWeight: 'var(--font-weight-bold)',
           fontSize: 'var(--font-size-base)',
@@ -55,16 +138,19 @@ const PaymentSummarySection = ({
           paddingBottom: 'var(--space-3)'
         }}
       >
-        Payment Details
+        {isV2 ? 'Payment' : 'Payment Details'}
       </div>
 
       {/* Subtotal Row */}
       <div className="payment-summary-row">
-        <span>Total:</span>
+        <span>{isV2 ? 'Total' : 'Total:'}</span>
         <strong>{formatCurrency(subtotal)}</strong>
       </div>
 
       {/* Discount Row (Phase 22 — DiscountRow with %/amount toggle + subtotal validation) */}
+      {isV2 && !showDiscount && !discountInUse && !errors?.discount ? (
+        <button type="button" className="bill-add-discount" onClick={() => setShowDiscount(true)}>+ Add discount</button>
+      ) : (
       <DiscountRow
         subtotal={subtotal}
         discountMode={discountMode}
@@ -75,10 +161,11 @@ const PaymentSummarySection = ({
         setDiscountValue={setDiscountValue}
         error={errors?.discount}
       />
+      )}
 
       {/* Amount Received */}
       <Input
-        label={isEditMode ? 'Amount Received (locked — use Pay / Refund)' : 'Amount Received'}
+        label={isEditMode ? 'Amount Received (locked — use Pay / Refund)' : isV2 ? 'Amount received now' : 'Amount Received'}
         type="number"
         value={paidAmount}
         onChange={(e) => !isEditMode && setPaidAmount(Math.max(0, Number(e.target.value)))}
@@ -89,7 +176,7 @@ const PaymentSummarySection = ({
 
       {/* Balance Row */}
       <div className="payment-summary-row">
-        <span>Balance Due:</span>
+        <span>{isV2 ? 'Still to pay' : 'Balance Due:'}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <strong
             className={`balance-due${totalAmount > 0 ? '' : ' is-empty'}`}
@@ -121,7 +208,7 @@ const PaymentSummarySection = ({
 
       {/* Payment Mode */}
       <Select
-        label="Payment Mode"
+        label={isV2 ? 'Paid by' : 'Payment Mode'}
         value={paymentMethod}
         onChange={(e) => setPaymentMethod(e.target.value)}
         options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
@@ -160,7 +247,7 @@ const PaymentSummarySection = ({
       >
         {submitLabel}
       </Button>
-      {submitHint && <p className="bill-submit-hint">or press <kbd>Enter</kbd> in Amount Received · {submitHint.split('+').map((key, i) => <React.Fragment key={key}>{i > 0 && '+'}<kbd>{key}</kbd></React.Fragment>)} anywhere</p>}
+      {submitHint && <p className="bill-submit-hint">or press <kbd>Enter</kbd> in {isV2 ? 'Amount received' : 'Amount Received'} · {submitHint.split('+').map((key, i) => <React.Fragment key={key}>{i > 0 && '+'}<kbd>{key}</kbd></React.Fragment>)} anywhere</p>}
     </div>
   );
 };

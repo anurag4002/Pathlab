@@ -31,6 +31,8 @@ import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
 import { notify } from '../../components/common/Toast/toast';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -58,6 +60,7 @@ const getApiErrorMessage = (err, fallback) => {
 const scanFileExt = (fileUrl) => (fileUrl?.includes('.') ? `.${fileUrl.split('.').pop()}` : '');
 
 const TodaysXrayCases = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   // Pop-ups stay React state but are mirrored to the URL (?case, ?print) so
@@ -463,10 +466,11 @@ const TodaysXrayCases = () => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Scan / PDF', 'Actions']}
+        headers={isV2 ? ['Patient', 'Referred by', 'Findings', 'Status', 'Scan / PDF', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Scan / PDF', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !search && !fromDate && !toDate ? 'No X-Ray cases recorded today.' : 'No X-Ray cases matched your search query.'}
+        emptyAction={isV2 ? <Button variant="secondary" size="sm" onClick={handleOpenCreate}>Create X-ray case</Button> : null}
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search name, reg no, findings..."
@@ -482,10 +486,26 @@ const TodaysXrayCases = () => {
         }}
         renderRow={(c) => (
           <tr key={c._id}>
-            <td>{formatDate(c.date).split(',')[0]}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
-            <td>{c.referringDoctor?.name || 'Self'}</td>
+            {isV2 ? (
+              <>
+                {/* Clinical screen: age · sex beside the name when known. */}
+                <td>
+                  <IdentityCell
+                    name={[c.patient?.title, c.patient?.name].filter(Boolean).join(' ')}
+                    clinical={{ age: c.patient?.age, ageUnit: c.patient?.ageUnit, gender: c.patient?.gender }}
+                    meta={[c.patient?.registrationNumber && `Reg ${c.patient.registrationNumber}`, formatDate(c.date).split(',')[0]]}
+                  />
+                </td>
+                <td>{c.referringDoctor?.name || <span className="cell-empty">Self</span>}</td>
+              </>
+            ) : (
+              <>
+                <td>{formatDate(c.date).split(',')[0]}</td>
+                <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
+                <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
+                <td>{c.referringDoctor?.name || 'Self'}</td>
+              </>
+            )}
             <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
             <td>
               <StatusBadge status={c.status} />

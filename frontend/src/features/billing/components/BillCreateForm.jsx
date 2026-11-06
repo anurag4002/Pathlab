@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill, updateBill, getBills, getBillById } from '../../../services/billService';
 import { rovingKeyDown } from '../../../utils/rovingFocus';
+import { useUiVersion, isNewUi } from '../../../utils/uiVersion';
+import PageTip from '../../../components/common/PageTip';
 import { notify } from '../../../components/common/Toast/toast';
 
 const PICKER_TABS = [
@@ -21,6 +23,10 @@ import BillItemsTable from './BillItemsTable';
 import PaymentSummarySection from './PaymentSummarySection';
 import ComboIndicator from './ComboIndicator';
 import OutsourceTestModal from './OutsourceTestModal';
+import QuickAddContact from './QuickAddContact';
+import SearchSelect from '../../../components/common/SearchSelect/SearchSelect';
+import { createDoctor } from '../../../services/doctorService';
+import { createAgent } from '../../../services/agentService';
 import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
 import { ArrowLeft, Plus, ShoppingCart, ExternalLink } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
@@ -110,6 +116,15 @@ const EMPTY_PATIENT_FORM = {
 };
 
 /** Build "Register New" patient fields from a booking inquiry (no linked patient). */
+// New look: a half-typed new patient survives a closed panel, a reload or a
+// trip to another screen in this tab (cleared once the bill is created).
+const PATIENT_DRAFT_KEY = 'ppl_bill_new_patient_draft';
+const readPatientDraft = () => {
+  if (!isNewUi()) return null;
+  try { const draft = JSON.parse(sessionStorage.getItem(PATIENT_DRAFT_KEY) || 'null'); return draft && !draft.isExistingPatient ? { ...EMPTY_PATIENT_FORM, ...draft } : null; } catch { return null; }
+};
+const clearPatientDraft = () => { try { sessionStorage.removeItem(PATIENT_DRAFT_KEY); } catch { /* ignore */ } };
+
 const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
   const rawName = String(b?.name || '').trim();
   const parts = rawName.split(/\s+/).filter(Boolean);
@@ -225,7 +240,7 @@ const BillCreateForm = ({
       };
     }
     const b = takeBookingPrefill(null);
-    if (!b) return EMPTY_PATIENT_FORM;
+    if (!b) return readPatientDraft() || EMPTY_PATIENT_FORM;
     const linkedId = b.patientId && String(b.patientId) !== 'null' ? b.patientId : null;
     if (linkedId) {
       return {
@@ -247,6 +262,15 @@ const BillCreateForm = ({
     }
     return bookingToNewPatientForm(b);
   });
+  const isV2 = useUiVersion() === 'v2';
+  useEffect(() => {
+    if (!isV2 || isEditMode) return;
+    try {
+      const typed = !patientForm.isExistingPatient && (patientForm.patientPhone || patientForm.patientFirstName || patientForm.patientLastName || patientForm.patientAgeYears);
+      if (typed) sessionStorage.setItem(PATIENT_DRAFT_KEY, JSON.stringify(patientForm));
+      else sessionStorage.removeItem(PATIENT_DRAFT_KEY);
+    } catch { /* ignore */ }
+  }, [patientForm, isV2, isEditMode]);
   const [bookingBanner, setBookingBanner] = useState('');
   const [unmatchedBookingItems, setUnmatchedBookingItems] = useState([]);
   const [outsourceOpen, setOutsourceOpen] = useState(false);
@@ -274,6 +298,12 @@ const BillCreateForm = ({
   // 'All' | 'Test' | 'TestPackage' | 'TestPanel'
   const [pickerType, setPickerType] = useState('All');
   // One search box: filter local catalog first, then fall back to server (tests).
+  // New look: plain three-step form; rarely used options folded away.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // New look: doctors/agents added from this page (no trip to another screen).
+  const [addedDoctors, setAddedDoctors] = useState([]);
+  const [addedAgents, setAddedAgents] = useState([]);
+  const [quickAdd, setQuickAdd] = useState(null); // 'doctor' | 'agent' | null
   const [pickerQuery, setPickerQuery] = useState('');
   // Keyboard picking: Up/Down move the highlight, Enter adds it and clears
   // the search so the next test can be typed straight away.
@@ -334,6 +364,42 @@ const BillCreateForm = ({
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
     flashTimerRef.current = setTimeout(() => el.classList.remove('bill-cart-flash'), 700);
   };
+
+  // New look: the bill screen is locked to the window - measure where the
+  // boxes start so they fill exactly the space left (no page scroll).
+  const gridRef = useRef(null);
+  useEffect(() => {
+    if (!isV2) return undefined;
+    const fit = () => {
+      const el = gridRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      el.style.setProperty('--bill-grid-top', `${Math.round(top)}px`);
+      // Everything below the boxes (page padding) counts too.
+      let below = 0;
+      for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        below += (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0);
+      }
+      el.style.setProperty('--bill-grid-below', `${Math.ceil(below) + 2}px`);
+    };
+    fit();
+    const frame = requestAnimationFrame(fit);
+    window.addEventListener('resize', fit);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', fit); };
+  }, [isV2, bookingBanner, unmatchedBookingItems.length, errors.api]);
+  // ...and when a test is added, the bill list scrolls to show it.
+  const lastCount = useRef(0);
+  useEffect(() => {
+    const count = selectedItems.length;
+    if (isV2 && count > lastCount.current) {
+      requestAnimationFrame(() => {
+        const box = document.querySelector('.bill-step-cart');
+        if (box) box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+      });
+    }
+    lastCount.current = count;
+  }, [selectedItems.length, isV2]);
 
   const handleAddItem = (item, type) => {
     const alreadyAdded = selectedItems.some(
@@ -669,6 +735,8 @@ const BillCreateForm = ({
         if (itemType !== 'Custom' && itemId) row.itemId = itemId;
         return row;
       });
+      // Only send-out tests (and no department picked): file it as an outsource case.
+      const onlyOutsourceLines = activeDepartment === 'ALL' && selectedItems.length > 0 && selectedItems.every((si) => si.itemType === 'Custom');
       const res = await createBill({
         patient: patientId,
         referringDoctor: selectedDoctor || null,
@@ -677,8 +745,8 @@ const BillCreateForm = ({
         discount: discountAmount,
         paidAmount,
         paymentMethod,
-        department: activeDepartment === 'ALL' ? 'LAB' : activeDepartment,
-        caseType: DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
+        department: onlyOutsourceLines ? 'OUTSOURCE LAB' : activeDepartment === 'ALL' ? 'LAB' : activeDepartment,
+        caseType: onlyOutsourceLines ? DEPT_TO_CASE_TYPE['OUTSOURCE LAB'] : DEPT_TO_CASE_TYPE[activeDepartment] || 'LabCase',
         collectionCentre: 'Main',
         onlineReportRequested: patientForm.onlineReportRequested,
         discountPercent: discountMode === 'percent' && discountPercentNum > 0
@@ -686,6 +754,7 @@ const BillCreateForm = ({
 
       if (res.success) {
         clearBookingPrefill();
+        clearPatientDraft();
         onBillCreated?.();
         // The Bills page shows a "saved" bar with the next steps for this bill.
         const saved = res.data?.bill || res.data || {};
@@ -840,6 +909,16 @@ const BillCreateForm = ({
 
   return (
     <div>
+      {isV2 ? (
+        <div className="bill-head">
+          <button type="button" className="bill-back-link" onClick={() => (isEditMode && onCancelEdit ? onCancelEdit() : navigate('/cases/bills'))} aria-label="Back to bills">
+            <ArrowLeft size={15} /> Bills
+          </button>
+          <span className="bill-head-sep" aria-hidden="true">/</span>
+          <h1 className="bill-head-title">{isEditMode ? `Edit bill ${editBill.billNumber || ''}`.trim() : 'New bill'}</h1>
+          {!isEditMode && <PageTip path="/cases/bills/new" inline />}
+        </div>
+      ) : (
       <Button
         variant="secondary"
         onClick={() => (isEditMode && onCancelEdit ? onCancelEdit() : navigate('/cases/bills'))}
@@ -848,11 +927,14 @@ const BillCreateForm = ({
       >
         Back to Ledger
       </Button>
+      )}
 
+      {!isV2 && (
       <PageHeader
         title={isEditMode ? `Edit Bill Invoice ${editBill.billNumber || ''}` : 'Create Bill Invoice'}
         subtitle={isEditMode ? 'Update billed services — lab records sync automatically' : 'Record diagnostic orders and invoice payments'}
       />
+      )}
 
       {bookingBanner && (
         <div
@@ -899,11 +981,11 @@ const BillCreateForm = ({
         </div>
       )}
 
-      <div className="bill-form-grid">
+      <div ref={gridRef} className={`bill-form-grid${isV2 ? ' bill-form-grid--v2' : ''}`}>
         {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+        <div className="bill-form-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
           {isEditMode ? (
-            <div className="bill-form-card">
+            <div className="bill-form-card bill-step-patient">
               <div className="bill-card-header">
                 <div className="bill-card-header-left">
                   <span className="bill-card-step-badge">1</span>
@@ -980,15 +1062,56 @@ const BillCreateForm = ({
           />
           )}
 
+          {/* Referral (new look: its own visible step) */}
+          {isV2 && (() => {
+            const doctorList = [...doctors, ...addedDoctors.filter((d) => !doctors.some((x) => x._id === d._id))];
+            const agentList = [...agents, ...addedAgents.filter((a) => !agents.some((x) => x._id === a._id))];
+            const addButton = (kind) => (
+              <button type="button" className="bill-inline-add" onClick={() => setQuickAdd(quickAdd === kind ? null : kind)} aria-expanded={quickAdd === kind}>
+                <Plus size={13} /> New {kind}
+              </button>
+            );
+            return (
+              <div className="bill-form-card bill-step-referral">
+                <div className="bill-referral-grid">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="bill-field-head"><label className="form-label" htmlFor="bill-referred-by">Referred by</label>{addButton('doctor')}</div>
+                    <SearchSelect id="bill-referred-by" value={selectedDoctor} onChange={setSelectedDoctor} ariaLabel="Referred by"
+                      options={doctorList.map((d) => ({ value: d._id, label: d.name, hint: d.clinicHospital || d.phone }))} emptyLabel="Self / walk-in" placeholder="Type doctor name or phone" />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <div className="bill-field-head"><label className="form-label" htmlFor="bill-agent">Collection agent</label>{addButton('agent')}</div>
+                    <SearchSelect id="bill-agent" value={selectedAgent} onChange={setSelectedAgent} ariaLabel="Collection agent"
+                      options={agentList.map((a) => ({ value: a._id, label: a.name, hint: a.phone }))} emptyLabel="No agent" placeholder="Type agent name or phone" />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Case Details Card */}
-          <div className="bill-form-card">
+          <div className="bill-form-card bill-step-tests">
             <div className="bill-card-header">
               <div className="bill-card-header-left">
-                <span className="bill-card-step-badge">2</span>
-                <h3 className="bill-card-title">Case Details</h3>
+                <span className="bill-card-step-badge">{isV2 ? 3 : 2}</span>
+                <h3 className="bill-card-title">{isV2 ? 'Add tests' : 'Case Details'}</h3>
               </div>
+              {isV2 && (
+                <div className="bill-tests-tools">
+                  <DepartmentSelector compact activeDepartment={activeDepartment} tests={tests} packages={packages} panels={panels}
+                    existingDepartment={editBill?.department}
+                    onSelect={(d) => { setActiveDepartment(d); setPickerQuery(''); }} />
+                  {/* Opens the add form only; closing it changes nothing. */}
+                  <Button variant="secondary" size="sm" icon={<ExternalLink size={14} />} className="bill-outsource-btn"
+                    onClick={() => setOutsourceOpen(true)}>
+                    Outsource test
+                  </Button>
+                </div>
+              )}
             </div>
 
+            {!isV2 && (
+              <>
             {/* Referred By */}
             <div className="form-group" style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
@@ -1043,6 +1166,8 @@ const BillCreateForm = ({
               }}
             />
 
+              </>
+            )}
             {activeDepartment === 'OUTSOURCE LAB' && (
               <div
                 style={{
@@ -1072,10 +1197,10 @@ const BillCreateForm = ({
 
             {/* Single search: local catalog first, server fallback for tests */}
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                {activeDepartment === 'OUTSOURCE LAB' ? 'Or pick from catalog (optional)' : 'Select services'}
+              <label className={`form-label${isV2 && activeDepartment !== 'OUTSOURCE LAB' ? ' sr-only' : ''}`} htmlFor="bill-test-search" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                {activeDepartment === 'OUTSOURCE LAB' ? 'Or pick from catalog (optional)' : isV2 ? 'Type a test name (e.g. CBC) and press Enter' : 'Select services'}
               </label>
-              {activeDepartment !== 'USG' && <div role="radiogroup" aria-label="Show" style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
+              {activeDepartment !== 'USG' && !isV2 && <div role="radiogroup" aria-label="Show" style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
                 {PICKER_TABS.map((tab, tabIndex) => (
                   <Button
                     key={tab.key}
@@ -1101,6 +1226,7 @@ const BillCreateForm = ({
               ); })()}
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
+                  id="bill-test-search"
                   ref={pickerInputRef}
                   onFocus={() => setPickerFocused(true)}
                   onBlur={() => setPickerFocused(false)}
@@ -1129,11 +1255,10 @@ const BillCreateForm = ({
                   }}
                   aria-activedescendant={pickerQuery && filteredPickerItems[pickerHighlight] ? `picker-option-${pickerHighlight}` : undefined}
                   placeholder={
-                    activeDepartment === 'USG' ? 'Search USG services…' : pickerType === 'All'
+                    activeDepartment === 'USG' ? 'Search USG services…' : isV2 ? 'Type a test name (e.g. CBC) and press Enter' : pickerType === 'All'
                       ? 'Search all tests, packages & panels…'
                       : `Search ${pickerType === 'Test' ? 'tests' : pickerType === 'TestPackage' ? 'packages' : 'panels'} by name or code…`
                   }
-                  aria-label={`Search ${pickerType} list`}
                   style={{ flex: 1 }}
                 />
                 {pickerQuery && (
@@ -1172,6 +1297,15 @@ const BillCreateForm = ({
                         aria-disabled={alreadyAdded}
                         onKeyDown={(e) => { if (!alreadyAdded && e.key === 'Enter') handlePickerSelect(item); }}
                       >
+                        {isV2 ? (
+                          <span className="picker-row-main">
+                            <span className="picker-row-name">{item.name}</span>
+                            <span className="picker-row-meta">
+                              {[kind !== 'USG' && item._pickerLabel, kind !== 'USG' && item.code].filter(Boolean).join(' \u00b7 ')}
+                              {alreadyAdded ? <span className="picker-row-added">Added</span> : null}
+                            </span>
+                          </span>
+                        ) : (
                         <span>
                           {kind !== 'USG' && pickerType === 'All' && item._pickerLabel ? (
                             <span style={{ color: 'var(--color-text-muted)', marginRight: '0.35rem' }}>
@@ -1182,7 +1316,8 @@ const BillCreateForm = ({
                           {kind !== 'USG' && item.code ? ` (${item.code})` : ''}
                           {alreadyAdded ? ' — Added' : ''}
                         </span>
-                        <strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(item.price)}</strong>
+                        )}
+                        <strong className="picker-row-price" style={isV2 ? undefined : { color: 'var(--color-primary)' }}>{formatCurrency(item.price)}</strong>
                       </div>
                     );
                   })
@@ -1199,7 +1334,7 @@ const BillCreateForm = ({
           className="bill-summary-column"
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
         >
-          <div className="bill-form-card">
+          <div className="bill-form-card bill-step-cart">
             <BillItemsTable
               items={selectedItems}
               onRemove={(idx) => setSelectedItems((prev) => prev.filter((_, i) => i !== idx))}
@@ -1227,7 +1362,7 @@ const BillCreateForm = ({
             submitHint="Ctrl+B"
             submitting={submitting}
             isEditMode={isEditMode}
-            submitLabel={isEditMode ? 'Save Bill' : 'Create Invoice'}
+            submitLabel={isV2 ? (isEditMode ? 'Save bill' : 'Create bill') : isEditMode ? 'Save Bill' : 'Create Invoice'}
             collectionCentreOptions={formCollectionCentreOptions}
             collectionCentre={editCollectionCentre}
             setCollectionCentre={setEditCollectionCentre}
@@ -1250,6 +1385,22 @@ const BillCreateForm = ({
           </span>
           <strong>{formatCurrency(totalAmount)}</strong>
         </button>
+      )}
+
+      {isV2 && (
+        <QuickAddContact
+          kind={quickAdd}
+          isOpen={!!quickAdd}
+          onClose={() => setQuickAdd(null)}
+          onCreate={async (data) => (await (quickAdd === 'doctor' ? createDoctor : createAgent)(data)).data}
+          onCreated={(item) => {
+            if (!item?._id) return;
+            if (quickAdd === 'doctor') { setAddedDoctors((list) => [...list, item]); setSelectedDoctor(item._id); }
+            else { setAddedAgents((list) => [...list, item]); setSelectedAgent(item._id); }
+            notify(`${item.name} added`);
+            setQuickAdd(null);
+          }}
+        />
       )}
 
       <OutsourceTestModal

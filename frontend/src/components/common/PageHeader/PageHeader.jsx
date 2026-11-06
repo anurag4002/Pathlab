@@ -1,6 +1,7 @@
 import React from 'react';
 import { useUiVersion } from '../../../utils/uiVersion';
 import './PageHeader.css';
+import PageTip from '../PageTip';
 
 // New look: short, plain titles (pathlab-ui skill §2).
 const SHORT_TITLES = {
@@ -46,13 +47,16 @@ const PageHeader = ({ title, subtitle, action, className = '' }) => {
   const shownTitle = isV2 && typeof title === 'string' ? (SHORT_TITLES[title] || sentenceCase(title)) : title;
   const shownSubtitle = isV2 && typeof subtitle === 'string' && DEVELOPER_WORDING.test(subtitle) ? null : subtitle;
   return (
-    <header className={`page-header ${className}`}>
-      <div className="page-header-title-group">
-        <h1 className="page-header-title">{shownTitle}</h1>
-        {shownSubtitle && <p className="page-header-subtitle">{shownSubtitle}</p>}
-      </div>
-      {action && <div className="page-header-actions">{action}</div>}
-    </header>
+    <>
+      <header className={`page-header ${className}`}>
+        <div className="page-header-title-group">
+          <h1 className="page-header-title">{shownTitle}</h1>
+          {shownSubtitle && <p className="page-header-subtitle">{shownSubtitle}</p>}
+        </div>
+        {action && <div className="page-header-actions">{action}</div>}
+      </header>
+      <PageTip />
+    </>
   );
 };
 

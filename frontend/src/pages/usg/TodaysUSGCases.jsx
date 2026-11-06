@@ -30,6 +30,8 @@ import {
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import '../../styles/USG.css';
 import { notify } from '../../components/common/Toast/toast';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -61,6 +63,7 @@ const caseImages = (c) => (
 );
 
 const TodaysUSGCases = ({ reportsView = false }) => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   // Modal state is mirrored to the URL (?case=new|<id>&print=<id>) so a
@@ -573,10 +576,11 @@ const TodaysUSGCases = ({ reportsView = false }) => {
       />
 
       <DataTable
-        headers={['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'USG Service', 'PDF Report', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Referred by', 'USG service', 'PDF report', 'Status', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'USG Service', 'PDF Report', 'Status', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !searchFilter && !fromDate && !toDate ? 'No ultrasonography cases recorded today.' : 'No ultrasonography cases matched your search query.'}
+        emptyAction={isV2 ? <Button variant="secondary" size="sm" onClick={handleOpenCreate}>Create USG case</Button> : null}
         searchValue={searchFilter}
         onSearchChange={(e) => { setSearchFilter(e.target.value); goToPage(1); }}
         searchPlaceholder="Search name, reg no, findings..."
@@ -592,10 +596,26 @@ const TodaysUSGCases = ({ reportsView = false }) => {
         }}
         renderRow={(c) => (
           <tr key={c._id}>
-            <td>{formatDate(c.date).split(',')[0]}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
-            <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
-            <td>{c.referringDoctor?.name || 'Self'}</td>
+            {isV2 ? (
+              <>
+                {/* Clinical screen: age · sex beside the name when known. */}
+                <td>
+                  <IdentityCell
+                    name={[c.patient?.title, c.patient?.name].filter(Boolean).join(' ')}
+                    clinical={{ age: c.patient?.age, ageUnit: c.patient?.ageUnit, gender: c.patient?.gender }}
+                    meta={[c.patient?.registrationNumber && `Reg ${c.patient.registrationNumber}`, formatDate(c.date).split(',')[0]]}
+                  />
+                </td>
+                <td>{c.referringDoctor?.name || <span className="cell-empty">Self</span>}</td>
+              </>
+            ) : (
+              <>
+                <td>{formatDate(c.date).split(',')[0]}</td>
+                <td style={{ fontWeight: '600' }}>{c.patient?.registrationNumber}</td>
+                <td style={{ fontWeight: '600' }}>{c.patient?.name}</td>
+                <td>{c.referringDoctor?.name || 'Self'}</td>
+              </>
+            )}
             <td>{services.find(service => service.value === c.serviceType)?.name || (c.serviceType ? `USG (${c.serviceType === 'with-report' ? 'With report' : 'Without report'})` : c.templateName || 'USG')}{c.price != null && <div className="form-helper">₹{c.price}</div>}</td>
             <td style={{ maxWidth: 160, overflowWrap: 'anywhere' }}>{c.reportFile?.name || (c.findings?.trim() ? 'Written findings' : c.serviceType === 'without-report' ? 'Not requested' : 'Awaiting PDF')}</td>
             <td>

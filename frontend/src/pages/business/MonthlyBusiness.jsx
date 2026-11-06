@@ -562,12 +562,12 @@ const MonthlyBusiness = () => {
           <section className="card" style={{ marginBottom: 'var(--space-4)', overflowX: 'auto' }}>
             <SectionHeading
               title="Daily business trend"
-              description="Only daily points returned by the business API for the selected month are shown."
+              description="Days with no business are left out."
             />
             {dailyCollectionData.length === 0 && dailyNetData.length === 0 && dailyExpenseData.length === 0 ? (
               <EmptyState
                 title="No daily trend data"
-                message="The current business API did not return daily trend points for this month."
+                message="No daily figures were recorded for this month."
               />
             ) : (
               <div style={{ display: 'grid', gap: 'var(--space-5)', minWidth: '320px' }}>

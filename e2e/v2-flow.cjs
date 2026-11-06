@@ -95,6 +95,86 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
     assert.match(await page.locator('main').innerText(), /Karan Malhotra/);
   });
 
+  await step('new bill: referral visible, doctor added in place, bill created', async () => {
+    assert.ok(await page.locator('.page-tip').isVisible(), 'tip shown under the title');
+    const fit = await page.evaluate(() => {
+      const tall = [...document.querySelectorAll('body *')].filter((el) => el.getBoundingClientRect().bottom > window.innerHeight + 2 && getComputedStyle(el).position !== 'fixed')
+        .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]}:${Math.round(el.getBoundingClientRect().bottom)}`).slice(0, 8);
+      return { page: document.scrollingElement.scrollHeight, win: window.innerHeight, pay: Math.round(document.querySelector('.bill-pay').getBoundingClientRect().bottom), tall };
+    });
+    assert.ok(fit.pay <= fit.win && fit.page <= fit.win + 2, `new bill fits the window: ${JSON.stringify(fit)}`);
+    assert.ok(await page.getByRole('combobox', { name: 'Referred by' }).isVisible(), 'Referred by visible without opening anything');
+    assert.ok(await page.getByRole('combobox', { name: 'Collection agent' }).isVisible(), 'Collection agent visible');
+    await page.getByRole('button', { name: 'New doctor' }).click();
+    const doctorPanel = page.locator('.modal-content--drawer'); await doctorPanel.waitFor({ timeout: 5000 });
+    await doctorPanel.getByLabel(/Doctor name/).fill('Dr Quick Add');
+    await doctorPanel.getByLabel(/Phone number/).fill('9811100000');
+    await doctorPanel.getByRole('button', { name: 'Add doctor' }).click(); await page.waitForTimeout(800);
+    assert.equal(await doctorPanel.count(), 0, 'panel closes after adding');
+    assert.equal(await page.getByRole('combobox', { name: 'Referred by' }).inputValue(), 'Dr Quick Add');
+    // The doctor list is searchable: type part of the name, Enter picks it.
+    await page.getByRole('button', { name: 'Clear Referred by' }).click();
+    await page.getByRole('combobox', { name: 'Referred by' }).click();
+    await page.keyboard.type('quick'); await page.keyboard.press('Enter');
+    assert.equal(await page.getByRole('combobox', { name: 'Referred by' }).inputValue(), 'Dr Quick Add', 'found by typing');
+    assert.match(page.url(), /\/cases\/bills\/new/, 'still on the bill');
+    const deptOptions = await page.getByLabel('Show tests from department').locator('option').allInnerTexts();
+    assert.ok(!deptOptions.some((o) => /OUTSOURCE/.test(o)), `no Outsource in departments: ${deptOptions}`);
+    await page.getByRole('button', { name: 'Outsource test' }).click(); await page.waitForTimeout(300);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    assert.doesNotMatch(await page.locator('.bill-step-tests').innerText(), /send-out tests/i, 'closing the outsource form changes nothing');
+    assert.equal(await page.getByLabel('Show tests from department').inputValue(), 'ALL');
+    await page.getByLabel(/Type a test name/).fill('Complete Blood');
+    await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+    const total = (await page.locator('.bill-summary-column').innerText()).match(/Total\s*₹([\d,]+(?:\.\d+)?)/)[1].replace(/,/g, '');
+    assert.ok(Number(total) > 0, 'test added');
+    await page.getByRole('button', { name: '+ Add', exact: true }).click();
+    await page.getByLabel('Amount received now', { exact: true }).fill('100');
+    const tops = await page.locator('.bill-pay .pay-label').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+    assert.equal(new Set(tops).size, 1, `payment bar labels on one line: ${tops}`);
+    await page.locator('.bill-pay').screenshot({ path: path.join(OUT, 'v2-pay-bar.png') });
+    await page.getByLabel('Amount received now', { exact: true }).fill(total);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
+    const latest = (await env.mongoose.model('Bill').find({}).sort({ createdAt: -1 }).limit(1).populate('referringDoctor').lean())[0];
+    assert.equal(latest.referringDoctor?.name, 'Dr Quick Add');
+    assert.equal(Number(latest.dueAmount), 0);
+  });
+
+  await step('one search box: the top bar filters the bills list; tips can be closed', async () => {
+    await page.goto(BASE + '/cases/bills', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    const header = page.locator('[data-header-page-search]');
+    assert.ok(await header.isVisible(), 'header search drives the page');
+    assert.equal(await page.locator('main .afb-v2-row input[data-filter-text]:visible').count(), 0, 'no second search box');
+    await header.fill('Meera'); await page.waitForTimeout(1500);
+    const rows = await page.locator('table tbody tr').allInnerTexts();
+    assert.ok(rows.length > 0 && rows.every((r) => /Meera/.test(r)), `only Meera rows: ${rows.length}`);
+    await page.getByRole('button', { name: 'Hide this tip' }).click();
+    await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(600);
+    assert.equal(await page.locator('.page-tip').count(), 0, 'tip stays hidden');
+  });
+
+  await step('new patient: right-side panel, nothing lost when closed by mistake or reloaded', async () => {
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: '+ New patient' }).click();
+    const drawer = page.locator('.modal-content--drawer'); await drawer.waitFor({ timeout: 5000 });
+    await drawer.getByPlaceholder('Phone number').fill('9822200000');
+    await drawer.getByPlaceholder('First Name').fill('Asha');
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    assert.equal(await drawer.count(), 0, 'panel closed');
+    const summary = page.locator('.bill-new-patient-summary');
+    assert.match(await summary.innerText(), /Asha[\s\S]*9822200000[\s\S]*Still needed: age/);
+    await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    assert.match(await page.locator('.bill-new-patient-summary').innerText(), /Asha/, 'draft survives a reload');
+    await page.getByRole('button', { name: 'Fill details' }).click();
+    assert.equal(await page.locator('.modal-content--drawer').getByPlaceholder('First Name').inputValue(), 'Asha');
+    await page.locator('.modal-content--drawer').getByLabel('Email').fill('asha@example.com');
+    await page.locator('.modal-content--drawer').getByRole('button', { name: 'Done' }).click();
+    assert.match(await page.locator('.bill-profile-link').innerText(), /1 added/, 'profile details counted on the card');
+    assert.equal(await page.locator('.optional-field-badges').count(), 0, 'no + Email chips on the card');
+    await page.locator('.modal-content--drawer').waitFor({ state: 'detached' });
+    await page.evaluate(() => sessionStorage.clear());
+  });
+
   await step('dues: summary matches the dashboard balance', async () => {
     await page.goto(BASE + '/business/dues', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
     assert.match(await page.locator('.stat-group').innerText(), /Total balance due\s*₹0\.00[\s\S]*Bills with a balance\s*0/);
@@ -109,6 +189,18 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
     assert.ok(await row.getByRole('button', { name: /^Results / }).isVisible(), 'action visible on phone');
     await page.screenshot({ path: path.join(OUT, 'v2-phone-bills.png') });
     await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  await step('side panel, Daily work links, empty-state action', async () => {
+    await page.goto(BASE + '/cases/bills', { waitUntil: 'networkidle' }); await page.waitForTimeout(500);
+    await page.locator('table tbody tr', { hasText: 'Karan Malhotra' }).first().locator('.bill-number-link').click();
+    await page.locator('.modal-content--drawer').waitFor({ timeout: 5000 });
+    assert.match(await page.locator('.modal-content--drawer').innerText(), /Karan Malhotra/);
+    await page.keyboard.press('Escape');
+    const daily = await page.locator('.sidebar-section').innerText();
+    for (const label of ['Daily work', 'Bills', "Today's reports", 'Result entry', 'Verification', 'Patients', 'Dues']) assert.match(daily, new RegExp(label));
+    await page.goto(BASE + '/usg/today', { waitUntil: 'networkidle' }); await page.waitForTimeout(600);
+    assert.ok(await page.locator('.empty-state-action').getByRole('button', { name: 'Create USG case' }).count(), 'empty USG list offers Create USG case');
   });
 
   await step('switch back to Classic from the dashboard banner', async () => {

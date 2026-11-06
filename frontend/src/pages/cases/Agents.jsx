@@ -4,6 +4,8 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { notify } from '../../components/common/Toast/toast';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -12,6 +14,7 @@ const STATUS_OPTIONS = [
 ];
 
 const Agents = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -162,7 +165,7 @@ const Agents = () => {
       />
 
       <DataTable
-        headers={['Name', 'Phone', 'Commission %', 'Status', 'Actions']}
+        headers={isV2 ? ['Agent', 'Commission', 'Status', ''] : ['Name', 'Phone', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No collection agent profiles matching your query."
@@ -176,11 +179,20 @@ const Agents = () => {
         }}
         renderRow={(agent) => (
           <tr key={agent._id}>
-            <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{agent.name}</td>
-            <td>{agent.phone}</td>
-            <td style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-primary)' }}>
-              {agent.commissionPercentage}%
-            </td>
+            {isV2 ? (
+              <>
+                <td><IdentityCell name={agent.name} copy={agent.phone ? { value: agent.phone, label: 'phone' } : undefined} /></td>
+                <td className="num">{agent.commissionPercentage}%</td>
+              </>
+            ) : (
+              <>
+                <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{agent.name}</td>
+                <td>{agent.phone}</td>
+                <td style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-primary)' }}>
+                  {agent.commissionPercentage}%
+                </td>
+              </>
+            )}
             <td>
               <StatusBadge status={agent.status} />
             </td>

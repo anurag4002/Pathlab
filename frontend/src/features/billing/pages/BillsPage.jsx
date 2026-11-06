@@ -922,6 +922,7 @@ const BillsPage = () => {
         onClose={() => setDetailsTarget(null)}
         title={`Invoice ${detailsTarget?.billNumber || ''}`}
         size="lg"
+        variant="drawer"
         footer={
           <>
             <Button

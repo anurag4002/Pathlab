@@ -77,7 +77,19 @@ const AdvancedFilterBar = ({
   const canCollapse = (showToggle || narrow) && fields.length > limit;
   const visible = canCollapse && !expanded ? fields.slice(0, limit) : fields;
 
-  const setValue = (key, value) => onChange?.(key, value);
+  // New look: the search box applies itself shortly after typing stops (the
+  // separate "Search" button is gone; the top-bar search types in here too).
+  const searchTimer = useRef(null);
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+  const setValue = (key, value) => {
+    onChange?.(key, value);
+    const field = fields.find((f) => f.key === key);
+    const isSearchText = field && (field.type === 'text' || field.type === 'search' || !field.type) && /search/i.test(`${field.key} ${field.label || ''}`);
+    if (isV2 && isSearchText) {
+      clearTimeout(searchTimer.current);
+      searchTimer.current = setTimeout(() => onSearchRef.current?.(), 400);
+    }
+  };
 
   const renderField = (f) => {
     const value = values[f.key];
@@ -205,7 +217,8 @@ const AdvancedFilterBar = ({
       const option = (f.options || []).find((o) => String(o.value) === String(v));
       return option ? option.label : f.type === 'custom' ? '' : String(v);
     };
-    const active = inPanel.filter(isSet);
+    // Unlabelled custom controls (e.g. the reporting month) are settings, not filters.
+    const active = inPanel.filter((f) => isSet(f) && !(f.type === 'custom' && !f.label));
     const removeChip = (f) => {
       setValue(f.key, f.type === 'toggle' ? false : '');
       setTimeout(() => onSearchRef.current?.(), 0);

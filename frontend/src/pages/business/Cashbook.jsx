@@ -133,9 +133,9 @@ const Cashbook = () => {
         ) : reconciled ? (
           <span style={{ color: 'var(--color-success)' }}>Reconciled: cashbook cash-in matches ledger collections for this period.</span>
         ) : (
-          <span style={{ color: 'var(--color-danger)' }}>
-            Reconcile note: cashbook cash-in differs from ledger collections for this period
-            (filters/pagination may exclude rows) — verify before closing the day.
+          <span className="callout-warning" role="note">
+            <strong>Cash-in does not match the ledger for this period.</strong>{' '}
+            Filters or paging may hide some rows - check before closing the day.
           </span>
         )}
       </div>

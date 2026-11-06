@@ -23,6 +23,17 @@ banner on the dashboard). New styles are scoped under the root class
 `ui-v2`; layout changes branch on `useUiVersion()`. The classic UI must look
 exactly as before when the switch is off. Correctness fixes apply to both.
 
+New-look rules learned from the user:
+- **One search box per screen** (top bar). On a list page it filters that list
+  (`PageSearchField` types into the page's own hidden search); its "Everywhere"
+  button opens the global search (Ctrl K). Elsewhere it is the global search.
+- **Tips are visible**: `PageTip` shows one closable line under the page title
+  on busy screens (texts in `components/common/PageTip.jsx`).
+- **New bill is the most-used screen**: it must fit one screen, keep Doctor and
+  Collection agent visible, and never send the user to another page mid-bill.
+- Type and colour follow the reference: zinc text (#18181b / #3f3f46 / #71717a),
+  #e4e4e7 borders, #fafafa canvas, 15px body, 600-weight titles.
+
 ## 1. Look and feel (from the reference)
 
 | Element | Rule | Token / class |

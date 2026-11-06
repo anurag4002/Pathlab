@@ -28,6 +28,7 @@ import RecentTransactionsTable from '../components/RecentTransactionsTable';
 import '../Dashboard.css';
 import StatGroup from '../../../components/common/StatGroup/StatGroup';
 import UiVersionBanner from '../../../components/common/UiVersionBanner';
+import PageTip from '../../../components/common/PageTip';
 import { useUiVersion } from '../../../utils/uiVersion';
 import usePendingResultCount from '../../../hooks/usePendingResultCount';
 
@@ -540,6 +541,7 @@ const DashboardPage = () => {
       </div>
 
       <UiVersionBanner />
+      <PageTip />
 
       {statsError && <DashboardErrorBanner message={statsError} onRetry={handleRefresh} />}
 

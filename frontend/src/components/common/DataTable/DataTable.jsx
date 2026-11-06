@@ -3,19 +3,26 @@ import React from 'react';
 // Give every cell its column name (data-label) so the new look can show a
 // row as a labelled card on phones without each screen doing it.
 const headerText = (header) => (typeof header === 'string' ? header : typeof header?.props?.children === 'string' ? header.props.children : '');
-function withCellLabels(row, headers) {
+// New look: a cell that only says "N/A", "—" or "-" reads as muted "Not set".
+const EMPTY_MARKERS = new Set(['N/A', 'NA', 'n/a', '—', '-', '–']);
+function withCellLabels(row, headers, isV2 = false) {
   if (!React.isValidElement(row) || row.type !== 'tr') return row;
   let column = 0;
   const cells = React.Children.map(row.props.children, (cell) => {
     if (!React.isValidElement(cell) || (cell.type !== 'td' && cell.type !== 'th')) return cell;
     const label = headerText(headers[column]);
     column += Number(cell.props.colSpan) || 1;
-    return cell.props['data-label'] !== undefined || !label ? cell : React.cloneElement(cell, { 'data-label': label });
+    const props = {};
+    if (cell.props['data-label'] === undefined && label) props['data-label'] = label;
+    const only = cell.props.children;
+    if (isV2 && typeof only === 'string' && EMPTY_MARKERS.has(only.trim())) props.children = <span className="cell-empty">Not set</span>;
+    return Object.keys(props).length ? React.cloneElement(cell, props) : cell;
   });
   return React.cloneElement(row, {}, cells);
 }
 import { Search } from 'lucide-react';
 import EmptyState from '../EmptyState/EmptyState';
+import { useUiVersion } from '../../../utils/uiVersion';
 import Pagination from '../Pagination/Pagination';
 import './DataTable.css';
 
@@ -25,6 +32,7 @@ const DataTable = ({
   loading = false,
   emptyTitle,
   emptyMessage = 'No records found.',
+  emptyAction = null, // e.g. a "Create case" button shown in the empty state
   searchPlaceholder = 'Search...',
   searchValue = '',
   onSearchChange,
@@ -36,6 +44,7 @@ const DataTable = ({
   stickyActions = false, // freeze the last (actions) column on horizontal scroll
   className = ''
 }) => {
+  const isV2 = useUiVersion() === 'v2';
   const showToolbar = Boolean(onSearchChange || toolbarActions);
   // Refreshing keeps the current rows (dimmed, thin progress bar) instead of
   // swapping them for a spinner, so the list never flashes after a payment,
@@ -91,11 +100,11 @@ const DataTable = ({
             ) : data.length === 0 ? (
               <tr className="data-table-empty-row">
                 <td colSpan={headers.length}>
-                  <EmptyState title={emptyTitle} message={emptyMessage} />
+                  <EmptyState title={emptyTitle} message={emptyMessage} action={emptyAction} />
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => withCellLabels(renderRow(item, index), headers))
+              data.map((item, index) => withCellLabels(renderRow(item, index), headers, isV2))
             )}
           </tbody>
         </table>

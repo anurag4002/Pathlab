@@ -17,6 +17,10 @@ notes hidden (`dev-note`), new bill (optional fields folded behind "+ Email"
 chips, quiet ₹/% toggle, muted balance until there is a total), daily business
 figures grouped.
 
+Round 4-5: top-bar "New look" switch and `?ui=new` link; quiet delete buttons and "Not set" in every table; grouped figures on business and test screens; bill details side panel; sidebar "Daily work"; identity cells on USG, X-ray, transactions, cashbook, users, agents, referral doctors (age · sex on imaging); cashbook mismatch as a warning callout; empty USG/X-ray lists offer "Create case".
+
+Not done (decided): scope dropdown instead of tabs (B6) - the status tabs read well and staff know them; pager footer on every list (B11) - lists that load all rows stay as they are.
+
 Revamped so far: dashboard (key figures, quick actions, no setup card once billing),
 bills, today's reports, result entry list, verification queue, patients, reviews,
 dues - identity cell (age · sex always shown on clinical screens), one action + ⋯,
@@ -30,7 +34,7 @@ right-aligned money, filter strip with chips, phone cards.
 | --- | --- | --- | --- |
 | A1 | API `POST /bills` | Paid amount is not capped at the bill total (only the form checks it): ₹500 accepted on a ₹450 bill, which inflates collections and makes Dashboard / Monthly / Dues disagree | \[x\] server rejects payments above the bill total / amount due (Nov 2026) |
 | A2 | /business/analysis | "7 days" shows ₹0 everywhere while today has collections (Cashbook, Daily, Dashboard show them) - date window query | \[x\] date-only windows now cover the whole IST day (`utils/dateRange`) |
-| A3 | /business/cashbook | "Reconcile note: cash-in differs from ledger" shows when the totals match; also shown as bare red text, not a callout | \[~\] false mismatch fixed (same date fix); callout styling still to do |
+| A3 | /business/cashbook | "Reconcile note: cash-in differs from ledger" shows when the totals match; also shown as bare red text, not a callout | \[x\] fixed; real mismatches show as a warning callout |
 | A4 | /business/cases, /business/referrals | Table wider than its card at 1440px: last column cut off | \[ \] |
 | A5 | /lab/export | Duplicate of /business/export; no sidebar item highlighted | \[ \] redirect to /business/export |
 | A6 | /manage/branches | Created date in US format (9/24/2026); use the shared formatter | \[ \] |
@@ -47,19 +51,19 @@ right-aligned money, filter strip with chips, phone cards.
 
 Ordered by how many daily screens they fix.
 
- 1. **Row actions: one primary +** `⋯` (§2 Table). Bills has 8 controls perx no · bill no · phone, with `CopyButton`). Removes duplicate columns (reg no = bill no = invoice no today). Model already in the app: /lab/normal-ranges. Affects: bills, lab/reports, lab/result-entry, lab/search, lab/verification, patients, dues, reviews, transactions, cashbook, business/cases, agents, doctors, employees, templates, packages, panels, usg/*, xray/*. `[~]` new look: bills, today's reports, patients, reviews, dues
+ 1. **Row actions: one primary +** `⋯` (§2 Table). Bills has 8 controls perx no · bill no · phone, with `CopyButton`). Removes duplicate columns (reg no = bill no = invoice no today). Model already in the app: /lab/normal-ranges. Affects: bills, lab/reports, lab/result-entry, lab/search, lab/verification, patients, dues, reviews, transactions, cashbook, business/cases, agents, doctors, employees, templates, packages, panels, usg/*, xray/*. `[x]` new look: bills, today's reports, patients, reviews, dues; other lists keep their buttons but no solid red (quiet outlined delete)
  2. **Filters: search +** `Filter (n)` **+ removable chips** (§2) instead of permanent cards of labelled selects (Bills shows 7 + 11 hidden, Search Reports 6, Patients 6, Cases 13 checkboxes). One search box per screen (lab/search, lab/reports, usg/\* have two). On phone, "Filters (n more)" counts hidden fields, not active filters - must show active count. Build once in `AdvancedFilterBar` (chip mode) → every list. `[x]` new look: `AdvancedFilterBar` strip (Filters panel + chips) on every screen that uses it
  3. **Phone tables → stacked row cards under 600px** (§5.2). Today almost every list scrolls sideways and hides the action or amount: Dues (Collect hidden), Bills (Pay hidden), Reviews (Ask hidden), Cashbook / Transactions (Amount hidden), Result Entry, Verification. Build in `DataTable` (`mobileCard` render: identity line, key value, primary action). `[x]` new look: `DataTable` labelled cards under 640px on every list
  4. **Sentence-case headers and labels** (§1 Type): every table and tile uses ALL CAPS. One CSS change in `DataTable.css` / tile styles + label text cleanup. `[x]` new look (CSS)
- 5. **Stat tiles grouped in one bordered card** (§2 Stat tiles) instead of floating cards with coloured icon squares (dashboard 6, monthly 10, analysis, test-usage, lab/counts, doctor; cashbook/daily float with no container). Build a `StatGroup` component; 2×2 on phone. `[~]` `StatGroup` on dashboard and dues
+ 5. **Stat tiles grouped in one bordered card** (§2 Stat tiles) instead of floating cards with coloured icon squares (dashboard 6, monthly 10, analysis, test-usage, lab/counts, doctor; cashbook/daily float with no container). Build a `StatGroup` component; 2×2 on phone. `[x]` `StatGroup` + grouped figure cards (dashboard, dues, cashbook, daily, monthly, analysis, test counts/usage)
  6. **Scope dropdown instead of in-page tabs** (§2 Top bar): Today/Due/Pending, Not asked/Asked/All, Today's cases/All, modality buttons, date presets. Affects: lab/reports, reviews, usg/*, xray/*, cases/modality, business/analysis, daily, monthly, inquiries. `[ ]`
- 7. **Remove developer wording** from staff screens ("5,000-row cap", "endpoint does not expose…", "Labsmart parity", "existing user API", "real API", "URL-based filtering", "completion date: pending"). Affects: daily, monthly, business/export, lab/export, lab/analysis, business/cases, referrals, lab/search, employees, onboarding, profile. `[ ]`
- 8. **Empty values as muted italic** (§1): "N/A", "—", "-", "0000000000", "Migrated from Labsmart" → "No notes", "No unit", "Not set", "Unknown". Add `.cell-empty`. Affects: expenses, doctors, test-usage, normal-ranges, categories, lab/rates, lab/tests, rate-revision, signatures, security, profile. `[ ]`
- 9. **One accent per screen** (§1): two blue buttons on result-entry (Search + Upload), manage/doctors, business/export (4 solid blue), onboarding (blue hero + blue buttons); amber WhatsApp buttons on reviews. Live search removes most "Search" buttons. `[~]` one primary per row on revamped screens; review button neutral
-10. **Right-side** `Drawer` (§2) for record view: bill details, patient details, report review, template/interpretation edit, agent/doctor history. Build once; open on row click; `?view=<id>` in the URL. `[ ]`
+ 7. **Remove developer wording** from staff screens ("5,000-row cap", "endpoint does not expose…", "Labsmart parity", "existing user API", "real API", "URL-based filtering", "completion date: pending"). Affects: daily, monthly, business/export, lab/export, lab/analysis, business/cases, referrals, lab/search, employees, onboarding, profile. `[x]` new look: developer subtitles hidden by `PageHeader`, notes marked `dev-note`; monthly copy rewritten
+ 8. **Empty values as muted italic** (§1): "N/A", "—", "-", "0000000000", "Migrated from Labsmart" → "No notes", "No unit", "Not set", "Unknown". Add `.cell-empty`. Affects: expenses, doctors, test-usage, normal-ranges, categories, lab/rates, lab/tests, rate-revision, signatures, security, profile. `[x]` new look: `DataTable` shows "N/A" / "—" / "-" cells as muted "Not set"
+ 9. **One accent per screen** (§1): two blue buttons on result-entry (Search + Upload), manage/doctors, business/export (4 solid blue), onboarding (blue hero + blue buttons); amber WhatsApp buttons on reviews. Live search removes most "Search" buttons. `[x]` new look: one primary per row on revamped screens; review button neutral; no solid red row buttons
+10. **Right-side** `Drawer` (§2) for record view: bill details, patient details, report review, template/interpretation edit, agent/doctor history. Build once; open on row click; `?view=<id>` in the URL. `[~]` bill details open as a right-side panel (`Modal variant="drawer"`); other record views still dialogs
 11. **Pager footer everywhere** (§2 Footer): missing on activities, dues, transactions, patients, doctors, templates, categories, packages, panels, reviews. `[ ]`
-12. **Empty states with a call to action**: usg/today, xray/today, xray/reports, manage/doctors, support/tickets, inquiries, modality. `[ ]`
-13. **Sidebar: section labels instead of collapsible folders** (§2 Sidebar): group into Daily work (Dashboard, New bill, Bills, Today's reports, Result entry, Verification, Reviews) · Patients · Business · Imaging · Setup; /lab/analysis and /lab/counts sit under "Test Setup" though routes are /lab. `[~]` (hover/active/guide line done Nov 2026)
+12. **Empty states with a call to action**: usg/today, xray/today, xray/reports, manage/doctors, support/tickets, inquiries, modality. `[~]` `DataTable emptyAction`; USG and X-ray empty lists offer "Create case"
+13. **Sidebar: section labels instead of collapsible folders** (§2 Sidebar): group into Daily work (Dashboard, New bill, Bills, Today's reports, Result entry, Verification, Reviews) · Patients · Business · Imaging · Setup; /lab/analysis and /lab/counts sit under "Test Setup" though routes are /lab. `[x]` new look: "Daily work" section (Bills, Today's reports, Result entry, Verification, Patients, Dues) above the sections
 
 ---
 
@@ -73,7 +77,10 @@ Purpose: register/pick patient, add tests, take payment, create invoice.
 2. `[x]` Create Invoice shows its keys (Ctrl B, Enter in payment fields).
 3. `[ ]` "Balance due ₹0.00" in big green before anything is entered → muted until tests added.
 4. `[ ]` Discount "%" toggle is a solid blue button → quiet ₹/% segmented control.
-5. `[ ]` "Back to Ledger" button → breadcrumb "Bills / New bill". Phone: search placeholder truncated; Email/Aadhaar cramped side by side; payment far below.
+5. `[x]` "Back to Ledger" button → small "← Bills" link (new look). Title "New bill".
+6. `[x]` New look checkout layout (user feedback: page must fit one screen, scrolling was "messy"): Patient | Referred by on one row; Add tests | Tests in this bill; payment bar pinned at the bottom (Total · + Add discount · Amount received now · Still to pay · Paid by · Create bill). Test list scrolls inside its box. A three-column version was tried and rejected as worse.
+7. `[x]` Referred by (Doctor) and Collection agent always visible - the user said they are important. "+ New doctor / + New agent" add one in place (name + phone) without leaving the bill.
+8. `[x]` Department filter is a small link in the "Add tests" header; Test/Package/Panel tabs gone (one search finds all).
 
 ### /cases/bills - Bills
 

@@ -10,6 +10,8 @@ import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, Sta
 import EmployeeForm from './components/EmployeeForm';
 import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STAFF_ROLES = ['Employee', 'Admin'];
 const ROLE_OPTIONS = [
@@ -68,6 +70,7 @@ const getResponseError = (response, fallback) => ({
 });
 
 const EmployeeLogin = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user: currentUser, syncFromStorage } = useAuth();
   const canManage = currentUser?.role === 'Admin';
 
@@ -406,7 +409,7 @@ const EmployeeLogin = () => {
       </p>
 
       <DataTable
-        headers={['Name', 'Email', 'Phone', 'Role', 'Branch', 'Status', 'Created', 'Actions']}
+        headers={isV2 ? ['User', 'Role', 'Branch', 'Status', ''] : ['Name', 'Email', 'Phone', 'Role', 'Branch', 'Status', 'Created', 'Actions']}
         data={pg.paged}
         loading={loading || searchPending}
         emptyMessage={hasFilters ? 'No user accounts match the current search or filters.' : 'No user accounts are available.'}
@@ -426,13 +429,22 @@ const EmployeeLogin = () => {
           const isCurrentUser = account._id === currentUser?._id;
           return (
             <tr key={account._id} data-testid={`user-row-${account.email || account._id}`}>
-              <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{account.name || '—'}</td>
-              <td>{account.email || '—'}</td>
-              <td>{account.phone || '—'}</td>
+              {isV2 ? (
+                <td>
+                  <IdentityCell name={`${account.name || 'Unnamed'}${isCurrentUser ? ' (you)' : ''}`} meta={[account.email]}
+                    copy={account.phone ? { value: account.phone, label: 'phone' } : undefined} />
+                </td>
+              ) : (
+                <>
+                  <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{account.name || '—'}</td>
+                  <td>{account.email || '—'}</td>
+                  <td>{account.phone || '—'}</td>
+                </>
+              )}
               <td><StatusBadge status={account.role} /></td>
               <td>{account.branch?.name || account.branch?.code || '—'}</td>
               <td><StatusBadge status={account.status} /></td>
-              <td>{formatDate(account.createdAt)}</td>
+              {!isV2 && <td>{formatDate(account.createdAt)}</td>}
               <td>
                 {isCurrentUser ? (
                   <div className="user-management-actions">

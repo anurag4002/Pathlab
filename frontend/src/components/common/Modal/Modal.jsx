@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import './Modal.css';
 import { isPdfPrintActive } from '../../../utils/pdfPrintSession';
+import { useUiVersion } from '../../../utils/uiVersion';
 
 const Modal = ({
   isOpen,
@@ -11,8 +12,12 @@ const Modal = ({
   children,
   footer,
   size = 'md', // 'md' | 'lg' | 'xl'
-  className = ''
+  className = '',
+  // 'drawer': in the new look, viewing a record opens as a right-side panel
+  // (the list stays visible); classic keeps the centred dialog.
+  variant = 'dialog'
 }) => {
+  const asDrawer = variant === 'drawer' && useUiVersion() === 'v2';
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen && !e.defaultPrevented && !isPdfPrintActive()) {
@@ -49,14 +54,14 @@ const Modal = ({
   // Mount dialogs outside those cells so headers cannot cover the overlay.
   return createPortal(
     <div
-      className="modal-overlay"
+      className={`modal-overlay${asDrawer ? ' modal-overlay--drawer' : ''}`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-heading-title"
     >
       <div
-        className={`modal-content modal-${size} ${className}`}
+        className={`modal-content modal-${size}${asDrawer ? ' modal-content--drawer' : ''} ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">

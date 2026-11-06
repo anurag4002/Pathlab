@@ -32,7 +32,7 @@ const AppLayout = () => {
       // The screen's own search box, most specific first. Screens without one
       // (Dashboard, Result Entry, Verification ...) open the global search.
       const usable = (input) => input && !input.disabled && !input.readOnly && input.offsetParent !== null;
-      const box = ['main [data-page-search]', 'main input[type="search"]', 'main .data-table-search-input', 'main input[data-filter-text]']
+      const box = ['[data-header-page-search]', 'main [data-page-search]', 'main input[type="search"]', 'main .data-table-search-input', 'main input[data-filter-text]']
         .map((selector) => [...document.querySelectorAll(selector)].find(usable))
         .find(Boolean);
       if (!box) { document.querySelector('.search-trigger')?.click(); return; }

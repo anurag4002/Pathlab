@@ -227,3 +227,306 @@ html.ui-v2 .metric-card .metric-grid { gap: 0 !important; }
 html.ui-v2 .metric-card .metric-cell { padding: 0.9rem 1.1rem; border-left: 1px solid var(--color-border, #e5e7eb); }
 html.ui-v2 .metric-card .metric-cell:first-child { border-left: 0; }
 html.ui-v2 .metric-label { text-transform: none !important; letter-spacing: 0 !important; font-size: 0.8125rem !important; }
+
+/* No solid red buttons in rows: delete is a quiet outlined icon (the
+   confirmation dialog still guards it). */
+html.ui-v2 .data-table td .btn-danger,
+html.ui-v2 .page-container table td .btn-danger {
+  background: #fff !important; color: var(--color-danger, #dc2626) !important;
+  border: 1px solid var(--color-border, #e2e8f0) !important; box-shadow: none !important;
+}
+html.ui-v2 .data-table td .btn-danger:hover:not(:disabled),
+html.ui-v2 .page-container table td .btn-danger:hover:not(:disabled) { background: var(--color-danger-bg, #fef2f2) !important; border-color: var(--color-danger-border, #fecaca) !important; }
+/* Tiny icon buttons in rows get a usable size. */
+html.ui-v2 .data-table td .btn-sm:has(> svg:only-child),
+html.ui-v2 .data-table td .btn:has(> svg:only-child) { min-width: 2rem; min-height: 2rem; justify-content: center; }
+.data-table td .cell-empty { white-space: nowrap; }
+
+/* Older figure-card grids become one bordered card with hairline dividers
+   (Monthly, Business analysis, Test counts, Test usage...). */
+html.ui-v2 :is(div, section):has(> .stat-card + .stat-card) {
+  gap: 0 !important; background: #fff; border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px; overflow: hidden;
+}
+html.ui-v2 :is(div, section):has(> .stat-card + .stat-card) > .stat-card {
+  border: 0; border-radius: 0; box-shadow: 1px 0 0 var(--color-border, #e5e7eb), 0 1px 0 var(--color-border, #e5e7eb);
+  margin: 0 -1px -1px 0; padding: 0.95rem 1.1rem; transform: none !important;
+}
+html.ui-v2 .stat-card-value { font-size: 1.375rem; font-weight: 600; }
+html.ui-v2 .stat-card-icon-box { display: none; }
+
+/* ---- Side panel (record view) ------------------------------------------ */
+.modal-overlay--drawer { justify-content: flex-end !important; align-items: stretch !important; padding: 0 !important; background: rgba(15, 23, 42, 0.18) !important; }
+.modal-content--drawer {
+  width: min(34rem, 100vw) !important; max-width: none !important; height: 100vh; max-height: 100vh !important;
+  margin: 0 !important; border-radius: 14px 0 0 14px !important; display: flex; flex-direction: column;
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.16) !important; animation: drawer-in 0.18s ease-out;
+}
+.modal-content--drawer .modal-body { flex: 1; overflow: auto; }
+@keyframes drawer-in { from { transform: translateX(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .modal-content--drawer { animation: none; } }
+@media (max-width: 640px) { .modal-content--drawer { width: 100vw !important; border-radius: 0 !important; } }
+
+/* Warning callout: tint + border + bold title (both looks). */
+.callout-warning { display: block; padding: 0.55rem 0.75rem; border-radius: 8px; background: var(--color-warning-bg, #fffbeb); border: 1px solid var(--color-warning-border, #fde68a); color: #92400e; }
+
+/* ======================================================================
+   Typography and colour, matched to the reference (calm, near-monochrome:
+   neutral greys, near-black text, one blue accent, Inter, roomy sizes).
+   ====================================================================== */
+html.ui-v2 {
+  --color-text: #18181b;
+  --color-text-secondary: #3f3f46;
+  --color-text-muted: #71717a;
+  --color-border: #e4e4e7;
+  --color-border-hover: #d4d4d8;
+  --color-background: #fafafa;
+  --color-surface-hover: #f4f4f5;
+  --color-sidebar: #fafafa;
+  --color-primary-light: #eff4ff;
+  --font-size-sm: 0.9rem;
+  --font-size-base: 1rem;
+}
+html.ui-v2 body { font-size: 15px; color: var(--color-text); letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; }
+html.ui-v2 .page-header-title { font-size: 1.95rem; font-weight: 600; letter-spacing: -0.02em; color: #18181b; }
+html.ui-v2 .page-header-subtitle { font-size: 0.95rem; color: #71717a; }
+html.ui-v2 .data-table td { font-size: 0.925rem; color: #27272a; }
+html.ui-v2 .data-table th, html.ui-v2 .page-container table:not(.ls-table) thead th { font-size: 0.85rem; color: #52525b; background: #fafafa; }
+html.ui-v2 .identity-name { font-size: 0.95rem; color: #18181b; }
+html.ui-v2 .identity-meta { font-size: 0.82rem; color: #71717a; }
+html.ui-v2 .identity-avatar { background: #f4f4f5; color: #52525b; border: 1px solid #e4e4e7; }
+html.ui-v2 .form-label { color: #3f3f46; font-weight: 500; }
+html.ui-v2 .form-control, html.ui-v2 .select-control { border-color: #e4e4e7; border-radius: 8px; color: #18181b; }
+html.ui-v2 .form-control:focus, html.ui-v2 .select-control:focus { border-color: #a1a1aa; box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06); }
+html.ui-v2 .btn { font-weight: 500; }
+html.ui-v2 .btn-secondary { color: #18181b; border-color: #e4e4e7; }
+
+/* Sidebar like the reference: grey selection, dark text, blue only on the icon. */
+html.ui-v2 .sidebar { background: #fafafa; border-right-color: #ececee; }
+html.ui-v2 .sidebar-link, html.ui-v2 .sidebar-submenu-header { color: #3f3f46; font-weight: 500; font-size: 0.95rem; }
+html.ui-v2 .sidebar-submenu-link { color: #52525b; font-size: 0.9rem; }
+html.ui-v2 .sidebar-link.active, html.ui-v2 .sidebar-submenu-header.active, html.ui-v2 .sidebar-submenu-link.active { background: #ececee; color: #18181b; font-weight: 600; }
+html.ui-v2 .sidebar-section-label { color: #a1a1aa; font-size: 0.75rem; }
+html.ui-v2 .sidebar-submenu-link.active::before { background: #18181b; }
+html.ui-v2 .header { background: #fff; border-bottom-color: #ececee; }
+
+/* Status pills: softer, neutral-first. */
+html.ui-v2 .status-badge { border-radius: 6px; font-size: 0.78rem; }
+
+/* ---- New bill: three plain steps ---------------------------------------- */
+html.ui-v2 .bill-card-title { font-size: 1.1rem; font-weight: 600; color: #18181b; }
+html.ui-v2 .bill-card-step-badge { background: #18181b; color: #fff; }
+html.ui-v2 .test-picker-search input[type="search"] { height: 2.9rem; font-size: 1rem; border-radius: 10px; }
+.bill-more-options { border: 1px solid var(--color-border, #e4e4e7); border-radius: 10px; background: #fafafa; }
+.bill-more-options > summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 0.85rem; cursor: pointer; font-weight: 500; color: #3f3f46; list-style: none; }
+.bill-more-options > summary::-webkit-details-marker { display: none; }
+.bill-more-options > summary::before { content: '+'; font-weight: 600; color: #71717a; width: 0.8rem; }
+.bill-more-options[open] > summary::before { content: '\2212'; }
+.bill-more-summary { color: #71717a; font-size: 0.85rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bill-more-body { display: flex; flex-direction: column; gap: var(--space-4, 1rem); padding: 0.25rem 0.85rem 0.9rem; }
+.bill-add-discount { align-self: flex-start; border: 0; background: none; padding: 0.25rem 0; color: var(--color-primary, #2563eb); font: inherit; font-size: 0.9rem; font-weight: 500; cursor: pointer; text-align: left; }
+.bill-add-discount:hover { text-decoration: underline; }
+
+/* ---- One search box: the top bar searches the list on screen ----------- */
+html.ui-v2 .is-driven-by-header { display: none !important; }
+html.ui-v2 .data-table-toolbar:not(:has(.data-table-toolbar-actions > *)):has(.is-driven-by-header) { display: none; }
+.header-page-search { cursor: text; width: min(26rem, 40vw) !important; background: #fff !important; }
+.header-page-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 0.9rem; color: var(--color-text, #18181b); }
+.header-page-search:focus-within { border-color: #a1a1aa !important; box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.06); }
+.header-page-search-clear { border: 0; background: none; padding: 0.1rem; line-height: 0; color: #71717a; cursor: pointer; border-radius: 4px; }
+.header-page-search-kbd { padding: 0 0.35rem; font: 600 0.7rem/1.5 ui-monospace, Consolas, monospace; color: #71717a; border: 1px solid #e4e4e7; border-radius: 4px; }
+@media (max-width: 640px) { .header-page-search { width: auto !important; flex: 1 1 auto; } .header-page-search-kbd { display: none; } }
+
+/* ---- Tips under the page title --------------------------------------- */
+.page-tip { display: flex; align-items: flex-start; gap: 0.55rem; margin: -0.35rem 0 1rem; padding: 0.55rem 0.7rem; border-radius: 10px; background: #fafafa; border: 1px solid #ececee; color: #3f3f46; font-size: 0.875rem; line-height: 1.5; }
+.page-tip > svg { flex-shrink: 0; margin-top: 0.15rem; color: #ca8a04; }
+.page-tip > span { flex: 1; }
+.page-tip > button { border: 0; background: none; padding: 0.15rem; line-height: 0; color: #a1a1aa; cursor: pointer; border-radius: 4px; }
+.page-tip > button:hover { color: #18181b; background: #f4f4f5; }
+.page-tip-kbd { display: inline-block; min-width: 1.2rem; padding: 0 0.3rem; margin: 0 1px; text-align: center; font: 600 0.72rem/1.45 ui-monospace, Consolas, monospace; color: #18181b; background: #fff; border: 1px solid #d4d4d8; border-bottom-width: 2px; border-radius: 4px; }
+
+/* ---- New bill: referral step, quick add, back link -------------------- */
+.bill-back-link { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0 0 0.6rem; padding: 0.2rem 0; border: 0; background: none; color: #71717a; font: inherit; font-size: 0.875rem; cursor: pointer; }
+.bill-back-link:hover { color: #18181b; }
+.bill-referral-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 720px) { .bill-referral-grid { grid-template-columns: 1fr; } }
+.bill-field-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+.bill-field-head .form-label { margin: 0; }
+.bill-inline-add { display: inline-flex; align-items: center; gap: 0.2rem; border: 0; background: none; padding: 0.1rem 0.25rem; border-radius: 4px; color: var(--color-primary, #2563eb); font: inherit; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+.bill-inline-add:hover { background: #eff6ff; }
+.quick-add-contact { display: grid; gap: 0.5rem; margin-top: 0.5rem; padding: 0.65rem; border: 1px solid #e4e4e7; border-radius: 10px; background: #fafafa; }
+.quick-add-contact-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.quick-add-contact-error { margin: 0; color: #b91c1c; font-size: 0.8rem; }
+
+.header-page-search-all { flex-shrink: 0; margin-left: 0.25rem; padding: 0.15rem 0.5rem; border: 1px solid #e4e4e7; border-radius: 6px; background: #fff; color: #52525b; font: inherit; font-size: 0.75rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.header-page-search-all:hover { color: #18181b; border-color: #d4d4d8; background: #f4f4f5; }
+
+/* ---- New bill: checkout layout (new look) ------------------------------
+   Patient | Referred by
+   Add tests | Tests in this bill
+   Payment bar, pinned to the bottom of the screen                        */
+@media (min-width: 961px) {
+  html.ui-v2 .bill-form-grid--v2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "patient referral" "tests cart" "pay pay"; gap: 1rem; align-items: stretch; }
+  html.ui-v2 .bill-form-grid--v2 .bill-form-main,
+  html.ui-v2 .bill-form-grid--v2 .bill-summary-column { display: contents !important; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-patient { grid-area: patient; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-referral { grid-area: referral; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-tests { grid-area: tests; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { grid-area: cart; }
+  html.ui-v2 .bill-form-grid--v2 .bill-pay { grid-area: pay; }
+  html.ui-v2 .bill-form-grid--v2 .test-picker-list { max-height: max(12rem, calc(100vh - 34rem)); }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { max-height: max(18rem, calc(100vh - 25rem)); overflow: auto; }
+}
+html.ui-v2 .bill-form-grid--v2 .bill-form-card { padding: 1rem 1.15rem; gap: 0.85rem; box-shadow: none; }
+html.ui-v2 .bill-form-grid--v2 .bill-card-header { border-bottom: 0; padding-bottom: 0; min-height: 2rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-card-title { font-size: 1rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-card-step-badge { width: 1.4rem; height: 1.4rem; font-size: 0.75rem; }
+html.ui-v2 .bill-form-grid--v2 .kbd-tip { margin: 0.15rem 0 0.3rem; }
+html.ui-v2 .bill-cart-dock { display: none !important; }
+
+/* Payment bar: one row, always on screen. Each cell = label + 40px row. */
+html.ui-v2 .bill-pay { position: sticky; bottom: 0; z-index: 5; display: grid !important; grid-template-columns: minmax(8rem, auto) 10.5rem 11rem 9.5rem minmax(9rem, auto) 1fr; align-items: start; gap: 0 1.25rem !important; padding: 0.8rem 1.15rem 1.1rem !important; border-color: #d4d4d8 !important; box-shadow: 0 -8px 20px -14px rgba(24, 24, 27, 0.3) !important; }
+html.ui-v2 .pay-cell { position: relative; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+html.ui-v2 .pay-label { display: block; height: 1.1rem; font-size: 0.78rem; font-weight: 500; color: #71717a; white-space: nowrap; margin: 0; }
+html.ui-v2 .pay-control, html.ui-v2 .pay-value, html.ui-v2 .pay-value-row { height: 2.5rem; }
+html.ui-v2 .pay-value { display: flex; align-items: center; font-size: 1.3rem; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; white-space: nowrap; }
+html.ui-v2 .pay-value.is-due { color: #b91c1c; }
+html.ui-v2 .pay-value.is-clear { color: #15803d; }
+html.ui-v2 .pay-value-row { display: flex; align-items: center; gap: 0.5rem; }
+html.ui-v2 .pay-full { border: 1px solid #e4e4e7; background: #fff; border-radius: 6px; padding: 0.2rem 0.5rem; font: inherit; font-size: 0.75rem; color: #3f3f46; cursor: pointer; white-space: nowrap; }
+html.ui-v2 .pay-full:hover { background: #f4f4f5; }
+html.ui-v2 select.pay-control, html.ui-v2 .pay-control .form-control { height: 2.5rem; margin: 0; }
+html.ui-v2 .pay-amount { display: flex; align-items: center; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; padding-left: 0.65rem; }
+html.ui-v2 .pay-amount:focus-within { border-color: var(--color-primary, #2563eb); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+html.ui-v2 .pay-amount > span { color: #71717a; font-weight: 500; }
+html.ui-v2 .pay-amount .form-control { border: 0; box-shadow: none !important; height: calc(2.5rem - 2px); padding-left: 0.35rem; font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+html.ui-v2 .pay-discount { display: flex; }
+html.ui-v2 .pay-discount .form-control { flex: 1; min-width: 0; border-radius: 8px 0 0 8px; }
+html.ui-v2 .pay-discount-mode { display: flex; border: 1px solid #d4d4d8; border-left: 0; border-radius: 0 8px 8px 0; overflow: hidden; }
+html.ui-v2 .pay-discount-mode button { width: 2.1rem; border: 0; background: #fff; color: #71717a; font: inherit; font-weight: 600; cursor: pointer; }
+html.ui-v2 .pay-discount-mode button.is-on { background: #18181b; color: #fff; }
+html.ui-v2 .pay-add-discount { display: flex; align-items: center; justify-content: center; width: 100%; border: 1px dashed #d4d4d8; border-radius: 8px; background: #fff; color: #3f3f46; font: inherit; font-size: 0.875rem; cursor: pointer; }
+html.ui-v2 .pay-add-discount:hover { border-color: #a1a1aa; background: #fafafa; }
+html.ui-v2 .pay-error { position: absolute; top: 100%; left: 0; margin-top: 0.1rem; font-size: 0.72rem; color: #b91c1c; white-space: nowrap; }
+html.ui-v2 .pay-cell--action { justify-self: end; padding-top: 1.4rem; }
+html.ui-v2 .pay-cell--action .btn { height: 2.5rem; min-width: 11rem; padding: 0 1.1rem; font-size: 0.95rem; font-weight: 600; gap: 0.6rem; }
+html.ui-v2 .pay-kbd { padding: 0.05rem 0.35rem; border-radius: 4px; background: rgba(255, 255, 255, 0.2); font: 600 0.68rem/1.4 ui-monospace, Consolas, monospace; color: #fff; }
+@media (max-width: 1180px) {
+  html.ui-v2 .bill-pay { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem 1rem !important; }
+  html.ui-v2 .pay-cell--action { grid-column: 1 / -1; justify-self: stretch; padding-top: 0; }
+  html.ui-v2 .pay-cell--action .btn { width: 100%; }
+}
+@media (max-width: 640px) {
+  html.ui-v2 .bill-pay { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Department filter: a small link in the "Add tests" header until opened;
+   the keyboard hint is in the page tip, so its reserved line goes. */
+html.ui-v2 .bill-step-tests { position: relative; }
+html.ui-v2 .bill-step-tests > .bill-more-options:not([open]) { position: absolute; top: 1.05rem; right: 1.15rem; border: 0; background: none; }
+html.ui-v2 .bill-step-tests > .bill-more-options:not([open]) > summary { padding: 0.3rem 0.5rem; border-radius: 6px; font-size: 0.85rem; }
+html.ui-v2 .bill-step-tests > .bill-more-options:not([open]) > summary:hover { background: #f4f4f5; }
+html.ui-v2 .bill-form-grid--v2 #picker-keys-tip { display: none; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-tests .form-group { margin-bottom: 0; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-tests .form-label { margin-bottom: 0.35rem; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-search { margin-bottom: 0.6rem; }
+@media (min-width: 961px) {
+  html.ui-v2 .bill-form-grid--v2 .test-picker-list { max-height: max(11rem, calc(100vh - 36rem)); }
+  html.ui-v2 .bill-form-grid--v2 { padding-bottom: 0.25rem; }
+}
+html.ui-v2 select.pay-control { appearance: none; -webkit-appearance: none; padding-right: 2rem; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0.65rem center; }
+
+/* ---- New bill: compact head (back · title · tip on one line) ---------- */
+html.ui-v2 .bill-head { display: flex; align-items: center; gap: 0.6rem; margin: -0.25rem 0 0.9rem; min-height: 2.25rem; flex-wrap: wrap; }
+html.ui-v2 .bill-head .bill-back-link { margin: 0; }
+html.ui-v2 .bill-head-sep { color: #d4d4d8; }
+html.ui-v2 .bill-head-title { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; color: #18181b; }
+.page-tip--inline { flex: 1 1 22rem; margin: 0 0 0 0.75rem !important; padding: 0.35rem 0.6rem !important; font-size: 0.8rem !important; }
+@media (max-width: 760px) { .page-tip--inline { margin: 0 !important; } }
+
+/* ---- New bill: new patient summary + side panel ------------------------ */
+.bill-new-patient-summary { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.6rem 0.75rem; border: 1px solid #e4e4e7; border-radius: 10px; background: #fafafa; }
+.bill-new-patient-summary.is-incomplete { border-style: dashed; border-color: #f59e0b; background: #fffbeb; }
+.bill-new-patient-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.bill-new-patient-text strong { color: #18181b; font-weight: 600; }
+.bill-new-patient-text span { color: #52525b; font-size: 0.85rem; }
+.bill-new-patient-missing { color: #b45309 !important; font-size: 0.8rem !important; }
+.bill-new-patient-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; flex-shrink: 0; }
+.bill-new-patient-form { display: flex; flex-direction: column; gap: 1rem; }
+.bill-drawer-note { margin-right: auto; color: #71717a; font-size: 0.8rem; }
+
+/* ---- New bill: patient profile in the side panel ----------------------- */
+.bill-patient-extras { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.bill-profile-link { border: 0; background: none; padding: 0.2rem 0.35rem; border-radius: 6px; color: var(--color-primary, #2563eb); font: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+.bill-profile-link:hover { background: #eff6ff; }
+.bill-profile-section { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #ececee; }
+.bill-profile-section h4 { margin: 0; font-size: 0.9rem; font-weight: 600; color: #18181b; }
+.bill-profile-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; }
+.bill-profile-fields > :nth-child(n + 3) { grid-column: 1 / -1; }
+.bill-profile-fields .form-group { margin-bottom: 0; }
+.bill-profile-head { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.75rem 0.9rem; border-radius: 10px; background: #fafafa; border: 1px solid #ececee; }
+.bill-profile-head strong { color: #18181b; font-size: 1rem; }
+.bill-profile-head span { color: #52525b; font-size: 0.85rem; }
+
+/* ---- New bill: roomier test list -------------------------------------- */
+html.ui-v2 .bill-form-grid--v2 .test-picker-list { border-color: #e4e4e7; border-radius: 10px; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-item { align-items: center; gap: 1rem; padding: 0.7rem 0.9rem; font-size: 0.925rem; border-bottom-color: #f0f0f2; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-item:hover { background: #f8f8f9; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-item.is-highlighted { background: #f4f4f5; box-shadow: inset 3px 0 0 #18181b; }
+.picker-row-main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.picker-row-name { color: #18181b; font-weight: 500; line-height: 1.35; }
+.picker-row-meta { display: flex; align-items: center; gap: 0.4rem; color: #71717a; font-size: 0.78rem; }
+.picker-row-added { padding: 0 0.4rem; border-radius: 999px; background: #dcfce7; color: #15803d; font-weight: 500; }
+html.ui-v2 .picker-row-price { flex-shrink: 0; color: #18181b; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---- New bill: more room for the test list ---------------------------- */
+html.ui-v2 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+html.ui-v2 .bill-form-grid--v2 .bill-card-step-badge { display: none; }
+/* Patient: the search label is the row label; "+ New patient" sits on it. */
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient { position: relative; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient > .bill-card-header { position: absolute; top: 0.7rem; right: 1.15rem; min-height: 0; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient > .bill-card-header .bill-card-header-left { display: none; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient > .bill-card-header .btn { height: 1.9rem; padding: 0 0.65rem; font-size: 0.8rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient .form-label,
+html.ui-v2 .bill-form-grid--v2 .bill-step-referral .form-label { font-weight: 600; color: #18181b; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient .form-label { min-height: 1.9rem; display: flex; align-items: center; margin-bottom: 0.2rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-referral .bill-field-head { min-height: 1.9rem; margin-bottom: 0.2rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-patient,
+html.ui-v2 .bill-form-grid--v2 .bill-step-referral { padding-top: 0.7rem; padding-bottom: 0.85rem; gap: 0.6rem; }
+/* Tests: header = title, Department link, Outsource test button. */
+html.ui-v2 .bill-form-grid--v2 .bill-step-tests > .bill-more-options:not([open]) { right: 10.5rem; top: 0.95rem; }
+html.ui-v2 .bill-outsource-btn { height: 2rem; font-size: 0.82rem; }
+html.ui-v2 .bill-form-grid--v2 .bill-step-tests { padding-top: 0.85rem; gap: 0.6rem; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-search input[type="search"] { height: 2.6rem; }
+@media (min-width: 961px) {
+  html.ui-v2 .bill-form-grid--v2 { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+  html.ui-v2 .bill-form-grid--v2 .test-picker-list { max-height: none; height: max(16rem, calc(100vh - 27.5rem)); }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { max-height: none; height: calc(max(16rem, calc(100vh - 27.5rem)) + 6.6rem); }
+}
+html.ui-v2 .bill-field-head .form-label, html.ui-v2 .bill-inline-add { white-space: nowrap; }
+html.ui-v2 .bill-form-grid--v2 .test-picker-item { padding: 0.55rem 0.9rem; }
+
+/* ---- New bill: tests header tools ------------------------------------- */
+html.ui-v2 .bill-step-tests > .bill-card-header { gap: 0.75rem; flex-wrap: wrap; }
+.bill-tests-tools { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
+.bill-dept-select { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: #71717a; font-size: 0.82rem; }
+.bill-dept-select select { height: 2rem; max-width: 13rem; padding: 0 1.9rem 0 0.6rem; border: 1px solid #e4e4e7; border-radius: 8px; color: #18181b; font: inherit; font-size: 0.82rem; appearance: none; -webkit-appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0.55rem center; cursor: pointer; }
+.bill-dept-select select:hover { border-color: #d4d4d8; }
+
+/* ---- New bill: locked to the window ------------------------------------
+   Patient | Referred by, Add tests | Tests in this bill, payment bar: all
+   visible at once. Only the test list and the bill list scroll inside. */
+@media (min-width: 961px) and (min-height: 600px) {
+  html.ui-v2 .bill-form-grid--v2 {
+    height: max(34rem, calc(100vh - var(--bill-grid-top, 150px) - var(--bill-grid-below, 24px)));
+    margin-bottom: 0 !important;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    padding-bottom: 0;
+  }
+  html.ui-v2 .bill-form-grid--v2 .bill-pay { position: static; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-tests { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-tests > .form-group:last-child { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-tests .test-picker-list { flex: 1; min-height: 0; height: auto; max-height: none; }
+  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { min-height: 0; height: auto; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
+}
+html.ui-v2 .bill-items-wrap .bill-items-table thead th { position: sticky; top: -1rem; background: #fff; z-index: 1; }

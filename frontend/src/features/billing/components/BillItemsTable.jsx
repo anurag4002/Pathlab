@@ -2,14 +2,16 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
+import { useUiVersion } from '../../../utils/uiVersion';
 
 const itemLabels = { Test: 'Test', TestPanel: 'Panel', TestPackage: 'Package', Custom: 'Custom item' };
 const displayName = item => String(item.name || 'Item').replace(/\s*\(bundle\)\s*$/i, '').trim();
 
 const BillItemsTable = ({ items = [], onRemove, error }) => {
+  const isV2 = useUiVersion() === 'v2';
   return (
-    <div>
-      <div
+    <div className="bill-items-wrap">
+      {!(isV2 && items.length > 0) && <div
         style={{
           fontWeight: 'var(--font-weight-bold)',
           fontSize: 'var(--font-size-base)',
@@ -18,8 +20,8 @@ const BillItemsTable = ({ items = [], onRemove, error }) => {
           marginBottom: 'var(--space-3)'
         }}
       >
-        Selected Test Lines
-      </div>
+        {isV2 ? 'Tests in this bill' : 'Selected Test Lines'}
+      </div>}
 
       {error && (
         <p className="form-error" style={{ marginBottom: 'var(--space-2)' }}>

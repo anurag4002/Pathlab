@@ -33,7 +33,7 @@ const getUSGCases = async (req, res, next) => {
 
     const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
     const cases = await USGCase.find(query)
-      .populate('patient', 'name registrationNumber phone age gender')
+      .populate('patient', 'name registrationNumber phone age ageUnit gender title')
       .populate('referringDoctor', 'name clinicHospital')
       .sort({ date: -1 })
       .limit(limit)

@@ -10,10 +10,14 @@ import SearchResultItem from './SearchResultItem';
 import formatCurrency from '../../utils/formatCurrency';
 import { buildBillsSearchUrl } from '../../utils/billNavigation';
 import './Search.css';
+import PageSearchField from './PageSearchField';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 const GlobalSearch = () => {
+  const isV2 = useUiVersion() === 'v2';
+  const [pageSearchActive, setPageSearchActive] = React.useState(false);
   const navigate = useNavigate();
   const inputRef = useRef(null);
 
@@ -65,7 +69,9 @@ const GlobalSearch = () => {
 
   return (
     <>
-      <button
+      {/* New look: on list pages the top-bar box searches that list. */}
+      {isV2 && <PageSearchField onTargetChange={setPageSearchActive} onSearchEverywhere={(text) => { openSearch(); setQuery(text || ''); setSelectedIndex(0); }} />}
+      {!(isV2 && pageSearchActive) && <button
         type="button"
         className="search-trigger"
         onClick={openSearch}
@@ -79,7 +85,7 @@ const GlobalSearch = () => {
           {IS_MAC ? <Command size={10} /> : <span>Ctrl</span>}
           <span>K</span>
         </div>
-      </button>
+      </button>}
 
       <SearchOverlay isOpen={isOpen} onClose={closeSearch}>
         <SearchInput

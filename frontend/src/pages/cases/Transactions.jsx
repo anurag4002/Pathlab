@@ -8,8 +8,11 @@ import { PAYMENT_METHODS } from '../../constants/billConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { DataTable, PageHeader, Select, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const Transactions = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -127,7 +130,7 @@ const Transactions = () => {
       />
 
       <DataTable
-        headers={['Date & Time', 'Patient Name', 'Related Invoice', 'Amount', 'Payment Mode', 'Received By']}
+        headers={isV2 ? ['Patient', 'Type', <span key="amount" className="th-num">Amount</span>, 'Mode', 'Received by'] : ['Date & Time', 'Patient Name', 'Related Invoice', 'Amount', 'Payment Mode', 'Received By']}
         data={transactions}
         loading={loading}
         emptyMessage="No transaction logs matched your query criteria."
@@ -145,7 +148,15 @@ const Transactions = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit
         }}
-        renderRow={(tx) => (
+        renderRow={(tx) => isV2 ? (
+          <tr key={tx._id}>
+            <td><IdentityCell name={tx.patient?.name} meta={[tx.bill?.billNumber && `Bill ${tx.bill.billNumber}`, formatDate(tx.date)]} /></td>
+            <td><StatusBadge status={tx.type === 'Refund' ? 'Refund' : 'Received'} /></td>
+            <td className={`num${tx.type === 'Refund' ? ' is-due' : ''}`}>{tx.type === 'Refund' ? '−' : ''}{formatCurrency(tx.amount)}</td>
+            <td><StatusBadge status={tx.paymentMethod} /></td>
+            <td>{tx.receivedBy?.name || <span className="cell-empty">Unknown</span>}</td>
+          </tr>
+        ) : (
           <tr key={tx._id}>
             <td>{formatDate(tx.date)}</td>
             <td style={{ fontWeight: '600' }}>{tx.patient?.name || 'Walk-in Patient'}</td>
