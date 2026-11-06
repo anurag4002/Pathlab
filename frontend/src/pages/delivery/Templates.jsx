@@ -3,6 +3,7 @@ import { getTemplates, saveTemplate } from '../../services/notifyService';
 import { PageHeader, DataTable, Button, Modal, Input, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Edit2 } from 'lucide-react';
+import { notify } from '../../components/common/Toast/toast';
 
 const Templates = () => {
   const [list, setList] = useState([]);
@@ -27,7 +28,7 @@ const Templates = () => {
   const open = (t) => { setForm(t ? { key: t.key, channel: t.channel || 'sms', body: t.body || t.content || '' } : { key: '', channel: 'sms', body: '' }); setModal(true); };
   const save = async (e) => {
     e.preventDefault(); setSaving(true);
-    try { const r = await saveTemplate(form); if (r.success) { setModal(false); load(); } } catch (e) { alert('Save failed'); } finally { setSaving(false); }
+    try { const r = await saveTemplate(form); if (r.success) { setModal(false); load(); } } catch (e) { notify('Save failed'); } finally { setSaving(false); }
   };
   return (
     <div>

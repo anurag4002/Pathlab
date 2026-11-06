@@ -10,9 +10,13 @@
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform 0.08s ease;
   white-space: nowrap;
 }
+
+/* Tactile press: the button dips 1px while held. */
+.btn:active:not(:disabled) { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) { .btn:active:not(:disabled) { transform: none; } }
 
 .btn:focus-visible {
   outline: 2px solid var(--color-border-focus);

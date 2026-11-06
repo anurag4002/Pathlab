@@ -6,6 +6,7 @@ import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -74,7 +75,7 @@ const Inquiries = () => {
       const res = await setInquiryStatus(inq._id, status);
       if (res?.success) fetchList();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update inquiry');
+      notify(err.response?.data?.message || 'Failed to update inquiry');
     } finally {
       setUpdatingId('');
     }
@@ -119,7 +120,7 @@ const Inquiries = () => {
       }
       navigate('/cases/bills/new', { state: { booking } });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to confirm booking');
+      notify(err.response?.data?.message || 'Failed to confirm booking');
     } finally {
       setUpdatingId('');
     }

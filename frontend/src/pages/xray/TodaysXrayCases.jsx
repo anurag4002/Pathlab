@@ -30,6 +30,7 @@ import InlineSignButton from '../../components/usg/InlineSignButton';
 import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
+import { notify } from '../../components/common/Toast/toast';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -119,7 +120,7 @@ const TodaysXrayCases = () => {
         fetchCases();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete X-Ray case');
+      notify(err.response?.data?.message || 'Failed to delete X-Ray case');
     } finally {
       setDeleteLoading(false);
     }
@@ -490,7 +491,7 @@ const TodaysXrayCases = () => {
               <StatusBadge status={c.status} />
             </td>
             <td>
-              {!!c.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch(error => alert(error.message))}>Download PDF</Button>}
+              {!!c.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch(error => notify(error.message))}>Download PDF</Button>}
               {c.fileUrl ? (
                 <button
                   className="btn btn-secondary"
@@ -647,7 +648,7 @@ const TodaysXrayCases = () => {
         footer={
           <>
             <Button variant="secondary" onClick={closePrint}>Close</Button>
-            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/xray/${printTarget._id}/pdf`).catch(() => alert('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
+            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/xray/${printTarget._id}/pdf`).catch(() => notify('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
           </>
         }
       >

@@ -9,6 +9,7 @@ import useDebounce from '../../hooks/useDebounce';
 import { CreditCard } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
+import { notify } from '../../components/common/Toast/toast';
 
 const DueReports = () => {
   const [bills, setBills] = useState([]);
@@ -96,7 +97,7 @@ const DueReports = () => {
         fetchDueBills();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Payment collection failed');
+      notify(err.response?.data?.message || 'Payment collection failed');
     } finally {
       setPaymentSubmitLoading(false);
     }

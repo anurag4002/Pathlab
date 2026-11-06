@@ -57,6 +57,7 @@ import ResultEntryGrid from '../../components/lab/ResultEntryGrid';
 import ReportTatEditor from '../../components/lab/ReportTatEditor';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
+import { notify } from '../../components/common/Toast/toast';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -484,7 +485,7 @@ const TodaysReports = () => {
         fetchReports();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete report');
+      notify(err.response?.data?.message || 'Failed to delete report');
     } finally {
       setDeleteLoading(false);
     }
@@ -492,7 +493,7 @@ const TodaysReports = () => {
 
   // ---- Result entry flow ----
   const handleCreateResult = async () => {
-    if (!resultForm.patient || !resultForm.bill) { alert('Select patient and bill'); return; }
+    if (!resultForm.patient || !resultForm.bill) { notify('Select patient and bill'); return; }
     const pickedBill = bills.find((b) => String(b._id) === String(resultForm.bill));
     if (isOutsourceBill(pickedBill)) {
       setResultOpen(false);
@@ -514,7 +515,7 @@ const TodaysReports = () => {
         openEntry(res.data);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to register result entry');
+      notify(err.response?.data?.message || 'Failed to register result entry');
     } finally {
       setResultLoading(false);
     }
@@ -528,7 +529,7 @@ const TodaysReports = () => {
     }
     const billId = pendingCase?.bill?._id || pendingCase?.bill;
     const patientId = pendingCase?.bill?.patient?._id || pendingCase?.bill?.patient;
-    if (!billId || !patientId) { alert('Pending case is missing patient/bill linkage'); return; }
+    if (!billId || !patientId) { notify('Pending case is missing patient/bill linkage'); return; }
     // Existing Registered shell from bill create — open it directly.
     if (pendingCase?.report?._id) {
       setTab('today');
@@ -550,7 +551,7 @@ const TodaysReports = () => {
         openEntry(res.data);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to register result entry');
+      notify(err.response?.data?.message || 'Failed to register result entry');
     } finally {
       setResultLoading(false);
     }
@@ -563,7 +564,7 @@ const TodaysReports = () => {
     const patientId = patient?._id || bill.patient;
     const reportId = pendingCase?.report?._id;
     if (!bill._id || !patientId) {
-      alert('Pending case is missing patient/bill linkage');
+      notify('Pending case is missing patient/bill linkage');
       return;
     }
     // Prefer attaching to the Registered outsource shell when present.
@@ -728,14 +729,14 @@ const TodaysReports = () => {
   // (via SignaturePicker), never from lab-profile fields.
   const handleSign = async () => {
     if (signing) return;
-    if (!sigId) { alert('Select a signature'); return; }
-    if (!activeReport?.results?.length) { alert('Enter results before signing'); return; }
+    if (!sigId) { notify('Select a signature'); return; }
+    if (!activeReport?.results?.length) { notify('Enter results before signing'); return; }
     setSigning(true);
     try {
       const res = await signReport(activeReport._id, sigId);
       if (res.success) { setActiveReport(res.data); fetchReports(); fetchPending(); }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to sign report');
+      notify(err.response?.data?.message || 'Failed to sign report');
     } finally {
       setSigning(false);
     }
@@ -1421,10 +1422,10 @@ const TodaysReports = () => {
           onPosted={(r) => { const rep = r?.report || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } }}
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-          <Button variant="secondary" size="sm" onClick={async () => { try { const r = await verifyReport(activeReport._id); const rep = r?.data || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } } catch (e) { alert(e.response?.data?.message || 'Verify failed'); } }}>Verify</Button>
+          <Button variant="secondary" size="sm" onClick={async () => { try { const r = await verifyReport(activeReport._id); const rep = r?.data || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } } catch (e) { notify(e.response?.data?.message || 'Verify failed'); } }}>Verify</Button>
           <Button variant="secondary" size="sm" onClick={() => setRejectOpen(true)}>Reject…</Button>
           {activeReport?.status === 'Rejected' && (
-            <Button variant="secondary" size="sm" onClick={async () => { try { const r = await resendReport(activeReport._id); const rep = r?.data || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } } catch (e) { alert(e.response?.data?.message || 'Resend failed'); } }}>Resend for correction</Button>
+            <Button variant="secondary" size="sm" onClick={async () => { try { const r = await resendReport(activeReport._id); const rep = r?.data || r; if (rep?._id) { setActiveReport(rep); fetchReports(); } } catch (e) { notify(e.response?.data?.message || 'Resend failed'); } }}>Resend for correction</Button>
           )}
         </div>
           </>

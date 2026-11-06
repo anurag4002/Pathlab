@@ -266,6 +266,10 @@ const BillCreateForm = ({
   const [pickerType, setPickerType] = useState('All');
   // One search box: filter local catalog first, then fall back to server (tests).
   const [pickerQuery, setPickerQuery] = useState('');
+  // Keyboard picking: Up/Down move the highlight, Enter adds it and clears
+  // the search so the next test can be typed straight away.
+  const [pickerHighlight, setPickerHighlight] = useState(0);
+  const pickerInputRef = useRef(null);
   const [serverResults, setServerResults] = useState([]);
   const [serverSearching, setServerSearching] = useState(false);
   const [selectedItems, setSelectedItems] = useState(() => (
@@ -1024,10 +1028,30 @@ const BillCreateForm = ({
               {activeDepartment === 'USG' && usgError && <p role="alert">{usgError} <Button variant="secondary" size="sm" onClick={() => setUSGRetry(value => value + 1)}>Retry</Button></p>}
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
+                  ref={pickerInputRef}
                   type="search"
                   className="form-control"
                   value={pickerQuery}
-                  onChange={(e) => setPickerQuery(e.target.value)}
+                  onChange={(e) => { setPickerQuery(e.target.value); setPickerHighlight(0); }}
+                  onKeyDown={(e) => {
+                    const choices = filteredPickerItems;
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (!choices.length) return;
+                      setPickerHighlight((current) => (current + (e.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length);
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const start = Math.min(pickerHighlight, Math.max(0, choices.length - 1));
+                      const pick = [...choices.slice(start), ...choices.slice(0, start)].find((item) => !isPickerItemAdded(item));
+                      if (!pick || !pickerQuery.trim()) return;
+                      handlePickerSelect(pick);
+                      setPickerQuery(''); setPickerHighlight(0);
+                      requestAnimationFrame(() => pickerInputRef.current?.focus({ preventScroll: true }));
+                    } else if (e.key === 'Escape' && pickerQuery) {
+                      e.preventDefault(); setPickerQuery(''); setPickerHighlight(0);
+                    }
+                  }}
+                  aria-activedescendant={pickerQuery && filteredPickerItems[pickerHighlight] ? `picker-option-${pickerHighlight}` : undefined}
                   placeholder={
                     activeDepartment === 'USG' ? 'Search USG services…' : pickerType === 'All'
                       ? 'Search all tests, packages & panels…'
@@ -1050,13 +1074,17 @@ const BillCreateForm = ({
                     {pickerEmptyText}
                   </p>
                 ) : (
-                  filteredPickerItems.map((item) => {
+                  filteredPickerItems.map((item, itemIndex) => {
                     const alreadyAdded = isPickerItemAdded(item);
+                    const highlighted = !!pickerQuery && itemIndex === pickerHighlight;
                     const kind = item._pickerKind || 'Test';
                     return (
                       <div
                         key={`${kind}-${item._id}`}
-                        className="test-picker-item"
+                        id={`picker-option-${itemIndex}`}
+                        className={`test-picker-item${highlighted ? ' is-highlighted' : ''}${alreadyAdded ? ' is-added' : ''}`}
+                        ref={highlighted ? (node) => node?.scrollIntoView?.({ block: 'nearest' }) : undefined}
+                        onMouseEnter={() => setPickerHighlight(itemIndex)}
                         onClick={() => !alreadyAdded && handlePickerSelect(item)}
                         role="button"
                         tabIndex={alreadyAdded ? -1 : 0}

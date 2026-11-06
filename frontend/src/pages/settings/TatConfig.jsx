@@ -3,6 +3,7 @@ import { getTests, updateTest } from '../../services/testService';
 import { PageHeader, Button, Input, DataTable, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import { TAT_CONFIG_KEY, DEFAULT_TAT_SETTINGS, loadTatSettings } from '../../components/lab/TatCountdown';
+import { notify } from '../../components/common/Toast/toast';
 
 // Phase 16 — TAT Configuration Screen.
 //
@@ -117,7 +118,7 @@ const TatConfig = () => {
     const raw = draftFor(test);
     const tatHours = raw === '' || raw === null ? null : Number(raw);
     if (tatHours !== null && (!Number.isFinite(tatHours) || tatHours <= 0)) {
-      alert('TAT must be a positive number of hours (or empty to use the lab default)');
+      notify('TAT must be a positive number of hours (or empty to use the lab default)');
       return;
     }
     setSavingTestId(test._id);
@@ -141,7 +142,7 @@ const TatConfig = () => {
         setMsg(`TAT saved for ${test.name} (${tatHours === null ? 'lab default' : `${tatHours}h`}). Applies to new reports only.`);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to save per-test TAT');
+      notify(err.response?.data?.message || 'Failed to save per-test TAT');
     } finally {
       setSavingTestId(null);
     }

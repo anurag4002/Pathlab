@@ -75,6 +75,7 @@ import { sendMessage } from '../../services/notifyService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import { usePermissions } from '../../hooks/usePermission';
+import { notify } from '../../components/common/Toast/toast';
 
 const DailyBusiness = () => {
   // Default window: today, following the app-wide ISO-date convention.
@@ -265,9 +266,9 @@ const DailyBusiness = () => {
     try {
       const fallbackText = `${labName} — Daily summary ${startDate} to ${endDate}: Net ${formatCurrency(netIncome)}, Income ${formatCurrency(totalIncome)}, Refunds ${formatCurrency(totalRefunds)}, Expenses ${formatCurrency(totalExpenses)}.${invoiceFooter ? ` ${invoiceFooter}` : ''}`;
       await sendMessage({ channel: 'email', templateKey: 'daily-summary', to: to.trim(), vars: { fallbackText, subject: 'Daily business summary' } });
-      alert('Summary emailed.');
+      notify('Summary emailed.');
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to email summary');
+      notify(err.response?.data?.message || 'Failed to email summary');
     } finally {
       setEmailLoading(false);
     }
@@ -349,7 +350,7 @@ const DailyBusiness = () => {
                 u.searchParams.set('from', startDate);
                 u.searchParams.set('to', endDate);
                 navigator.clipboard?.writeText(u.toString());
-                alert('Link copied: ' + u.toString());
+                notify('Link copied: ' + u.toString());
               }}
             >
               Share URL

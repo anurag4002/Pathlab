@@ -242,8 +242,13 @@ async function download(page, trigger) {
     await dialog.getByRole('button', { name: 'Yes, Void' }).click();
     assert.match(await dialog.innerText(), /A void reason is required/);
     await dialog.getByLabel(/Void reason/).selectOption('Duplicate entry');
+    let nativeDialog = false; const onNative = d => { nativeDialog = true; d.dismiss(); }; page.once('dialog', onNative);
     await dialog.getByRole('button', { name: 'Yes, Void' }).click();
-    await page.waitForTimeout(1500);
+    // Confirmation is a toast, not a blocking browser alert.
+    await page.locator('.toast-success', { hasText: 'Bill voided.' }).waitFor({ timeout: 5000 });
+    page.off('dialog', onNative);
+    assert.equal(nativeDialog, false, 'no browser alert');
+    await page.waitForTimeout(500);
     await page.goto(BASE + '/cases/bills', { waitUntil: 'networkidle' });
     assert.equal(await page.locator('table tbody tr', { hasText: state.bill2 }).count(), 0, 'voided bill hidden by default');
     const res = await api(env, 'GET', '/api/bills?includeVoided=true&limit=50');
@@ -408,6 +413,41 @@ async function download(page, trigger) {
     assert.match(await row.innerText(), /\bH\b|High/);
     assert.match(await row.innerText(), /70\s*-\s*100/);
     assert.match(await row.innerText(), /mg\/dL/);
+  });
+
+  await step('keyboard: Enter adds tests on a new bill; result entry moves with Enter and saves with Ctrl+S', async () => {
+    // The previous step left a typed, unsaved result: leaving asks first.
+    let askedBeforeLeaving = false;
+    page.once('dialog', d => { askedBeforeLeaving = d.type() === 'beforeunload'; d.accept(); });
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    assert.ok(askedBeforeLeaving, 'unsaved results warn before leaving the page');
+    await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');
+    await page.getByRole('option', { name: /E2E Patient One/ }).or(page.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
+    const search = page.getByPlaceholder(/Search all tests/i);
+    await search.fill('Serum Creatinine'); await page.waitForTimeout(400);
+    await search.press('Enter');
+    assert.equal(await search.inputValue(), '', 'search cleared after Enter');
+    assert.ok(await search.evaluate(el => el === document.activeElement), 'focus stays in search');
+    await search.fill('Urine Sugar Fasting'); await page.waitForTimeout(400);
+    await search.press('ArrowDown'); await search.press('ArrowUp');
+    await search.press('Enter');
+    const cart = await page.locator('#bill-cart').innerText();
+    assert.match(cart, /Serum Creatinine/i); assert.match(cart, /Urine Sugar Fasting/i);
+    await page.getByRole('button', { name: 'Create Invoice' }).click();
+    await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(1000);
+    await page.locator('.bill-saved-bar button', { hasText: 'Enter results' }).click();
+    await page.locator('.ls-sheet').waitFor({ timeout: 20000 });
+    const fields = page.locator('tr.ls-row input.form-control:not([disabled])');
+    assert.ok(await fields.count() >= 2, 'two value fields');
+    await fields.nth(0).click(); await page.keyboard.type('1.1'); await page.keyboard.press('Enter');
+    assert.ok(await fields.nth(1).evaluate(el => el === document.activeElement), 'Enter moved to the next value');
+    await page.keyboard.type('30');
+    assert.match(await page.locator('.re-save-state').innerText(), /Unsaved changes/);
+    await page.keyboard.press('Control+s');
+    await page.locator('.re-save-done', { hasText: 'Saved' }).waitFor({ timeout: 8000 });
+    await page.waitForTimeout(300);
+    await page.keyboard.press('ArrowUp');
+    assert.ok(await fields.nth(0).evaluate(el => el === document.activeElement && el.selectionStart === 0 && el.selectionEnd === el.value.length), 'Up returns to the previous value, selected');
   });
 
   await step('document test: Widal starts from its template and prints the titre grid', async () => {

@@ -29,6 +29,7 @@ import {
 } from '../../components/common';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import '../../styles/USG.css';
+import { notify } from '../../components/common/Toast/toast';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -152,7 +153,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
         fetchCases();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete USG case');
+      notify(err.response?.data?.message || 'Failed to delete USG case');
     } finally {
       setDeleteLoading(false);
     }
@@ -603,7 +604,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
             <td style={{ minWidth: 210 }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(''); }}>{c.reportFile?.size ? 'Replace PDF' : 'Upload PDF'}</Button>
-                {!!c.reportFile?.size && <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => alert('Could not download the USG report.'))}>Download PDF</Button>}
+                {!!c.reportFile?.size && <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => notify('Could not download the USG report.'))}>Download PDF</Button>}
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
@@ -777,7 +778,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
         footer={
           <>
             <Button variant="secondary" onClick={closePrint}>Close</Button>
-            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/usg/${printTarget._id}/pdf`).catch(() => alert('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
+            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/usg/${printTarget._id}/pdf`).catch(() => notify('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
           </>
         }
       >

@@ -5,6 +5,7 @@ import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox, AdvancedFilterBar } from '../../components/common';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -160,7 +161,7 @@ const TestPackages = () => {
         fetchPackages();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete package');
+      notify(err.response?.data?.message || 'Failed to delete package');
     } finally {
       setDeleteLoading(false);
     }

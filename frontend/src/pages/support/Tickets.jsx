@@ -3,6 +3,7 @@ import { getTickets, createTicket, setTicketStatus } from '../../services/suppor
 import { PageHeader, DataTable, Button, Modal, Input, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
 import useAuth from '../../hooks/useAuth';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: 'Open', label: 'Open' },
@@ -34,9 +35,9 @@ const Tickets = () => {
   useEffect(() => { load(); }, []);
   const create = async (e) => {
     e.preventDefault();
-    try { const r = await createTicket(form); if (r.success) { setModal(false); setForm({ subject: '', message: '', priority: 'Normal' }); load(); } } catch (e) { alert('Failed'); }
+    try { const r = await createTicket(form); if (r.success) { setModal(false); setForm({ subject: '', message: '', priority: 'Normal' }); load(); } } catch (e) { notify('Failed'); }
   };
-  const close = async (id) => { try { await setTicketStatus(id, { status: 'Closed' }); load(); } catch (e) { alert('Failed'); } };
+  const close = async (id) => { try { await setTicketStatus(id, { status: 'Closed' }); load(); } catch (e) { notify('Failed'); } };
   return (
     <div>
       <PageHeader title="Support Tickets" subtitle="Raise & track issues" action={<Button size="sm" onClick={() => setModal(true)}>New Ticket</Button>} />

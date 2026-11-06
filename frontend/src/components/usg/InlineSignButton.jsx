@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PenLine } from 'lucide-react';
 import { signUSGCase } from '../../services/usgService';
 import { signXrayCase } from '../../services/xrayService';
+import { notify } from '../common/Toast/toast';
 
 /**
  * InlineSignButton (Phase 13) — sign-off directly from the case list.
@@ -21,7 +22,7 @@ const InlineSignButton = ({ caseId, modality = 'usg', signed = false, onSigned, 
       const res = modality === 'xray' ? await signXrayCase(caseId) : await signUSGCase(caseId);
       if (res?.success !== false && onSigned) onSigned(res.data);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Sign-off failed');
+      notify(err?.response?.data?.message || 'Sign-off failed');
     } finally {
       setSigning(false);
     }

@@ -3,6 +3,7 @@ import { getAgents, createAgent, updateAgent, deleteAgent } from '../../services
 import useClientPagination from '../../hooks/useClientPagination';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -115,7 +116,7 @@ const Agents = () => {
         fetchAgents();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to remove agent profile');
+      notify(err.response?.data?.message || 'Failed to remove agent profile');
     } finally {
       setDeleteLoading(false);
     }

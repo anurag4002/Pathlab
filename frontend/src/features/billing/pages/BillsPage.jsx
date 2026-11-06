@@ -39,6 +39,7 @@ import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
 import { WhatsAppShare, RowMenu } from '../../../components/common';
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
+import { notify } from '../../../components/common/Toast/toast';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
    only the backend's user-facing `message` field, never stack traces. */
@@ -404,7 +405,7 @@ const BillsPage = () => {
         setPaymentModalOpen(false);
         // Reconcile from the server: the response carries the recomputed
         // paid/due/status, and the list refresh re-reads the ledger.
-        alert(
+        notify(
           res.data?.dueAmount !== undefined
             ? `Payment recorded. Remaining due: ${formatCurrency(res.data.dueAmount)}`
             : 'Payment recorded.'
@@ -423,7 +424,7 @@ const BillsPage = () => {
     try {
       await printBillPdf(bill._id);
     } catch {
-      alert('Failed to print bill');
+      notify('Failed to print bill');
     }
   };
 
@@ -434,7 +435,7 @@ const BillsPage = () => {
       setPdfNotice(`Invoice PDF download started for ${bill.billNumber || 'bill'}.`);
     } catch {
       setPdfNotice('');
-      alert('Failed to download bill PDF');
+      notify('Failed to download bill PDF');
     }
   };
 
@@ -474,7 +475,7 @@ const BillsPage = () => {
       });
       if (res.success) {
         setRefundTarget(null);
-        alert('Refund recorded.');
+        notify('Refund recorded.');
         fetchBillsList();
       }
     } catch (err) {
@@ -494,7 +495,7 @@ const BillsPage = () => {
       if (res.success) {
         setVoidTarget(null);
         setVoidError(null);
-        alert('Bill voided.');
+        notify('Bill voided.');
         fetchBillsList();
       }
     } catch (err) {

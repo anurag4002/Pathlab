@@ -356,3 +356,8 @@
 
 /* Nine columns plus actions: slightly tighter cells so nothing hides under the frozen actions column. */
 .bills-table th, .bills-table td { padding-left: 12px; padding-right: 12px; }
+
+/* Keyboard highlight in the test search (Up/Down, Enter adds) */
+.test-picker-item.is-highlighted { background: var(--color-primary-light, #eff6ff); box-shadow: inset 3px 0 0 var(--color-primary, #2563eb); }
+.test-picker-item.is-added { opacity: 0.55; cursor: default; }
+.test-picker-item { transition: background-color 0.12s ease; }

@@ -4,6 +4,7 @@ import { getInvites, createInvite } from '../../services/doctorPortalService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -73,7 +74,7 @@ const DoctorAccess = () => {
     e.preventDefault();
     setInvSaving(true); setInvToken('');
     try { const r = await createInvite(invForm); if (r.success) { setInvToken(r.data?.token || r.data?.invite?.token || ''); setInvForm({ name: '', email: '', phone: '' }); fetchInvites(); } }
-    catch (e) { alert(e.response?.data?.message || 'Invite failed'); } finally { setInvSaving(false); }
+    catch (e) { notify(e.response?.data?.message || 'Invite failed'); } finally { setInvSaving(false); }
   };
 
   const handleOpenCreate = () => {
@@ -143,7 +144,7 @@ const DoctorAccess = () => {
         fetchDoctors();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete user');
+      notify(err.response?.data?.message || 'Failed to delete user');
     } finally {
       setDeleteLoading(false);
     }

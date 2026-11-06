@@ -3,6 +3,7 @@ import { getCategories, createCategory, updateCategory, deleteCategory } from '.
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog, AdvancedFilterBar } from '../../components/common';
+import { notify } from '../../components/common/Toast/toast';
 
 const TestCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -104,7 +105,7 @@ const TestCategories = () => {
         fetchCategories();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete category');
+      notify(err.response?.data?.message || 'Failed to delete category');
     } finally {
       setDeleteLoading(false);
     }

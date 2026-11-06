@@ -5,6 +5,7 @@ import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -159,7 +160,7 @@ const TestPanels = () => {
         fetchPanels();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete panel');
+      notify(err.response?.data?.message || 'Failed to delete panel');
     } finally {
       setDeleteLoading(false);
     }

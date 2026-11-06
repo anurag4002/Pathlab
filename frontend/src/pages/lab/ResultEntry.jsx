@@ -228,6 +228,7 @@ const ResultEntry = () => {
   // Local form state — draft copy; the server stays the source of truth
   const [values, setValues] = useState({});
   const [dirty, setDirty] = useState(false);
+  const [savedAt, setSavedAt] = useState(0);
 
   // Action state
   const [busy, setBusy] = useState(null); // null | 'draft' | 'submit'
@@ -571,6 +572,9 @@ const ResultEntry = () => {
       return false;
     }
     inFlightRef.current = true;
+    // Fields are disabled while saving, which drops the cursor; put it back
+    // afterwards so Ctrl+S never interrupts typing.
+    const focusedId = document.activeElement?.id;
     setBusy(mode);
     setFeedback(null);
     try {
@@ -582,6 +586,7 @@ const ResultEntry = () => {
           ? await saveReportResultsDraft(entry.report._id, payload)
           : await submitReportResults(entry.report._id, payload);
       setDirty(false);
+      setSavedAt(Date.now());
       // The mutation response is the authoritative report state.
       const updated = res?.data;
       setEntry((prev) =>
@@ -626,7 +631,58 @@ const ResultEntry = () => {
     } finally {
       setBusy(null);
       inFlightRef.current = false;
+      if (focusedId) requestAnimationFrame(() => { const field = document.getElementById(focusedId); if (field && !field.disabled) field.focus({ preventScroll: true }); });
     }
+  };
+
+  // Keyboard: Ctrl/Cmd+S saves, Ctrl/Cmd+Enter marks Final. The handler
+  // reads the latest callbacks through a ref so it is registered once.
+  const shortcutRef = useRef(null);
+  shortcutRef.current = { handleAction, entry, busy };
+  useEffect(() => {
+    const onKey = (event) => {
+      const { handleAction: act, entry: current, busy: working } = shortcutRef.current;
+      if (!current?.report?._id || working || isReportFinal(current.report.status) || !(event.ctrlKey || event.metaKey)) return;
+      const key = event.key.toLowerCase();
+      if (key === 's') { event.preventDefault(); act('draft'); }
+      else if (key === 'enter') { event.preventDefault(); act('submit'); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  // Closing the tab with unsaved values asks first.
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+  // A short "Saved" confirmation next to the buttons.
+  useEffect(() => {
+    if (!savedAt) return undefined;
+    const timer = setTimeout(() => setSavedAt(0), 2500);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+  // Value cells: Enter / Down go to the next value, Up to the previous, and
+  // focusing a value selects it so typing replaces it.
+  const valueFields = (root) => [...root.querySelectorAll('tr.ls-row input.form-control:not([disabled]), tr.ls-row select:not([disabled])')];
+  const onSheetKeyDown = (event) => {
+    const field = event.target;
+    if (!field.closest?.('tr.ls-row') || event.altKey || event.ctrlKey || event.metaKey) return;
+    const isSelect = field.tagName === 'SELECT';
+    const step = event.key === 'Enter' ? (event.shiftKey ? -1 : 1)
+      : !isSelect && event.key === 'ArrowDown' ? 1 : !isSelect && event.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    const fields = valueFields(event.currentTarget);
+    const next = fields[fields.indexOf(field) + step];
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
+    next.scrollIntoView?.({ block: 'nearest' });
+  };
+  const onSheetFocus = (event) => {
+    const field = event.target;
+    if (field.tagName === 'INPUT' && field.closest?.('tr.ls-row') && typeof field.select === 'function') field.select();
   };
 
   useEffect(() => {
@@ -1071,7 +1127,7 @@ const ResultEntry = () => {
                 </span>
               </div>
 
-              <section className="ls-sheet" aria-label="Lab report entry">
+              <section className="ls-sheet" aria-label="Lab report entry" onKeyDown={onSheetKeyDown} onFocus={onSheetFocus}>
                 <div className="ls-patient-box">
                   <dl className="ls-patient">
                     <dt>Patient Name:</dt><dd>{[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ') || '—'}</dd>
@@ -1202,6 +1258,13 @@ const ResultEntry = () => {
                 </label>
               </section>
                 <div className="re-actions re-actions-bar">
+                  {!isReportFinal(entry?.report?.status) && (
+                    <div className="re-save-state" aria-live="polite">
+                      {dirty ? <span className="re-save-dirty">● Unsaved changes</span>
+                        : savedAt ? <span className="re-save-done">✓ Saved</span> : null}
+                      <span className="re-shortcuts">Enter ↵ next · Ctrl+S save · Ctrl+Enter final</span>
+                    </div>
+                  )}
                   <div className="re-action-buttons">
                     {entry?.bill?._id && (
                       <span className="ls-case-menu">

@@ -8,6 +8,7 @@ import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import { FolderOpen, Edit2, Trash2, UserPlus } from 'lucide-react';
+import { notify } from '../../../components/common/Toast/toast';
 
 const validatePatient = (formData) => {
   const errs = {};
@@ -175,7 +176,7 @@ const PatientsPage = () => {
         fetchPatientsList();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete patient profile');
+      notify(err.response?.data?.message || 'Failed to delete patient profile');
     } finally {
       setDeleteLoading(false);
     }

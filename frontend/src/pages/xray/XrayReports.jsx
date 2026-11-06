@@ -12,6 +12,7 @@ import { DataTable, PageHeader, Button, Modal, AdvancedFilterBar } from '../../c
 import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
+import { notify } from '../../components/common/Toast/toast';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -182,7 +183,7 @@ const XrayReports = () => {
             <td>{report.referringDoctor?.name || 'Self'}</td>
             <td>{report.status || 'Pending'}</td>
             <td>
-              {!!report.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch(error => alert(error.message))}>Download PDF</Button>}
+              {!!report.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch(error => notify(error.message))}>Download PDF</Button>}
               {report.fileUrl ? <button
                 type="button"
                 className="btn btn-primary"
@@ -222,7 +223,7 @@ const XrayReports = () => {
         footer={
           <>
             <Button variant="secondary" onClick={() => { setPrintOpen(false); setSearchParams({}, { replace: true }); }}>Close</Button>
-            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/xray/${printTarget._id}/pdf`).catch(() => alert('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
+            <Button variant="primary" onClick={() => printTarget?._id && printPdfPath(`/xray/${printTarget._id}/pdf`).catch(() => notify('Could not print the report. Please try again.'))}><Printer size={16} /> Print Report</Button>
           </>
         }
       >

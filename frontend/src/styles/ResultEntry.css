@@ -508,3 +508,13 @@
 .ls-document-row td { padding: 0.25rem 0.75rem 0.75rem 1.5rem; }
 .re-document-hint { font-size: 0.75rem; color: var(--text-muted, #64748b); font-style: italic; }
 @media (max-width: 640px) { .ls-document-row td { padding-left: 0.5rem; padding-right: 0.5rem; } }
+
+/* Save state + keyboard hints beside the action buttons */
+.re-save-state { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: var(--color-text-muted, #64748b); min-height: 1.25rem; }
+.re-save-dirty { color: #b45309; font-weight: 600; }
+.re-save-done { color: var(--color-success, #16a34a); font-weight: 600; animation: re-saved-in 0.2s ease-out; }
+.re-shortcuts { opacity: 0.8; }
+@keyframes re-saved-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+@media (max-width: 768px) { .re-shortcuts { display: none; } }
+/* The value being edited stands out in long panels */
+tr.ls-row:focus-within { background: var(--color-primary-light, #eff6ff); }

@@ -9,6 +9,7 @@ import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { Plus, ArrowRight, Trash2, Upload, Eye, Printer, Download } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
+import { notify } from '../../components/common/Toast/toast';
 
 const TABS = ['CT', 'MRI', 'ECG', 'OPG', 'EEG', 'MAMMOGRAPHY', 'CARDIOLOGY', 'EPS', 'OUTSOURCE'];
 const NEXT = { Registered: 'InProgress', InProgress: 'Reported', Reported: 'Signed', Signed: 'Signed' };
@@ -82,7 +83,7 @@ const ModalityCases = () => {
   }, [modality, debouncedSearch, page, limit]);
 
   const handleCreate = async () => {
-    if (!form.patient) { alert('Select a patient'); return; }
+    if (!form.patient) { notify('Select a patient'); return; }
     setSubmitLoading(true);
     try {
       const res = await createModalityCase({ ...form, modality });
@@ -92,7 +93,7 @@ const ModalityCases = () => {
         fetchCases();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create case');
+      notify(err.response?.data?.message || 'Failed to create case');
     } finally {
       setSubmitLoading(false);
     }
@@ -103,7 +104,7 @@ const ModalityCases = () => {
       const res = await updateModalityCase(c._id, { status: NEXT[c.status] || 'InProgress' });
       if (res.success) fetchCases();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status');
+      notify(err.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -114,7 +115,7 @@ const ModalityCases = () => {
       const res = await deleteModalityCase(deleteTarget._id);
       if (res.success) { setDeleteTarget(null); fetchCases(); }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete case');
+      notify(err.response?.data?.message || 'Failed to delete case');
     } finally {
       setDeleteLoading(false);
     }

@@ -14,6 +14,7 @@ import AgeReferenceEditor from '../../components/lab/AgeReferenceEditor';
 import { normalizeAgeRanges, formatAgeRanges } from '../../utils/ageReferenceRanges';
 import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 import './TestDatabase.css';
+import { notify } from '../../components/common/Toast/toast';
 
 const TestDatabase = () => {
   const [tests, setTests] = useState([]);
@@ -204,7 +205,7 @@ const TestDatabase = () => {
         fetchTests();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete test');
+      notify(err.response?.data?.message || 'Failed to delete test');
     } finally {
       setDeleteLoading(false);
     }

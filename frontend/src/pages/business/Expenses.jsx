@@ -8,6 +8,7 @@ import { PAYMENT_METHODS } from '../../constants/billConstants';
 import { Plus, Edit2, Trash2, Landmark } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
+import { notify } from '../../components/common/Toast/toast';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => 2018 + i);
@@ -154,7 +155,7 @@ const Expenses = () => {
         fetchExpensesData();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to remove expense');
+      notify(err.response?.data?.message || 'Failed to remove expense');
     } finally {
       setDeleteLoading(false);
     }

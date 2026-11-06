@@ -4,6 +4,7 @@ import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Ban, CheckCircle2, Trash2 } from 'lucide-react';
 import { PageHeader, DataTable, StatusBadge, Button, Modal, Input, AdvancedFilterBar } from '../../components/common';
+import { notify } from '../../components/common/Toast/toast';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -51,15 +52,15 @@ const BrowserSecurity = () => {
       const payload = { label: form.label, ...(form.code.trim() ? { code: form.code.trim() } : {}) };
       const r = await createBrowser(payload);
       if (r.success) { setModal(false); setForm({ code: '', label: '' }); fetchAll(); }
-    } catch (e) { alert(e.response?.data?.message || 'Register failed'); } finally { setSaving(false); }
+    } catch (e) { notify(e.response?.data?.message || 'Register failed'); } finally { setSaving(false); }
   };
   const toggle = async (b) => {
     const next = b.status === 'Blocked' ? 'Active' : 'Blocked';
-    try { const r = await setBrowserStatus(b._id || b.code, next); if (r.success) fetchAll(); } catch (e) { alert('Failed'); }
+    try { const r = await setBrowserStatus(b._id || b.code, next); if (r.success) fetchAll(); } catch (e) { notify('Failed'); }
   };
   const remove = async (b) => {
     if (!window.confirm(`Delete browser ${b.code}?`)) return;
-    try { const r = await deleteBrowser(b._id || b.code); if (r.success) fetchAll(); } catch (e) { alert('Delete failed'); }
+    try { const r = await deleteBrowser(b._id || b.code); if (r.success) fetchAll(); } catch (e) { notify('Delete failed'); }
   };
 
   return (

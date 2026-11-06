@@ -6,6 +6,7 @@ import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, Sta
 import useAuth from '../../hooks/useAuth';
 import InterpretationText from '../../components/lab/InterpretationText';
 import { copyInterpretation } from '../../utils/interpretationContent';
+import { notify } from '../../components/common/Toast/toast';
 const RichInterpretationEditor = lazy(() => import('../../components/lab/RichInterpretationEditor'));
 
 const STATUS_OPTIONS = [
@@ -145,7 +146,7 @@ const Interpretations = () => {
         fetchInterpretations();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to remove interpretation record');
+      notify(err.response?.data?.message || 'Failed to remove interpretation record');
     } finally {
       setDeleteLoading(false);
     }
