@@ -533,3 +533,52 @@ html.ui-v2 .bill-items-wrap .bill-items-table thead th { position: sticky; top: 
 
 /* The page's own search box is driven by the top bar: hide its whole slot. */
 html.ui-v2 .afb-v2-row > .afb-field:has(.is-driven-by-header) { display: none; }
+
+/* ---- Top bar on phones (new look) ---------------------------------------
+   Menu button never shrinks; the search gets the room; the look switch
+   lives in the user menu; no keyboard hints on touch screens. */
+@media (max-width: 640px) {
+  html.ui-v2 .header { gap: 0.4rem; padding-left: 0.5rem; padding-right: 0.5rem; }
+  html.ui-v2 .header-left { flex: 1 1 auto; min-width: 0; gap: 0.4rem; }
+  html.ui-v2 .header-right { flex: 0 0 auto; gap: 0.25rem; }
+  html.ui-v2 .header-toggle-btn { flex: 0 0 auto; width: 2.5rem; height: 2.5rem; min-width: 2.5rem; display: inline-flex; align-items: center; justify-content: center; }
+  html.ui-v2 .header-toggle-btn svg { width: 20px !important; height: 20px !important; flex-shrink: 0; }
+  html.ui-v2 .header-brand { flex: 0 0 auto; }
+  html.ui-v2 .header-logo-text { display: none; }
+  html.ui-v2 .header-ui-switch { display: none !important; }
+  html.ui-v2 .header-page-search, html.ui-v2 .search-trigger { flex: 1 1 auto; min-width: 0; width: auto !important; }
+  html.ui-v2 .header-page-search input { min-width: 0; width: 100%; font-size: 16px; }
+  html.ui-v2 .header-page-search-all, html.ui-v2 .header-page-search-kbd, html.ui-v2 .search-shortcut-badge { display: none !important; }
+  html.ui-v2 .search-trigger-content { min-width: 0; overflow: hidden; }
+  html.ui-v2 .search-trigger-content span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html.ui-v2 .user-menu-trigger svg:last-child { display: none; }
+}
+
+/* ---- Phone fixes found by the phone check ------------------------------- */
+@media (max-width: 960px) {
+  /* Grids must not grow wider than the screen because of one long item. */
+  html.ui-v2 .bill-form-grid, html.ui-v2 .bill-form-grid--v2 { grid-template-columns: minmax(0, 1fr) !important; }
+  html.ui-v2 .bill-form-grid > *, html.ui-v2 .bill-form-main > *, html.ui-v2 .bill-summary-column > * { min-width: 0; }
+}
+@media (max-width: 900px) {
+  html.ui-v2 .st-layout { grid-template-columns: minmax(0, 1fr) !important; }
+  html.ui-v2 .st-layout > * { min-width: 0; }
+  html.ui-v2 .st-nav { max-width: 100%; }
+}
+@media (max-width: 640px) {
+  /* Tab rows scroll sideways inside their own strip instead of the page. */
+  html.ui-v2 .afb-segmented { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  html.ui-v2 .afb-segmented::-webkit-scrollbar { display: none; }
+  html.ui-v2 .afb-v2-row > .afb-field { min-width: 0; max-width: 100%; }
+}
+@media (max-width: 640px) {
+  html.ui-v2 .bill-tests-tools { flex-wrap: wrap; width: 100%; margin-left: 0; }
+  html.ui-v2 .bill-dept-select { flex: 1 1 auto; min-width: 0; }
+  html.ui-v2 .bill-dept-select select { max-width: none; width: 100%; }
+  html.ui-v2 .biz-actions, html.ui-v2 .page-header-actions { flex-wrap: wrap; }
+}
+@media (max-width: 640px) {
+  /* Long codes / words wrap instead of being cut off. */
+  html.ui-v2 main td, html.ui-v2 main td * { overflow-wrap: anywhere; }
+}
+@media (max-width: 640px) { html.ui-v2 main td small, html.ui-v2 main td span { white-space: normal; } }

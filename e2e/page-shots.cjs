@@ -75,6 +75,40 @@ const routes = [...fs.readFileSync(path.resolve(__dirname, '../frontend/src/rout
     } else {
       await page.screenshot({ path: file });
     }
+    // Phone check: anything wider than the screen (sideways scroll, cut-off parts).
+    if (width < 600) {
+      const issues = await page.evaluate(() => {
+        const vw = document.documentElement.clientWidth;
+        const out = [];
+        if (document.documentElement.scrollWidth > vw + 1) out.push(`page scrolls sideways (${document.documentElement.scrollWidth}px wide)`);
+        const seen = new Set();
+        for (const el of document.querySelectorAll('header *, main *')) {
+          const r = el.getBoundingClientRect();
+          if (!r.width || !r.height) continue;
+          const style = getComputedStyle(el);
+          if (style.visibility === 'hidden' || style.position === 'fixed') continue;
+          let p = el.parentElement, clipped = false;
+          while (p && p !== document.body) {
+            const o = getComputedStyle(p).overflowX;
+            if (o === 'auto' || o === 'scroll') { clipped = true; break; } // scrolls on purpose
+            if (o === 'hidden') { // cut off by its box: a real problem if it sticks out
+              const pr = p.getBoundingClientRect();
+              if (r.right > pr.right + 2 && el.children.length === 0 && (el.textContent || '').trim()) out.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().slice(0, 30)}" is cut off`);
+              clipped = true; break;
+            }
+            p = p.parentElement;
+          }
+          if (clipped) continue;
+          if (r.right > vw + 2 || r.left < -2) {
+            const name = `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : ''}`;
+            if (!seen.has(name)) { seen.add(name); out.push(`${name} spills off screen (${Math.round(r.left)}..${Math.round(r.right)})`); }
+          }
+          if (out.length > 6) break;
+        }
+        return out;
+      });
+      if (issues.length) console.log('  PHONE', route, '::', issues.join(' | '));
+    }
     console.log(route, '->', path.basename(file));
   }
   await browser.close(); await env.stop();
