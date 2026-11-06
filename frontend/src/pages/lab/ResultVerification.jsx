@@ -24,6 +24,8 @@ import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
 import useAuth from '../../hooks/useAuth';
 import '../../styles/ResultVerification.css';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 
 /* Local API error mapper: surfaces only the backend's user-facing `message`
    field (never `errors.stack`), with sensible fallbacks per failure type. */
@@ -97,6 +99,7 @@ const renderFlag = (flag) => {
 };
 
 const ResultVerification = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   const navigate = useNavigate();
   // Frontend affordance only — the backend's requirePermission('reports')
@@ -263,6 +266,29 @@ const ResultVerification = () => {
   const renderQueueRow = (report) => {
     const pending = report.status === 'Reported';
     const reportedAt = report.tat?.reported || report.reportDate;
+    if (isV2) {
+      // Clinical screen: age · sex beside the name; the row opens the review.
+      const patient = report.patient || {};
+      return (
+        <tr key={report._id} className={pending ? 'rv-row-clickable' : undefined} onClick={pending ? (event) => { if (!event.target.closest('button, a')) openReview(report); } : undefined}>
+          <td>
+            <IdentityCell
+              name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+              clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
+              meta={[`Reg ${report.registrationNumber || '—'}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
+            />
+          </td>
+          <td className="rv-muted" style={{ whiteSpace: 'nowrap' }}>{reportedAt ? formatDate(reportedAt) : <span className="cell-empty">Not reported</span>}</td>
+          <td style={{ whiteSpace: 'nowrap' }}>{pending ? `Waiting ${formatReportTat(report)}` : formatReportTat(report)}</td>
+          <td><StatusBadge status={report.status} /></td>
+          <td>
+            <div className="row-actions-v2">
+              {pending ? <Button size="sm" variant="primary" onClick={() => openReview(report)}>Review</Button> : <span className="cell-empty">Done</span>}
+            </div>
+          </td>
+        </tr>
+      );
+    }
     return (
       <tr key={report._id}>
         <td className="rv-reg">{report.registrationNumber || '—'}</td>
@@ -439,7 +465,7 @@ const ResultVerification = () => {
               ]}
             />
             <DataTable
-              headers={[
+              headers={isV2 ? ['Patient', 'Reported', 'Turnaround', 'Status', ''] : [
                 'Registration No',
                 'Patient',
                 'Invoice',

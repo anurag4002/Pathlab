@@ -1,4 +1,19 @@
 import React from 'react';
+
+// Give every cell its column name (data-label) so the new look can show a
+// row as a labelled card on phones without each screen doing it.
+const headerText = (header) => (typeof header === 'string' ? header : typeof header?.props?.children === 'string' ? header.props.children : '');
+function withCellLabels(row, headers) {
+  if (!React.isValidElement(row) || row.type !== 'tr') return row;
+  let column = 0;
+  const cells = React.Children.map(row.props.children, (cell) => {
+    if (!React.isValidElement(cell) || (cell.type !== 'td' && cell.type !== 'th')) return cell;
+    const label = headerText(headers[column]);
+    column += Number(cell.props.colSpan) || 1;
+    return cell.props['data-label'] !== undefined || !label ? cell : React.cloneElement(cell, { 'data-label': label });
+  });
+  return React.cloneElement(row, {}, cells);
+}
 import { Search } from 'lucide-react';
 import EmptyState from '../EmptyState/EmptyState';
 import Pagination from '../Pagination/Pagination';
@@ -58,7 +73,7 @@ const DataTable = ({
         aria-busy={loading || undefined}
         style={maxHeight ? { maxHeight } : undefined}
       >
-        <table className={`data-table${dense ? ' dense' : ''}${stickyActions ? ' sticky-actions' : ''}`}>
+        <table className={`data-table${dense ? ' dense' : ''}${stickyActions ? ' sticky-actions' : ''} data-table--cards`}>
           <thead>
             <tr>
               {headers.map((h, i) => (
@@ -80,7 +95,7 @@ const DataTable = ({
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => renderRow(item, index))
+              data.map((item, index) => withCellLabels(renderRow(item, index), headers))
             )}
           </tbody>
         </table>

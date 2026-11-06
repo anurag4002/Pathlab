@@ -25,3 +25,6 @@ export { default as WhatsAppShare } from './WhatsAppShare/WhatsAppShare';
 export { default as RowMenu } from './RowMenu/RowMenu';
 export { default as Toaster } from './Toast/Toaster';
 export { toast, notify } from './Toast/toast';
+export { default as IdentityCell } from './IdentityCell/IdentityCell';
+export { default as StatGroup } from './StatGroup/StatGroup';
+export { default as CopyButton } from './CopyButton/CopyButton';

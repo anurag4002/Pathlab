@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { SlidersHorizontal, X } from 'lucide-react';
+import { useUiVersion } from '../../../utils/uiVersion';
 import Button from '../Button/Button';
 import Select from '../Select/Select';
 import DatePicker from '../DatePicker/DatePicker';
@@ -45,6 +47,21 @@ const AdvancedFilterBar = ({
   variant = 'card', // 'card' | 'plain'
   className = ''
 }) => {
+  const isV2 = useUiVersion() === 'v2';
+  const [panelOpen, setPanelOpen] = useState(false);
+  const panelRef = useRef(null);
+  // Latest onSearch, so removing a chip applies after the page re-renders
+  // with the new value (handlers read page state from their closure).
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
+  useEffect(() => {
+    if (!panelOpen) return undefined;
+    const close = (event) => { if (!panelRef.current?.contains(event.target)) setPanelOpen(false); };
+    const esc = (event) => { if (event.key === 'Escape') setPanelOpen(false); };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', esc); };
+  }, [panelOpen]);
   const [expanded, setExpanded] = useState(false);
   // On phones a tall stack of filters pushes the list off screen: show the
   // first field and a Filters toggle for the rest.
@@ -163,6 +180,81 @@ const AdvancedFilterBar = ({
       </div>
     );
   };
+
+  if (isV2) {
+    // New look: tabs and the search box stay on the strip; every other
+    // filter lives in a panel behind "Filters (n)", and the ones in use show
+    // as removable chips.
+    const isInline = (f) => f.type === 'segmented' || ((f.type === 'text' || f.type === 'search' || !f.type) && /search/i.test(`${f.key} ${f.label || ''}`));
+    const inline = fields.filter(isInline);
+    const inPanel = fields.filter((f) => !isInline(f));
+    // "All …" choices and sort order are defaults, not filters: no chip.
+    const isSet = (f) => {
+      const v = values[f.key];
+      if (v === undefined || v === null || v === '' || v === false || /sort/i.test(f.key)) return false;
+      const option = (f.options || []).find((o) => String(o.value) === String(v));
+      return !(option && /^(all|any)\b/i.test(String(option.label)));
+    };
+    const display = (f) => {
+      const v = values[f.key];
+      if (f.type === 'toggle') return '';
+      if (f.type === 'date') {
+        const d = new Date(`${v}T00:00:00`);
+        return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      const option = (f.options || []).find((o) => String(o.value) === String(v));
+      return option ? option.label : f.type === 'custom' ? '' : String(v);
+    };
+    const active = inPanel.filter(isSet);
+    const removeChip = (f) => {
+      setValue(f.key, f.type === 'toggle' ? false : '');
+      setTimeout(() => onSearchRef.current?.(), 0);
+    };
+    return (
+      <div className={`afb afb--v2 ${className}`.trim()}>
+        <div className="afb-v2-row">
+          {inline.map(renderField)}
+          {inPanel.length > 0 && (
+            <div className="afb-v2-filter" ref={panelRef}>
+              <Button variant="secondary" size="sm" icon={<SlidersHorizontal size={14} />} onClick={() => setPanelOpen((open) => !open)} aria-expanded={panelOpen}>
+                Filters{active.length ? <span className="afb-v2-count">{active.length}</span> : null}
+              </Button>
+              {panelOpen && (
+                <div className="afb-v2-panel" role="dialog" aria-label="Filters">
+                  <div className="afb-v2-panel-fields">{inPanel.map(renderField)}</div>
+                  <div className="afb-v2-panel-actions">
+                    {onClear && <Button variant="secondary" size="sm" onClick={() => { onClear(); setPanelOpen(false); }}>Clear all</Button>}
+                    <Button variant="primary" size="sm" onClick={() => { onSearch?.(); setPanelOpen(false); }}>{onSearch ? 'Apply' : 'Done'}</Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {active.map((f) => {
+            const text = display(f);
+            return (
+              <span key={f.key} className="afb-chip">
+                <span>{f.label || f.key}{text ? <>: <strong>{text}</strong></> : null}</span>
+                <button type="button" aria-label={`Remove filter ${f.label || f.key}`} onClick={() => removeChip(f)}><X size={12} /></button>
+              </span>
+            );
+          })}
+          {active.length > 0 && onClear && showClearButton && (
+            <button type="button" className="afb-v2-clear" onClick={onClear}><X size={13} /> Clear</button>
+          )}
+          {inline.some((f) => f.type !== 'segmented') && onSearch && showSearchButton && !inPanel.length && (
+            <Button variant="secondary" size="sm" onClick={onSearch}>Search</Button>
+          )}
+          {(actions || (trailing != null && trailing !== false)) && (
+            <div className="afb-v2-end">
+              {actions}
+              {trailing != null && trailing !== false && <span className="afb-trailing">{trailing}</span>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`afb ${variant === 'plain' ? 'afb-plain' : ''} ${className}`.trim()}>

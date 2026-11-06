@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
-import { DataTable, PageHeader, Button, ConfirmDialog, AdvancedFilterBar, BranchFilter } from '../../../components/common';
+import { DataTable, PageHeader, Button, ConfirmDialog, AdvancedFilterBar, BranchFilter, IdentityCell, RowMenu } from '../../../components/common';
+import { useUiVersion } from '../../../utils/uiVersion';
 import { PATIENT_TABLE_HEADERS } from '../../../constants/patientConstants';
 import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
 import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
-import { FolderOpen, Edit2, Trash2, UserPlus } from 'lucide-react';
+import { FolderOpen, Edit2, Trash2, UserPlus, FilePlus } from 'lucide-react';
 import { notify } from '../../../components/common/Toast/toast';
 
 const validatePatient = (formData) => {
@@ -22,6 +23,9 @@ const validatePatient = (formData) => {
 };
 
 const PatientsPage = () => {
+  const isV2 = useUiVersion() === 'v2';
+  // New bill for this patient: the bill form fills the patient in.
+  const newBillFor = (patient) => navigate('/cases/bills/new', { state: { booking: { patientId: patient._id, name: patient.name, phone: patient.phone, age: patient.age, gender: patient.gender, title: patient.title, email: patient.email, address: patient.address } } });
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -221,7 +225,7 @@ const PatientsPage = () => {
       />
 
       <DataTable
-        headers={PATIENT_TABLE_HEADERS}
+        headers={isV2 ? ['Patient', 'Referred by', ''] : PATIENT_TABLE_HEADERS}
         data={patients}
         loading={loading}
         emptyMessage="No patient profiles matched your query."
@@ -237,7 +241,31 @@ const PatientsPage = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit,
         }}
-        renderRow={(patient) => (
+        renderRow={(patient) => isV2 ? (
+          <tr key={patient._id}>
+            <td>
+              <IdentityCell
+                name={[patient.title, patient.name].filter(Boolean).join(' ')}
+                onClick={() => navigate(`/cases/patients/${patient._id}`)}
+                title="Open patient details"
+                clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
+                meta={[`Reg ${patient.registrationNumber}`]}
+                copy={patient.phone ? { value: patient.phone, label: 'phone' } : undefined}
+              />
+            </td>
+            <td>{patient.referringDoctor?.name || <span className="cell-empty">Self</span>}</td>
+            <td>
+              <div className="row-actions-v2">
+                <Button variant="secondary" size="sm" icon={<FilePlus size={14} />} onClick={() => newBillFor(patient)} aria-label={`New bill for ${patient.name}`}>New bill</Button>
+                <RowMenu label={`More actions for ${patient.name}`} items={[
+                  { label: 'Details', onClick: () => navigate(`/cases/patients/${patient._id}`) },
+                  { label: 'Edit patient', onClick: () => openEdit(patient), ariaLabel: `Edit ${patient.name}` },
+                  { label: 'Delete patient', onClick: () => setDeleteTarget(patient), danger: true, ariaLabel: `Delete ${patient.name}` },
+                ]} />
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={patient._id}>
             <td style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-primary)', whiteSpace: 'nowrap' }}>
               {patient.registrationNumber}

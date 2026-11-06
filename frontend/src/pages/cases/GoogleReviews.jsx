@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, RotateCcw, Star } from 'lucide-react';
-import { PageHeader, DataTable, Button, Input, WhatsAppShare } from '../../components/common';
+import { PageHeader, DataTable, Button, Input, WhatsAppShare, IdentityCell, RowMenu } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
 import { getBills, updateReviewRequest } from '../../services/billService';
 import { getLabProfile } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
@@ -17,6 +18,7 @@ const TABS = [
 // One row per bill (visit): ask the patient for a Google review on WhatsApp
 // and keep track of who has already been asked.
 const GoogleReviews = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [status, setStatus] = useState('pending');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 350);
@@ -65,6 +67,36 @@ const GoogleReviews = () => {
   const renderRow = (bill) => {
     const asked = !!bill.reviewRequest?.askedAt;
     const patient = bill.patient || {};
+    if (isV2) {
+      const name = [patient.title, patient.name].filter(Boolean).join(' ');
+      return (
+        <tr key={bill._id}>
+          <td>
+            <IdentityCell name={name || 'Walk-in patient'} meta={[`Bill ${bill.billNumber}`, formatDate(bill.date || bill.createdAt).split(',')[0]]}
+              copy={patient.phone ? { value: patient.phone, label: 'phone' } : undefined} />
+          </td>
+          <td>
+            {asked ? (
+              <span className="gr-status gr-status-asked">
+                <CheckCircle2 size={14} /> Asked {formatDate(bill.reviewRequest.askedAt).split(',')[0]}
+                {bill.reviewRequest.askedBy?.name ? ` · ${bill.reviewRequest.askedBy.name}` : ''}
+              </span>
+            ) : patient.phone ? <span className="gr-status gr-status-pending">Not asked</span> : <span className="cell-empty">No phone</span>}
+          </td>
+          <td>
+            <div className="row-actions-v2">
+              <WhatsAppShare kind="review" phone={patient.phone} name={name}
+                label={asked ? 'Ask again' : 'Ask on WhatsApp'} onShared={() => mark(bill, true, 'whatsapp')} />
+              <RowMenu label={`More actions for ${name || 'patient'}`} items={[
+                asked
+                  ? { label: 'Undo "asked"', onClick: () => mark(bill, false), ariaLabel: `Undo ${name}` }
+                  : { label: 'Mark as asked', onClick: () => mark(bill, true), ariaLabel: `Mark asked ${name}` },
+              ]} />
+            </div>
+          </td>
+        </tr>
+      );
+    }
     return (
       <tr key={bill._id}>
         <td>{formatDate(bill.date || bill.createdAt)}</td>
@@ -121,7 +153,7 @@ const GoogleReviews = () => {
       </div>
       {error && <div className="gr-banner gr-banner-error" role="alert">{error} <Button variant="secondary" size="sm" onClick={() => { setLoading(true); setReloadKey((k) => k + 1); }}>Retry</Button></div>}
       <DataTable
-        headers={['Date', 'Bill', 'Patient', 'Phone', 'Review', 'Action']}
+        headers={isV2 ? ['Patient', 'Review', ''] : ['Date', 'Bill', 'Patient', 'Phone', 'Review', 'Action']}
         data={rows}
         loading={loading}
         emptyTitle={status === 'pending' ? 'Everyone has been asked' : 'No patients found'}

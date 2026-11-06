@@ -132,3 +132,83 @@ html.ui-v2 .dashboard-inline-metric span { text-transform: none; letter-spacing:
   html.ui-v2 .dashboard-inline-metric:nth-child(odd) { border-left: 0; }
   html.ui-v2 .dashboard-inline-metric:nth-child(n+3) { border-top: 1px solid var(--color-border, #e5e7eb); }
 }
+
+/* ---- Phone: list rows become labelled cards (new look) ---------------- */
+@media (max-width: 640px) {
+  html.ui-v2 .data-table-wrapper { overflow: visible; }
+  html.ui-v2 .data-table.data-table--cards,
+  html.ui-v2 .data-table.data-table--cards tbody { display: block; width: 100%; min-width: 0; }
+  html.ui-v2 .data-table.data-table--cards thead { display: none; }
+  html.ui-v2 .data-table.data-table--cards tbody tr:not(.data-table-empty-row):not(.data-table-skeleton) {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem 0.75rem;
+    padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--color-border, #e5e7eb);
+  }
+  html.ui-v2 .data-table.data-table--cards tbody tr > td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem;
+    padding: 0; border: 0; min-width: 0; grid-column: 1 / -1; font-size: 0.875rem;
+    position: static !important; background: transparent !important; box-shadow: none !important;
+  }
+  html.ui-v2 .data-table.data-table--cards tbody tr > td[data-label]::before {
+    content: attr(data-label); flex-shrink: 0; color: var(--color-text-muted, #64748b); font-size: 0.78rem; font-weight: 500;
+  }
+  /* First cell (identity) and the actions cell carry no label. */
+  html.ui-v2 .data-table.data-table--cards tbody tr > td:first-child { padding-bottom: 0.2rem; }
+  html.ui-v2 .data-table.data-table--cards tbody tr > td:first-child::before,
+  html.ui-v2 .data-table.data-table--cards tbody tr > td:last-child::before { content: none; }
+  html.ui-v2 .data-table.data-table--cards tbody tr > td:last-child { justify-content: flex-start; padding-top: 0.4rem; flex-wrap: wrap; }
+  html.ui-v2 .data-table.data-table--cards tbody tr > td:last-child > * { flex-wrap: wrap; }
+  html.ui-v2 .data-table.data-table--cards .data-table-empty-row,
+  html.ui-v2 .data-table.data-table--cards .data-table-empty-row td { display: block; }
+}
+
+/* ---- Row helpers used by new-look rows ---------------------------------- */
+.cell-sub { font-size: 0.78rem; color: var(--color-text-muted, #64748b); white-space: nowrap; }
+html.ui-v2 .data-table td.num, html.ui-v2 .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+html.ui-v2 .data-table td.num.is-due { color: var(--color-danger, #dc2626); font-weight: 600; }
+.row-actions-v2 { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; white-space: nowrap; }
+@media (max-width: 640px) {
+  html.ui-v2 .data-table.data-table--cards td.num { text-align: right; }
+  html.ui-v2 .row-actions-v2 { justify-content: flex-start; }
+}
+html.ui-v2 .data-table th:has(> .th-num) { text-align: right; }
+/* TAT on one line ("On time · 23h 59m left") instead of wrapping. */
+.tat-one-line, .tat-one-line * { white-space: nowrap !important; }
+.tat-one-line { display: inline-flex; align-items: center; gap: 0.35rem; }
+html.ui-v2 .rv-row-clickable { cursor: pointer; }
+/* One accent: the review button uses the standard quiet style. */
+html.ui-v2 .wa-share-review { background: var(--color-surface, #fff) !important; color: var(--color-text, #0f172a) !important; border-color: var(--color-border, #e2e8f0) !important; }
+html.ui-v2 .wa-share-review svg { color: #d97706; }
+/* Pinned actions column: keep it pinned but without the divider line. */
+html.ui-v2 .data-table.sticky-actions td:last-child,
+html.ui-v2 .data-table.sticky-actions th:last-child { border-left: 0; box-shadow: none; }
+
+
+/* ---- Filter strip (new look) ------------------------------------------- */
+html.ui-v2 .afb.afb--v2 { padding: 0.55rem 0.65rem; }
+.afb-v2-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.afb-v2-row > .afb-field { margin: 0; }
+.afb-v2-row > .afb-field .form-label { display: none; }
+.afb-v2-row > .afb-field input[type="text"], .afb-v2-row > .afb-field input[type="search"] { min-width: 15rem; height: 2.1rem; }
+.afb-v2-filter { position: relative; }
+.afb-v2-count { margin-left: 0.35rem; min-width: 1.15rem; padding: 0 0.3rem; border-radius: 999px; background: var(--color-primary, #2563eb); color: #fff; font-size: 0.7rem; font-weight: 700; line-height: 1.15rem; text-align: center; }
+.afb-v2-panel {
+  position: absolute; z-index: 40; top: calc(100% + 6px); left: 0;
+  width: min(44rem, calc(100vw - 2rem)); padding: 0.9rem;
+  background: #fff; border: 1px solid var(--color-border, #e2e8f0); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+.afb-v2-panel-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.75rem; }
+.afb-v2-panel-fields .afb-field { width: auto; min-width: 0; max-width: none; flex: none; }
+.afb-v2-panel-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border, #eef0f3); }
+.afb-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.3rem 0.2rem 0.6rem; border: 1px solid var(--color-border, #e2e8f0); border-radius: 999px; background: #fff; font-size: 0.8rem; color: var(--color-text-secondary, #334155); }
+.afb-chip strong { font-weight: 600; color: var(--color-text, #0f172a); }
+.afb-chip button { border: 0; background: none; padding: 0.15rem; border-radius: 50%; line-height: 0; color: var(--color-text-muted, #64748b); cursor: pointer; }
+.afb-chip button:hover { background: #f1f5f9; color: var(--color-text, #0f172a); }
+.afb-v2-clear { display: inline-flex; align-items: center; gap: 0.25rem; border: 0; background: none; color: var(--color-text-muted, #64748b); font: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.25rem 0.35rem; border-radius: 6px; }
+.afb-v2-clear:hover { color: var(--color-text, #0f172a); background: #f1f5f9; }
+.afb-v2-end { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+@media (max-width: 640px) {
+  .afb-v2-row > .afb-field { flex: 1 1 100%; }
+  .afb-v2-row > .afb-field input[type="text"], .afb-v2-row > .afb-field input[type="search"] { min-width: 0; width: 100%; }
+  .afb-v2-panel { position: fixed; left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; max-height: 75vh; overflow: auto; }
+}

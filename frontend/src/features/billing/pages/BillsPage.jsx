@@ -37,7 +37,12 @@ import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
-import { WhatsAppShare, RowMenu } from '../../../components/common';
+import { WhatsAppShare, RowMenu, IdentityCell } from '../../../components/common';
+import { useUiVersion } from '../../../utils/uiVersion';
+
+// New look: patient first, bill second, no discount column (in details).
+const num = (text) => <span className="th-num">{text}</span>;
+const BILL_TABLE_HEADERS_V2 = ['Patient', 'Bill', num('Total'), num('Paid'), num('Due'), 'Status', ''];
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
 import CopyButton from '../../../components/common/CopyButton/CopyButton';
 import { notify } from '../../../components/common/Toast/toast';
@@ -104,6 +109,7 @@ const DetailSection = ({ title }) => (
 );
 
 const BillsPage = () => {
+  const isV2 = useUiVersion() === 'v2';
   const navigate = useNavigate();
   const location = useLocation();
   const [savedBillDismissed, setSavedBillDismissed] = useState(false);
@@ -555,6 +561,59 @@ const BillsPage = () => {
 
   const detailPatientName = details?.patient?.name || detailsTarget?.patient?.name || '';
 
+  // New look row: one contextual action (Pay when money is due, else
+  // Results for lab bills, else Print), WhatsApp, and everything else in ⋯.
+  const renderBillRowV2 = (bill) => {
+    const patientId = bill.patient?._id || bill.patient;
+    const isLab = ['LAB', undefined, null, ''].includes(bill.department);
+    const openResults = () => navigate(`/lab/result-entry?bill=${bill._id}&patient=${patientId}`);
+    const primary = bill.isVoided ? null
+      : bill.dueAmount > 0 ? { label: 'Pay', icon: <CreditCard size={14} />, variant: 'primary', onClick: () => handleOpenPayment(bill), testId: 'bill-pay', aria: `Pay ${bill.billNumber}` }
+        : isLab && patientId ? { label: 'Results', icon: <FileEdit size={14} />, variant: 'secondary', onClick: openResults, testId: 'bill-results', aria: `Results ${bill.billNumber}` }
+          : { label: 'Print', icon: <Printer size={14} />, variant: 'secondary', onClick: () => handleOpenPrint(bill), testId: 'bill-print', aria: `Print ${bill.billNumber}` };
+    const menu = [
+      primary?.testId !== 'bill-results' && !bill.isVoided && isLab && patientId && { label: 'Enter results', onClick: openResults, testId: 'bill-results-menu', ariaLabel: `Results ${bill.billNumber}` },
+      { label: 'Details', onClick: () => openDetails(bill), testId: 'bill-details', ariaLabel: `Details ${bill.billNumber}` },
+      primary?.testId !== 'bill-print' && { label: 'Print bill', onClick: () => handleOpenPrint(bill), testId: 'bill-print-menu', ariaLabel: `Print ${bill.billNumber}` },
+      { label: 'Download PDF', onClick: () => handleDownloadPdf(bill), testId: 'bill-pdf', ariaLabel: `PDF ${bill.billNumber}` },
+      { label: 'Print labels', onClick: () => setLabelTarget(bill), testId: 'bill-labels', ariaLabel: `Labels ${bill.billNumber}` },
+      isAdmin && !bill.isVoided && { label: 'Edit bill', onClick: () => openEditBill(bill), testId: 'bill-edit', ariaLabel: `Edit ${bill.billNumber}` },
+      isAdmin && !bill.isVoided && { label: 'Refund', onClick: () => openRefund(bill), testId: 'bill-refund', ariaLabel: `Refund ${bill.billNumber}` },
+      isAdmin && !bill.isVoided && { label: 'Void bill', onClick: () => setVoidTarget(bill), danger: true, testId: 'bill-void', ariaLabel: `Void ${bill.billNumber}` },
+    ].filter(Boolean);
+    return (
+      <tr key={bill._id}>
+        <td>
+          <IdentityCell name={bill.patient?.name} copy={bill.patient?.phone ? { value: bill.patient.phone, label: 'phone' } : undefined} />
+        </td>
+        <td>
+          <div style={{ whiteSpace: 'nowrap' }}>
+            <button type="button" className="bill-number-link" onClick={() => openDetails(bill)} title="Open bill details">{bill.billNumber}</button>
+            <CopyButton value={bill.billNumber} label="bill number" />
+          </div>
+          <div className="cell-sub">{formatDate(bill.date)}</div>
+        </td>
+        <td className="num">{formatCurrency(bill.totalAmount)}</td>
+        <td className="num">{bill.paidAmount > 0 ? formatCurrency(bill.paidAmount) : <span className="cell-empty">{formatCurrency(0)}</span>}</td>
+        <td className={`num${bill.dueAmount > 0 ? ' is-due' : ''}`}>{bill.dueAmount > 0 ? formatCurrency(bill.dueAmount) : <span className="cell-empty">{formatCurrency(0)}</span>}</td>
+        <td>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <StatusBadge status={bill.isVoided ? 'Voided' : bill.paymentStatus} />
+          </div>
+        </td>
+        <td>
+          <div className="row-actions-v2">
+            {primary && (
+              <Button variant={primary.variant} size="sm" icon={primary.icon} onClick={primary.onClick} data-testid={primary.testId} aria-label={primary.aria}>{primary.label}</Button>
+            )}
+            {!bill.isVoided && <WhatsAppShare kind="bill" id={bill._id} phone={bill.patient?.phone} name={bill.patient?.name} billNumber={bill.billNumber} iconOnly />}
+            <RowMenu label={`More actions for bill ${bill.billNumber}`} items={menu} />
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   if (isCreateView) {
     return (
       <div>
@@ -750,7 +809,7 @@ const BillsPage = () => {
 
       <DataTable
         className="bills-table"
-        headers={BILL_TABLE_HEADERS}
+        headers={isV2 ? BILL_TABLE_HEADERS_V2 : BILL_TABLE_HEADERS}
         data={visibleBills}
         loading={loading}
         emptyMessage="No billing records found."
@@ -766,7 +825,7 @@ const BillsPage = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit,
         }}
-        renderRow={(bill) => (
+        renderRow={(bill) => isV2 ? renderBillRowV2(bill) : (
           <tr key={bill._id}>
             <td>
               <div style={{ whiteSpace: 'nowrap' }}>

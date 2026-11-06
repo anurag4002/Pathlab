@@ -7,11 +7,18 @@ import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { CreditCard } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, StatusBadge, AdvancedFilterBar, IdentityCell, StatGroup } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import { getSummary } from '../../services/dashboardService';
 import { usePermissions } from '../../hooks/usePermission';
 import { notify } from '../../components/common/Toast/toast';
 
 const DueReports = () => {
+  const isV2 = useUiVersion() === 'v2';
+  // Total balance due: same definition as the dashboard (not voided/cancelled).
+  const [totalDue, setTotalDue] = useState(null);
+  useEffect(() => { if (isV2) getSummary().then((res) => setTotalDue(res?.data?.pendingPayments ?? null)).catch(() => {}); }, [isV2]);
+  const num = (text) => <span className="th-num">{text}</span>;
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -135,8 +142,14 @@ const DueReports = () => {
         ]}
       />
 
+      {isV2 && (
+        <StatGroup label="Dues summary" items={[
+          { label: 'Total balance due', value: totalDue == null ? '—' : formatCurrency(totalDue), tone: totalDue > 0 ? 'danger' : undefined },
+          { label: 'Bills with a balance', value: String(paginationInfo.total ?? 0) },
+        ]} />
+      )}
       <DataTable
-        headers={['Patient', 'Bill Number', 'Date', 'Gross Amount', 'Paid', 'Outstanding Due', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Bill', num('Total'), num('Paid'), num('Due'), 'Status', ''] : ['Patient', 'Bill Number', 'Date', 'Gross Amount', 'Paid', 'Outstanding Due', 'Status', 'Actions']}
         data={deptFilter ? bills.filter((b) => String(b.department || '').toUpperCase() === deptFilter.toUpperCase()) : bills}
         loading={loading}
         emptyMessage="No outstanding balances found."
@@ -151,7 +164,21 @@ const DueReports = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit
         }}
-        renderRow={(bill) => (
+        renderRow={(bill) => isV2 ? (
+          <tr key={bill._id}>
+            <td><IdentityCell name={bill.patient?.name} copy={bill.patient?.phone ? { value: bill.patient.phone, label: 'phone' } : undefined} /></td>
+            <td><div style={{ fontWeight: 600 }}>{bill.billNumber}</div><div className="cell-sub">{formatDate(bill.date).split(',')[0]}</div></td>
+            <td className="num">{formatCurrency(bill.totalAmount)}</td>
+            <td className="num">{bill.paidAmount > 0 ? formatCurrency(bill.paidAmount) : <span className="cell-empty">{formatCurrency(0)}</span>}</td>
+            <td className="num is-due">{formatCurrency(bill.dueAmount)}</td>
+            <td><StatusBadge status={bill.paymentStatus} /></td>
+            <td>
+              <div className="row-actions-v2">
+                {canCollect ? <Button variant="primary" size="sm" icon={<CreditCard size={14} />} onClick={() => handleOpenPayment(bill)}>Collect</Button> : <span className="cell-empty">No access</span>}
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={bill._id}>
             <td style={{ fontWeight: '600' }}>{bill.patient?.name || 'Walk-in Patient'}</td>
             <td style={{ fontWeight: '600' }}>{bill.billNumber}</td>

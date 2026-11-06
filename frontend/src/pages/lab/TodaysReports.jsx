@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { WhatsAppShare } from '../../components/common';
+import { WhatsAppShare, RowMenu, IdentityCell } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
 
 import useClientPagination from '../../hooks/useClientPagination';
 import {
@@ -44,7 +45,8 @@ import {
   ConfirmDialog,
   EmptyState,
   PatientPicker,
-  AdvancedFilterBar
+  AdvancedFilterBar,
+  StatusBadge
 } from '../../components/common';
 import TatCountdown, { getTatInfo, loadTatSettings, isDoneStatus } from '../../components/lab/TatCountdown';
 import SignaturePicker from '../../components/lab/SignaturePicker';
@@ -119,6 +121,7 @@ const matchesSearch = (report, q) => {
 };
 
 const TodaysReports = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   // Every pop-up stays React state for rendering but is mirrored to the URL
@@ -891,6 +894,64 @@ const TodaysReports = () => {
     return label.length > 60 ? `${label.slice(0, 60)}…` : label;
   };
 
+  // New look: patient with age · sex always visible (clinical screen), one
+  // action for the current stage, WhatsApp once reported, the rest in ⋯.
+  const renderReportRowV2 = (report) => {
+    const isFinal = ['Signed', 'Verified', 'Completed'].includes(report.status);
+    const isReported = ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status);
+    const patient = report.patient || {};
+    const menu = [
+      { label: 'Preview', onClick: () => handleOpenPreview(report), ariaLabel: `Preview report ${report.registrationNumber}` },
+      { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, pdfOptions), ariaLabel: `Download PDF ${report.registrationNumber}` },
+      report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`) },
+      isFinal && !isOutsourceReport(report) && { label: 'Edit results', onClick: () => navigate(`/lab/result-entry?report=${report._id}`) },
+      { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
+      { label: 'Print labels', onClick: () => setLabelTarget(report) },
+      { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
+    ].filter(Boolean);
+    return (
+      <tr key={report._id}>
+        <td>
+          <IdentityCell
+            name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+            clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
+            meta={[`Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
+          />
+        </td>
+        <td>{(() => {
+          // Multi-test reports: name what was ordered ("CBC +1 more").
+          const billed = (report.bill?.items || []).filter((item) => item && !item.reportDepartment).map((item) => String(item.name || '').replace(/ \(bundle\)$/, ''));
+          const names = report.test ? [report.test.name] : billed.length ? [...new Set(billed)] : [...new Set((report.results || []).map((r) => String(r?.testName || '').split(':')[0].trim()).filter(Boolean))];
+          if (!names.length) return <span className="cell-empty">General findings</span>;
+          return <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>;
+        })()}</td>
+        <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate)}>{formatDate(report.reportDate).split(',')[0]}</td>
+        <td><span className="tat-wrap tat-one-line"><TatCountdown report={report} settings={tatSettings} /></span></td>
+        <td>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <StatusBadge status={report.status} />
+            <DeliveryStatusBadge status={getReportDeliveryStatus(report._id)} />
+          </div>
+        </td>
+        <td>
+          <div className="row-actions-v2">
+            {isFinal ? (
+              <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
+            ) : isOutsourceReport(report) ? (
+              <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => openEntry(report)}>Upload report</Button>
+            ) : (
+              <Button variant={report.status === 'Reported' ? 'secondary' : 'primary'} size="sm" icon={<FileEdit size={14} />} onClick={() => navigate(`/lab/result-entry?report=${report._id}`)}>
+                {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
+              </Button>
+            )}
+            {isReported && <WhatsAppShare kind="report" id={report._id} phone={patient.phone} name={[patient.title, patient.name].filter(Boolean).join(' ')} iconOnly />}
+            <RowMenu label={`More actions for report ${report.registrationNumber}`} items={menu} />
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div>
       <PageHeader
@@ -1055,7 +1116,7 @@ const TodaysReports = () => {
         )
       ) : (
         <DataTable
-          headers={['Patient Reg No', 'Patient Name', 'Bill Number', 'Test', 'Completed Date', 'TAT', 'Status', 'Uploader', 'Actions']}
+          headers={isV2 ? ['Patient', 'Test', 'Reported', 'TAT', 'Status', ''] : ['Patient Reg No', 'Patient Name', 'Bill Number', 'Test', 'Completed Date', 'TAT', 'Status', 'Uploader', 'Actions']}
           data={pg.paged}
           loading={loading}
           emptyMessage={tab === 'due'
@@ -1072,7 +1133,7 @@ const TodaysReports = () => {
             onPageChange: pg.goToPage,
             onLimitChange: pg.setLimit,
           }}
-        renderRow={(report) => (
+        renderRow={(report) => isV2 ? renderReportRowV2(report) : (
           <tr key={report._id}>
             <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{report.registrationNumber}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>

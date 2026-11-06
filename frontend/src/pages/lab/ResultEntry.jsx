@@ -42,6 +42,8 @@ import '../../styles/ResultEntry.css';
 import ReportTatEditor from '../../components/lab/ReportTatEditor';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import DocumentResultEditor from '../../components/lab/DocumentResultEditor';
+import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
+import { useUiVersion } from '../../utils/uiVersion';
 import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
 import { hasInterpretation } from '../../utils/interpretationContent';
@@ -168,6 +170,7 @@ const SIGNATURE_KEY = 'pathlab.resultEntry.signatureId';
 const readStoredSignature = () => { try { return localStorage.getItem(SIGNATURE_KEY) || ''; } catch { return ''; } };
 
 const ResultEntry = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   // ?report=<id> or ?bill=<id>&patient=<id> opens that case directly
   // (from Bills, Today's Reports or a shared link).
@@ -780,20 +783,43 @@ const ResultEntry = () => {
       : `${row?.bill?._id}-${modeLabel}`;
     return (
       <tr key={rowKey}>
-        <td style={{ whiteSpace: 'nowrap' }}>{row?.bill?.billNumber || '—'}</td>
-        <td>
-          <span className="re-sub" style={{ fontWeight: 700, color: (outsource || showBoth) ? 'var(--color-primary)' : undefined }}>
-            {modeLabel}
-          </span>
-        </td>
-        <td>
-          <div className="re-patient-name">{patient?.name || '—'}</div>
-          {patient?.registrationNumber ? (
-            <div className="re-sub">{patient.registrationNumber}</div>
-          ) : null}
-        </td>
-        <td>{demographics || '—'}</td>
-        <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}</td>
+        {isV2 ? (
+          <>
+            {/* Clinical screen: age · sex stay prominent next to the name. */}
+            <td>
+              <IdentityCell
+                name={[patient?.title, patient?.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                clinical={{ age: patient?.age, ageUnit: patient?.ageUnit, gender: patient?.gender }}
+                meta={[row?.bill?.billNumber && `Bill ${row.bill.billNumber}`, patient?.registrationNumber && patient.registrationNumber !== row?.bill?.billNumber && `Reg ${patient.registrationNumber}`]}
+              />
+            </td>
+            <td><StatusBadge status={modeLabel} /></td>
+            <td style={{ maxWidth: 260 }}>{(() => {
+              const label = String(itemsLabelForRow(row));
+              const parts = label.split(', ');
+              return parts.length > 1
+                ? <span title={label}>{parts[0]} <span className="cell-sub" style={{ display: 'inline' }}>+{parts.length - 1} more</span></span>
+                : label;
+            })()}</td>
+          </>
+        ) : (
+          <>
+            <td style={{ whiteSpace: 'nowrap' }}>{row?.bill?.billNumber || '—'}</td>
+            <td>
+              <span className="re-sub" style={{ fontWeight: 700, color: (outsource || showBoth) ? 'var(--color-primary)' : undefined }}>
+                {modeLabel}
+              </span>
+            </td>
+            <td>
+              <div className="re-patient-name">{patient?.name || '—'}</div>
+              {patient?.registrationNumber ? (
+                <div className="re-sub">{patient.registrationNumber}</div>
+              ) : null}
+            </td>
+            <td>{demographics || '—'}</td>
+            <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}</td>
+          </>
+        )}
         <td>
           <StatusBadge status={row?.report?.status} />
         </td>
@@ -1048,7 +1074,7 @@ const ResultEntry = () => {
             {/* Status only: the pending-cases API returns report.status but no
                 tat/registeredAt, so Registered/TAT columns are omitted here. */}
             <DataTable
-              headers={['Invoice No', 'Type', 'Patient', 'Age / Gender', 'Items', 'Report Status', 'Action']}
+              headers={isV2 ? ['Patient', 'Type', 'Tests', 'Status', ''] : ['Invoice No', 'Type', 'Patient', 'Age / Gender', 'Items', 'Report Status', 'Action']}
               data={cases}
               loading={listLoading}
               emptyTitle={debouncedSearch || statusFilter ? 'No matching cases' : 'No pending cases'}

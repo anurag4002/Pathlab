@@ -4,15 +4,28 @@ Every staff screen reviewed at 1440×900 and 390×844 against `../SKILL.md`, wit
 
 Status markers: `[ ]` to do · `[x]` done · `[~]` partly done. When you change a screen, update its entry here.
 
+
+## Progress (new look, Nov 2026)
+
+The revamp ships behind the **Classic / New look** switch (user menu → "New look",
+dashboard banner). Classic stays exactly as before; `[x]` on a B item means done in
+the new look. Check with `node e2e/v2-flow.cjs` (new look) and
+`node e2e/full-flow.cjs` (classic).
+
+Revamped so far: dashboard (key figures, quick actions, no setup card once billing),
+bills, today's reports, result entry list, verification queue, patients, reviews,
+dues - identity cell (age · sex always shown on clinical screens), one action + ⋯,
+right-aligned money, filter strip with chips, phone cards.
+
 ---
 
 ## A. Bugs found during the audit
 
 | \# | Where | Problem | Status |
 | --- | --- | --- | --- |
-| A1 | API `POST /bills` | Paid amount is not capped at the bill total (only the form checks it): ₹500 accepted on a ₹450 bill, which inflates collections and makes Dashboard / Monthly / Dues disagree | \[ \] verified - add the check in `billValidator` / `billService.createBill` |
-| A2 | /business/analysis | "7 days" shows ₹0 everywhere while today has collections (Cashbook, Daily, Dashboard show them) - date window query | \[ \] verify |
-| A3 | /business/cashbook | "Reconcile note: cash-in differs from ledger" shows when the totals match; also shown as bare red text, not a callout | \[ \] verify |
+| A1 | API `POST /bills` | Paid amount is not capped at the bill total (only the form checks it): ₹500 accepted on a ₹450 bill, which inflates collections and makes Dashboard / Monthly / Dues disagree | \[x\] server rejects payments above the bill total / amount due (Nov 2026) |
+| A2 | /business/analysis | "7 days" shows ₹0 everywhere while today has collections (Cashbook, Daily, Dashboard show them) - date window query | \[x\] date-only windows now cover the whole IST day (`utils/dateRange`) |
+| A3 | /business/cashbook | "Reconcile note: cash-in differs from ledger" shows when the totals match; also shown as bare red text, not a callout | \[~\] false mismatch fixed (same date fix); callout styling still to do |
 | A4 | /business/cases, /business/referrals | Table wider than its card at 1440px: last column cut off | \[ \] |
 | A5 | /lab/export | Duplicate of /business/export; no sidebar item highlighted | \[ \] redirect to /business/export |
 | A6 | /manage/branches | Created date in US format (9/24/2026); use the shared formatter | \[ \] |
@@ -29,15 +42,15 @@ Status markers: `[ ]` to do · `[x]` done · `[~]` partly done. When you change 
 
 Ordered by how many daily screens they fix.
 
- 1. **Row actions: one primary +** `⋯` (§2 Table). Bills has 8 controls perx no · bill no · phone, with `CopyButton`). Removes duplicate columns (reg no = bill no = invoice no today). Model already in the app: /lab/normal-ranges. Affects: bills, lab/reports, lab/result-entry, lab/search, lab/verification, patients, dues, reviews, transactions, cashbook, business/cases, agents, doctors, employees, templates, packages, panels, usg/*, xray/*. `[ ]`
- 2. **Filters: search +** `Filter (n)` **+ removable chips** (§2) instead of permanent cards of labelled selects (Bills shows 7 + 11 hidden, Search Reports 6, Patients 6, Cases 13 checkboxes). One search box per screen (lab/search, lab/reports, usg/\* have two). On phone, "Filters (n more)" counts hidden fields, not active filters - must show active count. Build once in `AdvancedFilterBar` (chip mode) → every list. `[ ]`
- 3. **Phone tables → stacked row cards under 600px** (§5.2). Today almost every list scrolls sideways and hides the action or amount: Dues (Collect hidden), Bills (Pay hidden), Reviews (Ask hidden), Cashbook / Transactions (Amount hidden), Result Entry, Verification. Build in `DataTable` (`mobileCard` render: identity line, key value, primary action). `[ ]`
- 4. **Sentence-case headers and labels** (§1 Type): every table and tile uses ALL CAPS. One CSS change in `DataTable.css` / tile styles + label text cleanup. `[ ]`
- 5. **Stat tiles grouped in one bordered card** (§2 Stat tiles) instead of floating cards with coloured icon squares (dashboard 6, monthly 10, analysis, test-usage, lab/counts, doctor; cashbook/daily float with no container). Build a `StatGroup` component; 2×2 on phone. `[ ]`
+ 1. **Row actions: one primary +** `⋯` (§2 Table). Bills has 8 controls perx no · bill no · phone, with `CopyButton`). Removes duplicate columns (reg no = bill no = invoice no today). Model already in the app: /lab/normal-ranges. Affects: bills, lab/reports, lab/result-entry, lab/search, lab/verification, patients, dues, reviews, transactions, cashbook, business/cases, agents, doctors, employees, templates, packages, panels, usg/*, xray/*. `[~]` new look: bills, today's reports, patients, reviews, dues
+ 2. **Filters: search +** `Filter (n)` **+ removable chips** (§2) instead of permanent cards of labelled selects (Bills shows 7 + 11 hidden, Search Reports 6, Patients 6, Cases 13 checkboxes). One search box per screen (lab/search, lab/reports, usg/\* have two). On phone, "Filters (n more)" counts hidden fields, not active filters - must show active count. Build once in `AdvancedFilterBar` (chip mode) → every list. `[x]` new look: `AdvancedFilterBar` strip (Filters panel + chips) on every screen that uses it
+ 3. **Phone tables → stacked row cards under 600px** (§5.2). Today almost every list scrolls sideways and hides the action or amount: Dues (Collect hidden), Bills (Pay hidden), Reviews (Ask hidden), Cashbook / Transactions (Amount hidden), Result Entry, Verification. Build in `DataTable` (`mobileCard` render: identity line, key value, primary action). `[x]` new look: `DataTable` labelled cards under 640px on every list
+ 4. **Sentence-case headers and labels** (§1 Type): every table and tile uses ALL CAPS. One CSS change in `DataTable.css` / tile styles + label text cleanup. `[x]` new look (CSS)
+ 5. **Stat tiles grouped in one bordered card** (§2 Stat tiles) instead of floating cards with coloured icon squares (dashboard 6, monthly 10, analysis, test-usage, lab/counts, doctor; cashbook/daily float with no container). Build a `StatGroup` component; 2×2 on phone. `[~]` `StatGroup` on dashboard and dues
  6. **Scope dropdown instead of in-page tabs** (§2 Top bar): Today/Due/Pending, Not asked/Asked/All, Today's cases/All, modality buttons, date presets. Affects: lab/reports, reviews, usg/*, xray/*, cases/modality, business/analysis, daily, monthly, inquiries. `[ ]`
  7. **Remove developer wording** from staff screens ("5,000-row cap", "endpoint does not expose…", "Labsmart parity", "existing user API", "real API", "URL-based filtering", "completion date: pending"). Affects: daily, monthly, business/export, lab/export, lab/analysis, business/cases, referrals, lab/search, employees, onboarding, profile. `[ ]`
  8. **Empty values as muted italic** (§1): "N/A", "—", "-", "0000000000", "Migrated from Labsmart" → "No notes", "No unit", "Not set", "Unknown". Add `.cell-empty`. Affects: expenses, doctors, test-usage, normal-ranges, categories, lab/rates, lab/tests, rate-revision, signatures, security, profile. `[ ]`
- 9. **One accent per screen** (§1): two blue buttons on result-entry (Search + Upload), manage/doctors, business/export (4 solid blue), onboarding (blue hero + blue buttons); amber WhatsApp buttons on reviews. Live search removes most "Search" buttons. `[ ]`
+ 9. **One accent per screen** (§1): two blue buttons on result-entry (Search + Upload), manage/doctors, business/export (4 solid blue), onboarding (blue hero + blue buttons); amber WhatsApp buttons on reviews. Live search removes most "Search" buttons. `[~]` one primary per row on revamped screens; review button neutral
 10. **Right-side** `Drawer` (§2) for record view: bill details, patient details, report review, template/interpretation edit, agent/doctor history. Build once; open on row click; `?view=<id>` in the URL. `[ ]`
 11. **Pager footer everywhere** (§2 Footer): missing on activities, dues, transactions, patients, doctors, templates, categories, packages, panels, reviews. `[ ]`
 12. **Empty states with a call to action**: usg/today, xray/today, xray/reports, manage/doctors, support/tickets, inquiries, modality. `[ ]`

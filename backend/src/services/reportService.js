@@ -76,8 +76,9 @@ const getReports = async (filters = {}) => {
 
   const [reports, total] = await Promise.all([
     Report.find(query)
-      .populate('patient', 'name registrationNumber phone')
-      .populate('bill', 'billNumber totalAmount paidAmount dueAmount department caseType')
+      .populate('patient', 'name registrationNumber phone age ageUnit gender title')
+      // Billed line names let lists say what a report covers ("CBC +1 more").
+      .populate({ path: 'bill', select: 'billNumber totalAmount paidAmount dueAmount department caseType items', populate: { path: 'items', select: 'name itemType reportDepartment' } })
       .populate('test', 'name code')
       .populate('uploadedBy', 'name')
       .sort({ createdAt: -1 })
