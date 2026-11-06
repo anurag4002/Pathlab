@@ -450,6 +450,58 @@ async function download(page, trigger) {
     assert.ok(await fields.nth(0).evaluate(el => el === document.activeElement && el.selectionStart === 0 && el.selectionEnd === el.value.length), 'Up returns to the previous value, selected');
   });
 
+  await step('quick actions: "/" search, bill number opens details, copy, repeat last visit, Alt+Enter, pending count', async () => {
+    await page.goto(BASE + '/cases/bills', { waitUntil: 'networkidle' });
+    await page.locator('body').click({ position: { x: 5, y: 300 } });
+    await page.keyboard.press('/');
+    assert.ok(await page.evaluate(() => document.activeElement?.matches('input')), '"/" focuses the search box');
+    await page.keyboard.press('Escape');
+    const row = page.locator('table tbody tr', { hasText: 'E2E Patient One' }).first();
+    assert.match(await row.innerText(), /9876500002/, 'patient phone shown under the name');
+    assert.ok(await row.getByRole('button', { name: /^Copy bill number/ }).count(), 'copy button for the bill number');
+    await row.locator('.bill-number-link').click();
+    await page.getByRole('dialog').waitFor(); await page.waitForTimeout(500);
+    assert.match(await page.getByRole('dialog').innerText(), /E2E Patient One/);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    // "?" opens the shortcuts page.
+    await page.locator('body').click({ position: { x: 5, y: 300 } });
+    await page.keyboard.press('Shift+?');
+    await page.waitForURL(/\/shortcuts$/, { timeout: 5000 });
+    await page.getByRole('heading', { name: 'Keyboard shortcuts' }).waitFor({ timeout: 10000 });
+    assert.match(await page.locator('main').innerText(), /Keyboard shortcuts[\s\S]*Alt[\s\S]*Enter[\s\S]*Create the invoice/);
+    // Alt+Enter with nothing filled in names what is missing.
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    await page.keyboard.press('Alt+Enter');
+    await page.locator('.toast-error').first().waitFor({ timeout: 5000 });
+    assert.match(await page.locator('.toast-error').first().innerText(), /patient|name|test/i);
+    // Returning patient: last visit's tests in one click, then Alt+Enter.
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');
+    await page.getByRole('option', { name: /E2E Patient One/ }).or(page.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
+    const repeat = page.locator('.bill-repeat-last');
+    await repeat.waitFor({ timeout: 10000 });
+    const offered = await repeat.innerText();
+    await repeat.getByRole('button', { name: 'Repeat' }).click();
+    const cart = await page.locator('#bill-cart').innerText();
+    for (const name of offered.replace(/^Last visit[^:]*:\s*/, '').replace(/\s*Repeat\s*$/, '').split(', ').map(n => n.trim()).filter(Boolean)) assert.ok(cart.includes(name.replace(/ \(bundle\)$/, '')), `cart has ${name}`);
+    assert.equal(await repeat.count(), 0, 'chip disappears once added');
+    // From the test search, Tab reaches Create Invoice within a few stops
+    // (the 200-test list is not walked through), and Alt+Enter creates it.
+    await page.getByPlaceholder(/Search all tests/i).focus();
+    let stops = 0;
+    while (stops < 12 && !(await page.evaluate(() => /Create Invoice/.test(document.activeElement?.innerText || '')))) { await page.keyboard.press('Tab'); stops++; }
+    assert.ok(stops < 12, `Create Invoice reached by Tab in ${stops} stops`);
+    await page.keyboard.press('Alt+Enter');
+    await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(800);
+    assert.match(await page.locator('.bill-saved-bar').innerText(), /saved/);
+    // Lab > Result Entry shows how many cases wait for results.
+    const res = await api(env, 'GET', '/api/reports/pending-cases?countOnly=1');
+    const waiting = res.json.data.pagination.total;
+    assert.ok(waiting > 0);
+    await page.goto(BASE + '/dashboard', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    assert.equal((await page.locator('.sidebar .sidebar-count').first().innerText()).trim(), String(waiting));
+  });
+
   await step('document test: Widal starts from its template and prints the titre grid', async () => {
     await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
     await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');

@@ -39,6 +39,7 @@ import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
 import { WhatsAppShare, RowMenu } from '../../../components/common';
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
+import CopyButton from '../../../components/common/CopyButton/CopyButton';
 import { notify } from '../../../components/common/Toast/toast';
 
 /* Local API error mapper (same mapping as the other lab screens): surfaces
@@ -768,10 +769,20 @@ const BillsPage = () => {
         renderRow={(bill) => (
           <tr key={bill._id}>
             <td>
-              <div style={{ fontWeight: 'var(--font-weight-semibold)' }}>{bill.billNumber}</div>
+              <div style={{ whiteSpace: 'nowrap' }}>
+                <button type="button" className="bill-number-link" onClick={() => openDetails(bill)} title="Open bill details">{bill.billNumber}</button>
+                <CopyButton value={bill.billNumber} label="bill number" />
+              </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{formatDate(bill.date)}</div>
             </td>
-            <td>{bill.patient?.name || 'Walk-in Patient'}</td>
+            <td>
+              <div>{bill.patient?.name || 'Walk-in Patient'}</div>
+              {bill.patient?.phone && (
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  {bill.patient.phone}<CopyButton value={bill.patient.phone} label="phone" />
+                </div>
+              )}
+            </td>
             <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>{formatCurrency(bill.totalAmount)}</td>
             <td>{formatCurrency(bill.discount || 0)}</td>
             <td style={{ color: 'var(--color-success)', fontWeight: 'var(--font-weight-semibold)' }}>

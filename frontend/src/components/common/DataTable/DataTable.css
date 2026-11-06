@@ -152,3 +152,22 @@
     box-shadow: none;
   }
 }
+
+/* First load: grey placeholder rows in the table's own layout. */
+.data-table-skeleton td span {
+  display: block; height: 0.7rem; border-radius: 4px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
+  background-size: 200% 100%; animation: data-table-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes data-table-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+/* Refresh: keep rows, dim slightly, thin bar across the top. */
+.data-table-wrapper { position: relative; }
+.data-table-wrapper.is-refreshing tbody { opacity: 0.6; transition: opacity 0.15s ease; }
+.data-table-wrapper.is-refreshing::before {
+  content: ''; position: absolute; top: 0; left: 0; height: 2px; width: 35%; z-index: 3;
+  background: var(--color-primary, #2563eb); animation: data-table-refresh 0.9s ease-in-out infinite;
+}
+@keyframes data-table-refresh { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@media (prefers-reduced-motion: reduce) {
+  .data-table-skeleton td span, .data-table-wrapper.is-refreshing::before { animation: none; }
+}

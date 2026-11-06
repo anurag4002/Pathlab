@@ -197,3 +197,6 @@
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+a.user-dropdown-item { text-decoration: none; }
+.user-dropdown-kbd { margin-left: auto; padding: 0 0.35rem; font: 600 0.7rem/1.5 ui-monospace, Consolas, monospace; border: 1px solid var(--color-border, #cbd5e1); border-bottom-width: 2px; border-radius: 4px; color: var(--color-text-muted, #64748b); }

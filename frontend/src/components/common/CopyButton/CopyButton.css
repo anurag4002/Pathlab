@@ -1,0 +1,11 @@
+.copy-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.4rem; height: 1.4rem; margin-left: 0.25rem; vertical-align: middle;
+  border: 0; border-radius: 4px; background: transparent; color: var(--color-text-muted, #64748b);
+  cursor: pointer; opacity: 0; transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+/* Visible on row hover / keyboard focus; always visible on touch screens. */
+tr:hover .copy-btn, .copy-btn:focus-visible, .copy-btn.is-copied { opacity: 1; }
+.copy-btn:hover { background: var(--color-primary-light, #eff6ff); color: var(--color-primary, #2563eb); }
+.copy-btn.is-copied { color: var(--color-success, #16a34a); }
+@media (hover: none) { .copy-btn { opacity: 0.7; } }

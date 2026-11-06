@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileSidebar from './MobileSidebar';
@@ -9,10 +9,31 @@ const MOBILE_BREAKPOINT = 1024;
 
 const AppLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  // "/" jumps to the search box of the current screen (as in Gmail/GitHub),
+  // unless the user is already typing somewhere.
+  useEffect(() => {
+    const onKey = (event) => {
+      if (!['/', '?'].includes(event.key) || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target;
+      if (target.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+      // "?" opens the list of keyboard shortcuts.
+      if (event.key === '?') { event.preventDefault(); navigate('/shortcuts'); return; }
+      const box = [...document.querySelectorAll('main input[type="search"], main .data-table-search-input, main input[placeholder^="Search" i]')]
+        .find((input) => !input.disabled && input.offsetParent !== null);
+      if (!box) return;
+      event.preventDefault();
+      box.focus();
+      box.select?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigate]);
 
   // Fetch the busiest screens' code while the browser is idle after sign-in.
   useEffect(() => {

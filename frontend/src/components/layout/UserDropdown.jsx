@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { ChevronDown, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronDown, Keyboard, LogOut } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import './Header.css';
 
@@ -72,6 +72,11 @@ const UserDropdown = () => {
           <div className="user-dropdown-header">
             Signed in as: <strong>{user.email}</strong>
           </div>
+          <Link to="/shortcuts" className="user-dropdown-item" role="menuitem" onClick={() => setIsOpen(false)}>
+            <Keyboard size={16} />
+            <span>Keyboard shortcuts</span>
+            <kbd className="user-dropdown-kbd">?</kbd>
+          </Link>
           <button
             type="button"
             className="user-dropdown-item danger"

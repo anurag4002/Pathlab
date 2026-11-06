@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createBill, updateBill } from '../../../services/billService';
+import { createBill, updateBill, getBills, getBillById } from '../../../services/billService';
+import { rovingKeyDown } from '../../../utils/rovingFocus';
+import { notify } from '../../../components/common/Toast/toast';
+
+const PICKER_TABS = [
+  { key: 'All', label: 'All' },
+  { key: 'Test', label: 'Tests' },
+  { key: 'TestPackage', label: 'Packages' },
+  { key: 'TestPanel', label: 'Panels' }
+];
 import { createPatient, getPatientById, updatePatient } from '../../../services/patientService';
 import { getTests } from '../../../services/testService';
 import { getUSGServices } from '../../../services/usgService';
@@ -546,10 +555,34 @@ const BillCreateForm = ({
     if (discountAmount > subtotal) errs.discount = 'Discount cannot exceed the subtotal.';
     if (paidAmount < 0 || paidAmount > totalAmount) errs.paidAmount = 'Paid amount cannot exceed total';
     setErrors(errs);
+    // Say what is missing and bring it into view: errors further up the form
+    // were invisible when Create Invoice / Alt+Enter was pressed at the bottom.
+    if (Object.keys(errs).length) {
+      notify(Object.values(errs)[0]);
+      requestAnimationFrame(() => {
+        const target = document.querySelector('.form-error, [aria-invalid="true"]');
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const field = target?.matches?.('input, select, textarea') ? target : target?.closest('.form-group')?.querySelector('input, select, textarea');
+        field?.focus({ preventScroll: true });
+      });
+    }
     return Object.keys(errs).length === 0;
   };
 
+  // Alt+Enter or Ctrl+Enter creates / updates the invoice from anywhere on the form.
+  const submitRef = useRef(null);
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== 'Enter' || !(event.altKey || event.ctrlKey || event.metaKey) || document.querySelector('[role="dialog"]')) return;
+      event.preventDefault();
+      submitRef.current?.();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
+
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!validate()) return;
     setSubmitting(true);
     try {
@@ -668,6 +701,7 @@ const BillCreateForm = ({
   // Picker source per active tab — All merges tests + packages + panels.
   const activeOnly = (list) => (Array.isArray(list) ? list : [])
     .filter((item) => !item.isDeleted && (!item.status || item.status === 'Active'));
+  submitRef.current = handleSubmit;
   const pickerItems = (() => {
     if (activeDepartment === 'USG') return usgServices.map(service => ({ ...service, _pickerKind: 'USG', _pickerLabel: 'USG' }));
     if (pickerType === 'All') {
@@ -692,6 +726,30 @@ const BillCreateForm = ({
     : pickerItems;
   const usingServerResults =
     activeDepartment !== 'USG' && (pickerType === 'Test' || pickerType === 'All') && pickerQ.length > 0 && localFiltered.length === 0;
+  // Returning patient: offer last visit's tests as one click.
+  const [lastVisit, setLastVisit] = useState(null);
+  const lastVisitPatientId = !isEditMode ? pickedPatient?._id || null : null;
+  useEffect(() => {
+    setLastVisit(null);
+    if (!lastVisitPatientId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await getBills({ patientId: lastVisitPatientId, limit: 1 });
+        const last = (list?.data?.bills || list?.data || [])[0];
+        if (!last?._id || cancelled) return;
+        const full = await getBillById(last._id);
+        const items = (full?.data?.items || []).filter((item) => item && item.itemId && ['Test', 'TestPanel', 'TestPackage'].includes(item.itemType));
+        if (!cancelled && items.length) setLastVisit({ date: last.date || last.createdAt, items });
+      } catch { /* the shortcut is optional */ }
+    })();
+    return () => { cancelled = true; };
+  }, [lastVisitPatientId]);
+  // Evaluated while rendering (after every helper below is defined).
+  const lastVisitPendingItems = () => (lastVisit && activeDepartment !== 'USG'
+    ? lastVisit.items.map((item) => pickerItems.find((candidate) => String(candidate._id) === String(item.itemId?._id || item.itemId) && (candidate._pickerKind || 'Test') === item.itemType)).filter(Boolean)
+    : []).filter((item) => !isPickerItemAdded(item));
+
   const filteredPickerItems = usingServerResults
     ? activeOnly(filterTestsByDepartment(serverResults || [], catalogDepartment)).map((t) => ({ ...t, _pickerKind: 'Test', _pickerLabel: 'Test' }))
     : localFiltered;
@@ -1007,17 +1065,16 @@ const BillCreateForm = ({
               <label className="form-label" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
                 {activeDepartment === 'OUTSOURCE LAB' ? 'Or pick from catalog (optional)' : 'Select services'}
               </label>
-              {activeDepartment !== 'USG' && <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
-                {[
-                  { key: 'All', label: 'All' },
-                  { key: 'Test', label: 'Tests' },
-                  { key: 'TestPackage', label: 'Packages' },
-                  { key: 'TestPanel', label: 'Panels' }
-                ].map((tab) => (
+              {activeDepartment !== 'USG' && <div role="radiogroup" aria-label="Show" style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
+                {PICKER_TABS.map((tab, tabIndex) => (
                   <Button
                     key={tab.key}
                     variant={pickerType === tab.key ? 'primary' : 'secondary'}
                     size="sm"
+                    role="radio"
+                    aria-checked={pickerType === tab.key}
+                    tabIndex={pickerType === tab.key ? 0 : -1}
+                    onKeyDown={(event) => rovingKeyDown(event, PICKER_TABS.length, tabIndex, (next) => { setPickerType(PICKER_TABS[next].key); setPickerQuery(''); })}
                     onClick={() => { setPickerType(tab.key); setPickerQuery(''); }}
                   >
                     {tab.label}
@@ -1026,6 +1083,12 @@ const BillCreateForm = ({
               </div>}
               {activeDepartment === 'USG' && <p className="form-helper">Choose one USG service. Rates are loaded from the test catalog.</p>}
               {activeDepartment === 'USG' && usgError && <p role="alert">{usgError} <Button variant="secondary" size="sm" onClick={() => setUSGRetry(value => value + 1)}>Retry</Button></p>}
+              {(() => { const lastVisitPending = lastVisitPendingItems(); return lastVisitPending.length > 0 && (
+                <div className="bill-repeat-last">
+                  <span>Last visit{lastVisit?.date ? ` (${new Date(lastVisit.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})` : ''}: {lastVisitPending.map((item) => item.name).join(', ')}</span>
+                  <Button variant="secondary" size="sm" onClick={() => lastVisitPending.forEach((item) => handlePickerSelect(item))}>Repeat</Button>
+                </div>
+              ); })()}
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
                   ref={pickerInputRef}
@@ -1039,7 +1102,7 @@ const BillCreateForm = ({
                       e.preventDefault();
                       if (!choices.length) return;
                       setPickerHighlight((current) => (current + (e.key === 'ArrowDown' ? 1 : -1) + choices.length) % choices.length);
-                    } else if (e.key === 'Enter') {
+                    } else if (e.key === 'Enter' && !e.altKey && !e.ctrlKey && !e.metaKey) {
                       e.preventDefault();
                       const start = Math.min(pickerHighlight, Math.max(0, choices.length - 1));
                       const pick = [...choices.slice(start), ...choices.slice(0, start)].find((item) => !isPickerItemAdded(item));
@@ -1068,7 +1131,8 @@ const BillCreateForm = ({
                   </span>
                 )}
               </div>
-              <div className="test-picker-list">
+              {/* Mouse or the search box (Up/Down/Enter) pick tests; the list is not a Tab stop. */}
+              <div className="test-picker-list" tabIndex={-1}>
                 {filteredPickerItems.length === 0 ? (
                   <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-5)' }}>
                     {pickerEmptyText}
@@ -1087,7 +1151,7 @@ const BillCreateForm = ({
                         onMouseEnter={() => setPickerHighlight(itemIndex)}
                         onClick={() => !alreadyAdded && handlePickerSelect(item)}
                         role="button"
-                        tabIndex={alreadyAdded ? -1 : 0}
+                        tabIndex={-1}
                         aria-disabled={alreadyAdded}
                         onKeyDown={(e) => { if (!alreadyAdded && e.key === 'Enter') handlePickerSelect(item); }}
                       >
@@ -1143,6 +1207,7 @@ const BillCreateForm = ({
             dueAmount={dueAmount}
             errors={errors}
             onSubmit={handleSubmit}
+            submitHint="Alt+Enter"
             submitting={submitting}
             isEditMode={isEditMode}
             submitLabel={isEditMode ? 'Save Bill' : 'Create Invoice'}

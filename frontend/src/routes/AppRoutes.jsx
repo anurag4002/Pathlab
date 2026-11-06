@@ -89,6 +89,8 @@ const Tickets = lazy(() => import('../pages/support/Tickets'));
 const DoctorPortal = lazy(() => import('../pages/doctor/DoctorPortal'));
 
 
+const KeyboardShortcuts = lazy(() => import('../pages/help/KeyboardShortcuts'));
+
 const AppRoutes = () => {
   return (
     <Suspense fallback={<div className="route-loading" role="status" aria-label="Loading" />}>
@@ -123,6 +125,7 @@ const AppRoutes = () => {
         <Route path="/cases/transactions" element={<Transactions />} />
         <Route path="/cases/inquiries" element={<Inquiries />} />
         <Route path="/reviews" element={<GoogleReviews />} />
+        <Route path="/shortcuts" element={<KeyboardShortcuts />} />
         <Route path="/cases/doctors" element={<ReferralDoctors />} />
         <Route path="/cases/agents" element={<Agents />} />
         <Route element={<RoleRoute allowedRoles={['Admin', 'Employee']} />}>

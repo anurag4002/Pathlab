@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { SIDEBAR_NAV_ITEMS } from '../../constants/navigationConstants';
+import usePendingResultCount from '../../hooks/usePendingResultCount';
 import './Sidebar.css';
 
 const ICON_MAP = {
@@ -35,6 +36,10 @@ const ICON_MAP = {
 };
 
 const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
+  // Cases waiting for results, shown on Lab > Result Entry.
+  const pendingResults = usePendingResultCount();
+  const countFor = (path) => (path === '/lab/result-entry' ? pendingResults : 0);
+  const childCount = (item) => (item.children || []).reduce((sum, child) => sum + countFor(child.path), 0);
   const { user } = useAuth();
   const location = useLocation();
   const [expandedMenu, setExpandedMenu] = useState(null);
@@ -154,6 +159,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
                     <div className="sidebar-submenu-header-left">
                       {renderIcon(item.icon)}
                       {!isIconRail && <span>{item.title}</span>}
+                      {!isExpanded && childCount(item) > 0 && <span className="sidebar-count" aria-label={`${childCount(item)} waiting`}>{childCount(item)}</span>}
                     </div>
                     {!isIconRail &&
                       (isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
@@ -170,6 +176,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
                           }
                         >
                           {child.title}
+                          {countFor(child.path) > 0 && <span className="sidebar-count" aria-label={`${countFor(child.path)} waiting`}>{countFor(child.path)}</span>}
                         </NavLink>
                       ))}
                     </div>
@@ -189,6 +196,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
                           onClick={() => setFlyoutMenu(null)}
                         >
                           {child.title}
+                          {countFor(child.path) > 0 && <span className="sidebar-count" aria-label={`${countFor(child.path)} waiting`}>{countFor(child.path)}</span>}
                         </NavLink>
                       ))}
                     </div>

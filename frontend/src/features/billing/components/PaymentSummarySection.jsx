@@ -27,6 +27,7 @@ const PaymentSummarySection = ({
   // plus collection-centre + admin-override controls for bill edits.
   isEditMode = false,
   submitLabel = 'Create Invoice',
+  submitHint = '',
   collectionCentreOptions = [],
   collectionCentre,
   setCollectionCentre,
@@ -146,6 +147,7 @@ const PaymentSummarySection = ({
       >
         {submitLabel}
       </Button>
+      {submitHint && <p className="bill-submit-hint">or press <kbd>{submitHint}</kbd></p>}
     </div>
   );
 };

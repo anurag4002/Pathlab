@@ -1,6 +1,5 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import EmptyState from '../EmptyState/EmptyState';
 import Pagination from '../Pagination/Pagination';
 import './DataTable.css';
@@ -23,6 +22,10 @@ const DataTable = ({
   className = ''
 }) => {
   const showToolbar = Boolean(onSearchChange || toolbarActions);
+  // Refreshing keeps the current rows (dimmed, thin progress bar) instead of
+  // swapping them for a spinner, so the list never flashes after a payment,
+  // filter or page change. Only the very first load shows placeholder rows.
+  const refreshing = loading && data.length > 0;
 
   return (
     <div className={`data-table-container ${className}`}>
@@ -50,7 +53,8 @@ const DataTable = ({
       )}
 
       <div
-        className={`data-table-wrapper${maxHeight ? ' scrollable' : ''}`}
+        className={`data-table-wrapper${maxHeight ? ' scrollable' : ''}${refreshing ? ' is-refreshing' : ''}`}
+        aria-busy={loading || undefined}
         style={maxHeight ? { maxHeight } : undefined}
       >
         <table className={`data-table${dense ? ' dense' : ''}${stickyActions ? ' sticky-actions' : ''}`}>
@@ -62,12 +66,12 @@ const DataTable = ({
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={headers.length}>
-                  <LoadingSpinner label="Fetching records..." />
-                </td>
-              </tr>
+            {loading && !refreshing ? (
+              Array.from({ length: 5 }, (_, row) => (
+                <tr key={`skeleton-${row}`} className="data-table-skeleton" aria-hidden="true">
+                  {headers.map((_, cell) => <td key={cell}><span style={{ width: `${45 + ((row * 7 + cell * 13) % 45)}%` }} /></td>)}
+                </tr>
+              ))
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={headers.length}>

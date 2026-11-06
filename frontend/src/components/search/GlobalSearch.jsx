@@ -11,6 +11,8 @@ import formatCurrency from '../../utils/formatCurrency';
 import { buildBillsSearchUrl } from '../../utils/billNavigation';
 import './Search.css';
 
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+
 const GlobalSearch = () => {
   const navigate = useNavigate();
   const inputRef = useRef(null);
@@ -67,14 +69,14 @@ const GlobalSearch = () => {
         type="button"
         className="search-trigger"
         onClick={openSearch}
-        aria-label="Open global search (Cmd+K)"
+        aria-label={`Open global search (${IS_MAC ? 'Cmd' : 'Ctrl'}+K)`}
       >
         <div className="search-trigger-content">
           <Search size={15} aria-hidden="true" />
           <span>Search patients, bills, reports...</span>
         </div>
         <div className="search-shortcut-badge">
-          <Command size={10} />
+          {IS_MAC ? <Command size={10} /> : <span>Ctrl</span>}
           <span>K</span>
         </div>
       </button>
