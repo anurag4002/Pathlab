@@ -2,6 +2,7 @@ const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response');
 const { validateUserCreate } = require('../validators/authValidator');
 const Activity = require('../models/Activity');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getUsers = async (req, res, next) => {
   try {
@@ -13,9 +14,9 @@ const getUsers = async (req, res, next) => {
     if (branch) query.branch = branch;
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { email: { $regex: escapeRegex(search), $options: 'i' } },
+        { phone: { $regex: escapeRegex(search), $options: 'i' } }
       ];
     }
 

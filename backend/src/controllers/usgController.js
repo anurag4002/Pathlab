@@ -5,6 +5,7 @@ const Activity = require('../models/Activity');
 const { getUSGServices: loadUSGServices, getUSGService } = require('../services/usgServiceOptions');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getUSGCases = async (req, res, next) => {
   try {
@@ -25,7 +26,7 @@ const getUSGCases = async (req, res, next) => {
 
     if (search) {
       const patients = await Patient.find({
-        name: { $regex: search, $options: 'i' }
+        name: { $regex: escapeRegex(search), $options: 'i' }
       }).select('_id').limit(100).lean();
       query.patient = { $in: patients.map(p => p._id) };
     }

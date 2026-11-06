@@ -116,10 +116,11 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
         <NavLink
           to="/cases/bills/new"
           className="sidebar-new-bill-btn"
-          title="Create New Bill"
+          title="New bill (Ctrl+B)"
         >
           <Plus size={18} />
           {!isIconRail && <span>New bill</span>}
+          {!isIconRail && <kbd className="sidebar-new-bill-kbd">Ctrl B</kbd>}
         </NavLink>
       </div>
 
@@ -143,7 +144,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
               return (
                 <div key={item.title} className="sidebar-submenu">
                   <div
-                    className={`sidebar-submenu-header ${isParentActive || showFlyout ? 'active' : ''}`}
+                    className={`sidebar-submenu-header ${isParentActive || showFlyout ? 'active' : ''} ${isExpanded ? 'open' : ''}`}
                     onClick={() => toggleSubmenu(item.title)}
                     role="button"
                     tabIndex={0}

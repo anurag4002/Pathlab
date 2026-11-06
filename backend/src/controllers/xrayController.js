@@ -6,6 +6,7 @@ const Activity = require('../models/Activity');
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { isPdfUpload, assignReportPdf } = require('../services/xrayReportService');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getXrayCases = async (req, res, next) => {
   try {
@@ -26,7 +27,7 @@ const getXrayCases = async (req, res, next) => {
 
     if (search) {
       const patients = await Patient.find({
-        name: { $regex: search, $options: 'i' }
+        name: { $regex: escapeRegex(search), $options: 'i' }
       }).select('_id').limit(100).lean();
       query.patient = { $in: patients.map(p => p._id) };
     }

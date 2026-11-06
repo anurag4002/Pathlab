@@ -433,7 +433,9 @@ async function download(page, trigger) {
     await search.press('Enter');
     const cart = await page.locator('#bill-cart').innerText();
     assert.match(cart, /Serum Creatinine/i); assert.match(cart, /Urine Sugar Fasting/i);
-    await page.getByRole('button', { name: 'Create Invoice' }).click();
+    // Plain Enter in Amount Received creates the invoice (no Ctrl/Alt needed).
+    await page.getByLabel(/^Amount Received/).click();
+    await page.keyboard.press('Enter');
     await page.waitForURL(/\/cases\/bills(\?|$)/, { timeout: 20000 }); await page.waitForTimeout(1000);
     await page.locator('.bill-saved-bar button', { hasText: 'Enter results' }).click();
     await page.locator('.ls-sheet').waitFor({ timeout: 20000 });
@@ -474,8 +476,12 @@ async function download(page, trigger) {
     await page.keyboard.press('Control+b');
     await page.locator('.toast-error').first().waitFor({ timeout: 5000 });
     assert.match(await page.locator('.toast-error').first().innerText(), /patient|name|test/i);
-    // Returning patient: last visit's tests in one click, then Alt+Enter.
-    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
+    // Returning patient: last visit's tests in one click. Ctrl+B from any
+    // screen opens the New bill form.
+    await page.goto(BASE + '/dashboard', { waitUntil: 'networkidle' });
+    await page.keyboard.press('Control+b');
+    await page.waitForURL(/\/cases\/bills\/new$/, { timeout: 5000 });
+    await page.waitForTimeout(800);
     await page.getByPlaceholder(/type name, phone or reg no/i).fill('E2E Patient');
     await page.getByRole('option', { name: /E2E Patient One/ }).or(page.locator('li, button', { hasText: 'E2E Patient One' })).first().click();
     const repeat = page.locator('.bill-repeat-last');

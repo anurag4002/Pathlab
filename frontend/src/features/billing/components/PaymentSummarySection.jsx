@@ -34,8 +34,19 @@ const PaymentSummarySection = ({
   adminOverride,
   setAdminOverride
 }) => {
+  // Enter in any payment field (discount, amount received, payment mode)
+  // creates the invoice - works everywhere, even where an editor's built-in
+  // browser or a keyboard tool takes the Ctrl / Alt shortcuts.
+  const onFieldEnter = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.nativeEvent?.isComposing) return;
+    if (!event.target.matches?.('input, select')) return;
+    if (submitting) return;
+    event.preventDefault();
+    onSubmit();
+  };
+
   return (
-    <div className="bill-form-card">
+    <div className="bill-form-card" onKeyDown={onFieldEnter}>
       <div
         style={{
           fontWeight: 'var(--font-weight-bold)',
@@ -148,7 +159,7 @@ const PaymentSummarySection = ({
       >
         {submitLabel}
       </Button>
-      {submitHint && <p className="bill-submit-hint">or press {submitHint.split('+').map((key, i) => <React.Fragment key={key}>{i > 0 && '+'}<kbd>{key}</kbd></React.Fragment>)}</p>}
+      {submitHint && <p className="bill-submit-hint">or press <kbd>Enter</kbd> in Amount Received · {submitHint.split('+').map((key, i) => <React.Fragment key={key}>{i > 0 && '+'}<kbd>{key}</kbd></React.Fragment>)} anywhere</p>}
     </div>
   );
 };

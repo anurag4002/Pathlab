@@ -12,6 +12,7 @@ const GROUPS = [
     items: [
       [['?'], 'Open this list of shortcuts'],
       [['/'], 'Search on this screen: jumps to its search box (on screens without one, opens the global search)'],
+      [[MOD, 'B'], 'Open a New bill (on the New bill form it creates the invoice)'],
       [[MOD, 'K'], 'Search patients, bills and reports'],
       [['Esc'], 'Close a dialog, menu or search'],
       [['Tab'], 'Next field or button (Shift+Tab goes back)'],
@@ -24,7 +25,9 @@ const GROUPS = [
       [['↑ / ↓'], 'In the test search: move the highlight'],
       [['Esc'], 'In the test search: clear it'],
       [['← / →'], 'On the department or All / Tests / Packages / Panels buttons: switch'],
+      [['Enter'], 'In Amount Received, Discount or Payment Mode: create the invoice (works everywhere)'],
       [[MOD, 'B'], 'Create the invoice (B for Bill) from anywhere on the form. Missing details are named and shown'],
+      [['Tab'], 'From the test search: discount → amount → payment mode → Create Invoice'],
     ],
   },
   {

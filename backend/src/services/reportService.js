@@ -30,16 +30,16 @@ const getReports = async (filters = {}) => {
 
   if (filters.registrationNumber || filters.regNo) {
     const v = filters.registrationNumber || filters.regNo;
-    query.registrationNumber = { $regex: String(v), $options: 'i' };
+    query.registrationNumber = { $regex: escapeRegex(String(v)), $options: 'i' };
   }
   // Labsmart §16: 8 filters + test dropdown + CC + shareable URLs
   if (filters.status) query.status = filters.status;
-  if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
-  if (filters.dailyCaseNo) query.dailyCaseNo = { $regex: String(filters.dailyCaseNo), $options: 'i' };
+  if (filters.uhid) query.uhid = { $regex: escapeRegex(String(filters.uhid)), $options: 'i' };
+  if (filters.dailyCaseNo) query.dailyCaseNo = { $regex: escapeRegex(String(filters.dailyCaseNo)), $options: 'i' };
   if (filters.cc) query.cc = String(filters.cc);
   if (filters.test) query.test = filters.test;
   if (filters.firstName) {
-    const matched = await Patient.find({ name: { $regex: String(filters.firstName), $options: 'i' } }).select('_id');
+    const matched = await Patient.find({ name: { $regex: escapeRegex(String(filters.firstName)), $options: 'i' } }).select('_id');
     query.patient = query.patient || { $in: matched.map((m) => m._id) };
   }
   if (filters.referredBy) {
@@ -60,12 +60,12 @@ const getReports = async (filters = {}) => {
   if (filters.search) {
     const s = String(filters.search);
     const matched = await Patient.find({
-      $or: [{ name: { $regex: s, $options: 'i' } }, { phone: { $regex: s, $options: 'i' } }, { registrationNumber: { $regex: s, $options: 'i' } }]
+      $or: [{ name: { $regex: escapeRegex(s), $options: 'i' } }, { phone: { $regex: escapeRegex(s), $options: 'i' } }, { registrationNumber: { $regex: escapeRegex(s), $options: 'i' } }]
     }).select('_id');
     query.$or = [
-      { registrationNumber: { $regex: s, $options: 'i' } },
-      { uhid: { $regex: s, $options: 'i' } },
-      { dailyCaseNo: { $regex: s, $options: 'i' } },
+      { registrationNumber: { $regex: escapeRegex(s), $options: 'i' } },
+      { uhid: { $regex: escapeRegex(s), $options: 'i' } },
+      { dailyCaseNo: { $regex: escapeRegex(s), $options: 'i' } },
       ...(matched.length ? [{ patient: { $in: matched.map((m) => m._id) } }] : [])
     ];
   }
@@ -169,6 +169,7 @@ const deleteReport = async (id) => {
 // ---- Result entry (Labsmart parity) ----
 
 const { reportModesForItems } = require('../utils/billItemModality');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 /**
  * Create Registered report shells right after billing so:

@@ -4,6 +4,7 @@ const Transaction = require('../models/Transaction');
 const generateBillNumber = require('../utils/generateBillNumber');
 const { normalizeUSGBillItems } = require('./usgServiceOptions');
 const { classifyImagingItems, syncImagingCasesForBill } = require('./imagingBillService');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const CASE_TYPES = ['LabCase', 'UsgCase', 'DigitalXrayCase', 'XrayCase', 'OutsourceLabCase', 'EcgCase', 'CtScanCase', 'MriCase', 'EpsCase', 'OpgCase', 'CardiologyCase', 'EegCase', 'MammographyCase'];
 
@@ -190,13 +191,13 @@ const getBills = async (filters = {}) => {
   // Google Reviews page: who has / has not been asked for a review.
   if (filters.reviewStatus === 'asked') query['reviewRequest.askedAt'] = { $ne: null };
   if (filters.reviewStatus === 'pending') query['reviewRequest.askedAt'] = null;
-  if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
-  if (filters.dailyCaseNo) query.dailyCaseNo = { $regex: String(filters.dailyCaseNo), $options: 'i' };
+  if (filters.uhid) query.uhid = { $regex: escapeRegex(String(filters.uhid)), $options: 'i' };
+  if (filters.dailyCaseNo) query.dailyCaseNo = { $regex: escapeRegex(String(filters.dailyCaseNo)), $options: 'i' };
   if (filters.regNo || filters.regno || filters.registrationNumber) {
     const v = filters.regNo || filters.regno || filters.registrationNumber;
     // Match denormalised DCN + bill number; patient reg lookup below also covers it
     query.$and = query.$and || [];
-    query.$and.push({ $or: [{ dailyCaseNo: { $regex: v, $options: 'i' } }, { billNumber: { $regex: v, $options: 'i' } }] });
+    query.$and.push({ $or: [{ dailyCaseNo: { $regex: escapeRegex(v), $options: 'i' } }, { billNumber: { $regex: escapeRegex(v), $options: 'i' } }] });
   }
 
   // Duration presets: Past 7/30/90 days, Today, Yesterday (§9)
@@ -217,7 +218,7 @@ const getBills = async (filters = {}) => {
   // Patient-scoped text: firstName / patient name / phone search
   const patientText = filters.firstName || filters.patientName || null;
   if (patientText) {
-    const matched = await PatientModel.find({ name: { $regex: String(patientText), $options: 'i' } })
+    const matched = await PatientModel.find({ name: { $regex: escapeRegex(String(patientText)), $options: 'i' } })
       .select('_id')
       .limit(100)
       .lean();
@@ -230,19 +231,19 @@ const getBills = async (filters = {}) => {
     // Search across billNumber + denormalised fields; patient name/phone via lookup
     const matched = await PatientModel.find({
       $or: [
-        { name: { $regex: s, $options: 'i' } },
-        { phone: { $regex: s, $options: 'i' } },
-        { registrationNumber: { $regex: s, $options: 'i' } },
-        { uhid: { $regex: s, $options: 'i' } }
+        { name: { $regex: escapeRegex(s), $options: 'i' } },
+        { phone: { $regex: escapeRegex(s), $options: 'i' } },
+        { registrationNumber: { $regex: escapeRegex(s), $options: 'i' } },
+        { uhid: { $regex: escapeRegex(s), $options: 'i' } }
       ]
     }).select('_id').limit(100).lean();
     const ids = matched.map((m) => m._id);
     query.$and = query.$and || [];
     query.$and.push({
       $or: [
-        { billNumber: { $regex: s, $options: 'i' } },
-        { uhid: { $regex: s, $options: 'i' } },
-        { dailyCaseNo: { $regex: s, $options: 'i' } },
+        { billNumber: { $regex: escapeRegex(s), $options: 'i' } },
+        { uhid: { $regex: escapeRegex(s), $options: 'i' } },
+        { dailyCaseNo: { $regex: escapeRegex(s), $options: 'i' } },
         ...(ids.length ? [{ patient: { $in: ids } }] : [])
       ]
     });

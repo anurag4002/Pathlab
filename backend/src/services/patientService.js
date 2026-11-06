@@ -1,30 +1,31 @@
 const Patient = require('../models/Patient');
 const generateRegistrationNumber = require('../utils/generateRegistrationNumber');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getAllPatients = async (filters = {}) => {
   const query = {};
   if (filters.branch) query.branch = filters.branch;
 
   // Labsmart §11 split filters: UHID / First / Last / Mobile / ID / From-To
-  if (filters.uhid) query.uhid = { $regex: String(filters.uhid), $options: 'i' };
-  if (filters.firstName) query.name = { $regex: String(filters.firstName), $options: 'i' };
+  if (filters.uhid) query.uhid = { $regex: escapeRegex(String(filters.uhid)), $options: 'i' };
+  if (filters.firstName) query.name = { $regex: escapeRegex(String(filters.firstName)), $options: 'i' };
   if (filters.lastName) {
     // Last token of name matches last name
-    query.name = { $regex: `${String(filters.lastName)}`, $options: 'i' };
+    query.name = { $regex: escapeRegex(filters.lastName), $options: 'i' };
   }
   if (filters.mobile || filters.phone) {
     const v = String(filters.mobile || filters.phone);
-    query.phone = { $regex: v, $options: 'i' };
+    query.phone = { $regex: escapeRegex(v), $options: 'i' };
   }
   if (filters.patientId || filters.id) {
     const v = String(filters.patientId || filters.id);
     // Match registrationNumber or _id
     query.$and = query.$and || [];
-    const or = [{ registrationNumber: { $regex: v, $options: 'i' } }];
+    const or = [{ registrationNumber: { $regex: escapeRegex(v), $options: 'i' } }];
     if (v.match(/^[0-9a-fA-F]{24}$/)) { try { or.push({ _id: v }); } catch (e) { /* ignore */ } }
     query.$and.push({ $or: or });
   }
-  if (filters.regNo) query.registrationNumber = { $regex: String(filters.regNo), $options: 'i' };
+  if (filters.regNo) query.registrationNumber = { $regex: escapeRegex(String(filters.regNo)), $options: 'i' };
   if (filters.from || filters.to || filters.startDate || filters.endDate) {
     query.createdAt = {};
     const from = filters.from || filters.startDate;
@@ -37,10 +38,10 @@ const getAllPatients = async (filters = {}) => {
     query.$and = query.$and || [];
     query.$and.push({
       $or: [
-        { name: { $regex: filters.search, $options: 'i' } },
-        { phone: { $regex: filters.search, $options: 'i' } },
-        { registrationNumber: { $regex: filters.search, $options: 'i' } },
-        { uhid: { $regex: filters.search, $options: 'i' } }
+        { name: { $regex: escapeRegex(filters.search), $options: 'i' } },
+        { phone: { $regex: escapeRegex(filters.search), $options: 'i' } },
+        { registrationNumber: { $regex: escapeRegex(filters.search), $options: 'i' } },
+        { uhid: { $regex: escapeRegex(filters.search), $options: 'i' } }
       ]
     });
   }

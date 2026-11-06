@@ -1,4 +1,5 @@
 const Transaction = require('../models/Transaction');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getTransactions = async (filters = {}) => {
   const query = {};
@@ -31,8 +32,8 @@ const getTransactions = async (filters = {}) => {
     const Patient = require('../models/Patient');
     const matchingPatients = await Patient.find({
       $or: [
-        { name: { $regex: filters.search, $options: 'i' } },
-        { registrationNumber: { $regex: filters.search, $options: 'i' } }
+        { name: { $regex: escapeRegex(filters.search), $options: 'i' } },
+        { registrationNumber: { $regex: escapeRegex(filters.search), $options: 'i' } }
       ]
     }).select('_id').limit(100).lean();
     

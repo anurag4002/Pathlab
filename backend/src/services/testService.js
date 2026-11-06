@@ -4,6 +4,7 @@ const TestPanel = require('../models/TestPanel');
 const TestPackage = require('../models/TestPackage');
 const Interpretation = require('../models/Interpretation');
 const { parseAgeRanges } = require('./referenceRangeService');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 // Test Categories
 const getCategories = async () => {
@@ -29,8 +30,8 @@ const getTests = async (filters = {}) => {
   if (filters.status) query.status = filters.status;
   if (filters.search) {
     query.$or = [
-      { name: { $regex: filters.search, $options: 'i' } },
-      { code: { $regex: filters.search, $options: 'i' } }
+      { name: { $regex: escapeRegex(filters.search), $options: 'i' } },
+      { code: { $regex: escapeRegex(filters.search), $options: 'i' } }
     ];
   }
   const tests = await Test.find(query)

@@ -193,9 +193,17 @@ html.mobile-nav-open body {
     min-width: 2.75rem;
   }
 
-  .search-trigger-content span,
   .search-shortcut-badge {
     display: none !important;
+  }
+
+  /* Keep the word "Search" visible on phones (an empty grey bar read as broken). */
+  .search-trigger-content { min-width: 0; }
+  .search-trigger-content span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 }
 

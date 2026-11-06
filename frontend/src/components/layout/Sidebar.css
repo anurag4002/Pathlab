@@ -57,7 +57,8 @@
 }
 
 .sidebar-action-container {
-  padding: var(--space-3) var(--space-4) var(--space-1) var(--space-4);
+  /* Same side inset as the menu below, so the edges line up. */
+  padding: var(--space-3) var(--space-2) var(--space-1);
 }
 
 .sidebar.collapsed .sidebar-action-container {
@@ -67,8 +68,11 @@
 .sidebar-new-bill-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
+  justify-content: flex-start;
+  gap: var(--space-3);
+  padding: 0 0.75rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  transition: background-color var(--transition-fast), transform 0.08s ease;
   width: 100%;
   height: 2.625rem;
   border-radius: var(--radius-md);
@@ -86,7 +90,10 @@
 .sidebar.collapsed .sidebar-new-bill-btn {
   border-radius: var(--radius-full);
   padding: 0;
+  justify-content: center;
 }
+
+.sidebar-new-bill-btn:active { transform: translateY(1px); }
 
 .sidebar-new-bill-btn:hover {
   background-color: var(--color-primary-hover);
@@ -116,10 +123,15 @@
   text-decoration: none;
 }
 
-.sidebar-link:hover,
+/* Hover is a neutral tint; blue is kept for the page you are on. */
+.sidebar-link:hover {
+  background-color: var(--color-surface-hover, #f1f5f9);
+  color: var(--color-text, #0f172a);
+}
 .sidebar-link.active {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .sidebar-submenu {
@@ -152,24 +164,36 @@
   gap: var(--space-3);
 }
 
-.sidebar-submenu-header:hover,
+.sidebar-submenu-header:hover {
+  background-color: var(--color-surface-hover, #f1f5f9);
+  color: var(--color-text, #0f172a);
+}
+/* An open group reads slightly stronger; only the current section is blue. */
+.sidebar-submenu-header.open { color: var(--color-text, #0f172a); }
 .sidebar-submenu-header.active {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
+  font-weight: var(--font-weight-semibold, 600);
 }
+.sidebar-submenu-header:focus-visible,
+.sidebar-link:focus-visible,
+.sidebar-submenu-link:focus-visible { outline: 2px solid var(--color-border-focus, #2563eb); outline-offset: -2px; }
 
+/* Sub-items hang off a guide line under the group's icon. */
 .sidebar-submenu-list {
-  padding-left: 2.25rem;
-  padding-top: var(--space-1);
+  margin: var(--space-1) 0 var(--space-1) 1.35rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid var(--color-border, #e2e8f0);
   display: flex;
   flex-direction: column;
-  gap: var(--space-0-5);
+  gap: 2px;
 }
 
 .sidebar-submenu-link {
-  padding: 0.35rem 0.65rem;
+  position: relative;
+  padding: 0.4rem 0.65rem;
   font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary, #475569);
   border-radius: var(--radius-sm);
   transition: background-color var(--transition-fast), color var(--transition-fast);
   display: block;
@@ -177,11 +201,20 @@
   font-weight: var(--font-weight-normal);
 }
 
-.sidebar-submenu-link:hover,
+.sidebar-submenu-link:hover {
+  background-color: var(--color-surface-hover, #f1f5f9);
+  color: var(--color-text, #0f172a);
+}
+
 .sidebar-submenu-link.active {
   background-color: var(--color-primary-light);
   color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold, 600);
+}
+/* The current page marks the guide line. */
+.sidebar-submenu-link.active::before {
+  content: ''; position: absolute; left: calc(-0.65rem - 1px); top: 0.3rem; bottom: 0.3rem;
+  width: 2px; border-radius: 2px; background: var(--color-primary, #2563eb);
 }
 
 /* Flyout for collapsed desktop sidebar — keeps nested nav usable */
@@ -251,3 +284,6 @@
 }
 .sidebar-submenu-header-left .sidebar-count { margin-left: 0.5rem; }
 .sidebar-submenu-link, .sidebar-flyout-link { display: flex; align-items: center; gap: 0.5rem; }
+
+.sidebar-new-bill-kbd { margin-left: auto; padding: 0.1rem 0.4rem; font: 600 0.68rem/1.4 var(--font-family-base, inherit); letter-spacing: 0.02em; color: rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.18); border-radius: 999px; }
+@media (hover: none) { .sidebar-new-bill-kbd { display: none; } }

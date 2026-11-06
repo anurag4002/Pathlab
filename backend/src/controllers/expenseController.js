@@ -3,6 +3,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getExpenses = async (req, res, next) => {
   try {
@@ -11,7 +12,7 @@ const getExpenses = async (req, res, next) => {
 
     if (category) query.category = category;
     if (paymentMethod) query.paymentMethod = paymentMethod;
-    if (search) query.$or = [{ category: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }, { name: { $regex: search, $options: 'i' } }];
+    if (search) query.$or = [{ category: { $regex: escapeRegex(search), $options: 'i' } }, { description: { $regex: escapeRegex(search), $options: 'i' } }, { name: { $regex: escapeRegex(search), $options: 'i' } }];
 
     if (month || year) {
       const y = parseInt(year) || new Date().getFullYear();

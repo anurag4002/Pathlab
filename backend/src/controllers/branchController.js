@@ -2,6 +2,7 @@ const Branch = require('../models/Branch');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getBranches = async (req, res, next) => {
   try {
@@ -10,8 +11,8 @@ const getBranches = async (req, res, next) => {
     if (status) query.status = status;
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } }
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { code: { $regex: escapeRegex(search), $options: 'i' } }
       ];
     }
     const branches = await Branch.find(query).sort({ name: 1 });

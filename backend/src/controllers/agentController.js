@@ -1,6 +1,7 @@
 const Agent = require('../models/Agent');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const getAgents = async (req, res, next) => {
   try {
@@ -9,7 +10,7 @@ const getAgents = async (req, res, next) => {
 
     if (status) query.status = status;
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      query.name = { $regex: escapeRegex(search), $options: 'i' };
     }
 
     const agents = await Agent.find(query).sort({ name: 1 });

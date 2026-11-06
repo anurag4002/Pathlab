@@ -74,7 +74,7 @@ const DataTable = ({
                 </tr>
               ))
             ) : data.length === 0 ? (
-              <tr>
+              <tr className="data-table-empty-row">
                 <td colSpan={headers.length}>
                   <EmptyState title={emptyTitle} message={emptyMessage} />
                 </td>

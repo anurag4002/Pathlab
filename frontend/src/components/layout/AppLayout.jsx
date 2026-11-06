@@ -41,6 +41,21 @@ const AppLayout = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
 
+  // Ctrl+B anywhere opens a New bill. On the New bill form itself the form
+  // handles Ctrl+B first (creates the invoice) and stops it reaching here.
+  useEffect(() => {
+    const onKey = (event) => {
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (!ctrl || event.shiftKey || event.altKey || !(event.code === 'KeyB' || String(event.key).toLowerCase() === 'b')) return;
+      if (event.defaultPrevented || event.repeat || document.querySelector('[role="dialog"]')) return;
+      if (/^\/cases\/bills\/(new|edit\/)/.test(window.location.pathname)) return;
+      event.preventDefault();
+      navigate('/cases/bills/new');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigate]);
+
   // Fetch the busiest screens' code while the browser is idle after sign-in.
   useEffect(() => {
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));

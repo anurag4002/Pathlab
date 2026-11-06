@@ -17,6 +17,7 @@ const { getResultOptions } = require('../services/resultOptionsService');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const assertReportAccess = async (req, id) => {
   const doc = await Report.findById(id).select('branch');
@@ -455,15 +456,15 @@ async function getPendingLabCases(req, res, next) {
       const Patient = require('../models/Patient');
       const matchedPatients = await Patient.find({
         $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { registrationNumber: { $regex: search, $options: 'i' } },
-          { phone: { $regex: search, $options: 'i' } }
+          { name: { $regex: escapeRegex(search), $options: 'i' } },
+          { registrationNumber: { $regex: escapeRegex(search), $options: 'i' } },
+          { phone: { $regex: escapeRegex(search), $options: 'i' } }
         ]
       }).select('_id').limit(100).lean();
       const patientIds = matchedPatients.map((p) => p._id);
       matchBill.$and.push({
         $or: [
-          { billNumber: { $regex: search, $options: 'i' } },
+          { billNumber: { $regex: escapeRegex(search), $options: 'i' } },
           ...(patientIds.length ? [{ patient: { $in: patientIds } }] : [])
         ]
       });

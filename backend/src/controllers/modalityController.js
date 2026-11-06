@@ -11,13 +11,14 @@ const MODALITIES = ['CT', 'MRI', 'ECG', 'OPG', 'EEG', 'MAMMOGRAPHY', 'CARDIOLOGY
 // ---- Generic modality cases (CT/MRI/ECG/...) ----
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const listCases = async (req, res, next) => {
   try {
     const query = { ...getBranchFilter(req) };
     if (req.query.modality) query.modality = String(req.query.modality).toUpperCase();
     if (req.query.patientId) query.patient = req.query.patientId;
-    if (req.query.search) query.procedure = { $regex: req.query.search, $options: 'i' };
+    if (req.query.search) query.procedure = { $regex: escapeRegex(req.query.search), $options: 'i' };
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const docs = await ModalityCase.find(query)

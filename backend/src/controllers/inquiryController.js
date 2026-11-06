@@ -4,6 +4,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 // GET /api/inquiries?status=&search=&page=&limit= — staff queue of
 // self-service booking inquiries (Admin + Employee).
 const { getBranchFilter, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 const listInquiries = async (req, res, next) => {
   try {
@@ -17,10 +18,10 @@ const listInquiries = async (req, res, next) => {
       const s = String(search).trim();
       // Also match already-confirmed patients by registration number.
       const Patient = require('../models/Patient');
-      const matched = await Patient.find({ registrationNumber: { $regex: s, $options: 'i' } }).select('_id').limit(20).lean().catch(() => []);
+      const matched = await Patient.find({ registrationNumber: { $regex: escapeRegex(s), $options: 'i' } }).select('_id').limit(20).lean().catch(() => []);
       query.$or = [
-        { name: { $regex: s, $options: 'i' } },
-        { phone: { $regex: s, $options: 'i' } },
+        { name: { $regex: escapeRegex(s), $options: 'i' } },
+        { phone: { $regex: escapeRegex(s), $options: 'i' } },
         ...(matched.length ? [{ patient: { $in: matched.map((p) => p._id) } }] : []),
       ];
     }

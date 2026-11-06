@@ -1,6 +1,7 @@
 const Activity = require('../models/Activity');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response');
+const { escapeRegex } = require('../utils/escapeRegex');
 
 // GET /api/audit-log — Admin only, append-only (no edit/delete routes exist).
 // Query: actor (user name or id), action (substring), entity/module (substring
@@ -21,10 +22,10 @@ const listAuditLogs = async (req, res, next) => {
     limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
     const and = [];
-    if (action.trim()) and.push({ action: { $regex: action.trim(), $options: 'i' } });
+    if (action.trim()) and.push({ action: { $regex: escapeRegex(action.trim()), $options: 'i' } });
     // `entity` is the public param name; Activity stores it as `module`.
     const entityQ = (entity || module).trim();
-    if (entityQ) and.push({ module: { $regex: entityQ, $options: 'i' } });
+    if (entityQ) and.push({ module: { $regex: escapeRegex(entityQ), $options: 'i' } });
 
     const dateRange = {};
     if (from) {
@@ -44,11 +45,11 @@ const listAuditLogs = async (req, res, next) => {
     // back to the description text.
     if (actor.trim()) {
       const q = actor.trim();
-      const users = await User.find({ name: { $regex: q, $options: 'i' } }).select('_id');
+      const users = await User.find({ name: { $regex: escapeRegex(q), $options: 'i' } }).select('_id');
       const ids = users.map((u) => u._id);
       // A raw ObjectId actor filters that user exactly.
       if (/^[a-fA-F0-9]{24}$/.test(q)) ids.push(q);
-      and.push({ $or: [{ user: { $in: ids } }, { description: { $regex: q, $options: 'i' } }] });
+      and.push({ $or: [{ user: { $in: ids } }, { description: { $regex: escapeRegex(q), $options: 'i' } }] });
     }
 
     const filter = and.length ? { $and: and } : {};

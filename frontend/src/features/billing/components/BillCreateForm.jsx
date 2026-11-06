@@ -580,7 +580,8 @@ const BillCreateForm = ({
       const ctrl = event.ctrlKey || event.metaKey;
       const billKey = ctrl && !event.shiftKey && !event.altKey && (event.code === 'KeyB' || String(event.key).toLowerCase() === 'b');
       const enterKey = event.key === 'Enter' && (ctrl || event.altKey);
-      if ((!billKey && !enterKey) || event.repeat || document.querySelector('[role="dialog"]')) return;
+      if (!billKey && !enterKey) return;
+      if (event.repeat || document.querySelector('[role="dialog"]')) return;
       event.preventDefault();
       event.stopPropagation();
       submitRef.current?.({ fromShortcut: true });
