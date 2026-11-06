@@ -29,6 +29,8 @@ import PrintStationerySelect from '../../components/lab/PrintStationerySelect';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
+import { useUiVersion } from '../../utils/uiVersion';
+import './reportPreviewV2.css';
 import { buildPdfQuery } from '../../services/publicService';
 
 /* Local API error mapper (same mapping as Result Entry / Result Verification):
@@ -460,9 +462,37 @@ const ReportPreview = () => {
 
   const status = entry?.report?.status;
   const registrationNumber = entry?.report?.registrationNumber;
+  const isV2 = useUiVersion() === 'v2';
+  // New look: one calm bar - back, who the report is for (age · sex always
+  // shown), status, and the actions. The report itself is unchanged.
+  const p = entry?.patient || {};
+  const ageText = p.age != null && p.age !== '' ? `${p.age} ${String(p.ageUnit || 'Years').charAt(0).toUpperCase()}` : '';
+  const sexText = p.gender ? String(p.gender).charAt(0).toUpperCase() : '';
 
   return (
     <div className="report-preview-page">
+      {isV2 ? (
+        <div className="rpv2-bar no-print">
+          <button type="button" className="rpv2-back" onClick={() => navigate('/lab/reports')}><ArrowLeft size={15} /> Reports</button>
+          <span className="rpv2-sep" aria-hidden="true">/</span>
+          <div className="rpv2-who">
+            <h1>{p.name || 'Report'}</h1>
+            {(ageText || sexText) && <span className="identity-clinical" title="Age · Sex">{[ageText, sexText].filter(Boolean).join(' · ')}</span>}
+            {registrationNumber && <span className="rpv2-reg">Reg {registrationNumber}</span>}
+            {status && <StatusBadge status={status} />}
+          </div>
+          {entry && !loading && !error && (
+            <div className="rpv2-actions">
+              <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={refresh} disabled={loading} aria-label="Refresh">Refresh</Button>
+              {reportDoc?.fileUrl && (
+                <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadFile(`/${reportDoc.fileUrl}`, `report_${registrationNumber}.pdf`)}>Attached file</Button>
+              )}
+              <Button variant="secondary" size="sm" icon={<FileDown size={14} />} loading={pdfLoading} onClick={handleDownloadPdf}>Download PDF</Button>
+              <ReportPrintActions reportId={id} onStationeryChange={setStationery} />
+            </div>
+          )}
+        </div>
+      ) : (<>
       <PageHeader
         className="no-print"
         title="Report Preview"
@@ -519,6 +549,7 @@ const ReportPreview = () => {
           </div>
         ) : null}
       </div>
+      </>)}
 
       <div className="no-print"><PrintStationerySelect value={stationery} onChange={setStationery} /></div>
       {pdfError ? (

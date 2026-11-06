@@ -4,6 +4,8 @@ import { PageHeader, DataTable, Button, Modal, Input, AdvancedFilterBar } from '
 import useClientPagination from '../../hooks/useClientPagination';
 import { Edit2 } from 'lucide-react';
 import { notify } from '../../components/common/Toast/toast';
+import TemplatesV2 from './v2/TemplatesV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const Templates = () => {
   const [list, setList] = useState([]);
@@ -69,4 +71,6 @@ const Templates = () => {
     </div>
   );
 };
-export default Templates;
+// New look: its own simpler screen; Classic keeps the page above.
+const TemplatesPage = () => (useUiVersion() === 'v2' ? <TemplatesV2 /> : <Templates />);
+export default TemplatesPage;

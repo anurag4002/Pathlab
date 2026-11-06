@@ -4,8 +4,11 @@ import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, RowMenu, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import { useUiVersion } from '../../utils/uiVersion';
+import TestChecklist from './v2/TestChecklist';
+import './v2/labSetupV2.css';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -21,6 +24,10 @@ const TestPanels = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingPanel, setEditingPanel] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', tests: [], description: '', status: 'Active' });
+  // New look: a new panel being built survives an accidental close.
+  const isV2 = useUiVersion() === 'v2';
+  const [createDraft, setCreateDraft] = useState(null);
+  const closeForm = () => { if (isV2 && !editingPanel) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -73,7 +80,7 @@ const TestPanels = () => {
 
   const handleOpenCreate = () => {
     setEditingPanel(null);
-    setFormData({ name: '', price: '', tests: [], description: '', status: 'Active' });
+    setFormData(isV2 && createDraft ? createDraft : { name: '', price: '', tests: [], description: '', status: 'Active' });
     setErrors({});
     setFormOpen(true);
   };
@@ -141,6 +148,7 @@ const TestPanels = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingPanel) setCreateDraft(null);
         fetchPanels();
       }
     } catch (err) {
@@ -170,10 +178,10 @@ const TestPanels = () => {
     <div>
       <PageHeader
         title="Test Panels Setup"
-        subtitle="Manage diagnostic panels (e.g. CBC Panel, Lipid Profile)"
+        subtitle={isV2 ? 'Groups of tests billed together at one price, e.g. CBC or Lipid profile.' : 'Manage diagnostic panels (e.g. CBC Panel, Lipid Profile)'}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Create Panel
+            <Plus size={16} /> {isV2 ? 'New panel' : 'Create Panel'}
           </Button>
         }
       />
@@ -195,7 +203,7 @@ const TestPanels = () => {
       />
 
       <DataTable
-        headers={['Panel Name', 'Included Tests', 'Price', 'Status', 'Actions']}
+        headers={isV2 ? ['Panel', 'Tests in it', 'Price', 'Status', ''] : ['Panel Name', 'Included Tests', 'Price', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No test panels defined in the system."
@@ -207,7 +215,29 @@ const TestPanels = () => {
           onPageChange: pg.goToPage,
           onLimitChange: pg.setLimit,
         }}
-        renderRow={(panel) => (
+        renderRow={(panel) => isV2 ? (() => {
+          const list = [...new Map((panel.tests || []).map((x) => [String(x?._id || x), x])).values()].filter((x) => x && x.name);
+          const sepPrice = list.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+          return (
+          <tr key={panel._id}>
+            <td><button type="button" className="ls-link" onClick={() => handleOpenEdit(panel)}>{panel.name}</button>{panel.description ? <div className="muted">{panel.description}</div> : null}</td>
+            <td>
+              <div className="ls-included"><b>{list.length} test{list.length === 1 ? '' : 's'}</b>{list.length ? ': ' : ''}{list.slice(0, 4).map((t) => t.name).join(', ')}{list.length > 4 ? ` and ${list.length - 4} more` : ''}</div>
+            </td>
+            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <div className="strong">{formatCurrency(panel.price)}</div>
+              {sepPrice > Number(panel.price) ? <div className="muted">{formatCurrency(sepPrice)} separately</div> : null}
+            </td>
+            <td><StatusBadge status={panel.status} /></td>
+            <td>
+              <div className="ls-actions">
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(panel)}>Edit</Button>
+                <RowMenu items={[{ label: 'Delete panel', danger: true, onClick: () => setDeleteTarget(panel) }]} />
+              </div>
+            </td>
+          </tr>
+          );
+        })() : (
           <tr key={panel._id}>
             <td style={{ fontWeight: '600' }}>{panel.name}</td>
             <td>
@@ -250,11 +280,12 @@ const TestPanels = () => {
       {/* Panel Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingPanel ? 'Edit Panel details' : 'Build Custom Test Panel'}
+        onClose={closeForm}
+        variant="drawer"
+        title={isV2 ? (editingPanel ? `Edit ${editingPanel.name}` : 'New panel') : editingPanel ? 'Edit Panel details' : 'Build Custom Test Panel'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
@@ -286,6 +317,10 @@ const TestPanels = () => {
             required
           />
 
+          {isV2 ? (
+            <TestChecklist tests={tests} selected={formData.tests} onToggle={handleTestCheckboxChange} error={errors.tests} price={formData.price} />
+          ) : (
+          <>
           {/* Checklist of tests */}
           <div className="form-group">
             <label className="form-label" style={{ marginBottom: '8px' }}>
@@ -304,6 +339,8 @@ const TestPanels = () => {
               ))}
             </div>
           </div>
+          </>
+          )}
 
           <Input
             label="Brief Description"

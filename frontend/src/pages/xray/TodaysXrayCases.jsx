@@ -1,5 +1,5 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getXrayCases, createXrayCase, updateXrayCase, uploadXrayImage } from '../../services/xrayService';
 import { deleteXrayCase } from '../../services/modalityService';
@@ -24,8 +24,10 @@ import {
   StatusBadge,
   ConfirmDialog,
   PatientPicker,
-  AdvancedFilterBar
+  AdvancedFilterBar,
+  RowMenu
 } from '../../components/common';
+import './xrayV2.css';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
@@ -252,7 +254,10 @@ const TodaysXrayCases = () => {
     goToPage(1);
   };
 
-  const closeForm = () => {
+  const keepDraftRef = useRef(false);
+  const [uploadFor, setUploadFor] = useState(null);
+  const closeForm = (saved = false) => {
+    keepDraftRef.current = isV2 && !saved && !editingCase && !!(formData.patient || formData.findings?.trim());
     setFormOpen(false);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -271,6 +276,11 @@ const TodaysXrayCases = () => {
   };
 
   const handleOpenCreate = () => {
+    if (isV2 && keepDraftRef.current && !editingCase) {
+      setFormOpen(true);
+      setSearchParams({ case: 'new' }, { replace: true });
+      return;
+    }
     setEditingCase(null);
     setPickedPatient(null);
     setFormData({ patient: '', referringDoctor: '', findings: '', file: null, status: 'Completed' });
@@ -328,7 +338,7 @@ const TodaysXrayCases = () => {
       }
 
       if (res.success) {
-        closeForm();
+        closeForm(true);
         fetchCases();
       } else {
         setErrors({ api: res?.message || 'Failed to save X-Ray case details' });
@@ -390,11 +400,11 @@ const TodaysXrayCases = () => {
   return (
     <div>
       <PageHeader
-        title="X-Ray Cases"
-        subtitle="Today's and historical digital X-Ray cases — search, filter and paginate"
+        title={isV2 ? 'X-ray cases' : 'X-Ray Cases'}
+        subtitle={isV2 ? 'X-ray cases: write the findings or upload the report, sign it, then print it.' : "Today's and historical digital X-Ray cases — search, filter and paginate"}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Create X-Ray Case
+            <Plus size={16} /> {isV2 ? (keepDraftRef.current ? 'Continue new case' : 'New X-ray case') : 'Create X-Ray Case'}
           </Button>
         }
       />
@@ -438,8 +448,8 @@ const TodaysXrayCases = () => {
             key: 'dateScope',
             type: 'segmented',
             options: [
-              { value: 'today', label: "Today's Cases" },
-              { value: 'all', label: 'All / Search' }
+              { value: 'today', label: isV2 ? 'Today' : "Today's Cases" },
+              { value: 'all', label: isV2 ? 'All cases' : 'All / Search' }
             ]
           },
           {
@@ -456,7 +466,7 @@ const TodaysXrayCases = () => {
             type: 'select',
             placeholder: 'All statuses',
             options: [
-              { value: 'Pending', label: 'Pending Signature' },
+              { value: 'Pending', label: isV2 ? 'Waiting for signature' : 'Pending Signature' },
               { value: 'Completed', label: 'Completed Report' }
             ]
           },
@@ -466,7 +476,7 @@ const TodaysXrayCases = () => {
       />
 
       <DataTable
-        headers={isV2 ? ['Patient', 'Referred by', 'Findings', 'Status', 'Scan / PDF', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Scan / PDF', 'Actions']}
+        headers={isV2 ? ['Patient', 'Referred by', 'Findings', 'Report', 'Status', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'Findings', 'Status', 'Scan / PDF', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !search && !fromDate && !toDate ? 'No X-Ray cases recorded today.' : 'No X-Ray cases matched your search query.'}
@@ -475,7 +485,7 @@ const TodaysXrayCases = () => {
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search name, reg no, findings..."
         maxHeight={440}
-        stickyActions
+        stickyActions={!isV2}
         pagination={{
           total: filteredCases.length,
           page: safePage,
@@ -506,7 +516,34 @@ const TodaysXrayCases = () => {
                 <td>{c.referringDoctor?.name || 'Self'}</td>
               </>
             )}
-            <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || '—'}</td>
+            <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.findings || ''}>{c.findings || (isV2 ? <span className="cell-empty">Not written yet</span> : '—')}</td>
+            {isV2 ? (() => {
+              const hasReport = !!c.reportFile?.size || !!c.findings?.trim();
+              const signed = c.status === 'Completed' || !!c.signatureUrl;
+              return (
+                <>
+                  <td>{c.reportFile?.size ? 'PDF uploaded' : c.findings?.trim() ? 'Written' : c.fileUrl ? 'Scan only' : <span className="cell-empty">Nothing yet</span>}</td>
+                  <td><StatusBadge status={c.status} /></td>
+                  <td className="xray-v2-actions">
+                    {!hasReport ? (
+                      <Button variant="primary" size="sm" onClick={() => handleOpenEdit(c)} aria-label={`Write findings for ${c.patient?.name || 'patient'}`}>Write findings</Button>
+                    ) : !signed ? (
+                      <InlineSignButton caseId={c._id} modality="xray" signed={false} onSigned={handleSigned} />
+                    ) : (
+                      <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => handlePrint(c)}>Print</Button>
+                    )}
+                    <RowMenu label={`More for ${c.patient?.name || 'case'}`} items={[
+                      { label: 'Edit findings', onClick: () => handleOpenEdit(c) },
+                      { label: 'Preview / print', onClick: () => handlePrint(c) },
+                      { label: c.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => setUploadFor(c) },
+                      !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch((error) => notify(error.message)) },
+                      !!c.fileUrl && { label: 'Download scan', onClick: () => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}${scanFileExt(c.fileUrl)}`) },
+                      isAdmin && { label: 'Delete case', danger: true, onClick: () => setDeleteTarget(c) },
+                    ]} />
+                  </td>
+                </>
+              );
+            })() : (<>
             <td>
               <StatusBadge status={c.status} />
             </td>
@@ -558,22 +595,27 @@ const TodaysXrayCases = () => {
                 )}
               </div>
             </td>
+            </>)}
           </tr>
         )}
       />
 
       {/* Case Form Modal */}
+      {isV2 && <XrayReportUpload record={uploadFor} isOpen={!!uploadFor} onClose={() => setUploadFor(null)} onUploaded={() => { setUploadFor(null); fetchCases(); }} />}
       <Modal
         isOpen={formOpen}
-        onClose={closeForm}
-        title={editingCase ? 'Edit X-Ray Case Findings' : 'Create X-Ray Case Entry'}
+        onClose={() => closeForm()}
+        variant="drawer"
+        size={isV2 ? 'lg' : undefined}
+        title={isV2 ? (editingCase ? `X-ray findings - ${[editingCase.patient?.name, editingCase.patient?.age != null && editingCase.patient?.age !== '' ? `${editingCase.patient.age} ${(editingCase.patient.ageUnit || 'Years').charAt(0).toUpperCase()}` : '', editingCase.patient?.gender?.charAt(0)].filter(Boolean).join(' · ')}` : 'New X-ray case') : editingCase ? 'Edit X-Ray Case Findings' : 'Create X-Ray Case Entry'}
         footer={
           <>
-            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
-              Cancel
+            {isV2 && !editingCase && <span className="xray-v2-note">Closing keeps what you typed.</span>}
+            <Button variant="secondary" onClick={() => closeForm()} disabled={submitLoading}>
+              {isV2 ? 'Close' : 'Cancel'}
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Case
+              {isV2 ? 'Save' : 'Save Case'}
             </Button>
           </>
         }

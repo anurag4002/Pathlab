@@ -4,8 +4,11 @@ import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, TestCombobox, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, RowMenu, TestCombobox, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import { useUiVersion } from '../../utils/uiVersion';
+import TestChecklist from './v2/TestChecklist';
+import './v2/labSetupV2.css';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -21,6 +24,10 @@ const TestPackages = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
   const [formData, setFormData] = useState({ name: '', price: '', gender: 'All', includedTests: [], description: '', status: 'Active' });
+  // New look: a new package being built survives an accidental close.
+  const isV2 = useUiVersion() === 'v2';
+  const [createDraft, setCreateDraft] = useState(null);
+  const closeForm = () => { if (isV2 && !editingPackage) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -73,7 +80,7 @@ const TestPackages = () => {
 
   const handleOpenCreate = () => {
     setEditingPackage(null);
-    setFormData({ name: '', price: '', gender: 'All', includedTests: [], description: '', status: 'Active' });
+    setFormData(isV2 && createDraft ? createDraft : { name: '', price: '', gender: 'All', includedTests: [], description: '', status: 'Active' });
     setErrors({});
     setFormOpen(true);
   };
@@ -142,6 +149,7 @@ const TestPackages = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingPackage) setCreateDraft(null);
         fetchPackages();
       }
     } catch (err) {
@@ -171,10 +179,10 @@ const TestPackages = () => {
     <div>
       <PageHeader
         title="Test Packages Setup"
-        subtitle="Combine individual tests into discounted custom health profiles"
+        subtitle={isV2 ? 'Health check-ups: several tests together at a discounted price.' : 'Combine individual tests into discounted custom health profiles'}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Create Package
+            <Plus size={16} /> {isV2 ? 'New package' : 'Create Package'}
           </Button>
         }
       />
@@ -196,7 +204,7 @@ const TestPackages = () => {
       />
 
       <DataTable
-        headers={['Package Name', 'Included Tests', 'Price', 'Applicable Gender', 'Status', 'Actions']}
+        headers={isV2 ? ['Package', 'Tests in it', 'Price', 'For', 'Status', ''] : ['Package Name', 'Included Tests', 'Price', 'Applicable Gender', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No test packages defined in the system."
@@ -208,7 +216,30 @@ const TestPackages = () => {
           onPageChange: pg.goToPage,
           onLimitChange: pg.setLimit,
         }}
-        renderRow={(pkg) => (
+        renderRow={(pkg) => isV2 ? (() => {
+          const list = [...new Map((pkg.includedTests || []).map((x) => [String(x?._id || x), x])).values()].filter((x) => x && x.name);
+          const sepPrice = list.reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+          return (
+          <tr key={pkg._id}>
+            <td><button type="button" className="ls-link" onClick={() => handleOpenEdit(pkg)}>{pkg.name}</button>{pkg.description ? <div className="muted">{pkg.description}</div> : null}</td>
+            <td>
+              <div className="ls-included"><b>{list.length} test{list.length === 1 ? '' : 's'}</b>{list.length ? ': ' : ''}{list.slice(0, 4).map((t) => t.name).join(', ')}{list.length > 4 ? ` and ${list.length - 4} more` : ''}</div>
+            </td>
+            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              <div className="strong">{formatCurrency(pkg.price)}</div>
+              {sepPrice > Number(pkg.price) ? <div className="muted">{formatCurrency(sepPrice)} separately</div> : null}
+            </td>
+            <td>{pkg.gender === 'All' || !pkg.gender ? 'Everyone' : pkg.gender}</td>
+            <td><StatusBadge status={pkg.status} /></td>
+            <td>
+              <div className="ls-actions">
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(pkg)}>Edit</Button>
+                <RowMenu items={[{ label: 'Delete package', danger: true, onClick: () => setDeleteTarget(pkg) }]} />
+              </div>
+            </td>
+          </tr>
+          );
+        })() : (
           <tr key={pkg._id}>
             <td style={{ fontWeight: '600' }}>{pkg.name}</td>
             <td>
@@ -252,11 +283,12 @@ const TestPackages = () => {
       {/* Package Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingPackage ? 'Edit Package details' : 'Build Custom Test Package'}
+        onClose={closeForm}
+        variant="drawer"
+        title={isV2 ? (editingPackage ? `Edit ${editingPackage.name}` : 'New package') : editingPackage ? 'Edit Package details' : 'Build Custom Test Package'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
@@ -304,6 +336,10 @@ const TestPackages = () => {
             />
           </div>
 
+          {isV2 ? (
+            <TestChecklist tests={tests} selected={formData.includedTests} onToggle={handleTestCheckboxChange} error={errors.includedTests} price={formData.price} />
+          ) : (
+          <>
           {/* Checklist of tests — Phase 12 combobox quick-add + legacy checklist */}
           <div className="form-group">
             <TestCombobox
@@ -331,6 +367,8 @@ const TestPackages = () => {
               ))}
             </div>
           </div>
+          </>
+          )}
 
           <Input
             label="Brief Description"

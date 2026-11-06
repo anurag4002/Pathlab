@@ -530,3 +530,6 @@ html.ui-v2 .bill-step-tests > .bill-card-header { gap: 0.75rem; flex-wrap: wrap;
   html.ui-v2 .bill-form-grid--v2 .bill-step-cart { min-height: 0; height: auto; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
 }
 html.ui-v2 .bill-items-wrap .bill-items-table thead th { position: sticky; top: -1rem; background: #fff; z-index: 1; }
+
+/* The page's own search box is driven by the top bar: hide its whole slot. */
+html.ui-v2 .afb-v2-row > .afb-field:has(.is-driven-by-header) { display: none; }

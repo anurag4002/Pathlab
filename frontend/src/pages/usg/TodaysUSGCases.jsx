@@ -1,5 +1,5 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, getUSGServices, uploadUSGReport, uploadUSGImage } from '../../services/usgService';
 import { deleteUSGCase } from '../../services/modalityService';
@@ -25,10 +25,12 @@ import {
   FileUploader,
   PatientPicker,
   Letterhead,
-  AdvancedFilterBar
+  AdvancedFilterBar,
+  RowMenu
 } from '../../components/common';
 import InlineSignButton from '../../components/usg/InlineSignButton';
 import '../../styles/USG.css';
+import './usgV2.css';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
@@ -345,7 +347,9 @@ const TodaysUSGCases = ({ reportsView = false }) => {
     goToPage(1);
   };
 
-  const closeForm = () => {
+  const keepDraftRef = useRef(false);
+  const closeForm = (saved = false) => {
+    keepDraftRef.current = isV2 && !saved && !editingCase && !!(formData.patient || formData.findings?.trim() || formData.templateName);
     setFormOpen(false);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -364,6 +368,11 @@ const TodaysUSGCases = ({ reportsView = false }) => {
   };
 
   const handleOpenCreate = () => {
+    if (isV2 && keepDraftRef.current && !editingCase) {
+      setFormOpen(true);
+      setSearchParams({ case: 'new' }, { replace: true });
+      return;
+    }
     setEditingCase(null);
     setPickedPatient(null);
     setFormData({ patient: '', referringDoctor: '', templateName: '', findings: '', serviceType: 'with-report', status: 'Pending' });
@@ -450,7 +459,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
           setSearchParams({ case: res.data._id }, { replace: true });
           await uploadUSGReport(res.data._id, reportFile);
         }
-        closeForm();
+        closeForm(true);
         fetchCases();
       }
     } catch (err) {
@@ -498,11 +507,11 @@ const TodaysUSGCases = ({ reportsView = false }) => {
   return (
     <div>
       <PageHeader
-        title={reportsView ? "USG Reports" : "USG Cases"}
-        subtitle="Today's and historical ultrasonography cases — search, filter and paginate"
+        title={isV2 ? (reportsView ? 'USG reports' : 'USG cases') : reportsView ? "USG Reports" : "USG Cases"}
+        subtitle={isV2 ? 'Ultrasound cases: write or upload the report, sign it, then print or share it.' : "Today's and historical ultrasonography cases — search, filter and paginate"}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Create USG Case
+            <Plus size={16} /> {isV2 ? (keepDraftRef.current ? 'Continue new case' : 'New USG case') : 'Create USG Case'}
           </Button>
         }
       />
@@ -548,8 +557,8 @@ const TodaysUSGCases = ({ reportsView = false }) => {
             key: 'dateScope',
             type: 'segmented',
             options: [
-              { value: 'today', label: "Today's Cases" },
-              { value: 'all', label: 'All / Search' }
+              { value: 'today', label: isV2 ? 'Today' : "Today's Cases" },
+              { value: 'all', label: isV2 ? 'All cases' : 'All / Search' }
             ]
           },
           { key: 'from', label: 'From', type: 'date' },
@@ -568,24 +577,24 @@ const TodaysUSGCases = ({ reportsView = false }) => {
             type: 'select',
             placeholder: 'All statuses',
             options: [
-              { value: 'Pending', label: 'Pending Signature' },
-              { value: 'Completed', label: 'Completed Report' }
+              { value: 'Pending', label: isV2 ? 'Waiting for signature' : 'Pending Signature' },
+              { value: 'Completed', label: isV2 ? 'Signed' : 'Completed Report' }
             ]
           }
         ]}
       />
 
       <DataTable
-        headers={isV2 ? ['Patient', 'Referred by', 'USG service', 'PDF report', 'Status', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'USG Service', 'PDF Report', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Referred by', 'Scan', 'Report', 'Status', ''] : ['Registered Date', 'Patient Reg No', 'Patient Name', 'Referring Doctor', 'USG Service', 'PDF Report', 'Status', 'Actions']}
         data={pagedCases}
         loading={loading}
         emptyMessage={dateScope === 'today' && !searchFilter && !fromDate && !toDate ? 'No ultrasonography cases recorded today.' : 'No ultrasonography cases matched your search query.'}
         emptyAction={isV2 ? <Button variant="secondary" size="sm" onClick={handleOpenCreate}>Create USG case</Button> : null}
-        searchValue={searchFilter}
-        onSearchChange={(e) => { setSearchFilter(e.target.value); goToPage(1); }}
+        searchValue={isV2 ? undefined : searchFilter}
+        onSearchChange={isV2 ? undefined : (e) => { setSearchFilter(e.target.value); goToPage(1); }}
         searchPlaceholder="Search name, reg no, findings..."
         maxHeight={440}
-        stickyActions
+        stickyActions={!isV2}
         pagination={{
           total: filteredCases.length,
           page: safePage,
@@ -617,10 +626,37 @@ const TodaysUSGCases = ({ reportsView = false }) => {
               </>
             )}
             <td>{services.find(service => service.value === c.serviceType)?.name || (c.serviceType ? `USG (${c.serviceType === 'with-report' ? 'With report' : 'Without report'})` : c.templateName || 'USG')}{c.price != null && <div className="form-helper">₹{c.price}</div>}</td>
-            <td style={{ maxWidth: 160, overflowWrap: 'anywhere' }}>{c.reportFile?.name || (c.findings?.trim() ? 'Written findings' : c.serviceType === 'without-report' ? 'Not requested' : 'Awaiting PDF')}</td>
+            <td style={{ maxWidth: 160, overflowWrap: 'anywhere' }}>{isV2
+              ? (c.reportFile?.size ? <span>PDF uploaded</span> : c.findings?.trim() ? <span>Written</span> : c.serviceType === 'without-report' ? <span className="cell-empty">Not needed</span> : <span className="usg-v2-waiting">Not written yet</span>)
+              : (c.reportFile?.name || (c.findings?.trim() ? 'Written findings' : c.serviceType === 'without-report' ? 'Not requested' : 'Awaiting PDF'))}</td>
             <td>
               <StatusBadge status={c.status} />
             </td>
+            {isV2 ? (() => {
+              const hasReport = !!c.reportFile?.size || !!c.findings?.trim();
+              const signed = c.status === 'Completed' || !!c.signatureUrl;
+              const needsReport = !hasReport && c.serviceType !== 'without-report';
+              return (
+                <td className="usg-v2-actions">
+                  {needsReport ? (
+                    <Button variant="primary" size="sm" onClick={() => handleOpenEdit(c)} aria-label={`Write report for ${c.patient?.name || 'patient'}`}>Write report</Button>
+                  ) : hasReport && !signed ? (
+                    <InlineSignButton caseId={c._id} modality="usg" signed={false} onSigned={handleSigned} />
+                  ) : hasReport ? (
+                    <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => handlePrint(c)}>Print</Button>
+                  ) : (
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(c)}>Open</Button>
+                  )}
+                  <RowMenu label={`More for ${c.patient?.name || 'case'}`} items={[
+                    { label: 'Edit case', onClick: () => handleOpenEdit(c) },
+                    hasReport && { label: 'Preview / print', onClick: () => handlePrint(c) },
+                    { label: c.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => { setUploadTarget(c); setUploadFile(null); setUploadError(''); } },
+                    !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => notify('Could not download the USG report.')) },
+                    isAdmin && { label: 'Delete case', danger: true, onClick: () => setDeleteTarget(c) },
+                  ]} />
+                </td>
+              );
+            })() : (
             <td style={{ minWidth: 210 }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(''); }}>{c.reportFile?.size ? 'Replace PDF' : 'Upload PDF'}</Button>
@@ -656,6 +692,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
                 )}
               </div>
             </td>
+            )}
           </tr>
         )}
       />
@@ -663,15 +700,18 @@ const TodaysUSGCases = ({ reportsView = false }) => {
       {/* Case Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={closeForm}
-        title={editingCase ? 'Edit USG Case' : 'Create USG Case'}
+        onClose={() => closeForm()}
+        variant="drawer"
+        size={isV2 ? 'lg' : undefined}
+        title={isV2 ? (editingCase ? `USG report - ${[editingCase.patient?.name, editingCase.patient?.age != null && editingCase.patient?.age !== '' ? `${editingCase.patient.age} ${(editingCase.patient.ageUnit || 'Years').charAt(0).toUpperCase()}` : '', editingCase.patient?.gender?.charAt(0)].filter(Boolean).join(' · ')}` : 'New USG case') : editingCase ? 'Edit USG Case' : 'Create USG Case'}
         footer={
           <>
-            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
-              Cancel
+            {isV2 && !editingCase && <span className="usg-v2-note">Closing keeps what you typed.</span>}
+            <Button variant="secondary" onClick={() => closeForm()} disabled={submitLoading}>
+              {isV2 ? 'Close' : 'Cancel'}
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Case
+              {isV2 ? 'Save' : 'Save Case'}
             </Button>
           </>
         }

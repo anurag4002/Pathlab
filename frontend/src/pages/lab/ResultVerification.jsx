@@ -1,3 +1,4 @@
+import './labV2.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
@@ -385,7 +386,7 @@ const ResultVerification = () => {
     <div className="result-verification-page">
       <PageHeader
         title="Result Verification"
-        subtitle="Review submitted lab results and verify those pending sign-off."
+        subtitle={isV2 ? 'Results waiting for a doctor to check and sign. Open one to review it.' : 'Review submitted lab results and verify those pending sign-off.'}
         action={
           view === 'list' ? (
             <Button

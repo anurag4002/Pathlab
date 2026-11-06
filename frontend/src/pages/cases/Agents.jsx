@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getAgents, createAgent, updateAgent, deleteAgent } from '../../services/agentService';
 import useClientPagination from '../../hooks/useClientPagination';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar, RowMenu } from '../../components/common';
+import './v2/casesV2.css';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
@@ -57,8 +58,10 @@ const Agents = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    // New look: a half-typed new agent survives closing the panel.
+    const keepDraft = isV2 && !editingAgent && (formData.name || formData.phone);
     setEditingAgent(null);
-    setFormData({ name: '', phone: '', commissionPercentage: '5', status: 'Active' });
+    if (!keepDraft) setFormData({ name: '', phone: '', commissionPercentage: '5', status: 'Active' });
     setErrors({});
     setFormOpen(true);
   };
@@ -100,12 +103,22 @@ const Agents = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingAgent) setFormData({ name: '', phone: '', commissionPercentage: '5', status: 'Active' });
         fetchAgents();
       }
     } catch (err) {
       setErrors({ api: err.response?.data?.message || 'Failed to save agent details' });
     } finally {
       setFormSubmitLoading(false);
+    }
+  };
+
+  const toggleActive = async (agent) => {
+    try {
+      const res = await updateAgent(agent._id, { name: agent.name, phone: agent.phone, commissionPercentage: Number(agent.commissionPercentage || 0), status: agent.status === 'Active' ? 'Inactive' : 'Active' });
+      if (res.success) fetchAgents();
+    } catch (err) {
+      notify(err.response?.data?.message || 'Could not change the status.');
     }
   };
 
@@ -127,11 +140,12 @@ const Agents = () => {
 
   const footer = (
     <>
+      {isV2 && !editingAgent && <span className="cases-drawer-note">Closing keeps what you typed.</span>}
       <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={formSubmitLoading}>
         Cancel
       </Button>
       <Button variant="primary" onClick={handleFormSubmit} loading={formSubmitLoading}>
-        Save Profile
+        {isV2 ? (editingAgent ? 'Save changes' : 'Add agent') : 'Save Profile'}
       </Button>
     </>
   );
@@ -140,10 +154,10 @@ const Agents = () => {
     <div>
       <PageHeader
         title="Collection Agents Directory"
-        subtitle="Manage laboratory collection representatives and commission structures"
+        subtitle={isV2 ? 'People who bring in samples or patients, and the commission each one gets.' : 'Manage laboratory collection representatives and commission structures'}
         action={
           <Button variant="primary" onClick={handleOpenCreate} icon={<Plus size={16} />}>
-            Add Agent
+            {isV2 ? 'Add agent' : 'Add Agent'}
           </Button>
         }
       />
@@ -158,17 +172,20 @@ const Agents = () => {
           if (key === 'search') setSearch(value);
           else if (key === 'status') setStatusFilter(value);
         }}
-        fields={[
+        fields={isV2 ? [
+          { key: 'status', type: 'segmented', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS.filter((o) => o.value)] },
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Agent name or phone' }
+        ] : [
           { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by agent name...' },
           { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
         ]}
       />
 
       <DataTable
-        headers={isV2 ? ['Agent', 'Commission', 'Status', ''] : ['Name', 'Phone', 'Commission %', 'Status', 'Actions']}
+        headers={isV2 ? ['Agent', <span key="c" className="th-num">Commission</span>, 'Status', ''] : ['Name', 'Phone', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
-        emptyMessage="No collection agent profiles matching your query."
+        emptyMessage={isV2 ? (search || statusFilter ? "No agent matches these filters." : "No agents yet. Add the people who bring in samples or patients.") : "No collection agent profiles matching your query."}
         pagination={{
           total: pg.total,
           page: pg.page,
@@ -197,10 +214,20 @@ const Agents = () => {
               <StatusBadge status={agent.status} />
             </td>
             <td>
+              {isV2 ? (
+                <div className="row-actions-v2">
+                  <Button variant="secondary" size="sm" icon={<Edit2 size={14} />} onClick={() => handleOpenEdit(agent)} aria-label={`Edit ${agent.name}`}>Edit</Button>
+                  <RowMenu label={`More actions for ${agent.name}`} items={[
+                    { label: agent.status === 'Active' ? 'Make inactive' : 'Make active', onClick: () => toggleActive(agent) },
+                    { label: 'Delete agent', onClick: () => setDeleteTarget(agent), danger: true },
+                  ]} />
+                </div>
+              ) : (
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(agent)} icon={<Edit2 size={14} />} />
                 <Button variant="danger" size="sm" onClick={() => setDeleteTarget(agent)} icon={<Trash2 size={14} />} />
               </div>
+              )}
             </td>
           </tr>
         )}
@@ -209,7 +236,8 @@ const Agents = () => {
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editingAgent ? 'Edit Agent Profile' : 'Add Collection Agent'}
+        title={isV2 ? (editingAgent ? 'Edit agent' : 'New agent') : editingAgent ? 'Edit Agent Profile' : 'Add Collection Agent'}
+        variant="drawer"
         footer={footer}
       >
         <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -218,8 +246,8 @@ const Agents = () => {
               {errors.api}
             </div>
           )}
-          <Input label="Agent Name" name="name" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} error={errors.name} placeholder="e.g. Ravi Kumar" required />
-          <Input label="Phone Number" name="phone" value={formData.phone} onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))} error={errors.phone} required />
+          <Input label={isV2 ? 'Name' : 'Agent Name'} name="name" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} error={errors.name} placeholder="e.g. Ravi Kumar" required />
+          <Input label={isV2 ? 'Phone number' : 'Phone Number'} name="phone" value={formData.phone} onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))} error={errors.phone} required />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
             <Input label="Commission %" name="commissionPercentage" type="number" value={formData.commissionPercentage} onChange={(e) => setFormData(p => ({ ...p, commissionPercentage: e.target.value }))} error={errors.commissionPercentage} required />
             <Select label="Status" name="status" value={formData.status} onChange={(e) => setFormData(p => ({ ...p, status: e.target.value }))} options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]} required />
@@ -232,8 +260,8 @@ const Agents = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
-        title="Remove Agent Profile?"
-        message={`Are you sure you want to permanently delete the agent profile for ${deleteTarget?.name}?`}
+        title={isV2 ? 'Delete this agent?' : 'Remove Agent Profile?'}
+        message={isV2 ? `${deleteTarget?.name} will be removed from the list. Old bills keep their name. Tip: "Make inactive" hides them without deleting.` : `Are you sure you want to permanently delete the agent profile for ${deleteTarget?.name}?`}
       />
     </div>
   );

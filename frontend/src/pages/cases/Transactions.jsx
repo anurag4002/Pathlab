@@ -10,6 +10,7 @@ import useDebounce from '../../hooks/useDebounce';
 import { DataTable, PageHeader, Select, StatusBadge, Button, AdvancedFilterBar } from '../../components/common';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import TransactionsV2 from './v2/TransactionsV2';
 
 const Transactions = () => {
   const isV2 = useUiVersion() === 'v2';
@@ -175,4 +176,6 @@ const Transactions = () => {
   );
 };
 
-export default Transactions;
+// New look: its own screen; Classic keeps the page above.
+const TransactionsPage = () => (useUiVersion() === 'v2' ? <TransactionsV2 /> : <Transactions />);
+export default TransactionsPage;

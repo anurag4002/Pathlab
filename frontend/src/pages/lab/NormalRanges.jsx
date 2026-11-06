@@ -16,6 +16,32 @@ import {
 import '../../styles/NormalRanges.css';
 import AgeReferenceEditor from '../../components/lab/AgeReferenceEditor';
 import { normalizeAgeRanges, formatAgeRanges } from '../../utils/ageReferenceRanges';
+import { useUiVersion } from '../../utils/uiVersion';
+import './v2/labSetupV2.css';
+
+/* New look: each range on its own plain line - who it is for, then the values. */
+const num = (v) => v !== null && v !== undefined && v !== '';
+const span = (low, high) => (num(low) && num(high) ? `${low} - ${high}` : num(low) ? `${low} or more` : num(high) ? `up to ${high}` : '');
+const whoFor = (band) => {
+  const sex = !band.sex || band.sex === 'Any' ? 'Everyone' : band.sex;
+  const unit = band.ageMaxUnit || band.ageMinUnit || 'y';
+  const wholeLife = (!num(band.ageMin) || Number(band.ageMin) === 0) && (!num(band.ageMax) || (unit === 'y' && Number(band.ageMax) >= 100));
+  return wholeLife ? sex : `${sex}, ${num(band.ageMin) ? band.ageMin : 0}-${band.ageMax ?? ''} ${unit === 'y' ? 'years' : unit === 'm' ? 'months' : 'days'}`;
+};
+const rangeLines = (test) => {
+  if (test.referenceRanges?.length) {
+    return test.referenceRanges.map((b) => ({ who: whoFor(b), value: b.referenceRange || span(b.normalLow, b.normalHigh), critical: span(b.criticalLow, b.criticalHigh) }));
+  }
+  const lines = [];
+  if (test.maleReferenceRange || test.femaleReferenceRange) {
+    if (test.maleReferenceRange) lines.push({ who: 'Male', value: test.maleReferenceRange });
+    if (test.femaleReferenceRange) lines.push({ who: 'Female', value: test.femaleReferenceRange });
+  } else if (test.referenceRange || num(test.normalLow) || num(test.normalHigh)) {
+    lines.push({ who: test.sexApplicable && test.sexApplicable !== 'Any' ? test.sexApplicable : 'Everyone', value: test.referenceRange || span(test.normalLow, test.normalHigh) });
+  }
+  if (lines.length) lines[0].critical = span(test.criticalLow, test.criticalHigh);
+  return lines;
+};
 const ReferenceDataReview = lazy(() => import('../../components/lab/ReferenceDataReview'));
 
 /* Option lists mirror existing backend enums on the Test model — no business
@@ -94,6 +120,7 @@ const formatNumericRange = (low, high) => {
 };
 
 const NormalRanges = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { hasRole } = useAuth();
   // Backend restricts test updates (and therefore range edits) to Admin.
   const canEdit = hasRole(['Admin']);
@@ -355,6 +382,32 @@ const NormalRanges = () => {
     ...(canEdit ? ['Actions'] : [])
   ];
 
+  const renderRowV2 = (test) => {
+    const lines = rangeLines(test);
+    const crit = lines.filter((l) => l.critical);
+    return (
+      <tr key={`${test._id}:${test.parameterCode || ''}`}>
+        <td>
+          {canEdit ? <button type="button" className="ls-link" onClick={() => openEdit(test)}>{test.name}</button> : <span className="strong">{test.name}</span>}
+          <div className="muted">{[test.code, test.category?.name].filter(Boolean).join(' · ')}</div>
+        </td>
+        <td>
+          {lines.length ? (
+            <div className="ls-range">
+              {lines.slice(0, 4).map((l, i) => <span key={i}><small>{l.who}:</small> {l.value || '-'} {test.unit || ''}</span>)}
+              {lines.length > 4 && <small>and {lines.length - 4} more</small>}
+            </div>
+          ) : <span className="muted">Not set</span>}
+        </td>
+        <td>{crit.length ? <div className="ls-range">{crit.slice(0, 3).map((l, i) => <span key={i} className="ls-crit">{crit.length > 1 ? <small>{l.who}: </small> : null}{l.critical}</span>)}</div> : <span className="muted">-</span>}</td>
+        <td><StatusBadge status={test.status} /></td>
+        {canEdit && (
+          <td><Button size="sm" variant="secondary" aria-label={`Edit normal ranges for ${test.name}`} onClick={() => openEdit(test)}>Edit</Button></td>
+        )}
+      </tr>
+    );
+  };
+
   const renderRow = (test) => (
     <tr key={`${test._id}:${test.parameterCode || ''}`}>
       <td>
@@ -393,7 +446,7 @@ const NormalRanges = () => {
     <div className="normal-ranges-page">
       <PageHeader
         title="Normal Range Management"
-        subtitle="View and manage laboratory reference ranges stored on test master records."
+        subtitle={isV2 ? 'The normal and danger values for each test, by sex and age. These print on reports.' : 'View and manage laboratory reference ranges stored on test master records.'}
         action={
           <Button
             variant="secondary"
@@ -442,8 +495,8 @@ const NormalRanges = () => {
 
           <DataTable
             stickyActions={canEdit}
-            toolbarActions={<Button size="sm" variant="secondary" onClick={() => setReviewOpen(true)}>Review reference data</Button>}
-            headers={headers}
+            toolbarActions={<Button size="sm" variant="secondary" onClick={() => setReviewOpen(true)}>{isV2 ? 'Check for missing ranges' : 'Review reference data'}</Button>}
+            headers={isV2 ? ['Test', 'Normal range', 'Danger (critical)', 'Status', ...(canEdit ? [''] : [])] : headers}
             data={visibleTests}
             loading={loading}
             emptyTitle={hasFilters ? 'No matching results' : 'No normal ranges found'}
@@ -455,7 +508,7 @@ const NormalRanges = () => {
             searchValue={search}
             onSearchChange={(e) => setSearch(e.target.value)}
             searchPlaceholder="Search by test name or code..."
-            renderRow={renderRow}
+            renderRow={isV2 ? renderRowV2 : renderRow}
           />
         </>
       )}
@@ -466,7 +519,8 @@ const NormalRanges = () => {
       <Modal
         isOpen={!!editing}
         onClose={closeEdit}
-        title="Edit Normal Ranges"
+        variant="drawer"
+        title={isV2 ? `Normal ranges - ${editing?.name || ''}` : 'Edit Normal Ranges'}
         size="lg"
         footer={
           <>

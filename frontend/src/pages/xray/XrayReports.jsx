@@ -1,6 +1,6 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getXrayCases } from '../../services/xrayService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
 import { printPdfPath, downloadBlob } from '../../services/publicService';
@@ -8,7 +8,9 @@ import formatDate from '../../utils/formatDate';
 import downloadFile from '../../utils/downloadFile';
 import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, Download, Printer, RefreshCw } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, AdvancedFilterBar, RowMenu, IdentityCell, StatusBadge } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import './xrayV2.css';
 import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
@@ -46,6 +48,14 @@ const XrayReports = () => {
   const [printTarget, setPrintTarget] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const isV2 = useUiVersion() === 'v2';
+  const navigate = useNavigate();
+  const [uploadFor, setUploadFor] = useState(null);
+  const openPrint = (report) => {
+    setPrintTarget(report);
+    setPrintOpen(true);
+    if (report?._id) setSearchParams({ print: report._id }, { replace: true });
+  };
 
   const query = search.trim().toLowerCase();
   const filteredReports = reports.filter((report) => {
@@ -130,8 +140,8 @@ const XrayReports = () => {
   return (
     <div>
       <PageHeader
-        title="Completed X-Ray Reports Archive"
-        subtitle="Track billed X-Ray orders, enter findings and view completed reports"
+        title={isV2 ? 'X-ray reports' : 'Completed X-Ray Reports Archive'}
+        subtitle={isV2 ? 'Every X-ray with its report: print signed ones, or open a case to write its findings.' : 'Track billed X-Ray orders, enter findings and view completed reports'}
       />
 
       {loadError && (
@@ -149,7 +159,13 @@ const XrayReports = () => {
         </div>
       )}
 
-      <AdvancedFilterBar
+      {isV2 && <XrayReportUpload record={uploadFor} isOpen={!!uploadFor} onClose={() => setUploadFor(null)} onUploaded={() => { setUploadFor(null); setReloadKey((key) => key + 1); }} />}
+      {isV2 ? (
+        /* New look: the top-bar search drives this (hidden) box. */
+        <div className="form-group" hidden>
+          <input type="search" data-page-search="" aria-label="Search patient" placeholder="Patient name or reg no" value={search} onChange={(e) => { setSearch(e.target.value); pg.reset(); }} />
+        </div>
+      ) : <AdvancedFilterBar
         showSearchButton={false}
         showClearButton={!!search}
         onClear={() => { setSearch(''); pg.reset(); }}
@@ -160,10 +176,10 @@ const XrayReports = () => {
         fields={[
           { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search patient…' }
         ]}
-      />
+      />}
 
       <DataTable
-        headers={['Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Status', 'Scan File', 'Report']}
+        headers={isV2 ? ['Patient', 'Referred by', 'Report', 'Status', ''] : ['Date', 'Registration No', 'Patient Name', 'Referring Doctor', 'Status', 'Scan File', 'Report']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No X-Ray orders or reports found."
@@ -175,7 +191,37 @@ const XrayReports = () => {
           onPageChange: pg.goToPage,
           onLimitChange: pg.setLimit
         }}
-        renderRow={(report) => (
+        renderRow={(report) => isV2 ? (() => {
+          const hasReport = !!report.reportFile?.size || !!report.findings?.trim();
+          const signed = report.status === 'Completed';
+          return (
+            <tr key={report._id}>
+              <td>
+                <IdentityCell
+                  name={[report.patient?.title, report.patient?.name].filter(Boolean).join(' ')}
+                  clinical={{ age: report.patient?.age, ageUnit: report.patient?.ageUnit, gender: report.patient?.gender }}
+                  meta={[report.patient?.registrationNumber && `Reg ${report.patient.registrationNumber}`, formatDate(report.date).split(',')[0]]}
+                />
+              </td>
+              <td>{report.referringDoctor?.name || <span className="cell-empty">Self</span>}</td>
+              <td>{report.reportFile?.size ? 'PDF uploaded' : report.findings?.trim() ? 'Written' : report.fileUrl ? 'Scan only' : <span className="cell-empty">Not written yet</span>}</td>
+              <td><StatusBadge status={report.status || 'Pending'} /></td>
+              <td className="xray-v2-actions">
+                {signed && hasReport ? (
+                  <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={() => openPrint(report)}>Print</Button>
+                ) : (
+                  <Button variant="primary" size="sm" onClick={() => navigate(`/xray/today?case=${report._id}`)}>{hasReport ? 'Open to sign' : 'Write findings'}</Button>
+                )}
+                <RowMenu label={`More for ${report.patient?.name || 'report'}`} items={[
+                  { label: 'Open case', onClick: () => navigate(`/xray/today?case=${report._id}`) },
+                  { label: report.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => setUploadFor(report) },
+                  !!report.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch((error) => notify(error.message)) },
+                  !!report.fileUrl && { label: 'Download scan', onClick: () => downloadFile(`/${report.fileUrl}`, `xray_scan_${report.patient?.registrationNumber}${scanFileExt(report.fileUrl)}`) },
+                ]} />
+              </td>
+            </tr>
+          );
+        })() : (
           <tr key={report._id}>
             <td>{formatDate(report.date).split(',')[0]}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.registrationNumber}</td>

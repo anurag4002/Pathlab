@@ -28,6 +28,7 @@ import {
   recordDeliveryAttempt
 } from '../../services/deliveryHistoryService';
 import DeliveryStatusBadge from '../../components/delivery/DeliveryStatusBadge';
+import './labV2.css';
 import ResendButton from '../../components/delivery/ResendButton';
 import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
@@ -928,9 +929,13 @@ const TodaysReports = () => {
         <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate)}>{formatDate(report.reportDate).split(',')[0]}</td>
         <td><span className="tat-wrap tat-one-line"><TatCountdown report={report} settings={tatSettings} /></span></td>
         <td>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="lab-status-cell">
             <StatusBadge status={report.status} />
-            <DeliveryStatusBadge status={getReportDeliveryStatus(report._id)} />
+            {isReported && (() => {
+              const delivery = getReportDeliveryStatus(report._id);
+              const text = { sent: 'Sent to patient', sending: 'Sending...', failed: 'Sending failed', partial: 'Sent (last retry failed)' }[delivery] || 'Not sent yet';
+              return <span className={`lab-delivery is-${delivery || 'unsent'}`}>{text}</span>;
+            })()}
           </div>
         </td>
         <td>
@@ -956,14 +961,14 @@ const TodaysReports = () => {
     <div>
       <PageHeader
         title="Today's Reports"
-        subtitle="View diagnostic PDF findings completed today and upload clinical reports"
+        subtitle={isV2 ? 'Every report of the day: enter results, print and send to the patient.' : 'View diagnostic PDF findings completed today and upload clinical reports'}
         action={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="secondary" onClick={() => { setResultForm({ patient: '', bill: '' }); setResultPatient(null); setResultOpen(true); }}>
               <FileEdit size={16} /> New result entry
             </Button>
             <Button variant="primary" onClick={handleOpenUpload}>
-              <Plus size={16} /> Upload Report
+              <Plus size={16} /> {isV2 ? 'Upload report' : 'Upload Report'}
             </Button>
           </div>
         }
@@ -984,7 +989,7 @@ const TodaysReports = () => {
               pg.reset();
               pgPending.reset();
             }}
-            trailing={<span>Reports for today · <a href="/lab/search">Search</a></span>}
+            trailing={isV2 ? null : <span>Reports for today · <a href="/lab/search">Search</a></span>}
             values={{ status: statusFilter || 'All', sort: sortOrder, tab, dept, search }}
             onChange={(key, value) => {
               if (key === 'status') { setStatusFilter(value === 'All' ? '' : value); pg.reset(); }
@@ -1051,7 +1056,7 @@ const TodaysReports = () => {
           />
         ) : (
           <DataTable
-            headers={['Patient', 'Reg No', 'Bill Number', 'Type', 'Items', 'Report Status', 'Actions']}
+            headers={isV2 ? ['Patient', 'Tests', 'Type', 'Status', ''] : ['Patient', 'Reg No', 'Bill Number', 'Type', 'Items', 'Report Status', 'Actions']}
             data={pgPending.paged}
             loading={pendingLoading}
             emptyMessage="No pending samples — every lab / outsource bill already has a report."
@@ -1076,6 +1081,31 @@ const TodaysReports = () => {
               const rowKey = pendingCase?.report?._id
                 ? `${bill._id}-${pendingCase.report._id}`
                 : `${bill._id}-${modeLabel}`;
+              if (isV2) {
+                return (
+                  <tr key={rowKey}>
+                    <td>
+                      <IdentityCell
+                        name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
+                        meta={[patient.registrationNumber && `Reg ${patient.registrationNumber}`, bill.billNumber && `Bill ${bill.billNumber}`]}
+                      />
+                    </td>
+                    <td style={{ maxWidth: '260px' }}>{pendingItemsLabel(pendingCase)}</td>
+                    <td><span className="cell-sub" style={{ display: 'inline' }}>{modeLabel}</span></td>
+                    <td><StatusBadge status={pendingCase?.report?.status || 'Pending'} /></td>
+                    <td>
+                      <div className="row-actions-v2">
+                        {outsource ? (
+                          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => handleUploadPendingOutsource(pendingCase)} disabled={submitLoading || entryLoading}>Upload report</Button>
+                        ) : (
+                          <Button variant="primary" size="sm" icon={<FileEdit size={14} />} onClick={() => handleStartPendingEntry(pendingCase)} disabled={resultLoading || entryLoading}>Enter results</Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr key={rowKey}>
                   <td style={{ fontWeight: '600' }}>{patient?.name || 'Walk-in Patient'}</td>

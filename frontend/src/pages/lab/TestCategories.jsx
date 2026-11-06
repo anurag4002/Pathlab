@@ -1,11 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getCategories, createCategory, updateCategory, deleteCategory } from '../../services/testService';
+import { getCategories, createCategory, updateCategory, deleteCategory, getTests } from '../../services/testService';
+import { useUiVersion } from '../../utils/uiVersion';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, ConfirmDialog, AdvancedFilterBar, RowMenu } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import './v2/labSetupV2.css';
 
 const TestCategories = () => {
+  const isV2 = useUiVersion() === 'v2';
+  // New look: how many tests sit in each category, and a new category being
+  // typed survives an accidental close of the panel.
+  const [testCounts, setTestCounts] = useState({});
+  const [createDraft, setCreateDraft] = useState(null);
+  useEffect(() => {
+    if (!isV2) return;
+    getTests({}).then((res) => {
+      const counts = {};
+      (Array.isArray(res?.data) ? res.data : []).filter((t) => !t.isDeleted).forEach((t) => {
+        const id = String(t.category?._id || t.category || '');
+        if (id) counts[id] = (counts[id] || 0) + 1;
+      });
+      setTestCounts(counts);
+    }).catch(() => {});
+  }, [isV2]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +67,7 @@ const TestCategories = () => {
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
-    setFormData({ name: '', description: '' });
+    setFormData(isV2 && createDraft ? createDraft : { name: '', description: '' });
     setErrors({});
     setFormOpen(true);
   };
@@ -86,6 +104,7 @@ const TestCategories = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingCategory) setCreateDraft(null);
         fetchCategories();
       }
     } catch (err) {
@@ -115,10 +134,10 @@ const TestCategories = () => {
     <div>
       <PageHeader
         title="Test Categories Setup"
-        subtitle="Manage diagnostic clinical groups (e.g. Hematology, Biochemistry)"
+        subtitle={isV2 ? 'Departments that group your tests, e.g. Haematology or Biochemistry.' : 'Manage diagnostic clinical groups (e.g. Hematology, Biochemistry)'}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Add Category
+            <Plus size={16} /> {isV2 ? 'Add category' : 'Add Category'}
           </Button>
         }
       />
@@ -137,7 +156,7 @@ const TestCategories = () => {
       />
 
       <DataTable
-        headers={['Category Name', 'Description', 'Actions']}
+        headers={isV2 ? ['Category', 'Tests', 'Note', ''] : ['Category Name', 'Description', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No clinical categories defined."
@@ -149,7 +168,19 @@ const TestCategories = () => {
           onPageChange: pg.goToPage,
           onLimitChange: pg.setLimit,
         }}
-        renderRow={(category) => (
+        renderRow={(category) => isV2 ? (
+          <tr key={category._id}>
+            <td><button type="button" className="ls-link" onClick={() => handleOpenEdit(category)}>{category.name}</button></td>
+            <td>{testCounts[String(category._id)] ? <span className="strong">{testCounts[String(category._id)]}</span> : <span className="muted">None yet</span>}</td>
+            <td className="muted">{category.description && !/migrated from labsmart/i.test(category.description) ? category.description : ''}</td>
+            <td>
+              <div className="ls-actions">
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(category)}>Edit</Button>
+                <RowMenu items={[{ label: 'Delete category', danger: true, onClick: () => setDeleteTarget(category) }]} />
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={category._id}>
             <td style={{ fontWeight: '600' }}>{category.name}</td>
             <td>{category.description || 'N/A'}</td>
@@ -178,15 +209,16 @@ const TestCategories = () => {
       {/* Category Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingCategory ? 'Edit Category' : 'Create Test Category'}
+        onClose={() => { if (isV2 && !editingCategory) setCreateDraft(formData); setFormOpen(false); }}
+        variant="drawer"
+        title={isV2 ? (editingCategory ? `Edit ${editingCategory.name}` : 'New category') : editingCategory ? 'Edit Category' : 'Create Test Category'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={() => { if (isV2 && !editingCategory) setCreateDraft(formData); setFormOpen(false); }} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Category
+              {isV2 ? 'Save' : 'Save Category'}
             </Button>
           </>
         }
@@ -203,7 +235,7 @@ const TestCategories = () => {
             required
           />
           <Input
-            label="Description"
+            label={isV2 ? 'Note (optional)' : 'Description'}
             name="description"
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
@@ -217,8 +249,8 @@ const TestCategories = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
-        title="Delete Test Category?"
-        message={`Are you sure you want to delete category ${deleteTarget?.name}? Tests in this category will become uncategorized.`}
+        title={isV2 ? `Delete ${deleteTarget?.name || 'category'}?` : 'Delete Test Category?'}
+        message={isV2 ? `${testCounts[String(deleteTarget?._id)] || 'Any'} test${testCounts[String(deleteTarget?._id)] === 1 ? '' : 's'} in it will have no category until you move them.` : `Are you sure you want to delete category ${deleteTarget?.name}? Tests in this category will become uncategorized.`}
       />
     </div>
   );

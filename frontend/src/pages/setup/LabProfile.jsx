@@ -21,6 +21,26 @@ import { validateEmail, validatePhone, validateNumber } from '../../utils/valida
 import assetSrc from '../../utils/assetSrc';
 import DocumentFormatEditor from '../../components/lab/DocumentFormatEditor';
 import '../../styles/LabProfile.css';
+import { useUiVersion } from '../../utils/uiVersion';
+import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
+import SettingsNav from '../manage/v2/SettingsNav';
+import '../manage/v2/manage.css';
+
+// New look: plain names for the fields, used to say what changed.
+const FIELD_NAMES = {
+  labName: 'Lab name', tagline: 'Tagline', website: 'Website', caseStartNumber: 'Starting number', registrationDigits: 'Number of digits',
+  labRegistrationNumber: 'Lab registration number', phone: 'Phone', email: 'Email', address: 'Address', disclaimer: 'Patient note',
+  invoiceFooter: 'Bill footer', letterheadTopMargin: 'Header space', smsSenderId: 'SMS sender name',
+};
+const fieldName = (key) => FIELD_NAMES[key] || String(key).replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).replace(/ (\w)/g, (m) => m.toLowerCase());
+const V2_SECTIONS = [
+  { id: 'lp-identity', label: 'Lab name' },
+  { id: 'lp-numbering', label: 'Numbering' },
+  { id: 'lp-contact', label: 'Contact' },
+  { id: 'lp-address', label: 'Address & notes' },
+  { id: 'lp-print', label: 'Printing' },
+  { id: 'lp-notify', label: 'Messages & work' },
+];
 
 // Fields accepted by the current lab-profile API. Logo and letterhead URLs
 // are changed only through their upload endpoints.
@@ -219,8 +239,11 @@ const AssetManager = ({
   onError,
   onFileChange
 }) => {
+  const isV2Asset = useUiVersion() === 'v2';
   const inputLabel = kind === 'logo' ? 'Upload logo' : kind === 'footer' ? 'Upload footer strip' : 'Upload letterhead';
-  const description = kind === 'logo'
+  const description = isV2Asset
+    ? (kind === 'logo' ? 'Shown at the top of reports and bills.' : kind === 'footer' ? 'Band printed at the bottom of reports and bills.' : 'Full-width header image printed on reports and bills.')
+    : kind === 'logo'
     ? 'Current logo asset returned by the lab profile API.'
     : kind === 'footer'
       ? 'Bottom band printed on reports and bills (sign-off + marketing strip).'
@@ -390,6 +413,8 @@ const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl
 };
 
 const LabProfile = () => {
+  const isV2 = useUiVersion() === 'v2';
+  const [confirmNumbering, setConfirmNumbering] = useState(false);
   const { user } = useAuth();
   const canEdit = Boolean(isAdmin(user));
   const [profile, setProfile] = useState(null);
@@ -541,7 +566,7 @@ const LabProfile = () => {
     ['letterheadTopMargin', 'caseStartNumber'].forEach((field) => {
       const value = form[field];
       if (value === '' && profile?.[field] !== undefined && profile?.[field] !== '') {
-        errors[field] = 'Enter a number to change this API-backed setting.';
+        errors[field] = isV2 ? 'Enter a number.' : 'Enter a number to change this API-backed setting.';
       } else if (value !== undefined && value !== null && value !== '' && !validateNumber(value)) {
         errors[field] = 'Enter a valid non-negative number.';
       }
@@ -702,7 +727,7 @@ const LabProfile = () => {
     <div className="lab-profile-page">
       <PageHeader
         title="Lab Profile"
-        subtitle="Manage the supported centre identity, registration, contact, report, and notification settings."
+        subtitle={isV2 ? 'Your lab\'s name, contact details, bill and report numbering, and what prints on reports and bills.' : 'Manage the supported centre identity, registration, contact, report, and notification settings.'}
         action={headerAction}
       />
 
@@ -723,7 +748,7 @@ const LabProfile = () => {
         <section className="lab-profile-section lab-profile-empty-section">
           <EmptyState
             title="Lab profile unavailable"
-            message="No profile data is available to display. Retry the profile request or check the API response."
+            message={isV2 ? 'The lab profile could not be loaded. Check the connection and try again.' : 'No profile data is available to display. Retry the profile request or check the API response.'}
             action={!loadError ? <Button onClick={() => loadProfile()}>Retry</Button> : null}
           />
         </section>
@@ -738,15 +763,22 @@ const LabProfile = () => {
           {!profileHasValues && (
             <ProfileAlert
               type="info"
-              message="The API returned an empty profile. Add only values supported by the existing profile contract."
+              message={isV2 ? 'Nothing is filled in yet. Select Edit profile to add your lab\'s details.' : 'The API returned an empty profile. Add only values supported by the existing profile contract.'}
             />
           )}
 
-          <form className="lab-profile-form" onSubmit={saveProfile} noValidate>
-            <section className="lab-profile-section" aria-labelledby="lab-profile-identity-heading">
+          <div className={isV2 ? 'st-layout' : undefined}>
+          {isV2 && <SettingsNav sections={V2_SECTIONS} />}
+          <form className="lab-profile-form" noValidate onSubmit={(event) => {
+            if (isV2 && isEditing && ['caseStartNumber', 'registrationDigits'].some((k) => comparableValue(form[k]) !== comparableValue(profile?.[k]))) {
+              event.preventDefault(); setConfirmNumbering(true); return;
+            }
+            saveProfile(event);
+          }}>
+            <section className="lab-profile-section" id="lp-identity" aria-labelledby="lab-profile-identity-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-identity-heading">Lab identity</h2>
-                <p>Identity fields used by the existing profile API and report letterhead.</p>
+                <p>{isV2 ? 'Printed at the top of every report and bill.' : 'Identity fields used by the existing profile API and report letterhead.'}</p>
               </div>
               <div className="lab-profile-grid">
                 <Input
@@ -778,9 +810,9 @@ const LabProfile = () => {
               </div>
             </section>
 
-            <section className="lab-profile-section" aria-labelledby="lab-profile-registration-heading">
+            <section className="lab-profile-section" id="lp-numbering" aria-labelledby="lab-profile-registration-heading">
               <div className="lab-profile-section-heading">
-                <h2 id="lab-profile-registration-heading">Registration settings</h2>
+                <h2 id="lab-profile-registration-heading">{isV2 ? 'Bill and registration numbering' : 'Registration settings'}</h2>
                 <p>Set the starting number and digit count for new registrations and bills. Both use the same number, without a date.</p>
               </div>
               <div className="lab-profile-grid lab-profile-grid-settings">
@@ -836,10 +868,10 @@ const LabProfile = () => {
               </div>
             </section>
 
-            <section className="lab-profile-section" aria-labelledby="lab-profile-contact-heading">
+            <section className="lab-profile-section" id="lp-contact" aria-labelledby="lab-profile-contact-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-contact-heading">Contact information</h2>
-                <p>Contact details supported by the current lab profile record.</p>
+                <p>{isV2 ? 'How patients and doctors can reach you. Printed on reports and bills.' : 'Contact details supported by the current lab profile record.'}</p>
               </div>
               <div className="lab-profile-grid">
                 <Input
@@ -872,15 +904,15 @@ const LabProfile = () => {
                   value={form.googleReviewLink ?? ''}
                   onChange={(event) => updateField('googleReviewLink', event.target.value)}
                   disabled={fieldDisabled}
-                  helperText="Stored exactly as supported by the profile API."
+                  helperText={isV2 ? undefined : 'Stored exactly as supported by the profile API.'}
                 />
               </div>
             </section>
 
-            <section className="lab-profile-section" aria-labelledby="lab-profile-address-heading">
+            <section className="lab-profile-section" id="lp-address" aria-labelledby="lab-profile-address-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-address-heading">Address</h2>
-                <p>The current API stores address as one free-form field.</p>
+                <p>{isV2 ? 'Your address, a note for patients and the line at the bottom of bills.' : 'The current API stores address as one free-form field.'}</p>
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="address">Address</label>
@@ -924,7 +956,7 @@ const LabProfile = () => {
             </section>
 
             <DocumentFormatEditor form={form} profile={profile} disabled={fieldDisabled} canPreview={canEdit && !isBusy} onChange={updateField} />
-            <section className="lab-profile-section" aria-labelledby="lab-profile-report-heading">
+            <section className="lab-profile-section" id="lp-print" aria-labelledby="lab-profile-report-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-report-heading">Report and letterhead</h2>
                 <p>Choose which sections to include in generated reports and bills. Use the format editor above to set header height and page spacing.</p>
@@ -993,10 +1025,10 @@ const LabProfile = () => {
               />
             </section>
 
-            <section className="lab-profile-section" aria-labelledby="lab-profile-notification-heading">
+            <section className="lab-profile-section" id="lp-notify" aria-labelledby="lab-profile-notification-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-notification-heading">Notifications and working settings</h2>
-                <p>Only settings present in the existing LabProfile API are shown.</p>
+                <p>{isV2 ? 'Messages to patients and day-to-day working settings.' : 'Only settings present in the existing LabProfile API are shown.'}</p>
               </div>
               <div className="lab-profile-toggle-grid">
                 <ToggleField
@@ -1029,14 +1061,20 @@ const LabProfile = () => {
                   value={form.smsSenderId ?? ''}
                   onChange={(event) => updateField('smsSenderId', event.target.value)}
                   disabled={fieldDisabled}
-                  helperText="Stored profile value; notification delivery may use backend environment configuration."
+                  helperText={isV2 ? 'The name shown as the sender of SMS messages.' : 'Stored profile value; notification delivery may use backend environment configuration.'}
                 />
               </div>
             </section>
 
-            <div className="lab-profile-actions">
+            <div className={`lab-profile-actions${isV2 && isEditing ? ' lp-v2-actions' : ''}`}>
               {isEditing ? (
                 <>
+                  {isV2 && (() => {
+                    const changed = EDITABLE_FIELDS.filter((field) => comparableValue(form[field]) !== comparableValue(profile?.[field]));
+                    return changed.length
+                      ? <span className="st-changed">{changed.length} change{changed.length === 1 ? '' : 's'}: {changed.slice(0, 4).map(fieldName).join(', ')}{changed.length > 4 ? '...' : ''}</span>
+                      : <span className="st-saved">No changes yet</span>;
+                  })()}
                   <Button
                     type="submit"
                     loading={saving}
@@ -1056,11 +1094,20 @@ const LabProfile = () => {
                 </>
               ) : (
                 <p className="lab-profile-helper">
-                  {canEdit ? 'Select Edit profile to change API-backed settings.' : 'This profile is read-only for the current role.'}
+                  {isV2 ? (canEdit ? 'Select Edit profile at the top to make changes.' : 'Only an admin can change the lab profile.') : canEdit ? 'Select Edit profile to change API-backed settings.' : 'This profile is read-only for the current role.'}
                 </p>
               )}
             </div>
           </form>
+          </div>
+          <ConfirmDialog
+            isOpen={confirmNumbering}
+            onClose={() => setConfirmNumbering(false)}
+            onConfirm={() => { setConfirmNumbering(false); saveProfile({ preventDefault() {} }); }}
+            title="Change bill and registration numbering?"
+            message="New bills and registrations will use the new starting number or digit count. Numbers already given out stay the same, and numbers never go backwards."
+            confirmText="Change numbering"
+          />
         </>
       )}
     </div>

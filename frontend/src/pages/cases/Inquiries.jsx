@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getInquiries, setInquiryStatus, updateInquiry } from '../../services/inquiryService';
-import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button, AdvancedFilterBar, IdentityCell, RowMenu } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import './v2/casesV2.css';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatCurrency from '../../utils/formatCurrency';
@@ -22,8 +24,11 @@ const NEXT_STATUS = ['New', 'Contacted', 'Confirmed', 'Cancelled'];
 // and no payment — staff confirm by phone and bill at the counter.
 // Confirming moves the person's details + items into the billing form
 // (/cases/bills/new) automatically; the Edit option allows corrections first.
+const STATUS_TONE = { New: 'is-new', Contacted: 'is-warn', Confirmed: 'is-done', Cancelled: 'is-off' };
+
 const Inquiries = () => {
   const navigate = useNavigate();
+  const isV2 = useUiVersion() === 'v2';
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -204,7 +209,7 @@ const Inquiries = () => {
     <div>
       <PageHeader
         title="Booking Inquiries"
-        subtitle="Self-service test bookings from the patient portal — confirm by phone, bill at the counter"
+        subtitle={isV2 ? 'Tests booked from the patient website. Call to confirm, then bill at the counter.' : 'Self-service test bookings from the patient portal — confirm by phone, bill at the counter'}
       />
 
       <AdvancedFilterBar
@@ -215,16 +220,18 @@ const Inquiries = () => {
         onChange={(key, value) => {
           if (key === 'status') { setStatusFilter(value); goToPage(1); }
         }}
-        fields={[
+        fields={isV2 ? [
+          { key: 'status', type: 'segmented', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS.filter((o) => o.value)] }
+        ] : [
           { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS.filter((o) => o.value), placeholder: 'All statuses', size: 'sm' }
         ]}
       />
 
       <DataTable
-        headers={['Raised On', 'Patient', 'Phone', 'Items', 'Est. Total', 'Preferred', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Tests booked', <span key="t" className="th-num">Total</span>, 'Wants on', 'Status', ''] : ['Raised On', 'Patient', 'Phone', 'Items', 'Est. Total', 'Preferred', 'Status', 'Actions']}
         data={items}
         loading={loading}
-        emptyMessage="No booking inquiries."
+        emptyMessage={isV2 ? (statusFilter || search ? 'No booking matches these filters.' : 'No bookings yet. When a patient books tests on the website, they show up here.') : 'No booking inquiries.'}
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search name or phone…"
@@ -236,7 +243,45 @@ const Inquiries = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit
         }}
-        renderRow={(inq) => (
+        renderRow={(inq) => isV2 ? (
+          <tr key={inq._id}>
+            <td>
+              <IdentityCell
+                name={inq.name}
+                clinical={inq.patient ? { age: inq.patient.age, ageUnit: inq.patient.ageUnit, gender: inq.patient.gender } : undefined}
+                meta={[inq.phone, `Booked ${formatDate(inq.createdAt)}`].filter(Boolean)}
+                onClick={inq.patient?._id ? () => navigate(`/cases/patients/${inq.patient._id}`) : undefined}
+                title={inq.patient?._id ? 'Open patient' : undefined}
+              />
+            </td>
+            <td style={{ maxWidth: '280px' }}>
+              {(inq.items || []).map((it) => it.name).filter(Boolean).join(', ') || <span className="cell-empty">Not set</span>}
+            </td>
+            <td className="num" style={{ fontWeight: 600 }}>{formatCurrency((inq.items || []).reduce((sum, it) => sum + (Number(it.price) || 0), 0))}</td>
+            <td style={{ whiteSpace: 'nowrap' }}>{inq.preferredDate ? formatDate(inq.preferredDate).split(',')[0] : <span className="cell-empty">Any day</span>}</td>
+            <td><span className={`cases-status ${STATUS_TONE[inq.status] || ''}`}>{inq.status}</span></td>
+            <td>
+              <div className="row-actions-v2">
+                {inq.status !== 'Cancelled' && (
+                  <Button variant={inq.status === 'Confirmed' ? 'secondary' : 'primary'} size="sm" disabled={updatingId === inq._id}
+                    onClick={() => confirmAndBill(inq)} aria-label={`${inq.status === 'Confirmed' ? 'Bill' : 'Confirm and bill'} ${inq.name}`}>
+                    {inq.status === 'Confirmed' ? 'Bill' : 'Confirm & bill'}
+                  </Button>
+                )}
+                <RowMenu label={`More actions for ${inq.name}`} items={[
+                  { label: 'Edit booking', onClick: () => openEdit(inq) },
+                  inq.status === 'New' && { label: 'Mark as called', onClick: () => changeStatus(inq, 'Contacted') },
+                  inq.patient?._id
+                    ? { label: 'Open patient', onClick: () => navigate(`/cases/patients/${inq.patient._id}`) }
+                    : { label: 'Find patient by phone', onClick: () => navigate(`/cases/patients?search=${encodeURIComponent(inq.phone || inq.name || '')}`) },
+                  inq.status === 'Cancelled'
+                    ? { label: 'Reopen booking', onClick: () => changeStatus(inq, 'New') }
+                    : { label: 'Cancel booking', onClick: () => changeStatus(inq, 'Cancelled'), danger: true },
+                ]} />
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={inq._id}>
             <td style={{ whiteSpace: 'nowrap' }}>{formatDate(inq.createdAt)}</td>
             <td style={{ fontWeight: '600' }}>
@@ -328,7 +373,8 @@ const Inquiries = () => {
       <Modal
         isOpen={!!editTarget}
         onClose={closeEdit}
-        title={`Edit booking — ${editTarget?.name || ''}`}
+        title={isV2 ? 'Edit booking' : `Edit booking — ${editTarget?.name || ''}`}
+        variant="drawer"
         size="lg"
         footer={
           <>

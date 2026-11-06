@@ -5,6 +5,8 @@ import { getSignatures, createSignature, deleteSignature, updateSignature } from
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import useClientPagination from '../../hooks/useClientPagination';
 import { signatureDepartments, isSignatureActive, signatureImageSrc } from '../../utils/signatureUtils';
+import SignaturesV2 from './v2/SignaturesV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 // Signatures manager (Admin). Sources from GET /api/setup/signatures.
 // Upload (POST), edit/deactivate (PUT) and delete (DELETE) are all live.
@@ -249,4 +251,6 @@ const Signatures = () => {
   );
 };
 
-export default Signatures;
+// New look: its own simpler screen; Classic keeps the page above.
+const SignaturesPage = () => (useUiVersion() === 'v2' ? <SignaturesV2 /> : <Signatures />);
+export default SignaturesPage;

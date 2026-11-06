@@ -4,6 +4,8 @@ import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { getBranches, createBranch, updateBranch, deleteBranch } from '../../services/branchService';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge } from '../../components/common';
 import '../../styles/UserManagement.css';
+import BranchesV2 from './v2/BranchesV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const EMPTY = { name: '', code: '', address: '', phone: '', email: '', status: 'Active' };
 
@@ -169,4 +171,6 @@ const Branches = () => {
   );
 };
 
-export default Branches;
+// New look: its own simpler screen; Classic keeps the page above.
+const BranchesPage = () => (useUiVersion() === 'v2' ? <BranchesV2 /> : <Branches />);
+export default BranchesPage;

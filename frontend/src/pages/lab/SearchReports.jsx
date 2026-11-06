@@ -4,7 +4,9 @@ import { getReports } from '../../services/reportService';
 import { getTests } from '../../services/testService';
 import { getDoctors } from '../../services/doctorService';
 import { downloadReportPdf } from '../../services/publicService';
-import { WhatsAppShare } from '../../components/common';
+import { WhatsAppShare, IdentityCell, RowMenu, StatusBadge } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import './labV2.css';
 
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
@@ -31,6 +33,7 @@ const cleanParam = (v) => {
 };
 
 const SearchReports = () => {
+  const isV2 = useUiVersion() === 'v2';
   const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -105,7 +108,7 @@ const SearchReports = () => {
     <div>
       <PageHeader
         title="Search Lab Reports"
-        subtitle="Advanced URL-based filtering: duration, patient, status, referrer, reg.no, daily case no, UHID, test"
+        subtitle={isV2 ? 'Find any report by patient, reg no, test, doctor or date - then print or send it.' : 'Advanced URL-based filtering: duration, patient, status, referrer, reg.no, daily case no, UHID, test'}
       />
 
       <AdvancedFilterBar
@@ -119,18 +122,18 @@ const SearchReports = () => {
           { key: 'firstName', label: 'Patient first name', type: 'text', placeholder: 'First name' },
           { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS },
           { key: 'referredBy', label: 'Referred by', type: 'select', options: doctors.map((d) => ({ value: d._id, label: d.name })) },
-          { key: 'regNo', label: 'Reg.no.', type: 'text', placeholder: 'Reg.no.' },
-          { key: 'dailyCaseNo', label: 'Daily case no.', type: 'text', placeholder: 'DCN' },
+          { key: 'regNo', label: isV2 ? 'Reg no' : 'Reg.no.', type: 'text', placeholder: isV2 ? 'Reg no' : 'Reg.no.' },
+          { key: 'dailyCaseNo', label: isV2 ? 'Daily case no' : 'Daily case no.', type: 'text', placeholder: isV2 ? 'Daily case no' : 'DCN' },
           { key: 'uhid', label: 'UHID', type: 'text', placeholder: 'UHID' },
           { key: 'cc', label: 'Collection centre', type: 'select', options: [{ value: 'Main', label: 'Main' }] },
-          { key: 'test', label: 'Select test', type: 'select', size: 'lg', options: (Array.isArray(tests) ? tests : tests?.tests || []).map((t) => ({ value: t._id, label: `${t.name} (${t.code})` })) },
+          { key: 'test', label: isV2 ? 'Test' : 'Select test', type: 'select', size: 'lg', options: (Array.isArray(tests) ? tests : tests?.tests || []).map((t) => ({ value: t._id, label: `${t.name} (${t.code})` })) },
           { key: 'from', label: 'From', type: 'date' },
           { key: 'to', label: 'To', type: 'date' },
         ]}
       />
 
       <DataTable
-        headers={['Reg.no.', 'Date/Time', 'Patient', 'Referred By', 'Tests', 'CC', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Tests', 'Referred by', 'Date', 'Status', ''] : ['Reg.no.', 'Date/Time', 'Patient', 'Referred By', 'Tests', 'CC', 'Status', 'Actions']}
         data={reports}
         loading={loading}
         emptyMessage="No laboratory reports matched your search filters."
@@ -139,7 +142,7 @@ const SearchReports = () => {
           setSearch(e.target.value);
           goToPage(1);
         }}
-        searchPlaceholder="Type registration no / name / phone (e.g. PPL-2026)..."
+        searchPlaceholder={isV2 ? 'Patient name, phone or reg no' : 'Type registration no / name / phone (e.g. PPL-2026)...'}
         stickyActions
         pagination={{
           total: paginationInfo.total,
@@ -149,7 +152,43 @@ const SearchReports = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit,
         }}
-        renderRow={(report) => (
+        renderRow={(report) => isV2 ? (() => {
+          // Report screen: age · sex stay next to the name.
+          const p = report.patient || {};
+          const reported = ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status);
+          const billed = (report.bill?.items || []).filter((item) => item && !item.reportDepartment).map((item) => String(item.name || '').replace(/ \(bundle\)$/, ''));
+          const names = report.test ? [report.test.name] : [...new Set(billed)];
+          const menu = [
+            { label: 'Download PDF', onClick: () => downloadReportPdf(report._id) },
+            report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`) },
+          ].filter(Boolean);
+          return (
+            <tr key={report._id}>
+              <td>
+                <IdentityCell
+                  name={[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                  clinical={{ age: p.age, ageUnit: p.ageUnit, gender: p.gender }}
+                  meta={[report.registrationNumber && `Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
+                />
+              </td>
+              <td style={{ maxWidth: 260 }}>
+                {names.length
+                  ? <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>
+                  : report.results?.length ? `${report.results.length} values` : <span className="cell-empty">General findings</span>}
+              </td>
+              <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
+              <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate || report.createdAt)}>{formatDate(report.reportDate || report.createdAt).split(',')[0]}</td>
+              <td><StatusBadge status={report.status} /></td>
+              <td>
+                <div className="row-actions-v2">
+                  <ReportPrintActions reportId={report._id} />
+                  {reported && <WhatsAppShare kind="report" id={report._id} phone={p.phone} name={p.name} iconOnly />}
+                  <RowMenu label={`More actions for report ${report.registrationNumber}`} items={menu} />
+                </div>
+              </td>
+            </tr>
+          );
+        })() : (
           <tr key={report._id}>
             <td style={{ fontWeight: '600', color: 'var(--primary-color)' }}>{report.registrationNumber}</td>
             <td>{formatDate(report.reportDate || report.createdAt)}</td>

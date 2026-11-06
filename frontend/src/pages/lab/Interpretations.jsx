@@ -7,6 +7,10 @@ import useAuth from '../../hooks/useAuth';
 import InterpretationText from '../../components/lab/InterpretationText';
 import { copyInterpretation } from '../../utils/interpretationContent';
 import { notify } from '../../components/common/Toast/toast';
+import { useUiVersion } from '../../utils/uiVersion';
+import { RowMenu } from '../../components/common';
+import '../../components/business/business.css';
+import './v2/labSetupV2.css';
 const RichInterpretationEditor = lazy(() => import('../../components/lab/RichInterpretationEditor'));
 
 const STATUS_OPTIONS = [
@@ -31,6 +35,10 @@ const Interpretations = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingInterpretation, setEditingInterpretation] = useState(null);
   const [formData, setFormData] = useState({ test: '', resultCondition: '', interpretationText: '', normalAbnormalGuidance: 'Normal', status: 'Active' });
+  // New look: a new note being typed survives an accidental close.
+  const isV2 = useUiVersion() === 'v2';
+  const [createDraft, setCreateDraft] = useState(null);
+  const closeForm = () => { if (isV2 && !editingInterpretation) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -86,7 +94,7 @@ const Interpretations = () => {
 
   const handleOpenCreate = () => {
     setEditingInterpretation(null);
-    setFormData({ test: '', resultCondition: '', interpretationText: '', normalAbnormalGuidance: 'Normal', status: 'Active' });
+    setFormData(isV2 && createDraft ? createDraft : { test: '', resultCondition: '', interpretationText: '', normalAbnormalGuidance: 'Normal', status: 'Active' });
     setErrors({});
     setFormOpen(true);
   };
@@ -127,6 +135,7 @@ const Interpretations = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingInterpretation) setCreateDraft(null);
         fetchInterpretations();
       }
     } catch (err) {
@@ -156,10 +165,10 @@ const Interpretations = () => {
     <div>
       <PageHeader
         title="Interpretations Management"
-        subtitle="Reusable complete interpretations: copy text or select it while editing a report"
+        subtitle={isV2 ? 'Ready-made notes for reports: your own notes for a result, and the standard note stored with each test.' : 'Reusable complete interpretations: copy text or select it while editing a report'}
         action={
           isAdmin && <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Add Advice
+            <Plus size={16} /> {isV2 ? 'Add note' : 'Add Advice'}
           </Button>
         }
       />
@@ -180,6 +189,65 @@ const Interpretations = () => {
         ]}
       />
 
+      {isV2 ? (
+        <>
+          <section className="biz-section">
+            <div className="biz-section-head"><h2>Your notes{interpretations.length ? ` (${filteredInterpretations.length})` : ''}</h2><p>Shown when a result matches the condition. Copy one into a report, or pick it while editing.</p></div>
+            {!loading && interpretations.length === 0 ? (
+              <div className="ls-interp"><p className="tu-empty" style={{ margin: 0, padding: '1rem', color: '#71717a' }}>No notes yet.{isAdmin ? ' Use "Add note" for results you comment on often.' : ''}</p></div>
+            ) : (
+              <DataTable
+                headers={['Test', 'When the result is', 'Note', 'Type', '']}
+                data={pg.paged}
+                loading={loading}
+                emptyMessage="No note matches your search."
+                pagination={{ total: pg.total, page: pg.page, limit: pg.limit, pages: pg.pages, onPageChange: pg.goToPage, onLimitChange: pg.setLimit }}
+                renderRow={(interp) => (
+                  <tr key={interp._id}>
+                    <td>{interp.test ? <><span className="strong">{interp.test.name}</span><div className="muted">{interp.test.code}</div></> : <span className="muted">Any test</span>}</td>
+                    <td>{interp.resultCondition}</td>
+                    <td style={{ maxWidth: '420px' }}><InterpretationText text={interp.interpretationText} title="View the full note" /></td>
+                    <td><StatusBadge status={interp.normalAbnormalGuidance} />{interp.status !== 'Active' ? <> <StatusBadge status={interp.status} /></> : null}</td>
+                    <td>
+                      <div className="ls-actions">
+                        <Button variant="secondary" size="sm" onClick={() => copyText(interp.interpretationText)}>Copy</Button>
+                        {isAdmin && <RowMenu items={[
+                          { label: 'Edit note', onClick: () => handleOpenEdit(interp) },
+                          { label: 'Delete note', danger: true, onClick: () => setDeleteTarget(interp) },
+                        ]} />}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              />
+            )}
+          </section>
+          {copyMessage && <p role="status" className="biz-note">{copyMessage}</p>}
+          <section className="biz-section">
+            {(() => {
+              const notes = catalogNotes.filter((test) => !search || `${test.name} ${test.code} ${test.interpretation}`.toLowerCase().includes(search.toLowerCase()));
+              return (
+                <>
+                  <div className="biz-section-head"><h2>Standard notes per test ({notes.length})</h2><p>Saved with the test; open one to read or copy it.</p></div>
+                  <div className="ls-interp">
+                    {notes.length === 0 && <p style={{ margin: 0, padding: '1rem', color: '#71717a' }}>No test has a standard note{search ? ' matching your search' : ''}.</p>}
+                    {notes.map((test) => (
+                      <details key={test._id}>
+                        <summary><span><b>{test.name}</b> <small>{test.code}</small></span><small>Open</small></summary>
+                        <div className="ls-interp-body">
+                          <InterpretationText text={test.interpretation} />
+                          <div style={{ marginTop: '0.6rem' }}><Button variant="secondary" size="sm" onClick={() => copyText(test.interpretation)}>Copy note</Button></div>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </section>
+        </>
+      ) : (
+        <>
       <DataTable
         headers={['Test Associated', 'Result Condition', 'Interpretation Text', 'Guidance Type', 'Status', 'Actions']}
         data={pg.paged}
@@ -238,19 +306,22 @@ const Interpretations = () => {
         <InterpretationText text={test.interpretation} />
         <Button variant="secondary" onClick={() => copyText(test.interpretation)}>Copy full interpretation</Button>
       </details>)}
+        </>
+      )}
 
       {/* Form Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingInterpretation ? 'Edit Clinical Advice Guideline' : 'Record Diagnostic Advice'}
+        onClose={closeForm}
+        variant="drawer"
+        title={isV2 ? (editingInterpretation ? 'Edit note' : 'New note') : editingInterpretation ? 'Edit Clinical Advice Guideline' : 'Record Diagnostic Advice'}
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Advice
+              {isV2 ? 'Save note' : 'Save Advice'}
             </Button>
           </>
         }

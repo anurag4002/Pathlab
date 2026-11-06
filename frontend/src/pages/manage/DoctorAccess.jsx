@@ -5,6 +5,8 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import DoctorAccessV2 from './v2/DoctorAccessV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -327,4 +329,6 @@ const DoctorAccess = () => {
   );
 };
 
-export default DoctorAccess;
+// New look: its own simpler screen; Classic keeps the page above.
+const DoctorAccessPage = () => (useUiVersion() === 'v2' ? <DoctorAccessV2 /> : <DoctorAccess />);
+export default DoctorAccessPage;

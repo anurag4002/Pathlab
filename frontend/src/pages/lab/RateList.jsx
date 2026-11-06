@@ -7,6 +7,8 @@ import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
 import { PageHeader, Button, DataTable, Select, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import '../../styles/RateList.css';
+import { useUiVersion } from '../../utils/uiVersion';
+import RateListV2 from './v2/RateListV2';
 
 /* Option lists mirror existing backend enums — no business data lives here.
    status: Active | Inactive on the Test, TestPanel and TestPackage models.
@@ -343,4 +345,6 @@ const RateList = () => {
   );
 };
 
-export default RateList;
+// New look: its own simpler screen; Classic keeps the page above.
+const RateListPage = () => (useUiVersion() === 'v2' ? <RateListV2 /> : <RateList />);
+export default RateListPage;

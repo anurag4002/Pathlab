@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import UsgTemplatesV2 from './v2/UsgTemplatesV2';
 import { getUSGTemplates } from '../../services/usgService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
@@ -127,4 +129,6 @@ const ReportTemplates = () => {
   );
 };
 
-export default ReportTemplates;
+// New look: its own simpler screen; Classic keeps the page above.
+const ReportTemplatesPage = () => (useUiVersion() === 'v2' ? <UsgTemplatesV2 /> : <ReportTemplates />);
+export default ReportTemplatesPage;

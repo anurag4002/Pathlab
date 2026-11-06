@@ -4,6 +4,8 @@ import { PageHeader, Button, Input, DataTable, AdvancedFilterBar } from '../../c
 import useClientPagination from '../../hooks/useClientPagination';
 import { TAT_CONFIG_KEY, DEFAULT_TAT_SETTINGS, loadTatSettings } from '../../components/lab/TatCountdown';
 import { notify } from '../../components/common/Toast/toast';
+import TatConfigV2 from './v2/TatConfigV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 // Phase 16 — TAT Configuration Screen.
 //
@@ -242,4 +244,6 @@ const TatConfig = () => {
   );
 };
 
-export default TatConfig;
+// New look: its own simpler screen; Classic keeps the page above.
+const TatConfigPage = () => (useUiVersion() === 'v2' ? <TatConfigV2 /> : <TatConfig />);
+export default TatConfigPage;

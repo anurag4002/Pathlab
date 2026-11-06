@@ -13,15 +13,15 @@ const myCases = async (req, res, next) => {
     const links = await Doctor.find({ linkedUser: req.user._id }).select('_id');
     const ids = links.map((d) => d._id);
     const bills = await Bill.find({ referringDoctor: { $in: ids }, isVoided: { $ne: true } })
-      .populate('patient', 'name registrationNumber phone')
+      .populate('patient', 'name registrationNumber phone age ageUnit gender title')
       .sort({ date: -1 })
       .limit(100);
     const usg = await USGCase.find({ referringDoctor: { $in: ids } })
-      .populate('patient', 'name registrationNumber')
+      .populate('patient', 'name registrationNumber age ageUnit gender title')
       .sort({ date: -1 })
       .limit(100);
     const xray = await XrayCase.find({ referringDoctor: { $in: ids } })
-      .populate('patient', 'name registrationNumber')
+      .populate('patient', 'name registrationNumber age ageUnit gender title')
       .sort({ date: -1 })
       .limit(100);
     const billed = bills.reduce((s, b) => s + (b.totalAmount || 0), 0);

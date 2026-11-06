@@ -17,7 +17,8 @@ const Modal = ({
   // (the list stays visible); classic keeps the centred dialog.
   variant = 'dialog'
 }) => {
-  const asDrawer = variant === 'drawer' && useUiVersion() === 'v2';
+  const isV2 = useUiVersion() === 'v2';
+  const asDrawer = variant === 'drawer' && isV2;
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen && !e.defaultPrevented && !isPdfPrintActive()) {

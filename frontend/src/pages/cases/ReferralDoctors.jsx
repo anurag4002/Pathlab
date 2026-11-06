@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../services/doctorService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar, RowMenu } from '../../components/common';
+import './v2/casesV2.css';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
@@ -62,8 +63,10 @@ const ReferralDoctors = () => {
   }, []);
 
   const handleOpenCreate = () => {
+    // New look: a half-typed new doctor survives closing the panel.
+    const keepDraft = isV2 && !editingDoctor && formData.name !== undefined && (formData.name || formData.phone);
     setEditingDoctor(null);
-    setFormData({ name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '10', status: 'Active' });
+    if (!keepDraft) setFormData({ name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '10', status: 'Active' });
     setErrors({});
     setFormOpen(true);
   };
@@ -114,12 +117,25 @@ const ReferralDoctors = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingDoctor) setFormData({ name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '10', status: 'Active' });
         fetchDoctors();
       }
     } catch (err) {
       setErrors({ api: err.response?.data?.message || 'Failed to save doctor details' });
     } finally {
       setFormSubmitLoading(false);
+    }
+  };
+
+  const toggleActive = async (doctor) => {
+    try {
+      const res = await updateDoctor(doctor._id, {
+        name: doctor.name, phone: doctor.phone, clinicHospital: doctor.clinicHospital || '', address: doctor.address || '',
+        referralPercentage: Number(doctor.referralPercentage || 0), status: doctor.status === 'Active' ? 'Inactive' : 'Active'
+      });
+      if (res.success) fetchDoctors();
+    } catch (err) {
+      notify(err.response?.data?.message || 'Could not change the status.');
     }
   };
 
@@ -143,10 +159,10 @@ const ReferralDoctors = () => {
     <div>
       <PageHeader
         title="Referral Doctors Directory"
-        subtitle="Manage referring clinics, physicians, and sales commission percentages"
+        subtitle={isV2 ? 'Doctors and clinics who send patients, and the commission each one gets.' : 'Manage referring clinics, physicians, and sales commission percentages'}
         action={
           <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Add Doctor
+            <Plus size={16} /> {isV2 ? 'Add doctor' : 'Add Doctor'}
           </Button>
         }
       />
@@ -161,17 +177,20 @@ const ReferralDoctors = () => {
           if (key === 'search') setSearch(value);
           else if (key === 'status') setStatusFilter(value);
         }}
-        fields={[
+        fields={isV2 ? [
+          { key: 'status', type: 'segmented', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Doctor, clinic or phone' }
+        ] : [
           { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by doctor name...' },
           { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
         ]}
       />
 
       <DataTable
-        headers={isV2 ? ['Doctor', 'Commission', 'Status', ''] : ['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
+        headers={isV2 ? ['Doctor', <span key="c" className="th-num">Commission</span>, 'Status', ''] : ['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
-        emptyMessage="No referral doctor profiles matching your query."
+        emptyMessage={isV2 ? (search || statusFilter ? 'No doctor matches these filters.' : 'No referral doctors yet. Add the doctors who send you patients.') : 'No referral doctor profiles matching your query.'}
         pagination={{
           total: pg.total,
           page: pg.page,
@@ -203,6 +222,15 @@ const ReferralDoctors = () => {
               <StatusBadge status={doctor.status} />
             </td>
             <td>
+              {isV2 ? (
+                <div className="row-actions-v2">
+                  <Button variant="secondary" size="sm" icon={<Edit2 size={14} />} onClick={() => handleOpenEdit(doctor)} aria-label={`Edit ${doctor.name}`}>Edit</Button>
+                  <RowMenu label={`More actions for ${doctor.name}`} items={[
+                    { label: doctor.status === 'Active' ? 'Make inactive' : 'Make active', onClick: () => toggleActive(doctor) },
+                    { label: 'Delete doctor', onClick: () => setDeleteTarget(doctor), danger: true },
+                  ]} />
+                </div>
+              ) : (
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   className="btn btn-secondary"
@@ -219,6 +247,7 @@ const ReferralDoctors = () => {
                   <Trash2 size={14} />
                 </button>
               </div>
+              )}
             </td>
           </tr>
         )}
@@ -228,14 +257,16 @@ const ReferralDoctors = () => {
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editingDoctor ? 'Edit Doctor Profile' : 'Add Referral Doctor'}
+        title={isV2 ? (editingDoctor ? 'Edit doctor' : 'New doctor') : editingDoctor ? 'Edit Doctor Profile' : 'Add Referral Doctor'}
+        variant="drawer"
         footer={
           <>
+            {isV2 && !editingDoctor && <span className="cases-drawer-note">Closing keeps what you typed.</span>}
             <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={formSubmitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={formSubmitLoading}>
-              Save profile
+              {isV2 ? (editingDoctor ? 'Save changes' : 'Add doctor') : 'Save profile'}
             </Button>
           </>
         }
@@ -243,7 +274,7 @@ const ReferralDoctors = () => {
         <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
           {errors.api && <div className="form-error">{errors.api}</div>}
           <Input
-            label="Doctor Name"
+            label={isV2 ? 'Name' : 'Doctor Name'}
             name="name"
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -252,7 +283,7 @@ const ReferralDoctors = () => {
             required
           />
           <Input
-            label="Phone Number"
+            label={isV2 ? 'Phone number' : 'Phone Number'}
             name="phone"
             value={formData.phone}
             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
@@ -260,21 +291,21 @@ const ReferralDoctors = () => {
             required
           />
           <Input
-            label="Clinic / Hospital Name"
+            label={isV2 ? 'Clinic or hospital' : 'Clinic / Hospital Name'}
             name="clinicHospital"
             value={formData.clinicHospital}
             onChange={(e) => setFormData(prev => ({ ...prev, clinicHospital: e.target.value }))}
             placeholder="e.g. Metro Heart Institute"
           />
           <Input
-            label="Clinic Address"
+            label={isV2 ? 'Address' : 'Clinic Address'}
             name="address"
             value={formData.address}
             onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
           />
           <div style={{ display: 'flex', gap: '16px' }}>
             <Input
-              label="Referral Commission %"
+              label={isV2 ? 'Commission %' : 'Referral Commission %'}
               name="referralPercentage"
               type="number"
               value={formData.referralPercentage}
@@ -284,7 +315,7 @@ const ReferralDoctors = () => {
               style={{ flex: 1 }}
             />
             <Select
-              label="Account Status"
+              label={isV2 ? 'Status' : 'Account Status'}
               name="status"
               value={formData.status}
               onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
@@ -305,8 +336,8 @@ const ReferralDoctors = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
-        title="Remove Doctor Profile?"
-        message={`Are you sure you want to permanently delete the referral profile for ${deleteTarget?.name}?`}
+        title={isV2 ? 'Delete this doctor?' : 'Remove Doctor Profile?'}
+        message={isV2 ? `${deleteTarget?.name} will be removed from the list. Old bills keep their name. Tip: "Make inactive" hides them without deleting.` : `Are you sure you want to permanently delete the referral profile for ${deleteTarget?.name}?`}
       />
     </div>
   );

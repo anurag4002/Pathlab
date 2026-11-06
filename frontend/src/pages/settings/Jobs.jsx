@@ -12,6 +12,8 @@ import { RotateCcw, AlertTriangle, CheckCircle2, RefreshCw, Server, Smartphone }
 import usePagination from '../../hooks/usePagination';
 import useClientPagination from '../../hooks/useClientPagination';
 import './Jobs.css';
+import JobsV2 from './v2/JobsV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 // Job Queue — server-backed (GET /api/jobs, POST /api/jobs/:id/retry) with
 // the on-device Phase-7 delivery history as a secondary section. Server
@@ -286,4 +288,6 @@ const Jobs = () => {
   );
 };
 
-export default Jobs;
+// New look: its own simpler screen; Classic keeps the page above.
+const JobsPage = () => (useUiVersion() === 'v2' ? <JobsV2 /> : <Jobs />);
+export default JobsPage;

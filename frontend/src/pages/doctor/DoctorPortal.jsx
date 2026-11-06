@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import DoctorPortalV2 from './v2/DoctorPortalV2';
 import { getMyCases } from '../../services/doctorPortalService';
 import { PageHeader, DataTable, StatCard, AdvancedFilterBar } from '../../components/common';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -65,4 +67,6 @@ const DoctorPortal = () => {
     </div>
   );
 };
-export default DoctorPortal;
+// New look: its own simpler screen; Classic keeps the page above.
+const DoctorPortalPage = () => (useUiVersion() === 'v2' ? <DoctorPortalV2 /> : <DoctorPortal />);
+export default DoctorPortalPage;

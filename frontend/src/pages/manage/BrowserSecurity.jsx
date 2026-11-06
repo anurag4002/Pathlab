@@ -5,6 +5,8 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Ban, CheckCircle2, Trash2 } from 'lucide-react';
 import { PageHeader, DataTable, StatusBadge, Button, Modal, Input, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
+import BrowserSecurityV2 from './v2/BrowserSecurityV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -144,4 +146,6 @@ const BrowserSecurity = () => {
     </div>
   );
 };
-export default BrowserSecurity;
+// New look: its own simpler screen; Classic keeps the page above.
+const BrowserSecurityPage = () => (useUiVersion() === 'v2' ? <BrowserSecurityV2 /> : <BrowserSecurity />);
+export default BrowserSecurityPage;

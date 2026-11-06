@@ -1,0 +1,4 @@
+td.xray-v2-actions { text-align: right; white-space: nowrap; vertical-align: middle; }
+td.xray-v2-actions > * { vertical-align: middle; }
+td.xray-v2-actions > * + * { margin-left: 0.4rem; }
+.xray-v2-note { margin-right: auto; color: #71717a; font-size: 0.8rem; }

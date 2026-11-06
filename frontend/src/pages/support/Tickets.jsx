@@ -4,6 +4,8 @@ import { PageHeader, DataTable, Button, Modal, Input, StatusBadge, AdvancedFilte
 import useClientPagination from '../../hooks/useClientPagination';
 import useAuth from '../../hooks/useAuth';
 import { notify } from '../../components/common/Toast/toast';
+import TicketsV2 from './v2/TicketsV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const STATUS_OPTIONS = [
   { value: 'Open', label: 'Open' },
@@ -80,4 +82,6 @@ const Tickets = () => {
     </div>
   );
 };
-export default Tickets;
+// New look: its own simpler screen; Classic keeps the page above.
+const TicketsPage = () => (useUiVersion() === 'v2' ? <TicketsV2 /> : <Tickets />);
+export default TicketsPage;

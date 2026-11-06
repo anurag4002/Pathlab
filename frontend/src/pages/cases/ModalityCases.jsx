@@ -3,7 +3,9 @@ import { getModalityCases, createModalityCase, updateModalityCase, deleteModalit
 import { useSearchParams } from 'react-router-dom';
 import { downloadBlob, printPdfPath } from '../../services/publicService';
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
-import { DataTable, PageHeader, Button, Modal, Input, StatusBadge, ConfirmDialog, PatientPicker, AdvancedFilterBar, FileUploader } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, StatusBadge, ConfirmDialog, PatientPicker, AdvancedFilterBar, FileUploader, IdentityCell, RowMenu } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
+import './v2/casesV2.css';
 import useAuth from '../../hooks/useAuth';
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
@@ -13,8 +15,15 @@ import { notify } from '../../components/common/Toast/toast';
 
 const TABS = ['CT', 'MRI', 'ECG', 'OPG', 'EEG', 'MAMMOGRAPHY', 'CARDIOLOGY', 'EPS', 'OUTSOURCE'];
 const NEXT = { Registered: 'InProgress', InProgress: 'Reported', Reported: 'Signed', Signed: 'Signed' };
+// New look: plain names for scans and steps.
+const TAB_LABEL = { MAMMOGRAPHY: 'Mammography', CARDIOLOGY: 'Cardiology', OUTSOURCE: 'Outsource' };
+const tabLabel = (m) => TAB_LABEL[m] || m;
+const STEP_LABEL = { Registered: 'Registered', InProgress: 'Being reported', Reported: 'Reported', Signed: 'Signed' };
+const STEP_TONE = { Registered: 'is-new', InProgress: 'is-warn', Reported: 'is-done', Signed: 'is-done' };
+const NEXT_ACTION = { Registered: 'Start report', InProgress: 'Mark reported', Reported: 'Sign off' };
 
 const ModalityCases = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -124,16 +133,29 @@ const ModalityCases = () => {
   return (
     <div>
       <PageHeader
-        title={`${modality} Cases`}
-        subtitle="Modality case registration, findings and status tracking"
-        action={<Button variant="primary" onClick={() => setFormOpen(true)}><Plus size={16} /> New {modality} Case</Button>}
+        title={isV2 ? 'Other scans' : `${modality} Cases`}
+        subtitle={isV2 ? 'CT, MRI, ECG and other scans: register the case, write findings, then sign off.' : 'Modality case registration, findings and status tracking'}
+        action={<Button variant="primary" onClick={() => setFormOpen(true)}><Plus size={16} /> {isV2 ? `New ${tabLabel(modality)} case` : `New ${modality} Case`}</Button>}
       />
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+      {isV2 && (
+        <div className="cases-tabs" role="tablist" aria-label="Scan type" style={{ marginBottom: '1rem' }}>
+          {TABS.map((m) => (
+            <button key={m} type="button" role="tab" aria-selected={m === modality} className={m === modality ? 'is-on' : ''}
+              onClick={() => { setModality(m); setSearchParams({ modality: m }); setNotice(''); goToPage(1); }}>{tabLabel(m)}</button>
+          ))}
+        </div>
+      )}
+      {!isV2 && <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
         {TABS.map((m) => (
           <Button key={m} variant={m === modality ? 'primary' : 'secondary'} size="sm" onClick={() => { setModality(m); setSearchParams({ modality: m }); setNotice(''); goToPage(1); }}>{m}</Button>
         ))}
-      </div>
+      </div>}
       {notice && <p role="status">{notice}</p>}
+      {isV2 ? (
+        <div className="form-group cases-search-wrap" style={{ marginBottom: '0.75rem' }}>
+          <input type="search" data-page-search="" aria-label="Search patient or procedure" placeholder="Patient or procedure" value={search} onChange={(e) => { setSearch(e.target.value); goToPage(1); }} />
+        </div>
+      ) : (
       <AdvancedFilterBar
         showSearchButton={false}
         showClearButton={!!search}
@@ -146,11 +168,13 @@ const ModalityCases = () => {
           { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search procedure…' }
         ]}
       />
+      )}
       <DataTable
-        headers={['Date', 'Patient', 'Procedure', 'Findings', 'Impression', 'Status', 'Actions']}
+        headers={isV2 ? ['Patient', 'Procedure', 'Findings', 'Step', ''] : ['Date', 'Patient', 'Procedure', 'Findings', 'Impression', 'Status', 'Actions']}
         data={cases}
         loading={loading}
-        emptyMessage={`No ${modality} cases found.`}
+        emptyMessage={isV2 ? (search ? 'No case matches your search.' : `No ${tabLabel(modality)} cases yet.`) : `No ${modality} cases found.`}
+        emptyAction={isV2 && !search ? <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>Register a {tabLabel(modality)} case</Button> : null}
         pagination={{
           total: paginationInfo.total,
           page,
@@ -159,7 +183,37 @@ const ModalityCases = () => {
           onPageChange: goToPage,
           onLimitChange: setLimit,
         }}
-        renderRow={(c) => (
+        renderRow={(c) => isV2 ? (
+          <tr key={c._id}>
+            <td>
+              <IdentityCell name={c.patient?.name || 'Patient'}
+                clinical={c.patient ? { age: c.patient.age, ageUnit: c.patient.ageUnit, gender: c.patient.gender } : undefined}
+                meta={[c.patient?.registrationNumber && `Reg ${c.patient.registrationNumber}`, formatDate(c.caseDate).split(',')[0]]} />
+            </td>
+            <td style={{ maxWidth: '180px' }}>{c.procedure || <span className="cell-empty">Not set</span>}</td>
+            <td style={{ maxWidth: '260px', color: '#52525b' }} title={[c.findings, c.impression].filter(Boolean).join(' / ')}>
+              {c.impression ? <><strong style={{ color: '#18181b', fontWeight: 500 }}>{c.impression}</strong></> : c.findings ? c.findings.slice(0, 90) : <span className="cell-empty">Not written yet</span>}
+            </td>
+            <td><span className={`cases-status ${STEP_TONE[c.status] || ''}`}>{STEP_LABEL[c.status] || c.status}</span></td>
+            <td>
+              <div className="row-actions-v2">
+                {c.modality === 'ECG' && c.status !== 'Signed' && !c.reportFile?.size ? (
+                  <Button variant="primary" size="sm" icon={<Upload size={14} />} onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(''); }}>Upload report</Button>
+                ) : c.status !== 'Signed' ? (
+                  <Button variant="secondary" size="sm" icon={<ArrowRight size={14} />} onClick={() => handleAdvance(c)}>{NEXT_ACTION[c.status] || 'Next step'}</Button>
+                ) : null}
+                <RowMenu label={`More actions for ${c.patient?.name || 'this case'}`} items={[
+                  c.modality === 'ECG' && c.status !== 'Signed' && !!c.reportFile?.size && { label: 'Replace report', onClick: () => { setUploadTarget(c); setUploadFile(null); setUploadError(''); } },
+                  c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Preview report', onClick: () => setPreviewTarget(c) },
+                  c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Print report', onClick: () => printEcg(c) },
+                  c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Download report', onClick: () => downloadBlob(`/modality/${c._id}/file`, c.reportFile.name || 'ECG-report.pdf').catch(() => setNotice('Could not download the ECG report.')) },
+                  c.modality === 'ECG' && c.status !== 'Signed' && !!c.reportFile?.size && { label: NEXT_ACTION[c.status] || 'Next step', onClick: () => handleAdvance(c) },
+                  isAdmin && { label: 'Delete case', onClick: () => setDeleteTarget(c), danger: true },
+                ]} />
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={c._id}>
             <td>{formatDate(c.caseDate)}</td>
             <td style={{ fontWeight: 600 }}>{c.patient?.name} <span style={{ fontWeight: 400, fontSize: '0.75rem' }}>({c.patient?.registrationNumber})</span></td>
@@ -192,8 +246,9 @@ const ModalityCases = () => {
       <Modal
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
-        title={`New ${modality} Case`}
-        footer={<><Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>Cancel</Button><Button variant="primary" onClick={handleCreate} loading={submitLoading}>Register Case</Button></>}
+        title={isV2 ? `New ${tabLabel(modality)} case` : `New ${modality} Case`}
+        variant="drawer"
+        footer={<>{isV2 && <span className="cases-drawer-note">Closing keeps what you typed.</span>}<Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>Cancel</Button><Button variant="primary" onClick={handleCreate} loading={submitLoading}>{isV2 ? 'Register case' : 'Register Case'}</Button></>}
       >
         <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
           <PatientPicker label="Patient" value={pickedPatient} onSelect={(p) => { setPickedPatient(p); setForm((prev) => ({ ...prev, patient: p ? p._id : '' })); }} required />
@@ -216,8 +271,8 @@ const ModalityCases = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
-        title="Delete modality case?"
-        message={`Permanently delete this ${modality} case?`}
+        title={isV2 ? 'Delete this case?' : 'Delete modality case?'}
+        message={isV2 ? `This ${tabLabel(modality)} case and its findings will be removed. This cannot be undone.` : `Permanently delete this ${modality} case?`}
       />
     </div>
   );

@@ -1,0 +1,12 @@
+.sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1rem; }
+.sg-card { display: flex; flex-direction: column; border: 1px solid #e4e4e7; border-radius: 12px; background: #fff; overflow: hidden; }
+.sg-card.is-off { opacity: 0.7; }
+.sg-image { display: flex; align-items: center; justify-content: center; height: 6.5rem; background: #fafafa; border-bottom: 1px solid #f0f0f2; }
+.sg-image img { max-height: 5rem; max-width: 85%; object-fit: contain; }
+.sg-preview { margin-top: 0.5rem; border: 1px solid #e4e4e7; border-radius: 10px; }
+.sg-body { display: flex; flex-direction: column; gap: 0.7rem; padding: 0.85rem 1rem 1rem; }
+.sg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.sg-depts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.sg-dept-picks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sg-dept-picks button { border: 1px solid #e4e4e7; background: #fff; padding: 0.3rem 0.7rem; border-radius: 999px; font: inherit; font-size: 0.82rem; color: #3f3f46; cursor: pointer; }
+.sg-dept-picks button.is-on { background: #18181b; border-color: #18181b; color: #fff; }

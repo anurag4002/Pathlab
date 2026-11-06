@@ -1,0 +1,10 @@
+.rpv2-bar { display: flex; align-items: center; gap: 0.6rem 0.75rem; flex-wrap: wrap; margin: -0.25rem 0 1rem; }
+.rpv2-back { display: inline-flex; align-items: center; gap: 0.3rem; border: 0; background: none; padding: 0.2rem 0; color: #71717a; font: inherit; font-size: 0.875rem; cursor: pointer; }
+.rpv2-back:hover { color: #18181b; }
+.rpv2-sep { color: #d4d4d8; }
+.rpv2-who { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; min-width: 0; }
+.rpv2-who h1 { margin: 0; font-size: 1.35rem; font-weight: 600; color: #18181b; }
+.rpv2-who .identity-clinical { font-size: 0.95rem; }
+.rpv2-reg { color: #71717a; font-size: 0.85rem; }
+.rpv2-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-left: auto; }
+.rpv2-who .identity-clinical { display: inline-flex; padding: 0.1rem 0.5rem; border-radius: 999px; background: #eef2ff; color: #3730a3; font-weight: 600; }

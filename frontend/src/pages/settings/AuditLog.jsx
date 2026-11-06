@@ -4,6 +4,8 @@ import { PageHeader, DataTable, Input, Select, DatePicker, StatusBadge, Button, 
 import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import formatDate from '../../utils/formatDate';
+import AuditLogV2 from './v2/AuditLogV2';
+import { useUiVersion } from '../../utils/uiVersion';
 
 const MODULES = ['All', 'Cases', 'Manage', 'Settings', 'Authentication'];
 
@@ -115,4 +117,6 @@ const AuditLog = () => {
   );
 };
 
-export default AuditLog;
+// New look: its own simpler screen; Classic keeps the page above.
+const AuditLogPage = () => (useUiVersion() === 'v2' ? <AuditLogV2 /> : <AuditLog />);
+export default AuditLogPage;

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import RateRevisionV2 from './v2/RateRevisionV2';
 import { getTests, updateTestRate, bulkUpdateTestRates } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -267,4 +269,6 @@ const RateRevision = () => {
   );
 };
 
-export default RateRevision;
+// New look: its own simpler screen; Classic keeps the page above.
+const RateRevisionPage = () => (useUiVersion() === 'v2' ? <RateRevisionV2 /> : <RateRevision />);
+export default RateRevisionPage;

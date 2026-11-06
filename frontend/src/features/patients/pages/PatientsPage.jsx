@@ -10,6 +10,8 @@ import usePagination from '../../../hooks/usePagination';
 import useDebounce from '../../../hooks/useDebounce';
 import { FolderOpen, Edit2, Trash2, UserPlus, FilePlus } from 'lucide-react';
 import { notify } from '../../../components/common/Toast/toast';
+import formatDate from '../../../utils/formatDate';
+import '../../../pages/cases/v2/casesV2.css';
 
 const validatePatient = (formData) => {
   const errs = {};
@@ -118,8 +120,9 @@ const PatientsPage = () => {
   }, [formOpen]);
 
   const openCreate = () => {
+    const keepDraft = isV2 && !editingPatient;
     setEditingPatient(null);
-    setFormData(EMPTY_FORM);
+    if (!keepDraft) setFormData(EMPTY_FORM);
     setErrors({});
     setFormOpen(true);
   };
@@ -161,6 +164,7 @@ const PatientsPage = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (isV2) setFormData(EMPTY_FORM);
         fetchPatientsList();
       }
     } catch (err) {
@@ -190,10 +194,10 @@ const PatientsPage = () => {
     <div>
       <PageHeader
         title="Patients File Registry"
-        subtitle="Manage laboratory patient records and look up case history files"
+        subtitle={isV2 ? 'Everyone registered at the lab. Open a name to see their bills and reports.' : 'Manage laboratory patient records and look up case history files'}
         action={
           <Button variant="primary" onClick={openCreate} icon={<UserPlus size={16} />}>
-            Add Patient
+            {isV2 ? 'Add patient' : 'Add Patient'}
           </Button>
         }
       />
@@ -225,10 +229,10 @@ const PatientsPage = () => {
       />
 
       <DataTable
-        headers={isV2 ? ['Patient', 'Referred by', ''] : PATIENT_TABLE_HEADERS}
+        headers={isV2 ? ['Patient', 'Referred by', 'Registered', ''] : PATIENT_TABLE_HEADERS}
         data={patients}
         loading={loading}
-        emptyMessage="No patient profiles matched your query."
+        emptyMessage={isV2 ? 'No patient matches your search.' : 'No patient profiles matched your query.'}
         searchValue={search}
         onSearchChange={(e) => { setSearch(e.target.value); goToPage(1); }}
         searchPlaceholder="Search by name, phone or reg no..."
@@ -254,6 +258,7 @@ const PatientsPage = () => {
               />
             </td>
             <td>{patient.referringDoctor?.name || <span className="cell-empty">Self</span>}</td>
+            <td style={{ whiteSpace: 'nowrap', color: '#71717a' }}>{patient.createdAt ? formatDate(patient.createdAt).split(',')[0] : ''}</td>
             <td>
               <div className="row-actions-v2">
                 <Button variant="secondary" size="sm" icon={<FilePlus size={14} />} onClick={() => newBillFor(patient)} aria-label={`New bill for ${patient.name}`}>New bill</Button>
@@ -331,8 +336,8 @@ const PatientsPage = () => {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
-        title="Delete Patient Profile?"
-        message={`Are you sure you want to permanently delete patient files for ${deleteTarget?.name}?`}
+        title={isV2 ? 'Delete this patient?' : 'Delete Patient Profile?'}
+        message={isV2 ? `${deleteTarget?.name} and their record will be removed. This cannot be undone.` : `Are you sure you want to permanently delete patient files for ${deleteTarget?.name}?`}
       />
     </div>
   );

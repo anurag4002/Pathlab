@@ -6,7 +6,7 @@ import useDebounce from '../../hooks/useDebounce';
 import useClientPagination from '../../hooks/useClientPagination';
 import { validateEmail } from '../../utils/validators';
 import formatDate from '../../utils/formatDate';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar, RowMenu } from '../../components/common';
 import EmployeeForm from './components/EmployeeForm';
 import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
@@ -366,11 +366,11 @@ const EmployeeLogin = () => {
   return (
     <div className="user-management-page">
       <PageHeader
-        title="User Management"
-        subtitle="Manage laboratory operator and administrator accounts, work profiles, and API-backed permissions."
+        title={isV2 ? 'Staff' : 'User Management'}
+        subtitle={isV2 ? 'People who can sign in, what each one is allowed to do, and which branch they work at.' : 'Manage laboratory operator and administrator accounts, work profiles, and API-backed permissions.'}
         action={canManage ? (
           <Button variant="primary" onClick={openCreate} icon={<Plus size={16} />}>
-            Create user
+            {isV2 ? 'Add staff member' : 'Create user'}
           </Button>
         ) : null}
       />
@@ -443,7 +443,9 @@ const EmployeeLogin = () => {
               )}
               <td><StatusBadge status={account.role} /></td>
               <td>{account.branch?.name || account.branch?.code || '—'}</td>
-              <td><StatusBadge status={account.status} /></td>
+              <td>{isV2
+                ? <span className={`user-v2-status${account.status === 'Active' ? ' is-on' : ''}`}>{account.status === 'Active' ? 'Can sign in' : 'Switched off'}</span>
+                : <StatusBadge status={account.status} />}</td>
               {!isV2 && <td>{formatDate(account.createdAt)}</td>}
               <td>
                 {isCurrentUser ? (
@@ -452,6 +454,14 @@ const EmployeeLogin = () => {
                     <Button variant="secondary" size="sm" disabled={!canManage} onClick={() => { setOwnName(account.name || ''); setNameError(''); setNameOpen(true); }}>
                       <Edit2 size={14} /> Change name
                     </Button>
+                  </div>
+                ) : isV2 ? (
+                  <div className="user-management-actions">
+                    <Button variant="secondary" size="sm" onClick={() => openEdit(account)} aria-label={`Edit ${account.name || 'user'}`} data-testid="user-edit" disabled={!canManage}>Edit</Button>
+                    {canManage && <RowMenu label={`More for ${account.name || 'user'}`} items={[
+                      { label: account.status === 'Active' ? 'Stop sign-in (switch off)' : 'Allow sign-in again', onClick: () => openStatusChange(account), testId: account.status === 'Active' ? 'user-deactivate' : 'user-activate' },
+                      { label: 'Delete', danger: true, onClick: () => openDelete(account), testId: 'user-delete' },
+                    ]} />}
                   </div>
                 ) : (
                   <div className="user-management-actions">
@@ -472,7 +482,7 @@ const EmployeeLogin = () => {
         }}
       />
 
-      <Modal isOpen={nameOpen} onClose={() => !nameSaving && setNameOpen(false)} title="Change your name"
+      <Modal isOpen={nameOpen} onClose={() => !nameSaving && setNameOpen(false)} title="Change your name" variant="drawer"
         footer={<><Button variant="secondary" disabled={nameSaving} onClick={() => setNameOpen(false)}>Cancel</Button><Button type="submit" form="own-name-form" loading={nameSaving} disabled={nameSaving}>Save name</Button></>}>
         <form id="own-name-form" onSubmit={saveOwnName}>
           <Input label="Full name" name="ownName" value={ownName} onChange={event => { setOwnName(event.target.value); setNameError(''); }} error={nameError} required autoFocus disabled={nameSaving} />
@@ -482,12 +492,13 @@ const EmployeeLogin = () => {
       <Modal
         isOpen={formOpen}
         onClose={closeForm}
-        title={editingUser ? 'Edit user account' : 'Create user account'}
+        title={isV2 ? (editingUser ? `Edit ${editingUser.name || 'staff member'}` : 'Add staff member') : editingUser ? 'Edit user account' : 'Create user account'}
         size="lg"
+        variant="drawer"
         footer={
           <>
             <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>Cancel</Button>
-            <Button variant="primary" onClick={submitForm} loading={submitLoading}>Save user</Button>
+            <Button variant="primary" onClick={submitForm} loading={submitLoading}>{isV2 ? (editingUser ? 'Save changes' : 'Add staff member') : 'Save user'}</Button>
           </>
         }
       >

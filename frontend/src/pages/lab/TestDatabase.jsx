@@ -15,6 +15,14 @@ import { normalizeAgeRanges, formatAgeRanges } from '../../utils/ageReferenceRan
 import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
 import './TestDatabase.css';
 import { notify } from '../../components/common/Toast/toast';
+import { useUiVersion } from '../../utils/uiVersion';
+import { RowMenu } from '../../components/common';
+import DownloadMenu from '../../components/business/DownloadMenu';
+import printReport from '../../utils/printReport';
+import { money, downloadCsv } from '../../utils/reportFormat';
+import { Printer } from 'lucide-react';
+import '../../components/business/business.css';
+import './v2/labSetupV2.css';
 
 const TestDatabase = () => {
   const [tests, setTests] = useState([]);
@@ -26,6 +34,10 @@ const TestDatabase = () => {
   const [editingTest, setEditingTest] = useState(null);
   const EMPTY_FORM = { name: '', code: '', category: '', sampleType: '', unit: '', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active', normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', ageMin: '', ageMax: '', sexApplicable: 'Any', isDerived: false, formula: '' };
   const [formData, setFormData] = useState({ ...EMPTY_FORM, referenceRanges: [], parameters: [] });
+  // New look: a new test being typed survives an accidental close.
+  const isV2 = useUiVersion() === 'v2';
+  const [createDraft, setCreateDraft] = useState(null);
+  const closeForm = () => { if (isV2 && !editingTest) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -100,7 +112,7 @@ const TestDatabase = () => {
 
   const handleOpenCreate = () => {
     setEditingTest(null);
-    setFormData({ ...EMPTY_FORM, referenceRanges: [], parameters: [], sampleType: 'Blood (EDTA)', unit: 'g/dL' });
+    setFormData(isV2 && createDraft ? createDraft : { ...EMPTY_FORM, referenceRanges: [], parameters: [], sampleType: 'Blood (EDTA)', unit: 'g/dL' });
     setErrors({});
     setFormOpen(true);
   };
@@ -186,6 +198,7 @@ const TestDatabase = () => {
 
       if (res.success) {
         setFormOpen(false);
+        if (!editingTest) setCreateDraft(null);
         fetchTests();
       }
     } catch (err) {
@@ -211,16 +224,42 @@ const TestDatabase = () => {
     }
   };
 
+  // New look: copy a test as the start of a new one.
+  const handleDuplicate = (test) => {
+    handleOpenEdit(test);
+    setEditingTest(null);
+    setFormData((prev) => ({ ...prev, name: `${prev.name} (copy)`, code: '' }));
+  };
+  const rangeText = (t) => (t.normalLow !== null && t.normalLow !== undefined && t.normalLow !== '' ? `${t.normalLow} - ${t.normalHigh ?? ''} ${t.unit || ''}`.trim() : (t.referenceRange || ''));
+  const printTests = () => printReport({
+    title: 'Tests',
+    period: `As on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+    filters: [search && `Search: ${search}`, categoryFilter && categories.find((c) => c.value === categoryFilter)?.label, statusFilter],
+    summary: [{ label: 'Tests', value: String(filteredTests.length) }],
+    sections: [{
+      columns: [{ label: 'Test' }, { label: 'Code' }, { label: 'Category' }, { label: 'Sample' }, { label: 'Normal range' }, { label: 'Price', align: 'right' }],
+      rows: filteredTests.map((t) => [t.name, t.code || '', t.category?.name || '', t.sampleType || '', rangeText(t), money(t.price)]),
+    }],
+  });
+  const downloadTests = () => downloadCsv('tests.csv', ['Test', 'Code', 'Category', 'Sample', 'Unit', 'Normal range', 'Price', 'Status'],
+    filteredTests.map((t) => [t.name, t.code || '', t.category?.name || '', t.sampleType || '', t.unit || '', rangeText(t), t.price, t.status]));
+
   return (
     <div>
       <PageHeader
         title="Tests Configuration Database"
-        subtitle="Configure individual laboratory tests, reference ranges, and unit measurements"
-        action={
+        subtitle={isV2 ? 'Every test you offer: its price, sample, unit and normal range.' : 'Configure individual laboratory tests, reference ranges, and unit measurements'}
+        action={isV2 ? (
+          <div className="biz-actions">
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={printTests}>Print</Button>
+            <DownloadMenu items={[{ label: 'Tests (CSV)', onClick: downloadTests }]} />
+            <Button variant="primary" onClick={handleOpenCreate}><Plus size={16} /> Add test</Button>
+          </div>
+        ) : (
           <Button variant="primary" onClick={handleOpenCreate}>
             <Plus size={16} /> Add New Test
           </Button>
-        }
+        )}
       />
 
       <AdvancedFilterBar
@@ -271,7 +310,7 @@ const TestDatabase = () => {
       />
 
       <DataTable
-        headers={['Code', 'Name', 'Category', 'Sample Type', 'Unit', 'Price', 'Status', 'Actions']}
+        headers={isV2 ? ['Test', 'Category', 'Sample', 'Normal range', 'Price', 'Status', ''] : ['Code', 'Name', 'Category', 'Sample Type', 'Unit', 'Price', 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage="No tests match your query."
@@ -283,7 +322,29 @@ const TestDatabase = () => {
           onPageChange: pg.goToPage,
           onLimitChange: pg.setLimit,
         }}
-        renderRow={(test) => (
+        renderRow={(test) => isV2 ? (
+          <tr key={test._id}>
+            <td>
+              <button type="button" className="ls-link" onClick={() => handleOpenEdit(test)}>{test.name}</button>
+              {(test.isDerived || test.parameters?.some((p) => p.isDerived)) && <span className="ls-type is-panel" style={{ marginLeft: 6 }}>Calculated</span>}
+              <div className="muted">{test.code}</div>
+            </td>
+            <td>{test.category?.name || <span className="muted">No category</span>}</td>
+            <td>{test.sampleType || <span className="muted">-</span>}</td>
+            <td>{rangeText(test) || <span className="muted">Not set</span>}</td>
+            <td style={{ textAlign: 'right' }}><span className="strong">{formatCurrency(test.price)}</span></td>
+            <td><StatusBadge status={test.status} /></td>
+            <td>
+              <div className="ls-actions">
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(test)}>Edit</Button>
+                <RowMenu items={[
+                  { label: 'Copy as new test', onClick: () => handleDuplicate(test) },
+                  { label: 'Delete test', danger: true, onClick: () => setDeleteTarget(test) },
+                ]} />
+              </div>
+            </td>
+          </tr>
+        ) : (
           <tr key={test._id}>
             <td style={{ fontWeight: '600', color: 'var(--color-primary)' }}>{test.code}</td>
             <td style={{ fontWeight: '600' }}>
@@ -331,16 +392,17 @@ const TestDatabase = () => {
       {/* Test Creation Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingTest ? 'Edit Test Record' : 'Record New Diagnostic Test'}
+        onClose={closeForm}
+        variant="drawer"
+        title={isV2 ? (editingTest ? `Edit ${editingTest.name}` : 'New test') : editingTest ? 'Edit Test Record' : 'Record New Diagnostic Test'}
         size="lg"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={submitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Test
+              {isV2 ? 'Save test' : 'Save Test'}
             </Button>
           </>
         }

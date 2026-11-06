@@ -35,7 +35,8 @@ import { buildCalculatedResults } from '../../utils/reportResults';
 import { compileReportFormulas, calculateLocalResults } from '../../utils/localReportCalculations';
 import formatCurrency from '../../utils/formatCurrency';
 import useDebounce from '../../hooks/useDebounce';
-import RangeFlagBadge from '../../components/lab/RangeFlagBadge';
+import RangeFlagBadge, { getRangeFlag, FLAG_STYLES } from '../../components/lab/RangeFlagBadge';
+import './labV2.css';
 import DifferentialTotalRow from '../../components/lab/DifferentialTotalRow';
 import { differentialTotalsByRow } from '../../utils/differentialCount';
 import '../../styles/ResultEntry.css';
@@ -861,8 +862,8 @@ const ResultEntry = () => {
               Upload Report
             </Button>
           ) : (
-            <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
-              {row?.report?.status === 'Draft' ? 'Edit Draft' : 'Enter Results'}
+            <Button size="sm" variant={isV2 ? 'primary' : 'secondary'} icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
+              {isV2 ? (row?.report?.status === 'Draft' ? 'Continue draft' : 'Enter results') : row?.report?.status === 'Draft' ? 'Edit Draft' : 'Enter Results'}
             </Button>
           )}
         </td>
@@ -878,7 +879,7 @@ const ResultEntry = () => {
     const displayValue = isDerived ? calcRow?.value ?? '' : values[key] ?? '';
     return (
       <React.Fragment key={key || index}>
-      <tr className={`ls-row${testEntry.parentName && testEntry.parameterCode ? ' ls-row-child' : ''}`}>
+      <tr className={`ls-row${testEntry.parentName && testEntry.parameterCode ? ' ls-row-child' : ''}${isV2 ? (() => { const flag = getRangeFlag(String(displayValue).replace(/,/g, ''), testEntry); return flag && flag !== 'NORMAL' ? ` re-v2-flag-${flag.startsWith('CRITICAL') ? 'critical' : 'out'}` : ''; })() : ''}`}>
         <td className="ls-test">
           <div className="re-test-name">
             {canSign && testEntry.testId && (
@@ -895,7 +896,10 @@ const ResultEntry = () => {
             </button>
           )}
         </td>
-        <td className="ls-flag"><RangeFlagBadge variant="letter" value={String(displayValue).replace(/,/g, '')} test={testEntry} /></td>
+        <td className="ls-flag">{isV2 ? (() => {
+          const flag = getRangeFlag(String(displayValue).replace(/,/g, ''), testEntry);
+          return flag && flag !== 'NORMAL' ? <span className={`re-v2-pill is-${flag.toLowerCase().replace('_', '-')}`}>{FLAG_STYLES[flag].label}</span> : null;
+        })() : <RangeFlagBadge variant="letter" value={String(displayValue).replace(/,/g, '')} test={testEntry} />}</td>
         <td className={`re-result-cell${isDerived ? ' ls-derived' : ''}`}>
           {!isDerived && testEntry.resultOptions?.length > 0 && <Select
             name={`result-option-${key}`} aria-label={`Result option for ${testEntry.testName || 'test'}`}
@@ -982,7 +986,7 @@ const ResultEntry = () => {
     <div className="result-entry-page">
       {view === 'list' && <PageHeader
         title="Result Entry"
-        subtitle="Enter in-lab results or upload outsource PDF/image reports for pending cases."
+        subtitle={isV2 ? 'Cases waiting for results. Open one and type the values.' : 'Enter in-lab results or upload outsource PDF/image reports for pending cases.'}
         action={
           view === 'list' ? (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -992,7 +996,7 @@ const ResultEntry = () => {
                 icon={<Upload size={16} />}
                 onClick={openUploadPicker}
               >
-                Upload Report
+                {isV2 ? 'Upload report' : 'Upload Report'}
               </Button>
               <Button
                 variant="secondary"
@@ -1138,7 +1142,35 @@ const ResultEntry = () => {
             </div>
           ) : entry ? (
             <>
-              <div className="ls-report-head">
+              {isV2 && (() => {
+                const p = entry.patient || {};
+                const unit = ({ years: 'Y', months: 'M', days: 'D' })[p.ageUnit || 'years'] || p.ageUnit || 'Y';
+                const age = p.age != null && p.age !== '' ? `${p.age} ${unit}` : '';
+                const sex = p.gender ? String(p.gender).charAt(0).toUpperCase() : '';
+                const pct = enterableCount > 0 ? Math.round((enteredCount / enterableCount) * 100) : 0;
+                return (
+                  <div className="re-v2-head">
+                    <div className="re-v2-who">
+                      <h1 className="re-v2-name">
+                        {[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        {(age || sex) && <span className="re-v2-clinical identity-clinical">{[age, sex].filter(Boolean).join(' \u00b7 ')}</span>}
+                      </h1>
+                      <div className="re-v2-meta">
+                        <span>Reg {entry.report?.registrationNumber || '-'}</span>
+                        {entry.bill?.billNumber && <span>Bill {entry.bill.billNumber}</span>}
+                        <span>Referred by {referrerName || 'Self'}</span>
+                        {entry.bill?.totalAmount != null && <span>{formatCurrency(entry.bill.totalAmount)}{entry.bill?.paymentStatus && entry.bill.paymentStatus !== 'Paid' ? ` \u00b7 ${entry.bill.paymentStatus === 'Pending' ? 'not paid' : 'part paid'}` : ''}</span>}
+                        <StatusBadge status={entry.report?.status} />
+                      </div>
+                    </div>
+                    <div className="re-v2-progress" aria-label="Progress">
+                      <span>{enterableCount > 0 ? `${enteredCount} of ${enterableCount} entered` : `${testEntries.length} tests`}{printSaving ? ' \u00b7 saving...' : ''}</span>
+                      {enterableCount > 0 && <span className="re-v2-bar"><span style={{ width: `${pct}%` }} /></span>}
+                    </div>
+                  </div>
+                );
+              })()}
+              <div className={`ls-report-head${isV2 ? ' re-v2-hidden' : ''}`}>
                 <div>
                   <h1 className="ls-title">Lab report</h1>
                   <div className="ls-chips">
@@ -1200,7 +1232,7 @@ const ResultEntry = () => {
                     return (
                     <div key={dept.name} className="ls-dept">
                       <div className="ls-title-row">
-                        <h2 className="ls-dept-title">{dept.name.toUpperCase()}</h2>
+                        <h2 className="ls-dept-title">{isV2 ? dept.name : dept.name.toUpperCase()}</h2>
                         {departments.length > 1 && reorder(dept.name, () => moveDepartment(deptNames, dept.name, -1), () => moveDepartment(deptNames, dept.name, 1), deptIdx === 0, deptIdx === departments.length - 1)}
                       </div>
                       {dept.groups.map((group) => (
@@ -1208,31 +1240,43 @@ const ResultEntry = () => {
                           {group.panel && (
                             <>
                               <div className="ls-title-row ls-title-row-panel">
-                                <h3 className="ls-panel-title">{String(group.name || '').toUpperCase()}</h3>
+                                <h3 className="ls-panel-title">{isV2 ? String(group.name || '') : String(group.name || '').toUpperCase()}</h3>
                                 {panelKeys.length > 1 && reorder(group.name, () => moveSection(panelKeys, group.key, -1), () => moveSection(panelKeys, group.key, 1), panelKeys[0] === group.key, panelKeys.at(-1) === group.key)}
                               </div>
-                              <div className="ls-print-options">
-                                {check(group.key, 'printReady', 'Print ready')}
-                                {check(group.key, 'keepTogether', 'Keep in same page')}
-                                {check(group.key, 'newPage', 'Print from new page')}
-                                {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                {check(group.key, 'skipInterpretation', 'Skip interpretation')}
-                              </div>
+                              {(() => {
+                                const opts = (
+                                  <div className="ls-print-options">
+                                    {check(group.key, 'printReady', 'Print ready')}
+                                    {check(group.key, 'keepTogether', 'Keep in same page')}
+                                    {check(group.key, 'newPage', 'Print from new page')}
+                                    {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                    {check(group.key, 'skipInterpretation', 'Skip interpretation')}
+                                  </div>
+                                );
+                                return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
+                              })()}
                             </>
                           )}
                           <table className="ls-table">
                             <thead>
-                              <tr><th>TEST</th><th className="ls-flag" aria-label="Flag" /><th>VALUE</th><th>UNIT</th><th>REFERENCE</th></tr>
+                              {isV2
+                                ? <tr><th>Test</th><th className="ls-flag" aria-label="Flag" /><th>Result</th><th>Unit</th><th>Normal range</th></tr>
+                                : <tr><th>TEST</th><th className="ls-flag" aria-label="Flag" /><th>VALUE</th><th>UNIT</th><th>REFERENCE</th></tr>}
                             </thead>
                             <tbody>{group.tests.map((test, index) => (
                               <React.Fragment key={entryKey(test) || index}>
                                 {!group.panel && (!index || group.tests[index - 1].sectionKey !== test.sectionKey) && (
                                   <tr className="ls-test-options"><td colSpan={5}>
-                                    <div className="ls-print-options ls-print-options-test">
-                                      {check(test.sectionKey, 'printReady', 'Print ready')}
-                                      {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                      {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
-                                    </div>
+                                    {(() => {
+                                      const opts = (
+                                        <div className="ls-print-options ls-print-options-test">
+                                          {check(test.sectionKey, 'printReady', 'Print ready')}
+                                          {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                          {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
+                                        </div>
+                                      );
+                                      return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
+                                    })()}
                                   </td></tr>
                                 )}
                                 {test.subheading && (!index || group.tests[index - 1].subheading !== test.subheading || group.tests[index - 1].parentName !== test.parentName) && (
@@ -1288,7 +1332,7 @@ const ResultEntry = () => {
                     <div className="re-save-state" aria-live="polite">
                       {dirty ? <span className="re-save-dirty">● Unsaved changes</span>
                         : savedAt ? <span className="re-save-done">✓ Saved</span> : null}
-                      <span className="re-shortcuts">Enter ↵ next · Ctrl+S save · Ctrl+Enter final</span>
+                      <span className="re-shortcuts">{isV2 ? 'Enter: next value \u00b7 Ctrl+S: save draft \u00b7 Ctrl+Enter: mark final' : 'Enter ↵ next · Ctrl+S save · Ctrl+Enter final'}</span>
                     </div>
                   )}
                   <div className="re-action-buttons">
@@ -1321,10 +1365,10 @@ const ResultEntry = () => {
                     {!isReportFinal(entry?.report?.status) && (
                       <>
                         <Button variant="secondary" icon={<CheckCircle2 size={16} />} onClick={() => handleAction('submit')} loading={busy === 'submit'} disabled={busy !== null} title="Final (Ctrl+Enter)">
-                          Final
+                          {isV2 ? 'Mark final' : 'Final'}
                         </Button>
                         <Button variant="secondary" onClick={() => handleAction('draft')} loading={busy === 'draft'} disabled={busy !== null} title="Save only (Ctrl+S)">
-                          Save only
+                          {isV2 ? 'Save draft' : 'Save only'}
                         </Button>
                       </>
                     )}

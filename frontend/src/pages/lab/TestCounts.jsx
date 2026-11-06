@@ -6,6 +6,8 @@ import { PageHeader, StatCard, EmptyState, Button } from '../../components/commo
 import { SvgHBars } from '../../components/charts/SvgCharts';
 import { FlaskConical, Receipt, Hourglass, FolderOpen, Layers, ClipboardList, RefreshCw, AlertCircle } from 'lucide-react';
 import './TestCounts.css';
+import { useUiVersion } from '../../utils/uiVersion';
+import TestCountsV2 from './v2/TestCountsV2';
 
 const TestCounts = () => {
   const [stats, setStats] = useState(null);
@@ -198,4 +200,6 @@ const TestCounts = () => {
   );
 };
 
-export default TestCounts;
+// New look: its own simpler screen; Classic keeps the page above.
+const TestCountsPage = () => (useUiVersion() === 'v2' ? <TestCountsV2 /> : <TestCounts />);
+export default TestCountsPage;

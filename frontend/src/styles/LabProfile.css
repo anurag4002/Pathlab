@@ -618,3 +618,8 @@
     width: 100%;
   }
 }
+
+/* New look: a save bar that says what changed */
+html.ui-v2 .lp-v2-actions { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem; padding: 0.75rem 1rem; border: 1px solid #e4e4e7; border-radius: 12px; background: #fff; box-shadow: 0 -8px 20px -14px rgba(24, 24, 27, 0.3); }
+html.ui-v2 .lp-v2-actions .lab-profile-helper { margin: 0 auto 0 0; }
+html.ui-v2 .lab-profile-section { scroll-margin-top: calc(var(--header-height, 64px) + 1rem); }

@@ -34,6 +34,8 @@ import {
   ConfirmDialog, StatusBadge, LoadingSpinner, SignaturePreview,
 } from '../../components/common';
 import './Onboarding.css';
+import { useUiVersion } from '../../utils/uiVersion';
+import './onboardingV2.css';
 
 const STEP_META = {
   'verify-email': { icon: MailCheck },
@@ -762,6 +764,7 @@ const PANELS = {
 
 /* ---------------- Main page ---------------- */
 const Onboarding = () => {
+  const isV2 = useUiVersion() === 'v2';
   const { user } = useAuth();
   const canManage = isAdmin(user);
   const [onboarding, setOnboarding] = useState({ percent: 0, steps: [] });
@@ -837,6 +840,67 @@ const Onboarding = () => {
 
   const ring = 2 * Math.PI * 42;
   const offset = ring - (ring * (Number(percent) || 0)) / 100;
+
+  // New look: a calm checklist - one row per step, opened in place.
+  if (isV2) {
+    const stepBody = (step) => {
+      const Panel = PANELS[step.key];
+      if (!canManage) return <p className="onboarding-hint">Only an admin can complete this step.</p>;
+      if (!Panel) return <p className="onboarding-hint">Do this step from its own screen, then mark it done.</p>;
+      return step.key === 'verify-email' ? <Panel defaultEmail={user?.email} markDone={markDone} /> : <Panel markDone={markDone} />;
+    };
+    return (
+      <div className="onboarding-page ob2">
+        <PageHeader
+          title="Getting started"
+          subtitle="Set up the lab one step at a time. Each step can be done right here; it is ticked off when saved."
+          action={canManage ? <Button variant="secondary" size="sm" onClick={load} icon={<RefreshCw size={14} />}>Refresh</Button> : null}
+        />
+        {error && <div className="onboarding-alert onboarding-alert-error" role="alert"><span>{error}</span><Button variant="secondary" size="sm" onClick={load}>Try again</Button></div>}
+
+        <section className="ob2-progress" aria-label="Progress">
+          <div className="ob2-progress-text">
+            <strong>{complete ? 'All set - every step is done.' : loading ? 'Loading...' : `${doneCount} of ${steps.length} steps done`}</strong>
+            {!complete && next && <span>Next: {next.title}</span>}
+          </div>
+          <div className="ob2-bar" aria-hidden="true"><span style={{ width: `${Number(percent) || 0}%` }} /></div>
+          {!complete && next && <Button variant="primary" size="sm" onClick={() => { setExpanded(next.key); requestAnimationFrame(() => document.getElementById(`ob2-${next.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}>Continue</Button>}
+        </section>
+
+        {loading ? <LoadingSpinner label="Loading..." /> : (
+          <ol className="ob2-list">
+            {steps.map((step, index) => {
+              const isOpen = expanded === step.key;
+              const isNext = next?.key === step.key;
+              return (
+                <li key={step.key} id={`ob2-${step.key}`} className={`ob2-step${step.done ? ' is-done' : ''}${isNext ? ' is-next' : ''}${isOpen ? ' is-open' : ''}`}>
+                  <div className="ob2-row">
+                    <span className="ob2-num" aria-hidden="true">{step.done ? <CheckCircle2 size={18} /> : index + 1}</span>
+                    <button type="button" className="ob2-title" onClick={() => setExpanded(isOpen ? '' : step.key)} aria-expanded={isOpen}>
+                      <strong>{step.title}</strong>
+                      <span>{step.description}</span>
+                    </button>
+                    <span className={`ob2-state${step.done ? ' done' : isNext ? ' next' : ''}`}>{step.done ? `Done${step.updatedAt ? ` ${formatDate(step.updatedAt).split(',')[0]}` : ''}` : isNext ? 'Up next' : 'To do'}</span>
+                    <div className="ob2-actions">
+                      <Button variant={isOpen ? 'secondary' : step.done ? 'secondary' : 'primary'} size="sm" onClick={() => setExpanded(isOpen ? '' : step.key)}>
+                        {isOpen ? <><ChevronUp size={14} /> Close</> : step.done ? 'Review' : 'Do it'}
+                      </Button>
+                      {canManage && (
+                        <Button variant="secondary" size="sm" disabled={!!toggling} onClick={() => toggle(step.key, !step.done)}>
+                          {toggling === step.key ? 'Saving...' : step.done ? 'Not done' : 'Mark done'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {isOpen && <div className="ob2-body">{stepBody(step)}</div>}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="onboarding-page">

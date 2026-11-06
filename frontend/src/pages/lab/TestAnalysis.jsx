@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import TestAnalysisV2 from './v2/TestAnalysisV2';
 import { RefreshCw } from 'lucide-react';
 import { getReports } from '../../services/reportService';
 import { getCategories, getTests } from '../../services/testService';
@@ -534,4 +536,6 @@ const TestAnalysis = () => {
   );
 };
 
-export default TestAnalysis;
+// New look: its own simpler screen; Classic keeps the page above.
+const TestAnalysisPage = () => (useUiVersion() === 'v2' ? <TestAnalysisV2 /> : <TestAnalysis />);
+export default TestAnalysisPage;

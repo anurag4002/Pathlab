@@ -3,8 +3,11 @@ import { Upload } from 'lucide-react';
 import { Button, FileUploader, Modal } from '../common';
 import { uploadXrayReport } from '../../services/xrayService';
 
-export default function XrayReportUpload({ record, onUploaded }) {
-  const [open, setOpen] = useState(false);
+export default function XrayReportUpload({ record, onUploaded, isOpen, onClose }) {
+  const controlled = isOpen !== undefined;
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = controlled ? isOpen : ownOpen;
+  const setOpen = (value) => { if (controlled) { if (!value) onClose?.(); } else setOwnOpen(value); };
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -19,10 +22,11 @@ export default function XrayReportUpload({ record, onUploaded }) {
     } catch (error) { setError(error.response?.data?.message || error.message || 'Could not upload the PDF.'); }
     finally { setBusy(false); }
   };
+  if (!record) return null;
   return <>
-    <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setFile(null); setError(''); setOpen(true); }}>
+    {!controlled && <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setFile(null); setError(''); setOpen(true); }}>
       {record.reportFile?.size ? 'Replace PDF' : 'Upload PDF'}
-    </Button>
+    </Button>}
     <Modal isOpen={open} onClose={() => !busy && setOpen(false)} title={`Upload X-Ray PDF — ${record.patient?.name || ''}`}
       footer={<><Button variant="secondary" disabled={busy} onClick={() => setOpen(false)}>Cancel</Button><Button loading={busy} disabled={busy} onClick={submit}>Upload PDF</Button></>}>
       <FileUploader label="X-Ray PDF report" subtitle="PDF report, up to 10 MB. Written findings are optional when uploading a report."

@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Button, Input, Select } from '../../../components/common';
 import { GENDER_OPTIONS } from '../../../constants/patientConstants';
 import useAuth from '../../../hooks/useAuth';
+import { useUiVersion } from '../../../utils/uiVersion';
 
 const EMPTY_FORM = {
   name: '',
@@ -31,17 +32,19 @@ const PatientFormModal = ({
   doctorsLoading = false
 }) => {
   const { user } = useAuth();
+  const isV2 = useUiVersion() === 'v2';
   const identityLocked = isEditing && user?.role !== 'Admin';
   const handleChange = (field) => (e) =>
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
 
   const footer = (
     <>
+      {isV2 && !isEditing && <span className="cases-drawer-note">Closing keeps what you typed.</span>}
       <Button variant="secondary" onClick={onClose} disabled={loading}>
         Cancel
       </Button>
       <Button variant="primary" onClick={onSubmit} loading={loading}>
-        {isEditing ? 'Update Patient' : 'Register Patient'}
+        {isV2 ? (isEditing ? 'Save changes' : 'Add patient') : isEditing ? 'Update Patient' : 'Register Patient'}
       </Button>
     </>
   );
@@ -50,8 +53,9 @@ const PatientFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Edit Patient Details' : 'Register New Patient'}
+      title={isV2 ? (isEditing ? 'Edit patient' : 'New patient') : isEditing ? 'Edit Patient Details' : 'Register New Patient'}
       footer={footer}
+      variant="drawer"
       size="lg"
     >
       <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -72,7 +76,7 @@ const PatientFormModal = ({
           <p className="form-helper">Registration number is assigned by the server when the patient is created.</p>
         )}
         <Input
-          label="Patient Name"
+          label={isV2 ? 'Name' : 'Patient Name'}
           name="name"
           disabled={identityLocked}
           helperText={identityLocked ? 'Only Admin can change the patient name.' : undefined}
@@ -98,7 +102,7 @@ const PatientFormModal = ({
             onChange={handleChange('ageUnit')} options={[{ value: 'years', label: 'Years' }, { value: 'months', label: 'Months' }, { value: 'days', label: 'Days' }]}
             placeholder="" error={errors.ageUnit} />
           <Select
-            label="Gender"
+            label={isV2 ? 'Sex' : 'Gender'}
             name="gender"
             value={formData.gender}
             onChange={handleChange('gender')}
@@ -110,7 +114,7 @@ const PatientFormModal = ({
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
           <Input
-            label="Phone Number"
+            label={isV2 ? 'Phone number' : 'Phone Number'}
             name="phone"
             disabled={identityLocked}
             helperText={identityLocked ? 'Only Admin can change the phone number.' : undefined}
@@ -145,21 +149,21 @@ const PatientFormModal = ({
           />
         </div>
         <Input
-          label="Full Address"
+          label={isV2 ? 'Address' : 'Full Address'}
           name="address"
           value={formData.address}
           onChange={handleChange('address')}
           placeholder="Home address / city"
         />
         <Input
-          label="Symptoms / Past History"
+          label={isV2 ? 'Symptoms or past history' : 'Symptoms / Past History'}
           name="history"
           value={formData.history || ''}
           onChange={handleChange('history')}
           placeholder="Cough, high sugar, fever, etc."
         />
         <Select
-          label="Referring Doctor"
+          label={isV2 ? 'Referred by' : 'Referring Doctor'}
           name="referringDoctor"
           value={formData.referringDoctor}
           onChange={handleChange('referringDoctor')}

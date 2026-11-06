@@ -42,11 +42,11 @@ export const SIDEBAR_NAV_ITEMS = [
     children: [
       { title: 'Bills', path: '/cases/bills' },
       { title: 'Patients', path: '/cases/patients' },
-      { title: 'Booking Inquiries', path: '/cases/inquiries' },
+      { title: 'Booking Inquiries', v2Title: 'Bookings', path: '/cases/inquiries' },
       { title: 'Transactions', path: '/cases/transactions' },
-      { title: 'Referral Doctors', path: '/cases/doctors' },
+      { title: 'Referral Doctors', v2Title: 'Referral doctors', path: '/cases/doctors' },
       { title: 'Agents', path: '/cases/agents' },
-      { title: 'Modality', path: '/cases/modality', roles: ['Admin', 'Employee'] }
+      { title: 'Modality', v2Title: 'Other scans', path: '/cases/modality', roles: ['Admin', 'Employee'] }
     ]
   },
   {
@@ -54,10 +54,10 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Activity',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: "Today's Reports", path: '/lab/reports' },
-      { title: 'Result Entry', path: '/lab/result-entry' },
-      { title: 'Result Verification', path: '/lab/verification', roles: ['Admin'] },
-      { title: 'Search Reports', path: '/lab/search' }
+      { title: "Today's Reports", v2Title: "Today's reports", path: '/lab/reports' },
+      { title: 'Result Entry', v2Title: 'Result entry', path: '/lab/result-entry' },
+      { title: 'Result Verification', v2Title: 'Verification', path: '/lab/verification', roles: ['Admin'] },
+      { title: 'Search Reports', v2Title: 'Search reports', path: '/lab/search' }
     ]
   },
   {
@@ -66,16 +66,16 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'FlaskConical',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: 'Test Database', path: '/lab/tests', roles: ['Admin'] },
-      { title: 'Normal Ranges', path: '/lab/normal-ranges', roles: ['Admin'] },
-      { title: 'Test Packages', path: '/lab/packages', roles: ['Admin'] },
-      { title: 'Rate Revision', path: '/settings/rate-revision', roles: ['Admin'] },
-      { title: 'Test Panels', path: '/lab/panels', roles: ['Admin'] },
-      { title: 'Test Categories', path: '/lab/categories', roles: ['Admin'] },
+      { title: 'Test Database', v2Title: 'Tests', path: '/lab/tests', roles: ['Admin'] },
+      { title: 'Normal Ranges', v2Title: 'Normal ranges', path: '/lab/normal-ranges', roles: ['Admin'] },
+      { title: 'Test Packages', v2Title: 'Packages', path: '/lab/packages', roles: ['Admin'] },
+      { title: 'Rate Revision', v2Title: 'Change prices', path: '/settings/rate-revision', roles: ['Admin'] },
+      { title: 'Test Panels', v2Title: 'Panels', path: '/lab/panels', roles: ['Admin'] },
+      { title: 'Test Categories', v2Title: 'Categories', path: '/lab/categories', roles: ['Admin'] },
       { title: 'Interpretations', path: '/lab/interpretations', roles: ['Admin', 'Employee'] },
-      { title: 'Test Counts', path: '/lab/counts' },
-      { title: 'Test Analysis', path: '/lab/analysis', roles: ['Admin', 'Employee'] },
-      { title: 'Rate List', path: '/lab/rates', roles: ['Admin'] }
+      { title: 'Test Counts', v2Title: 'Test counts', path: '/lab/counts' },
+      { title: 'Test Analysis', v2Title: 'Test analysis', path: '/lab/analysis', roles: ['Admin', 'Employee'] },
+      { title: 'Rate List', v2Title: 'Rate list', path: '/lab/rates', roles: ['Admin'] }
     ]
   },
   {
@@ -83,9 +83,9 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Radio',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: 'Cases', path: '/usg/today' },
-      { title: 'USG Reports', path: '/usg/reports' },
-      { title: 'Report Templates', path: '/usg/templates', roles: ['Admin'] }
+      { title: 'Cases', v2Title: 'USG cases', path: '/usg/today' },
+      { title: 'USG Reports', v2Title: 'USG reports', path: '/usg/reports' },
+      { title: 'Report Templates', v2Title: 'Report templates', path: '/usg/templates', roles: ['Admin'] }
     ]
   },
   {
@@ -93,8 +93,8 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Layers',
     roles: ['Admin', 'Employee', 'Doctor'],
     children: [
-      { title: 'Cases', path: '/xray/today' },
-      { title: 'X-Ray Reports', path: '/xray/reports' }
+      { title: 'Cases', v2Title: 'X-ray cases', path: '/xray/today' },
+      { title: 'X-Ray Reports', v2Title: 'X-ray reports', path: '/xray/reports' }
     ]
   },
   {
@@ -102,7 +102,7 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Stethoscope',
     roles: ['Doctor'],
     children: [
-      { title: 'My Cases', path: '/doctor' }
+      { title: 'My Cases', v2Title: 'My patients', path: '/doctor' }
     ]
   },
   {
@@ -110,16 +110,16 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'Settings',
     roles: ['Admin'],
     children: [
-      { title: 'User Management', path: '/manage/employees' },
+      { title: 'User Management', v2Title: 'Staff', path: '/manage/employees' },
       { title: 'Branches', path: '/manage/branches' },
-      { title: 'Audit Log', path: '/settings/audit-log' },
-      { title: 'Doctor Access', path: '/manage/doctors' },
-      { title: 'Browser Security', path: '/manage/security' },
-      { title: 'Lab Profile', path: '/setup/profile' },
-      { title: 'Job Queue', path: '/settings/jobs' },
-      { title: 'Onboarding', path: '/setup/onboarding' },
-      { title: 'Templates', path: '/delivery/templates' },
-      { title: 'Tickets', path: '/support/tickets' }
+      { title: 'Audit Log', v2Title: 'Audit log', path: '/settings/audit-log' },
+      { title: 'Doctor Access', v2Title: 'Doctor access', path: '/manage/doctors' },
+      { title: 'Browser Security', v2Title: 'Approved computers', path: '/manage/security' },
+      { title: 'Lab Profile', v2Title: 'Lab profile', path: '/setup/profile' },
+      { title: 'Job Queue', v2Title: 'Unsent messages', path: '/settings/jobs' },
+      { title: 'Onboarding', v2Title: 'Getting started', path: '/setup/onboarding' },
+      { title: 'Templates', v2Title: 'Message wording', path: '/delivery/templates' },
+      { title: 'Tickets', v2Title: 'Help requests', path: '/support/tickets' }
     ]
   }
 ];

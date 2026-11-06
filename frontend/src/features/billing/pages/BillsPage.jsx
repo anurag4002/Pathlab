@@ -37,12 +37,13 @@ import formatCurrency from '../../../utils/formatCurrency';
 import formatDate from '../../../utils/formatDate';
 import { sanitizeBillSearchParam } from '../../../utils/billNavigation';
 import '../Billing.css';
+import '../../../pages/cases/v2/casesV2.css';
 import { WhatsAppShare, RowMenu, IdentityCell } from '../../../components/common';
 import { useUiVersion } from '../../../utils/uiVersion';
 
 // New look: patient first, bill second, no discount column (in details).
 const num = (text) => <span className="th-num">{text}</span>;
-const BILL_TABLE_HEADERS_V2 = ['Patient', 'Bill', num('Total'), num('Paid'), num('Due'), 'Status', ''];
+const BILL_TABLE_HEADERS_V2 = ['Patient', 'Bill', num('Total'), num('Received'), num('Still due'), 'Status', ''];
 import { getBillPaperSize, saveBillPaperSize } from '../../../utils/billPrintOptions';
 import CopyButton from '../../../components/common/CopyButton/CopyButton';
 import { notify } from '../../../components/common/Toast/toast';
@@ -708,17 +709,26 @@ const BillsPage = () => {
       )}
       <PageHeader
         title="Billing Ledger"
-        subtitle="Manage patient billing receipts and outstanding balances"
+        subtitle={isV2 ? 'Every bill, what was received and what is still due.' : 'Manage patient billing receipts and outstanding balances'}
         action={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {isV2 && (
+              <label className="bills-paper-select" title="Paper size used when printing a bill">
+                <span>Bill paper</span>
+                <select id="bill-paper-size" value={billPaperSize} onChange={(event) => setBillPaperSize(saveBillPaperSize(event.target.value))}>
+                  <option value="A4">A4</option>
+                  <option value="A5">Half A4 (A5)</option>
+                </select>
+              </label>
+            )}
             {!canBill && (
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                No billing permission — actions hidden (server still enforces).
+                {isV2 ? 'You can view bills but not make or change them.' : 'No billing permission — actions hidden (server still enforces).'}
               </span>
             )}
             {canBill && (
               <Button variant="primary" onClick={() => { clearBookingPrefill(); navigate('/cases/bills/new'); }} icon={<Plus size={16} />}>
-                Create Bill
+                {isV2 ? 'New bill' : 'Create Bill'}
               </Button>
             )}
           </div>
@@ -726,16 +736,16 @@ const BillsPage = () => {
       />
       {!isAdmin && (
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-          Bill edits and refunds are restricted to Admin.
+          {isV2 ? 'Only an admin can edit a bill or give a refund.' : 'Bill edits and refunds are restricted to Admin.'}
         </p>
       )}
 
       {(listError || optionsError) && <ErrorBanner message={listError || optionsError} onRetry={retryLoad} />}
-      <div style={{ maxWidth: 300, marginBottom: 16 }}>
+      {!isV2 && <div style={{ maxWidth: 300, marginBottom: 16 }}>
         <Select label="Bill paper size" id="bill-paper-size" value={billPaperSize} placeholder=""
           onChange={event => setBillPaperSize(saveBillPaperSize(event.target.value))}
           options={[{ value: 'A4', label: 'A4 — plain paper' }, { value: 'A5', label: 'Half A4 (A5) — plain paper' }]} />
-      </div>
+      </div>}
       {pdfNotice && (
         <p role="status" data-testid="bill-pdf-started" style={{ fontSize: '0.875rem', color: 'var(--color-success, #166534)', marginBottom: '12px' }}>
           {pdfNotice}

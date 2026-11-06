@@ -10,6 +10,8 @@ import useClientPagination from '../../../hooks/useClientPagination';
 import { buildBillsSearchUrl } from '../../../utils/billNavigation';
 import { ArrowLeft, ClipboardList, FileText, Wallet } from 'lucide-react';
 import '../Patients.css';
+import { useUiVersion } from '../../../utils/uiVersion';
+import PatientProfile from './v2/PatientProfile';
 
 const PatientDetailsPage = () => {
   const { id } = useParams();
@@ -200,4 +202,6 @@ const PatientDetailsPage = () => {
   );
 };
 
-export default PatientDetailsPage;
+// New look: its own profile screen; Classic keeps the page above.
+const PatientDetailsRoute = () => (useUiVersion() === 'v2' ? <PatientProfile /> : <PatientDetailsPage />);
+export default PatientDetailsRoute;

@@ -1,0 +1,5 @@
+td.usg-v2-actions { text-align: right; white-space: nowrap; vertical-align: middle; }
+td.usg-v2-actions > * { vertical-align: middle; }
+td.usg-v2-actions > * + * { margin-left: 0.4rem; }
+.usg-v2-note { margin-right: auto; color: #71717a; font-size: 0.8rem; }
+.usg-v2-waiting { color: #b45309; font-weight: 500; }

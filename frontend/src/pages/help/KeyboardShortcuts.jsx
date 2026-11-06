@@ -1,5 +1,6 @@
 import React from 'react';
 import { PageHeader } from '../../components/common';
+import { useUiVersion } from '../../utils/uiVersion';
 import './KeyboardShortcuts.css';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -48,12 +49,29 @@ const GROUPS = [
   },
 ];
 
+// New look: same keys, the wording of the new screens (Create bill, Save
+// draft, Mark final; the New bill form has no Tests / Packages tabs).
+const V2_TEXT = {
+  'Open a New bill (on the New bill form it creates the invoice)': 'Start a new bill (on the New bill screen it creates the bill)',
+  'In "Search all tests" (after typing): add the highlighted test and clear the box for the next one': 'In the test search (after typing): add the highlighted test and clear the box for the next one',
+  'In Amount Received, Discount or Payment Mode: create the invoice (works everywhere)': 'In the payment bar (amount received, discount, paid by): create the bill',
+  'Create the invoice (B for Bill) from anywhere on the form. Missing details are named and shown': 'Create the bill from anywhere on the New bill screen. Anything missing is named and shown',
+  'From the test search: discount → amount → payment mode → Create Invoice': 'From the test search: on to the payment bar and Create bill',
+  'Save (stay on the report)': 'Save draft (stay on the report)',
+  'Final (submit the results)': 'Mark final (submit the results)',
+};
+const V2_HIDE = new Set(['On the department or All / Tests / Packages / Panels buttons: switch']);
+
 export default function KeyboardShortcuts() {
+  const isV2 = useUiVersion() === 'v2';
+  const groups = isV2
+    ? GROUPS.map((g) => ({ ...g, items: g.items.filter(([, t]) => !V2_HIDE.has(t)).map(([k, t]) => [k, V2_TEXT[t] || t]) }))
+    : GROUPS;
   return (
     <div className="shortcuts-page">
       <PageHeader title="Keyboard shortcuts" subtitle="Press ? on any screen to open this list." />
       <div className="shortcuts-grid">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <section key={group.title} className="shortcuts-card" aria-labelledby={`sc-${group.title}`}>
             <h2 id={`sc-${group.title}`}>{group.title}</h2>
             <dl>
