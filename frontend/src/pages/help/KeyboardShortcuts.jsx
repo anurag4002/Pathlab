@@ -24,7 +24,7 @@ const GROUPS = [
       [['↑ / ↓'], 'In the test search: move the highlight'],
       [['Esc'], 'In the test search: clear it'],
       [['← / →'], 'On the department or All / Tests / Packages / Panels buttons: switch'],
-      [[MOD, 'Enter'], 'Create the invoice from anywhere on the form (Alt+Enter also works where the keyboard allows it). Missing details are named and shown'],
+      [[MOD, 'B'], 'Create the invoice (B for Bill) from anywhere on the form. Missing details are named and shown'],
     ],
   },
   {

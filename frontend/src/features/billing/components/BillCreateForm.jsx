@@ -570,21 +570,29 @@ const BillCreateForm = ({
     return Object.keys(errs).length === 0;
   };
 
-  // Alt+Enter or Ctrl+Enter creates / updates the invoice from anywhere on the form.
+  // Ctrl+B ("Bill") creates / updates the invoice from anywhere on the form.
+  // Matched on the physical key (event.code), so it works with any keyboard
+  // layout or input tool; neither Windows nor Chrome uses Ctrl+B. Ctrl+Enter
+  // and Alt+Enter still work where the keyboard lets them through.
   const submitRef = useRef(null);
   useEffect(() => {
     const onKey = (event) => {
-      if (event.key !== 'Enter' || !(event.altKey || event.ctrlKey || event.metaKey) || document.querySelector('[role="dialog"]')) return;
+      const ctrl = event.ctrlKey || event.metaKey;
+      const billKey = ctrl && !event.shiftKey && !event.altKey && (event.code === 'KeyB' || String(event.key).toLowerCase() === 'b');
+      const enterKey = event.key === 'Enter' && (ctrl || event.altKey);
+      if ((!billKey && !enterKey) || event.repeat || document.querySelector('[role="dialog"]')) return;
       event.preventDefault();
-      submitRef.current?.();
+      event.stopPropagation();
+      submitRef.current?.({ fromShortcut: true });
     };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async ({ fromShortcut = false } = {}) => {
     if (submitting) return;
     if (!validate()) return;
+    if (fromShortcut) notify(isEditMode ? 'Saving the bill…' : 'Creating invoice…');
     setSubmitting(true);
     try {
       if (isEditMode) {
@@ -1137,7 +1145,7 @@ const BillCreateForm = ({
               </div>
               {/* Always takes its space (only fades in while typing), so the list never moves under the mouse. */}
               {activeDepartment !== 'USG' && (
-                <p id="picker-keys-tip" className={`kbd-tip${pickerFocused ? ' is-visible' : ''}`}><kbd>↑</kbd><kbd>↓</kbd> choose · <kbd>Enter</kbd> add · <kbd>Esc</kbd> clear · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> create invoice</p>
+                <p id="picker-keys-tip" className={`kbd-tip${pickerFocused ? ' is-visible' : ''}`}><kbd>↑</kbd><kbd>↓</kbd> choose · <kbd>Enter</kbd> add · <kbd>Esc</kbd> clear · <kbd>Ctrl</kbd>+<kbd>B</kbd> create invoice</p>
               )}
               {/* Mouse or the search box (Up/Down/Enter) pick tests; the list is not a Tab stop. */}
               <div className="test-picker-list" tabIndex={-1}>
@@ -1215,7 +1223,7 @@ const BillCreateForm = ({
             dueAmount={dueAmount}
             errors={errors}
             onSubmit={handleSubmit}
-            submitHint="Ctrl+Enter"
+            submitHint="Ctrl+B"
             submitting={submitting}
             isEditMode={isEditMode}
             submitLabel={isEditMode ? 'Save Bill' : 'Create Invoice'}

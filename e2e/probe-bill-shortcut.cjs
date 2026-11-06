@@ -1,4 +1,4 @@
-// Reproduces Alt+Enter on the new-bill screen from the different places the
+// Reproduces the create-invoice shortcut (Ctrl+B; KEYS=Alt+Enter to try others) on the new-bill screen from the different places the
 // cursor can be (after clicking a test, a dropdown, a field), and reports
 // where the page ends up.
 const { start } = require('./env.cjs');
@@ -28,7 +28,7 @@ const { BASE } = require('./config.cjs');
     await page.getByRole('textbox', { name: /Phone/i }).first().fill('9876511111');
     await prepare();
     const focus = await page.evaluate(() => `${document.activeElement?.tagName} ${document.activeElement?.getAttribute('aria-label') || document.activeElement?.innerText?.slice(0, 40) || ''}`);
-    await page.keyboard.press('Alt+Enter');
+    await page.keyboard.press(process.env.KEYS || 'Control+b');
     await page.waitForTimeout(2500);
     const toast = await page.locator('.toast').allInnerTexts().catch(() => []);
     console.log(`${name.padEnd(42)} focus=[${focus.replace(/\s+/g, ' ')}] -> ${page.url().replace(BASE, '')} ${toast.length ? `toast: ${toast.join(' | ')}` : ''}`);
