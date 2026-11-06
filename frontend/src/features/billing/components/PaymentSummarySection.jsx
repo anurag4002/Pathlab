@@ -92,6 +92,7 @@ const PaymentSummarySection = ({
         <span>Balance Due:</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <strong
+            className={`balance-due${totalAmount > 0 ? '' : ' is-empty'}`}
             style={{
               color: dueAmount > 0 ? 'var(--color-danger)' : 'var(--color-success)',
               fontSize: 'var(--font-size-lg)'

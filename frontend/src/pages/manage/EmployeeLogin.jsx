@@ -401,7 +401,7 @@ const EmployeeLogin = () => {
         ]}
       />
 
-      <p className="user-management-helper">
+      <p className="user-management-helper dev-note">
         Search and filters use the existing user API. Doctor accounts remain in Doctor Access.
       </p>
 

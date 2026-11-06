@@ -360,7 +360,7 @@ const TestAnalysis = () => {
       />
 
       <div
-        className="card"
+        className="card dev-note"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -383,7 +383,7 @@ const TestAnalysis = () => {
 
       <div
         role="note"
-        className="card"
+        className="card dev-note"
         style={{ marginBottom: 'var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}
       >
         The report activity endpoint does not expose a date range, test/category/status filter, or aggregate endpoint. The report table below is server-paginated; catalog filters use the separate supported test-catalog parameters. No unsupported date or historical test total is inferred.
@@ -522,12 +522,12 @@ const TestAnalysis = () => {
             )}
           />
         )}
-        <p style={{ margin: 'var(--space-3) 0 0', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+        <p className="dev-note" style={{ margin: 'var(--space-3) 0 0', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
           The test catalog endpoint has no pagination metadata; the table displays the filtered records returned by that API.
         </p>
       </section>
 
-      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+      <p className="dev-note" style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
         No test-wise usage total, test-level revenue, panel/package usage, modality, referral, patient-count, or clinical abnormality analysis is inferred. The current APIs do not provide those aggregates, and no test-analysis export endpoint exists; this screen does not generate substitute data.
       </p>
     </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu } from 'lucide-react';
 import GlobalSearch from '../search/GlobalSearch';
 import UserDropdown from './UserDropdown';
+import UiVersionSwitch from './UiVersionSwitch';
 import './Header.css';
 
 const Header = ({ collapsed, toggleCollapsed }) => {
@@ -26,6 +27,7 @@ const Header = ({ collapsed, toggleCollapsed }) => {
       </div>
 
       <div className="header-right">
+        <UiVersionSwitch />
         <UserDropdown />
       </div>
     </header>

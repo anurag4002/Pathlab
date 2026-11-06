@@ -498,7 +498,7 @@ const MonthlyBusiness = () => {
       />
 
       {monthRange && (
-        <p style={{ margin: '0 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+        <p className="dev-note" style={{ margin: '0 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
           CSV exports cover matching server records in the selected month, up to the backend's 5,000-row cap. The visible transaction search, type, payment method, and pagination filters are not supported by the export endpoint.
         </p>
       )}
@@ -546,7 +546,7 @@ const MonthlyBusiness = () => {
             <StatCard title="Monthly transaction records" value={formatApiCount(Array.isArray(report.transactions) ? report.transactions.length : undefined)} />
             <StatCard title="Expense records" value={formatApiCount(expenses === null ? undefined : expenses.length)} />
           </div>
-          <p style={{ margin: '-4px 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+          <p className="dev-note" style={{ margin: '-4px 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
             Collections are transaction-date income. Billed amount, paid-to-date, billed cases, and current due are totals derived from the API&apos;s complete department split for bills dated in this month.
           </p>
 

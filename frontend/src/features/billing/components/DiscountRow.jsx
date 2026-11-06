@@ -81,6 +81,7 @@ const DiscountRow = ({
         )}
         <button
           type="button"
+          className="discount-mode-toggle"
           onClick={toggleMode}
           title={isPercent ? 'Switch to flat amount (₹)' : 'Switch to percent (%)'}
           aria-label={isPercent ? 'Switch discount to amount mode' : 'Switch discount to percent mode'}

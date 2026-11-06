@@ -212,3 +212,18 @@ html.ui-v2 .afb.afb--v2 { padding: 0.55rem 0.65rem; }
   .afb-v2-row > .afb-field input[type="text"], .afb-v2-row > .afb-field input[type="search"] { min-width: 0; width: 100%; }
   .afb-v2-panel { position: fixed; left: 1rem; right: 1rem; top: auto; bottom: 1rem; width: auto; max-height: 75vh; overflow: auto; }
 }
+
+/* ---- New bill (new look) --------------------------------------------- */
+html.ui-v2 .discount-mode-toggle { background: #fff !important; color: var(--color-text, #0f172a) !important; border-color: var(--color-border, #cbd5e1) !important; border-left: 1px solid var(--color-border, #cbd5e1) !important; }
+html.ui-v2 .discount-mode-toggle:hover { background: #f8fafc !important; }
+html.ui-v2 .balance-due.is-empty { color: var(--color-text-muted, #94a3b8) !important; }
+
+/* Notes written for developers are hidden in the new look. */
+html.ui-v2 .dev-note { display: none !important; }
+
+/* Daily business figures as one grouped card (new look). */
+html.ui-v2 .metric-card { padding: 0 !important; overflow: hidden; border-radius: 12px; background: #fff; }
+html.ui-v2 .metric-card .metric-grid { gap: 0 !important; }
+html.ui-v2 .metric-card .metric-cell { padding: 0.9rem 1.1rem; border-left: 1px solid var(--color-border, #e5e7eb); }
+html.ui-v2 .metric-card .metric-cell:first-child { border-left: 0; }
+html.ui-v2 .metric-label { text-transform: none !important; letter-spacing: 0 !important; font-size: 0.8125rem !important; }

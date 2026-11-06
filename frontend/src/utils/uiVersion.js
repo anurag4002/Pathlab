@@ -15,6 +15,17 @@ export function getUiVersion() {
 
 export function applyUiVersion() {
   if (typeof document === 'undefined') return;
+  // ?ui=new / ?ui=classic in any link switches the look (and is removed from the URL).
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const wanted = params.get('ui');
+    if (wanted) {
+      localStorage.setItem(keyFor(), /^(new|v2)$/i.test(wanted) ? 'v2' : 'classic');
+      params.delete('ui');
+      const query = params.toString();
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
+  } catch { /* ignore */ }
   document.documentElement.classList.toggle('ui-v2', getUiVersion() === 'v2');
 }
 

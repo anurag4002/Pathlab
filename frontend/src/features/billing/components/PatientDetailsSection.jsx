@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { Input, Select, PatientPicker } from '../../../components/common';
 import { PATIENT_TITLES } from '../billingConstants';
 import '../Billing.css';
+import { useUiVersion } from '../../../utils/uiVersion';
 
 const PatientDetailsSection = ({
   isExistingPatient,
@@ -52,11 +53,22 @@ const PatientDetailsSection = ({
 
   // Only offer "+ Email" etc. for fields that are still hidden.
   // Once a field is on (default / prefilled from patient), no toggle chip.
+  // New look: optional fields stay folded until they have a value or are
+  // opened with their "+ Email" chip, so the test search is visible at once.
+  const isV2 = useUiVersion() === 'v2';
+  const [opened, setOpened] = useState({});
+  const open = (key) => setOpened((prev) => ({ ...prev, [key]: true }));
+  if (isV2) {
+    showEmail = showEmail && (!!patientEmail || !!opened.email);
+    showAddress = showAddress && (!!patientAddress || !!opened.address);
+    showAadhaar = showAadhaar && (!!patientAadhaar || !!opened.aadhaar);
+    showHistory = showHistory && (!!patientHistory || !!opened.history);
+  }
   const optionalFields = [
-    { key: 'email', label: 'Email', active: showEmail, toggle: () => setShowEmail((v) => !v) },
-    { key: 'address', label: 'Address', active: showAddress, toggle: () => setShowAddress((v) => !v) },
-    { key: 'aadhaar', label: 'Aadhaar', active: showAadhaar, toggle: () => setShowAadhaar((v) => !v) },
-    { key: 'history', label: 'Patient History', active: showHistory, toggle: () => setShowHistory((v) => !v) }
+    { key: 'email', label: 'Email', active: showEmail, toggle: () => (isV2 ? open('email') : setShowEmail((v) => !v)) },
+    { key: 'address', label: 'Address', active: showAddress, toggle: () => (isV2 ? open('address') : setShowAddress((v) => !v)) },
+    { key: 'aadhaar', label: 'Aadhaar', active: showAadhaar, toggle: () => (isV2 ? open('aadhaar') : setShowAadhaar((v) => !v)) },
+    { key: 'history', label: 'Patient History', active: showHistory, toggle: () => (isV2 ? open('history') : setShowHistory((v) => !v)) }
   ].filter((f) => !f.active);
 
   return (

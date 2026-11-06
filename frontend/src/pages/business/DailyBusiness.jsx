@@ -56,8 +56,9 @@ const ErrorBanner = ({ message, onRetry }) => (
 /* One summary metric cell — values are always passed straight from the API
    response; this component performs no formatting beyond what it is given. */
 const Metric = ({ label, value, color }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+  <div className="metric-cell" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
     <span
+      className="metric-label"
       style={{
         fontSize: 'var(--font-size-xs)',
         color: 'var(--color-text-muted)',
@@ -389,7 +390,7 @@ const DailyBusiness = () => {
         </div>
       )}
       {!invalidRange && (
-        <p style={{ margin: '0 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+        <p className="dev-note" style={{ margin: '0 0 var(--space-4)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
           CSV export uses the selected date range and all matching server records for the active tab, up to the backend's 5,000-row cap. In-page search and cashier filters are not sent to the export endpoint.
         </p>
       )}
@@ -403,8 +404,8 @@ const DailyBusiness = () => {
       ) : data && (
         <>
           {/* Summary metrics — every value straight from GET /dashboard/business */}
-          <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-4)' }}>
+          <div className="card metric-card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-4)' }}>
               <Metric
                 label="Net"
                 value={formatCurrency(data.netIncome)}

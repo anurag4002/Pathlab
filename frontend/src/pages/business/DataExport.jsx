@@ -314,7 +314,7 @@ const DataExport = () => {
           <Server size={24} color="var(--color-primary)" aria-hidden="true" />
           <div>
             <h4 style={{ fontWeight: '700', fontSize: '0.95rem', margin: 0 }}>Server export notes</h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+            <p className="dev-note" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
               CSV values and row selection remain server-owned. The endpoint is capped at 5,000 rows per request; search and page filters are intentionally not sent to it.
             </p>
           </div>

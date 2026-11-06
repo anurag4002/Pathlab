@@ -12,6 +12,11 @@ dashboard banner). Classic stays exactly as before; `[x]` on a B item means done
 the new look. Check with `node e2e/v2-flow.cjs` (new look) and
 `node e2e/full-flow.cjs` (classic).
 
+Round 3: short sentence-case page titles (PageHeader), developer subtitles and
+notes hidden (`dev-note`), new bill (optional fields folded behind "+ Email"
+chips, quiet ₹/% toggle, muted balance until there is a total), daily business
+figures grouped.
+
 Revamped so far: dashboard (key figures, quick actions, no setup card once billing),
 bills, today's reports, result entry list, verification queue, patients, reviews,
 dues - identity cell (age · sex always shown on clinical screens), one action + ⋯,
