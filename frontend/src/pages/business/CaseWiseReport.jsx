@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AllBillsReport from './v2/AllBillsReport';
 import { getBills } from '../../services/billService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
@@ -225,4 +226,6 @@ const CaseWiseReport = () => {
   );
 };
 
-export default CaseWiseReport;
+// New look: its own simpler screen; Classic keeps the page above.
+const CaseWiseReportPage = () => (useUiVersion() === 'v2' ? <AllBillsReport /> : <CaseWiseReport />);
+export default CaseWiseReportPage;

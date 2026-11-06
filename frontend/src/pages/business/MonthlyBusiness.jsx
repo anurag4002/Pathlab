@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import MonthlySummary from './v2/MonthlySummary';
 import printReport from '../../utils/printReport';
 import { money, dayLabel, sum } from '../../utils/reportFormat';
 import { Download, Printer, RefreshCw } from 'lucide-react';
@@ -878,4 +880,6 @@ const MonthlyBusiness = () => {
   );
 };
 
-export default MonthlyBusiness;
+// New look: its own simpler screen; Classic keeps the page above.
+const MonthlyBusinessPage = () => (useUiVersion() === 'v2' ? <MonthlySummary /> : <MonthlyBusiness />);
+export default MonthlyBusinessPage;

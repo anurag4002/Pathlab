@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DuesToCollect from './v2/DuesToCollect';
 import { getBills, collectPayment } from '../../services/billService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
@@ -285,4 +286,6 @@ const DueReports = () => {
   );
 };
 
-export default DueReports;
+// New look: its own simpler screen; Classic keeps the page above.
+const DueReportsPage = () => (useUiVersion() === 'v2' ? <DuesToCollect /> : <DueReports />);
+export default DueReportsPage;

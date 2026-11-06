@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import PaymentsReceived from './v2/PaymentsReceived';
+import { useUiVersion } from '../../utils/uiVersion';
 import { getTransactions } from '../../services/transactionService';
 import { getDailyBusiness } from '../../services/dashboardService';
 import { PageHeader, AdvancedFilterBar, Button } from '../../components/common';
@@ -202,4 +204,6 @@ const Cashbook = () => {
   );
 };
 
-export default Cashbook;
+// New look: its own simpler screen; Classic keeps the page above.
+const CashbookPage = () => (useUiVersion() === 'v2' ? <PaymentsReceived /> : <Cashbook />);
+export default CashbookPage;

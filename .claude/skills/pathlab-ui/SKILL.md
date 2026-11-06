@@ -31,6 +31,18 @@ New-look rules learned from the user:
   on busy screens (texts in `components/common/PageTip.jsx`).
 - **New bill is the most-used screen**: it must fit one screen, keep Doctor and
   Collection agent visible, and never send the user to another page mid-bill.
+- **Business screens** (new look) each have their own component in
+  `pages/business/v2/` (the classic file only switches on `useUiVersion()`).
+  Built from `components/business/` (PeriodBar, DownloadMenu, ReportTable)
+  plus StatGroup. One vocabulary everywhere: Billed, Received, Still to
+  collect, Spent, Refunded, Profit (= received - refunded - spent). Every
+  table has a totals row; money right-aligned; no ids, no enum names
+  ("LabCase" -> "Lab" via `caseTypeLabel`).
+- **Print** for any report goes through `utils/printReport` (own frame, lab
+  header, period, totals, every row - never `window.print()` of the screen).
+  CSV/print must fetch all pages (`fetchAllPages`), not the visible page.
+- Date ranges can never run backwards (PeriodBar / AdvancedFilterBar keep
+  From <= To).
 - Type and colour follow the reference: zinc text (#18181b / #3f3f46 / #71717a),
   #e4e4e7 borders, #fafafa canvas, 15px body, 600-weight titles.
 

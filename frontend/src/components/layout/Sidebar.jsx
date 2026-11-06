@@ -210,7 +210,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
                             `sidebar-submenu-link ${isActive ? 'active' : ''}`
                           }
                         >
-                          {child.title}
+                          {(isV2 && child.v2Title) || child.title}
                           {countFor(child.path) > 0 && <span className="sidebar-count" aria-label={`${countFor(child.path)} waiting`}>{countFor(child.path)}</span>}
                         </NavLink>
                       ))}
@@ -230,7 +230,7 @@ const Sidebar = ({ collapsed = false, variant = 'desktop' }) => {
                           role="menuitem"
                           onClick={() => setFlyoutMenu(null)}
                         >
-                          {child.title}
+                          {(isV2 && child.v2Title) || child.title}
                           {countFor(child.path) > 0 && <span className="sidebar-count" aria-label={`${countFor(child.path)} waiting`}>{countFor(child.path)}</span>}
                         </NavLink>
                       ))}

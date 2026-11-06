@@ -7,6 +7,8 @@ import usePagination from '../../hooks/usePagination';
 import useDebounce from '../../hooks/useDebounce';
 import { Download, ArrowUpDown, FlaskConical, Receipt, ShoppingCart, FileText } from 'lucide-react';
 import './TestUsage.css';
+import { useUiVersion } from '../../utils/uiVersion';
+import TestUsageV2 from './v2/TestUsageV2';
 
 const toISODate = (d) => d.toISOString().split('T')[0];
 const defaultRange = () => {
@@ -223,4 +225,6 @@ const TestUsage = () => {
   );
 };
 
-export default TestUsage;
+// New look: its own simpler screen; Classic keeps the page above.
+const TestUsagePage = () => (useUiVersion() === 'v2' ? <TestUsageV2 /> : <TestUsage />);
+export default TestUsagePage;

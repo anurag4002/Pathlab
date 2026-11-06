@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import printReport, { fetchAllPages } from '../../utils/printReport';
 import { getBills } from '../../services/billService';
+import DailySummary from './v2/DailySummary';
 import { useUiVersion } from '../../utils/uiVersion';
 import { caseTypeLabel, money, dayLabel, dateTimeLabel, periodLabel, sum } from '../../utils/reportFormat';
 import { getDailyBusiness } from '../../services/dashboardService';
@@ -721,4 +722,6 @@ const DailyBusiness = () => {
   );
 };
 
-export default DailyBusiness;
+// New look: its own simpler screen; Classic keeps the page above.
+const DailyBusinessPage = () => (useUiVersion() === 'v2' ? <DailySummary /> : <DailyBusiness />);
+export default DailyBusinessPage;

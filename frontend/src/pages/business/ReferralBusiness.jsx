@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import DoctorCommission from './v2/DoctorCommission';
 import { getReferralReport } from '../../services/dashboardService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
@@ -241,4 +242,6 @@ const ReferralBusiness = () => {
   );
 };
 
-export default ReferralBusiness;
+// New look: its own simpler screen; Classic keeps the page above.
+const ReferralBusinessPage = () => (useUiVersion() === 'v2' ? <DoctorCommission /> : <ReferralBusiness />);
+export default ReferralBusinessPage;

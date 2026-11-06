@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ExpensesV2 from './v2/ExpensesV2';
+import { useUiVersion } from '../../utils/uiVersion';
 import { getExpenses, createExpense, updateExpense, deleteExpense, getExpenseSummary } from '../../services/expenseService';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
@@ -470,4 +472,6 @@ const Expenses = () => {
   );
 };
 
-export default Expenses;
+// New look: its own simpler screen; Classic keeps the page above.
+const ExpensesPage = () => (useUiVersion() === 'v2' ? <ExpensesV2 /> : <Expenses />);
+export default ExpensesPage;

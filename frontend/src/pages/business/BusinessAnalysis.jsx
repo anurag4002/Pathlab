@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useUiVersion } from '../../utils/uiVersion';
+import Trends from './v2/Trends';
 import { getSummary, getMonthlyTrends, getDailyBusiness } from '../../services/dashboardService';
 import formatCurrency from '../../utils/formatCurrency';
 import { PageHeader, StatCard, EmptyState, Button, AdvancedFilterBar } from '../../components/common';
@@ -326,4 +328,6 @@ const BusinessAnalysis = () => {
   );
 };
 
-export default BusinessAnalysis;
+// New look: its own simpler screen; Classic keeps the page above.
+const BusinessAnalysisPage = () => (useUiVersion() === 'v2' ? <Trends /> : <BusinessAnalysis />);
+export default BusinessAnalysisPage;

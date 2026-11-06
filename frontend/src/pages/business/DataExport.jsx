@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import DownloadData from './v2/DownloadData';
+import { useUiVersion } from '../../utils/uiVersion';
 import {
   downloadServerCsv,
   fetchExportPreviewCount,
@@ -355,4 +357,6 @@ const DataExport = () => {
   );
 };
 
-export default DataExport;
+// New look: its own simpler screen; Classic keeps the page above.
+const DataExportPage = () => (useUiVersion() === 'v2' ? <DownloadData /> : <DataExport />);
+export default DataExportPage;

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ActivityLog from './v2/ActivityLog';
+import { useUiVersion } from '../../utils/uiVersion';
 import { getActivityLogs } from '../../services/dashboardService';
 import formatDate from '../../utils/formatDate';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -87,4 +89,6 @@ const Activities = () => {
   );
 };
 
-export default Activities;
+// New look: its own simpler screen; Classic keeps the page above.
+const ActivitiesPage = () => (useUiVersion() === 'v2' ? <ActivityLog /> : <Activities />);
+export default ActivitiesPage;

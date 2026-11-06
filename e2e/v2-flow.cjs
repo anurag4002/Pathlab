@@ -186,15 +186,13 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
     assert.equal(rows, billCount, 'case-wise print lists every bill');
     assert.doesNotMatch(html, /button|Physical Signature/i, 'no app buttons or bill footer on paper');
     await page.goto(BASE + '/business/daily', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
-    assert.ok(await page.getByRole('tab', { name: `Bills made (${billCount})` }).count(), 'every bill made today is listed, paid or not');
-    // A date range cannot run backwards: picking a To before From moves From.
-    await page.getByRole('button', { name: /^Filters/ }).first().click();
-    const panel = page.getByRole('dialog', { name: 'Filters' });
+    assert.equal((await page.getByRole('tab', { name: /^Bills made/ }).innerText()).replace(/\s+/g, ''), `Billsmade${billCount}`, 'every bill made today is listed, paid or not');
+    // Dates cannot run backwards: picking a To before From moves From too.
     const earlier = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 3); return d.toLocaleDateString('en-CA'); });
-    assert.equal(await panel.getByLabel('To', { exact: true }).getAttribute('min'), await panel.getByLabel('From', { exact: true }).inputValue(), 'To cannot be before From');
-    await panel.getByLabel('To', { exact: true }).fill(earlier); await page.waitForTimeout(300);
-    assert.equal(await panel.getByLabel('From', { exact: true }).inputValue(), earlier, 'From follows when To moves earlier');
-    await page.keyboard.press('Escape');
+    const fromBox = page.getByLabel('From', { exact: true }), toBox = page.getByLabel('To', { exact: true });
+    assert.equal(await toBox.getAttribute('min'), await fromBox.inputValue(), 'To cannot be before From');
+    await toBox.fill(earlier); await page.waitForTimeout(400);
+    assert.equal(await page.getByLabel('From', { exact: true }).inputValue(), earlier, 'From follows when To moves earlier');
   });
 
   await step('dues: summary matches the dashboard balance', async () => {

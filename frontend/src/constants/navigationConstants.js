@@ -22,17 +22,17 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: 'TrendingUp',
     roles: ['Admin'],
     children: [
-      { title: 'Daily Business', path: '/business/daily' },
-      { title: 'Monthly Business', path: '/business/monthly' },
-      { title: 'Cashbook', path: '/business/cashbook' },
-      { title: 'Expenses', path: '/business/expenses' },
-      { title: 'Due Reports', path: '/business/dues' },
-      { title: 'Referral Business', path: '/business/referrals' },
-      { title: 'Case Wise Report', path: '/business/cases' },
-      { title: 'Business Analysis', path: '/business/analysis' },
-      { title: 'Test Usage', path: '/analytics/test-usage' },
-      { title: 'Data Export', path: '/business/export' },
-      { title: 'Activities', path: '/business/activities' }
+      { title: 'Daily Business', v2Title: 'Daily summary', path: '/business/daily' },
+      { title: 'Monthly Business', v2Title: 'Monthly summary', path: '/business/monthly' },
+      { title: 'Cashbook', v2Title: 'Payments received', path: '/business/cashbook' },
+      { title: 'Expenses', v2Title: 'Expenses', path: '/business/expenses' },
+      { title: 'Due Reports', v2Title: 'Dues to collect', path: '/business/dues' },
+      { title: 'Referral Business', v2Title: 'Doctor commission', path: '/business/referrals' },
+      { title: 'Case Wise Report', v2Title: 'All bills report', path: '/business/cases' },
+      { title: 'Business Analysis', v2Title: 'Trends', path: '/business/analysis' },
+      { title: 'Test Usage', v2Title: 'Test usage', path: '/analytics/test-usage' },
+      { title: 'Data Export', v2Title: 'Download data', path: '/business/export' },
+      { title: 'Activities', v2Title: 'Activity log', path: '/business/activities' }
     ]
   },
   {
