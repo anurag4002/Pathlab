@@ -1,95 +1,97 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
 import AppLayout from '../components/layout/AppLayout';
 
 // Public Landing Page
-import LandingPage from '../pages/public/LandingPage';
-import VerifyReportPage from '../pages/public/VerifyReport';
-import VerifyBill from '../pages/public/VerifyBill';
+const LandingPage = lazy(() => import('../pages/public/LandingPage'));
+const VerifyReportPage = lazy(() => import('../pages/public/VerifyReport'));
+const VerifyBill = lazy(() => import('../pages/public/VerifyBill'));
 
 // Auth
-import Login from '../features/auth/pages/Login';
+const Login = lazy(() => import('../features/auth/pages/Login'));
 
 // Patient Portal
-import PatientReportPortal from '../pages/patient/PatientReportPortal';
+const PatientReportPortal = lazy(() => import('../pages/patient/PatientReportPortal'));
 
 // Dashboard
-import DashboardPage from '../features/dashboard/pages/DashboardPage';
+const DashboardPage = lazy(() => import('../features/dashboard/pages/DashboardPage'));
 
 // Patients (feature-based)
-import PatientsPage from '../features/patients/pages/PatientsPage';
-import PatientDetailsPage from '../features/patients/pages/PatientDetailsPage';
+const PatientsPage = lazy(() => import('../features/patients/pages/PatientsPage'));
+const PatientDetailsPage = lazy(() => import('../features/patients/pages/PatientDetailsPage'));
 
 // Billing (feature-based)
-import BillsPage from '../features/billing/pages/BillsPage';
+const BillsPage = lazy(() => import('../features/billing/pages/BillsPage'));
 
 // Cases
-import Transactions from '../pages/cases/Transactions';
-import Inquiries from '../pages/cases/Inquiries';
-import GoogleReviews from '../pages/cases/GoogleReviews';
-import ReferralDoctors from '../pages/cases/ReferralDoctors';
-import Agents from '../pages/cases/Agents';
-import ModalityCases from '../pages/cases/ModalityCases';
+const Transactions = lazy(() => import('../pages/cases/Transactions'));
+const Inquiries = lazy(() => import('../pages/cases/Inquiries'));
+const GoogleReviews = lazy(() => import('../pages/cases/GoogleReviews'));
+const ReferralDoctors = lazy(() => import('../pages/cases/ReferralDoctors'));
+const Agents = lazy(() => import('../pages/cases/Agents'));
+const ModalityCases = lazy(() => import('../pages/cases/ModalityCases'));
 
 // Lab
-import TodaysReports from '../pages/lab/TodaysReports';
-import ReportPreview from '../pages/lab/ReportPreview';
-import ResultEntry from '../pages/lab/ResultEntry';
-import ResultVerification from '../pages/lab/ResultVerification';
-import SearchReports from '../pages/lab/SearchReports';
-import TestDatabase from '../pages/lab/TestDatabase';
-import NormalRanges from '../pages/lab/NormalRanges';
-import TestPackages from '../pages/lab/TestPackages';
-import TestPanels from '../pages/lab/TestPanels';
-import TestCategories from '../pages/lab/TestCategories';
-import Interpretations from '../pages/lab/Interpretations';
-import TestCounts from '../pages/lab/TestCounts';
-import TestAnalysis from '../pages/lab/TestAnalysis';
-import RateList from '../pages/lab/RateList';
+const TodaysReports = lazy(() => import('../pages/lab/TodaysReports'));
+const ReportPreview = lazy(() => import('../pages/lab/ReportPreview'));
+const ResultEntry = lazy(() => import('../pages/lab/ResultEntry'));
+const ResultVerification = lazy(() => import('../pages/lab/ResultVerification'));
+const SearchReports = lazy(() => import('../pages/lab/SearchReports'));
+const TestDatabase = lazy(() => import('../pages/lab/TestDatabase'));
+const NormalRanges = lazy(() => import('../pages/lab/NormalRanges'));
+const TestPackages = lazy(() => import('../pages/lab/TestPackages'));
+const TestPanels = lazy(() => import('../pages/lab/TestPanels'));
+const TestCategories = lazy(() => import('../pages/lab/TestCategories'));
+const Interpretations = lazy(() => import('../pages/lab/Interpretations'));
+const TestCounts = lazy(() => import('../pages/lab/TestCounts'));
+const TestAnalysis = lazy(() => import('../pages/lab/TestAnalysis'));
+const RateList = lazy(() => import('../pages/lab/RateList'));
 
 // Business
-import DailyBusiness from '../pages/business/DailyBusiness';
-import MonthlyBusiness from '../pages/business/MonthlyBusiness';
-import Expenses from '../pages/business/Expenses';
-import DueReports from '../pages/business/DueReports';
-import ReferralBusiness from '../pages/business/ReferralBusiness';
-import CaseWiseReport from '../pages/business/CaseWiseReport';
-import BusinessAnalysis from '../pages/business/BusinessAnalysis';
-import DataExport from '../pages/business/DataExport';
-import Activities from '../pages/business/Activities';
-import Cashbook from '../pages/business/Cashbook';
-import AuditLog from '../pages/settings/AuditLog';
-import TestUsage from '../pages/analytics/TestUsage';
-import Jobs from '../pages/settings/Jobs';
+const DailyBusiness = lazy(() => import('../pages/business/DailyBusiness'));
+const MonthlyBusiness = lazy(() => import('../pages/business/MonthlyBusiness'));
+const Expenses = lazy(() => import('../pages/business/Expenses'));
+const DueReports = lazy(() => import('../pages/business/DueReports'));
+const ReferralBusiness = lazy(() => import('../pages/business/ReferralBusiness'));
+const CaseWiseReport = lazy(() => import('../pages/business/CaseWiseReport'));
+const BusinessAnalysis = lazy(() => import('../pages/business/BusinessAnalysis'));
+const DataExport = lazy(() => import('../pages/business/DataExport'));
+const Activities = lazy(() => import('../pages/business/Activities'));
+const Cashbook = lazy(() => import('../pages/business/Cashbook'));
+const AuditLog = lazy(() => import('../pages/settings/AuditLog'));
+const TestUsage = lazy(() => import('../pages/analytics/TestUsage'));
+const Jobs = lazy(() => import('../pages/settings/Jobs'));
 
 // USG
-import TodaysUSGCases from '../pages/usg/TodaysUSGCases';
-import ReportTemplates from '../pages/usg/ReportTemplates';
+const TodaysUSGCases = lazy(() => import('../pages/usg/TodaysUSGCases'));
+const ReportTemplates = lazy(() => import('../pages/usg/ReportTemplates'));
 
 // X-Ray
-import TodaysXrayCases from '../pages/xray/TodaysXrayCases';
-import XrayReports from '../pages/xray/XrayReports';
+const TodaysXrayCases = lazy(() => import('../pages/xray/TodaysXrayCases'));
+const XrayReports = lazy(() => import('../pages/xray/XrayReports'));
 
 // Manage
-import EmployeeLogin from '../pages/manage/EmployeeLogin';
-import Branches from '../pages/manage/Branches';
-import DoctorAccess from '../pages/manage/DoctorAccess';
-import BrowserSecurity from '../pages/manage/BrowserSecurity';
-import RateRevision from '../pages/settings/RateRevision';
-import Signatures from '../pages/settings/Signatures';
+const EmployeeLogin = lazy(() => import('../pages/manage/EmployeeLogin'));
+const Branches = lazy(() => import('../pages/manage/Branches'));
+const DoctorAccess = lazy(() => import('../pages/manage/DoctorAccess'));
+const BrowserSecurity = lazy(() => import('../pages/manage/BrowserSecurity'));
+const RateRevision = lazy(() => import('../pages/settings/RateRevision'));
+const Signatures = lazy(() => import('../pages/settings/Signatures'));
 
 // Setup / Delivery / Support / Doctor
-import LabProfile from '../pages/setup/LabProfile';
-import Onboarding from '../pages/setup/Onboarding';
-import TatConfig from '../pages/settings/TatConfig';
-import Templates from '../pages/delivery/Templates';
-import Tickets from '../pages/support/Tickets';
-import DoctorPortal from '../pages/doctor/DoctorPortal';
+const LabProfile = lazy(() => import('../pages/setup/LabProfile'));
+const Onboarding = lazy(() => import('../pages/setup/Onboarding'));
+const TatConfig = lazy(() => import('../pages/settings/TatConfig'));
+const Templates = lazy(() => import('../pages/delivery/Templates'));
+const Tickets = lazy(() => import('../pages/support/Tickets'));
+const DoctorPortal = lazy(() => import('../pages/doctor/DoctorPortal'));
+
 
 const AppRoutes = () => {
   return (
+    <Suspense fallback={<div className="route-loading" role="status" aria-label="Loading" />}>
     <Routes>
       {/* Public Landing Page */}
       <Route path="/" element={<LandingPage />} />
@@ -200,6 +202,7 @@ const AppRoutes = () => {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </Suspense>
   );
 };
 

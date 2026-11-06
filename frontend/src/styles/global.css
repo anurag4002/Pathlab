@@ -146,3 +146,11 @@ body {
 /* Destructive row actions that should not shout (confirmation still asked). */
 .btn.btn-quiet-danger { color: #b91c1c; border-color: #fecaca; }
 .btn.btn-quiet-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+
+/* Shown only while a screen's code downloads (usually a few ms). A thin bar
+   that appears after 150ms, so fast loads show nothing at all. */
+.route-loading { position: relative; height: 3px; margin: 0 0 1rem; overflow: hidden; border-radius: 2px; opacity: 0; animation: route-loading-show 0s 0.15s forwards; }
+.route-loading::after { content: ''; position: absolute; inset: 0; width: 40%; background: var(--color-primary, #2563eb); animation: route-loading-slide 1s ease-in-out infinite; }
+@keyframes route-loading-show { to { opacity: 1; } }
+@keyframes route-loading-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { .route-loading::after { animation: none; width: 100%; opacity: 0.4; } }

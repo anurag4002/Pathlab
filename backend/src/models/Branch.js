@@ -27,4 +27,12 @@ const BranchSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Signed-in users are cached briefly by the auth middleware; any change to
+// a user or branch drops that cache so it applies on the next request.
+{
+  const { clearUserCache } = require('../utils/userCache');
+  BranchSchema.post('save', clearUserCache);
+  BranchSchema.post(['findOneAndUpdate', 'updateOne', 'updateMany', 'findOneAndDelete', 'deleteOne', 'deleteMany'], clearUserCache);
+}
+
 module.exports = mongoose.model('Branch', BranchSchema);

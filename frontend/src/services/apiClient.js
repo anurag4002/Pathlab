@@ -10,6 +10,26 @@ const apiClient = axios.create({
   }
 });
 
+// Reference data every screen asks for (branches, doctors, agents, lab
+// profile, signatures, message templates) is fetched once and reused for a
+// minute; requests made at the same moment share one network call. Any
+// save / edit / delete clears it, so a change shows up immediately.
+const SHARED_GET = /^\/(branches|doctors|agents|setup\/lab-profile|setup\/signatures|notify\/templates)(\/?$|\?)/;
+const SHARED_TTL_MS = 60 * 1000;
+const sharedGets = new Map();
+export const clearSharedGets = () => sharedGets.clear();
+const rawGet = apiClient.get.bind(apiClient);
+apiClient.get = (url, config = {}) => {
+  if (!SHARED_GET.test(String(url)) || config.responseType || config.signal) return rawGet(url, config);
+  const key = `${url}|${JSON.stringify(config.params || {})}|${localStorage.getItem('ppl_token') || ''}`;
+  const hit = sharedGets.get(key);
+  if (hit && hit.expires > Date.now()) return hit.promise.then((response) => ({ ...response, data: structuredClone(response.data) }));
+  const promise = rawGet(url, config);
+  sharedGets.set(key, { promise, expires: Date.now() + SHARED_TTL_MS });
+  promise.catch(() => sharedGets.delete(key));
+  return promise.then((response) => ({ ...response, data: structuredClone(response.data) }));
+};
+
 // Request Interceptor: Attach token if exists
 apiClient.interceptors.request.use(
   (config) => {
@@ -27,7 +47,7 @@ apiClient.interceptors.request.use(
 // Response Interceptor: Catch auth errors
 apiClient.interceptors.response.use(
   (response) => {
-    if (!['get', 'head', 'options'].includes(response.config.method?.toLowerCase())) invalidateReportPdfs();
+    if (!['get', 'head', 'options'].includes(response.config.method?.toLowerCase())) { invalidateReportPdfs(); clearSharedGets(); }
     return response;
   },
   async (error) => {
@@ -56,6 +76,7 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
       invalidateReportPdfs();
+      clearSharedGets();
       localStorage.removeItem('ppl_token');
       localStorage.removeItem('ppl_user');
       if (!window.location.pathname.includes('/login')) {

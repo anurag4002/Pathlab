@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileSidebar from './MobileSidebar';
+import { preloadBusyScreens } from '../../routes/preloadScreens';
 
 const MOBILE_BREAKPOINT = 1024;
 
@@ -12,6 +13,13 @@ const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  // Fetch the busiest screens' code while the browser is idle after sign-in.
+  useEffect(() => {
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
+    const handle = idle(() => preloadBusyScreens());
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(handle) : clearTimeout(handle));
+  }, []);
 
   const toggleCollapsed = () => {
     if (window.innerWidth <= MOBILE_BREAKPOINT) {
@@ -68,7 +76,10 @@ const AppLayout = () => {
         </div>
         <main className="page-container">
           <div key={location.pathname} className="page-transition">
-            <Outlet />
+            {/* The sidebar and header stay while a screen's code loads. */}
+            <Suspense fallback={<div className="route-loading" role="status" aria-label="Loading" />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

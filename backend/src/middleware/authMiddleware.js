@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/environment');
 const User = require('../models/User');
+const { getCachedUser, setCachedUser } = require('../utils/userCache');
 const { errorResponse } = require('../utils/response');
 const MESSAGES = require('../constants/messages');
 
@@ -19,7 +20,11 @@ const protect = async (req, res, next) => {
         return errorResponse(res, 'Access denied. Administrator privileges required.', 403);
       }
 
-      req.user = await User.findById(decoded.id).select('-password').populate('branch', 'name code status');
+      req.user = getCachedUser(decoded.id);
+      if (!req.user) {
+        req.user = await User.findById(decoded.id).select('-password').populate('branch', 'name code status');
+        if (req.user) setCachedUser(decoded.id, req.user);
+      }
       if (!req.user) {
         return errorResponse(res, MESSAGES.AUTH.USER_NOT_FOUND, 404);
       }

@@ -68,4 +68,12 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// Signed-in users are cached briefly by the auth middleware; any change to
+// a user or branch drops that cache so it applies on the next request.
+{
+  const { clearUserCache } = require('../utils/userCache');
+  UserSchema.post('save', clearUserCache);
+  UserSchema.post(['findOneAndUpdate', 'updateOne', 'updateMany', 'findOneAndDelete', 'deleteOne', 'deleteMany'], clearUserCache);
+}
+
 module.exports = mongoose.model('User', UserSchema);
