@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import useStickyState from '../../utils/useStickyState';
+const RichInterpretationEditor = lazy(() => import('../../components/lab/RichInterpretationEditor'));
 import DocumentResultEditor from '../../components/lab/DocumentResultEditor';
 import { useSearchParams } from 'react-router-dom';
 import { getTests, createTest, updateTest, deleteTest, getCategories } from '../../services/testService';
@@ -30,21 +32,21 @@ const TestDatabase = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingTest, setEditingTest] = useState(null);
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingTest, setEditingTest] = useStickyState('editingTest', null);
   const EMPTY_FORM = { name: '', code: '', category: '', sampleType: '', unit: '', referenceRange: '', maleReferenceRange: '', femaleReferenceRange: '', price: '', description: '', interpretation: '', status: 'Active', normalLow: '', normalHigh: '', criticalLow: '', criticalHigh: '', ageMin: '', ageMax: '', sexApplicable: 'Any', isDerived: false, formula: '' };
-  const [formData, setFormData] = useState({ ...EMPTY_FORM, referenceRanges: [], parameters: [] });
+  const [formData, setFormData] = useStickyState('formData', { ...EMPTY_FORM, referenceRanges: [], parameters: [] });
   // New look: a new test being typed survives an accidental close.
   const isV2 = useUiVersion() === 'v2';
-  const [createDraft, setCreateDraft] = useState(null);
+  const [createDraft, setCreateDraft] = useStickyState('createDraft', null);
   const closeForm = () => { if (isV2 && !editingTest) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
   // Filters (merged quick-find + table search)
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [categoryFilter, setCategoryFilter] = useStickyState('categoryFilter', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
 
   // Client-side pagination (GET /api/tests returns the full list).
   const filteredTests = useMemo(() => {
@@ -589,6 +591,17 @@ const TestDatabase = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Short description shown in the catalog…"
             />
+            {isV2 ? (
+              // New look: the same rich editor as the Interpretations page -
+              // bold, lists and tables print on the report as formatted here.
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <Suspense fallback={<p className="muted">Loading editor...</p>}>
+                  <RichInterpretationEditor label="Default interpretation (prints under this test's result)"
+                    value={formData.interpretation || ''}
+                    onChange={(value) => setFormData(prev => ({ ...prev, interpretation: value }))} />
+                </Suspense>
+              </div>
+            ) : (
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Default Clinical Interpretation</label>
               <textarea
@@ -599,6 +612,7 @@ const TestDatabase = () => {
                 placeholder="Write clinical advice guideline..."
               />
             </div>
+            )}
             {formData.sourceType === 'Document' && <div className="form-group" style={{ marginTop: 12, marginBottom: 0 }}>
               <label className="form-label" htmlFor="test-document-template">Report template (Document test)</label>
               <DocumentResultEditor id="test-document-template" label="Report template"

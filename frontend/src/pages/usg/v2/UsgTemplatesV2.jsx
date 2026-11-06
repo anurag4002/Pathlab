@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { RefreshCw } from 'lucide-react';
 import { getUSGTemplates } from '../../../services/usgService';
 import { PageHeader, Button, Modal, CopyButton } from '../../../components/common';
@@ -12,8 +13,8 @@ export default function UsgTemplatesV2() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(null);
+  const [search, setSearch] = useStickyState('search', '');
+  const [open, setOpen] = useStickyState('open', null);
   const [reload, setReload] = useState(0);
 
   useEffect(() => {

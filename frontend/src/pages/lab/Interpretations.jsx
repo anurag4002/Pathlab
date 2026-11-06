@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { getInterpretations, createInterpretation, updateInterpretation, deleteInterpretation, getTests } from '../../services/testService';
 import useClientPagination from '../../hooks/useClientPagination';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
@@ -32,12 +33,12 @@ const Interpretations = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingInterpretation, setEditingInterpretation] = useState(null);
-  const [formData, setFormData] = useState({ test: '', resultCondition: '', interpretationText: '', normalAbnormalGuidance: 'Normal', status: 'Active' });
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingInterpretation, setEditingInterpretation] = useStickyState('editingInterpretation', null);
+  const [formData, setFormData] = useStickyState('formData', { test: '', resultCondition: '', interpretationText: '', normalAbnormalGuidance: 'Normal', status: 'Active' });
   // New look: a new note being typed survives an accidental close.
   const isV2 = useUiVersion() === 'v2';
-  const [createDraft, setCreateDraft] = useState(null);
+  const [createDraft, setCreateDraft] = useStickyState('createDraft', null);
   const closeForm = () => { if (isV2 && !editingInterpretation) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -47,8 +48,8 @@ const Interpretations = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Search + client-side pagination.
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
   const filteredInterpretations = useMemo(() => {
     const q = search.trim().toLowerCase();
     return interpretations.filter((r) => {

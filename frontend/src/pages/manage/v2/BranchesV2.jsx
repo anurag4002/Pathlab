@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { getBranches, createBranch, updateBranch, deleteBranch } from '../../../services/branchService';
 import { PageHeader, Button, Modal, Input, ConfirmDialog, RowMenu } from '../../../components/common';
@@ -6,6 +6,7 @@ import ReportTable from '../../../components/business/ReportTable';
 import { notify } from '../../../components/common/Toast/toast';
 import { dayLabel } from '../../../utils/reportFormat';
 import useDraft from './useDraft';
+import useStickyState from '../../../utils/useStickyState';
 import '../../../components/business/business.css';
 import './manage.css';
 
@@ -16,11 +17,14 @@ export default function BranchesV2() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft, clearDraft] = useDraft('branch-new', EMPTY);
-  const [editForm, setEditForm] = useState(EMPTY);
+  const [editForm, setEditForm] = useStickyState('editForm', EMPTY);
+  // Which panel was open ('new' or a branch id) - reopened after a reload.
+  const [panel, setPanel] = useStickyState('panel', null);
+  const restored = useRef(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [del, setDel] = useState(null);
@@ -38,17 +42,24 @@ export default function BranchesV2() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (restored.current || loading || !panel) return;
+    if (panel === 'new') { restored.current = true; setOpen(true); return; }
+    const b = branches.find((x) => x._id === panel);
+    if (b) { restored.current = true; setEditing(b); setOpen(true); } else if (branches.length) { restored.current = true; setPanel(null); }
+  }, [branches, loading, panel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closePanel = () => { setOpen(false); setPanel(null); };
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return branches.filter((b) => !q || `${b.name} ${b.code} ${b.phone} ${b.address}`.toLowerCase().includes(q));
   }, [branches, search]);
 
-  const openNew = () => { setEditing(null); setFormError(''); setOpen(true); };
+  const openNew = () => { setEditing(null); setFormError(''); setOpen(true); setPanel('new'); };
   const openEdit = (b) => {
     setEditing(b);
     setEditForm({ name: b.name || '', code: b.code || '', address: b.address || '', phone: b.phone || '', email: b.email || '', status: b.status || 'Active' });
-    setFormError(''); setOpen(true);
+    setFormError(''); setOpen(true); setPanel(b._id);
   };
   const save = async (e) => {
     e?.preventDefault();
@@ -59,7 +70,7 @@ export default function BranchesV2() {
       const res = editing ? await updateBranch(editing._id, payload) : await createBranch(payload);
       if (!res?.success) { setFormError(res?.message || 'Could not save the branch.'); return; }
       if (!editing) clearDraft();
-      setOpen(false); notify(editing ? 'Branch updated' : 'Branch added'); load();
+      closePanel(); notify(editing ? 'Branch updated' : 'Branch added'); load();
     } catch (err) { setFormError(err?.response?.data?.message || 'Could not save the branch.'); }
     finally { setSaving(false); }
   };
@@ -109,10 +120,10 @@ export default function BranchesV2() {
           ) },
         ]} />
 
-      <Modal isOpen={open} onClose={() => setOpen(false)} variant="drawer" title={editing ? `Edit ${editing.name}` : 'Add branch'}
+      <Modal isOpen={open} onClose={closePanel} variant="drawer" title={editing ? `Edit ${editing.name}` : 'Add branch'}
         footer={<>
           {!editing && <span className="mg-draft-note">Closing keeps what you typed.</span>}
-          <Button variant="secondary" onClick={() => setOpen(false)} disabled={saving}>Cancel</Button>
+          <Button variant="secondary" onClick={closePanel} disabled={saving}>Cancel</Button>
           <Button variant="primary" onClick={save} loading={saving}>{editing ? 'Save changes' : 'Add branch'}</Button>
         </>}>
         <form className="mg-form" onSubmit={save} noValidate>

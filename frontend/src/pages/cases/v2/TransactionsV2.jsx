@@ -11,16 +11,20 @@ import printReport, { fetchAllPages } from '../../../utils/printReport';
 import { money, dateTimeLabel, periodLabel, sum, downloadCsv } from '../../../utils/reportFormat';
 import '../../../components/business/business.css';
 import './casesV2.css';
+import useStickyState from '../../../utils/useStickyState';
 
 // Transactions (new look): every payment and refund in a period.
 export default function TransactionsV2() {
   const [searchParams] = useSearchParams();
   const opened = searchParams.get('search') || '';
   // Opened from a bill for one patient: show all their dates, not just this week.
-  const [[from, to], setRange] = useState(() => (opened ? ['', ''] : presetRange('week')));
-  const [search, setSearch] = useState(opened);
-  const [type, setType] = useState('');
-  const [mode, setMode] = useState('');
+  // Period, search and filters come back after a reload; a link from a bill
+  // (?search=) still wins and shows all dates.
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('week'));
+  const [search, setSearch] = useStickyState('search', '');
+  const [type, setType] = useStickyState('type', '');
+  const [mode, setMode] = useStickyState('mode', '');
+  useEffect(() => { if (opened) { setRange(['', '']); setSearch(opened); } }, [opened]); // eslint-disable-line react-hooks/exhaustive-deps
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

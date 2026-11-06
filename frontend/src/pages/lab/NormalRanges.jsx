@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { AlertTriangle, CheckCircle2, Edit2, RefreshCw } from 'lucide-react';
 import { getTests, getCategories, updateTest } from '../../services/testService';
 import useAuth from '../../hooks/useAuth';
@@ -136,15 +137,15 @@ const NormalRanges = () => {
   // Filters — search/category/status are server-side (GET /tests params);
   // gender is applied to the already-fetched list because the API exposes no
   // sex filter parameter.
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const debouncedSearch = useDebounce(search, 400);
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [genderFilter, setGenderFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useStickyState('categoryFilter', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
+  const [genderFilter, setGenderFilter] = useStickyState('genderFilter', '');
 
   // Edit modal state — the server stays the source of truth
-  const [editing, setEditing] = useState(null);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [editing, setEditing] = useStickyState('editing', null);
+  const [formData, setFormData] = useStickyState('formData', EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);

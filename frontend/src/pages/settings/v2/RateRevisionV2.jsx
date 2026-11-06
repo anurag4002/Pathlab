@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { getTests, updateTestRate, bulkUpdateTestRates } from '../../../services/testService';
 import { PageHeader, Button, ConfirmDialog, RowMenu } from '../../../components/common';
 import ReportTable from '../../../components/business/ReportTable';
@@ -14,8 +15,8 @@ export default function RateRevisionV2() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
-  const [search, setSearch] = useState('');
-  const [dept, setDept] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [dept, setDept] = useStickyState('dept', '');
   const [selected, setSelected] = useState([]);
   const [mode, setMode] = useState('percent');
   const [amount, setAmount] = useState('');

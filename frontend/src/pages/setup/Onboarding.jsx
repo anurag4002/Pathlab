@@ -35,6 +35,7 @@ import {
 } from '../../components/common';
 import './Onboarding.css';
 import { useUiVersion } from '../../utils/uiVersion';
+import useStickyState from '../../utils/useStickyState';
 import './onboardingV2.css';
 
 const STEP_META = {
@@ -770,7 +771,8 @@ const Onboarding = () => {
   const [onboarding, setOnboarding] = useState({ percent: 0, steps: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expanded, setExpanded] = useState('');
+  // New look: the open step is remembered across a reload (plain state in classic).
+  const [expanded, setExpanded] = useStickyState('step', '');
   const [toggling, setToggling] = useState('');
   const reqRef = useRef(0);
 

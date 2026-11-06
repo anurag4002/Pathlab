@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getTests, getCategories } from '../../../services/testService';
 import { getPanels } from '../../../services/panelService';
@@ -28,10 +29,10 @@ export default function RateListV2() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
-  const [type, setType] = useState('all');
-  const [category, setCategory] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
-  const [search, setSearch] = useState('');
+  const [type, setType] = useStickyState('type', 'all');
+  const [category, setCategory] = useStickyState('category', '');
+  const [showInactive, setShowInactive] = useStickyState('showInactive', false);
+  const [search, setSearch] = useStickyState('search', '');
 
   useEffect(() => {
     let alive = true;

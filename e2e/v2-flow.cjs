@@ -223,6 +223,38 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
     assert.ok(await page.locator('.empty-state-action').getByRole('button', { name: 'Create USG case' }).count(), 'empty USG list offers Create USG case');
   });
 
+  await step('after a reload: bills filters and the open bill panel come back', async () => {
+    await page.evaluate(() => sessionStorage.clear());
+    await page.goto(BASE + '/cases/bills', { waitUntil: 'networkidle' }); await page.waitForTimeout(800);
+    await page.getByRole('button', { name: /^Filters/ }).click();
+    await page.getByRole('dialog', { name: 'Filters' }).getByLabel('Payment status').selectOption({ label: 'Paid' });
+    await page.getByRole('dialog', { name: 'Filters' }).getByRole('button', { name: 'Apply' }).click(); await page.waitForTimeout(800);
+    await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1000);
+    assert.match(await page.locator('.afb-chip').first().innerText(), /Payment status:\s*Paid/, 'filter still applied after reload');
+    await page.locator('.bill-number-link').first().click();
+    await page.locator('.modal-content--drawer').waitFor({ timeout: 5000 });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.locator('.modal-content--drawer').waitFor({ timeout: 8000 });
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => sessionStorage.clear());
+  });
+
+  await step('after a reload: a half-made new bill comes back; Start over clears it', async () => {
+    await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' }); await page.waitForTimeout(1000);
+    await page.getByLabel(/Type a test name/).fill('Complete Blood');
+    await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+    await page.getByRole('combobox', { name: 'Referred by' }).click();
+    await page.keyboard.type('quick'); await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+    await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
+    assert.match(await page.locator('.bill-step-cart').innerText(), /Complete Blood/, 'the test is still in the bill');
+    assert.equal(await page.getByRole('combobox', { name: 'Referred by' }).inputValue(), 'Dr Quick Add', 'doctor still chosen');
+    assert.ok(await page.locator('.bill-restored').isVisible(), 'says the bill was brought back');
+    await page.locator('.bill-restored').getByRole('button', { name: 'Start over' }).click();
+    await page.waitForLoadState('networkidle'); await page.waitForTimeout(1000);
+    assert.doesNotMatch(await page.locator('.bill-step-cart').innerText(), /Complete Blood/, 'Start over empties the bill');
+    await page.evaluate(() => sessionStorage.clear());
+  });
+
   await step('switch back to Classic from the dashboard banner', async () => {
     await page.goto(BASE + '/dashboard', { waitUntil: 'networkidle' }); await page.waitForTimeout(500);
     await page.getByRole('button', { name: 'Switch back to classic' }).click();

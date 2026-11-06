@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getAuditLogs } from '../../../services/auditLogService';
 import { PageHeader, Button, StatGroup } from '../../../components/common';
@@ -26,14 +27,14 @@ const areaLabel = (m) => AREA[m] || m || '';
 
 // Audit log (new look): a permanent record of who did what, and when.
 export default function AuditLogV2() {
-  const [[from, to], setRange] = useState(() => presetRange('week'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('week'));
   const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
-  const [person, setPerson] = useState('');
-  const [area, setArea] = useState('');
-  const [search, setSearch] = useState('');
+  const [person, setPerson] = useStickyState('person', '');
+  const [area, setArea] = useStickyState('area', '');
+  const [search, setSearch] = useStickyState('search', '');
 
   useEffect(() => {
     let cancelled = false;

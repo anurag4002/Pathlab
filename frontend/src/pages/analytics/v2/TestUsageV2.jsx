@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getTestUsage } from '../../../services/analysisService';
 import { toCsv, downloadCsvText } from '../../../services/exportService';
@@ -16,15 +17,15 @@ const cleanName = (name) => String(name || '').replace(/\s*\(bundle\)\s*$/i, '')
 // Test usage (new look): which tests are ordered most (keep stock) and
 // which are hardly ordered (review), for a period.
 export default function TestUsageV2() {
-  const [[from, to], setRange] = useState(() => presetRange('days30'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('days30'));
   const [items, setItems] = useState([]);
   const [top, setTop] = useState([]);
   const [slowest, setSlowest] = useState([]);
   const [totals, setTotals] = useState({ orders: 0, revenue: 0, distinctTests: 0, bills: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [order, setOrder] = useState('most');
+  const [search, setSearch] = useStickyState('search', '');
+  const [order, setOrder] = useStickyState('order', 'most');
   const [reload, setReload] = useState(0);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { getCategories, createCategory, updateCategory, deleteCategory, getTests } from '../../services/testService';
 import { useUiVersion } from '../../utils/uiVersion';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -12,7 +13,7 @@ const TestCategories = () => {
   // New look: how many tests sit in each category, and a new category being
   // typed survives an accidental close of the panel.
   const [testCounts, setTestCounts] = useState({});
-  const [createDraft, setCreateDraft] = useState(null);
+  const [createDraft, setCreateDraft] = useStickyState('createDraft', null);
   useEffect(() => {
     if (!isV2) return;
     getTests({}).then((res) => {
@@ -28,9 +29,9 @@ const TestCategories = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingCategory, setEditingCategory] = useStickyState('editingCategory', null);
+  const [formData, setFormData] = useStickyState('formData', { name: '', description: '' });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
 
@@ -39,7 +40,7 @@ const TestCategories = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Search + client-side pagination.
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const filteredCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return categories;

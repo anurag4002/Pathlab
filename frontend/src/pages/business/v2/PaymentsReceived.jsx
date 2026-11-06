@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getTransactions } from '../../../services/transactionService';
 import { getDailyBusiness } from '../../../services/dashboardService';
@@ -17,14 +18,14 @@ const modeOf = (t) => t.paymentMethod || 'Other';
 // Payments received (new look): every payment and refund in a period, with
 // totals per payment mode. Replaces the classic Cashbook screen.
 export default function PaymentsReceived() {
-  const [[from, to], setRange] = useState(() => presetRange('today'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('today'));
   const [all, setAll] = useState([]);
   const [ledgerIncome, setLedgerIncome] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('');
-  const [kind, setKind] = useState('');
-  const [search, setSearch] = useState('');
+  const [mode, setMode] = useStickyState('mode', '');
+  const [kind, setKind] = useStickyState('kind', '');
+  const [search, setSearch] = useStickyState('search', '');
   const [reload, setReload] = useState(0);
 
   useEffect(() => {

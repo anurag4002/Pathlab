@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { ArrowDownRight, ArrowUpRight, Printer, RefreshCw } from 'lucide-react';
 import { getDailyBusiness, getMonthlyTrends } from '../../../services/dashboardService';
 import { PageHeader, Button, StatGroup } from '../../../components/common';
@@ -57,7 +58,7 @@ function Change({ now, before, lowerIsBetter = false }) {
 // Trends (new look): is business going up or down? This period next to the
 // same number of days before it, plus where the money comes from.
 export default function Trends() {
-  const [[from, to], setRange] = useState(() => presetRange('week'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('week'));
   const [now, setNow] = useState(null);
   const [before, setBefore] = useState(null);
   const [months, setMonths] = useState([]);

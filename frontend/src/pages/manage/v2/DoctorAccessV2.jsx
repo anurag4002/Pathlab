@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, RefreshCw, Send, Copy } from 'lucide-react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../../services/authService';
 import { getInvites, createInvite } from '../../../services/doctorPortalService';
@@ -7,6 +7,7 @@ import ReportTable from '../../../components/business/ReportTable';
 import { notify } from '../../../components/common/Toast/toast';
 import { dayLabel } from '../../../utils/reportFormat';
 import useDraft from './useDraft';
+import useStickyState from '../../../utils/useStickyState';
 import '../../../components/business/business.css';
 import './manage.css';
 
@@ -26,16 +27,19 @@ export default function DoctorAccessV2() {
   const [doctors, setDoctors] = useState([]);
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('doctors');
+  const [search, setSearch] = useStickyState('search', '');
+  const [tab, setTab] = useStickyState('tab', 'doctors');
 
   const [loginOpen, setLoginOpen] = useState(false);
+  // Which sign-in panel was open ('new' or a doctor id) - reopened after a reload.
+  const [loginPanel, setLoginPanel] = useStickyState('loginPanel', null);
+  const restored = useRef(false);
   const [editing, setEditing] = useState(null);
-  const [login, setLogin] = useState(EMPTY_LOGIN);
+  const [login, setLogin] = useDraft('doctor-login', EMPTY_LOGIN, { omit: ['password'] });
   const [loginError, setLoginError] = useState('');
   const [savingLogin, setSavingLogin] = useState(false);
 
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useStickyState('inviteOpen', false);
   const [invite, setInvite, clearInvite] = useDraft('doctor-invite', EMPTY_INVITE);
   const [inviteError, setInviteError] = useState('');
   const [inviteToken, setInviteToken] = useState('');
@@ -53,6 +57,13 @@ export default function DoctorAccessV2() {
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (restored.current || loading || !loginPanel) return;
+    if (loginPanel === 'new') { restored.current = true; setLoginOpen(true); return; }
+    const d = doctors.find((x) => x._id === loginPanel);
+    if (d) { restored.current = true; setEditing(d); setLoginOpen(true); } else if (doctors.length) { restored.current = true; setLoginPanel(null); }
+  }, [doctors, loading, loginPanel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closeLogin = () => { setLoginOpen(false); setLoginPanel(null); };
 
   const q = search.trim().toLowerCase();
   const doctorRows = useMemo(() => doctors.filter((d) => !q || `${d.name} ${d.email} ${d.phone}`.toLowerCase().includes(q)), [doctors, q]);
@@ -60,8 +71,8 @@ export default function DoctorAccessV2() {
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), [invites, q]);
   const waiting = invites.filter((v) => v.status === 'Pending').length;
 
-  const openNewLogin = () => { setEditing(null); setLogin(EMPTY_LOGIN); setLoginError(''); setLoginOpen(true); };
-  const openEdit = (d) => { setEditing(d); setLogin({ name: d.name || '', email: d.email || '', phone: d.phone || '', password: '', status: d.status || 'Active' }); setLoginError(''); setLoginOpen(true); };
+  const openNewLogin = () => { setEditing(null); setLogin(EMPTY_LOGIN); setLoginError(''); setLoginOpen(true); setLoginPanel('new'); };
+  const openEdit = (d) => { setEditing(d); setLogin({ name: d.name || '', email: d.email || '', phone: d.phone || '', password: '', status: d.status || 'Active' }); setLoginError(''); setLoginOpen(true); setLoginPanel(d._id); };
   const saveLogin = async (e) => {
     e?.preventDefault();
     if (!login.name.trim() || !login.email.trim()) { setLoginError('Enter the doctor\'s name and email.'); return; }
@@ -71,7 +82,7 @@ export default function DoctorAccessV2() {
       const payload = { ...login, role: 'Doctor' };
       if (!payload.password) delete payload.password;
       const res = editing ? await updateUser(editing._id, payload) : await createUser(payload);
-      if (res.success) { setLoginOpen(false); setLogin(EMPTY_LOGIN); notify(editing ? 'Doctor updated' : 'Doctor can now sign in'); load(); }
+      if (res.success) { closeLogin(); setLogin(EMPTY_LOGIN); notify(editing ? 'Doctor updated' : 'Doctor can now sign in'); load(); }
     } catch (err) { setLoginError(err.response?.data?.message || 'Could not save. Try again.'); }
     finally { setSavingLogin(false); }
   };
@@ -178,9 +189,9 @@ export default function DoctorAccessV2() {
         )}
       </Modal>
 
-      <Modal isOpen={loginOpen} onClose={() => setLoginOpen(false)} variant="drawer" title={editing ? `Edit ${editing.name}` : 'Set up a doctor\'s sign-in'}
+      <Modal isOpen={loginOpen} onClose={closeLogin} variant="drawer" title={editing ? `Edit ${editing.name}` : 'Set up a doctor\'s sign-in'}
         footer={<>
-          <Button variant="secondary" onClick={() => setLoginOpen(false)} disabled={savingLogin}>Cancel</Button>
+          <Button variant="secondary" onClick={closeLogin} disabled={savingLogin}>Cancel</Button>
           <Button variant="primary" onClick={saveLogin} loading={savingLogin}>{editing ? 'Save changes' : 'Create sign-in'}</Button>
         </>}>
         <form className="mg-form" onSubmit={saveLogin} noValidate>

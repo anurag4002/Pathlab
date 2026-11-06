@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getDailyBusiness } from '../../../services/dashboardService';
 import { getExpenses } from '../../../services/expenseService';
@@ -18,14 +19,14 @@ const modeClass = (mode) => `biz-pill is-${String(mode || '').toLowerCase()}`;
 // Daily summary (new look): what came in, what went out, and what is still
 // to collect - for one day or a few days.
 export default function DailySummary() {
-  const [[from, to], setRange] = useState(() => presetRange('today'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('today'));
   const [ledger, setLedger] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState('received');
-  const [cashier, setCashier] = useState('');
+  const [tab, setTab] = useStickyState('tab', 'received');
+  const [cashier, setCashier] = useStickyState('cashier', '');
   const [reload, setReload] = useState(0);
 
   useEffect(() => {

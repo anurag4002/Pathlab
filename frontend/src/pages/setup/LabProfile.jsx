@@ -44,6 +44,12 @@ const V2_SECTIONS = [
 
 // Fields accepted by the current lab-profile API. Logo and letterhead URLs
 // are changed only through their upload endpoints.
+// New look: unsaved edits survive a reload (this browser tab only) and the
+// page reopens in edit mode with the "what changed" bar.
+const PROFILE_DRAFT_KEY = 'ppl_draft:lab-profile';
+const readProfileDraft = () => { try { return JSON.parse(sessionStorage.getItem(PROFILE_DRAFT_KEY) || 'null'); } catch { return null; } };
+const clearProfileDraft = () => { try { sessionStorage.removeItem(PROFILE_DRAFT_KEY); } catch { /* ignore */ } };
+
 const EDITABLE_FIELDS = [
   'documentFormats', 'reportFormatId', 'billFormatId',
   'labName',
@@ -528,6 +534,26 @@ const LabProfile = () => {
     [form, profile]
   );
 
+  // Keep only the changed fields while editing; restore them once after load.
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    if (!isV2 || !isEditing || !profile) return;
+    const changed = {};
+    EDITABLE_FIELDS.forEach((field) => { if (comparableValue(form[field]) !== comparableValue(profile[field])) changed[field] = form[field]; });
+    try {
+      if (Object.keys(changed).length) sessionStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(changed));
+      else sessionStorage.removeItem(PROFILE_DRAFT_KEY);
+    } catch { /* storage unavailable */ }
+  }, [isV2, isEditing, form, profile]);
+  useEffect(() => {
+    if (!isV2 || draftRestored || !profile || !canEdit) return;
+    setDraftRestored(true);
+    const saved = readProfileDraft();
+    if (!saved || !Object.keys(saved).length) return;
+    setForm({ ...getFormValues(profile), ...saved });
+    setIsEditing(true);
+  }, [isV2, draftRestored, profile, canEdit]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const profileHasValues = useMemo(() => {
     if (!profile) return false;
     return [...EDITABLE_FIELDS, 'logoUrl', 'letterheadUrl', 'footerUrl'].some((field) => (
@@ -606,6 +632,7 @@ const LabProfile = () => {
   };
 
   const cancelEditing = () => {
+    clearProfileDraft();
     setForm(getFormValues(profile));
     resetAssetSelections();
     setIsEditing(false);
@@ -636,6 +663,7 @@ const LabProfile = () => {
       const savedProfile = getProfileData(response);
       if (!savedProfile) throw new Error('The save response did not contain the updated lab profile.');
 
+      clearProfileDraft();
       setProfile(savedProfile);
       setForm(getFormValues(savedProfile));
       setIsEditing(false);

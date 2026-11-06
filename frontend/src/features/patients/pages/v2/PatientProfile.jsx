@@ -11,6 +11,7 @@ import downloadFile from '../../../../utils/downloadFile';
 import { buildBillsSearchUrl } from '../../../../utils/billNavigation';
 import { money, dayLabel, dateTimeLabel, sum } from '../../../../utils/reportFormat';
 import { notify } from '../../../../components/common/Toast/toast';
+import useStickyState from '../../../../utils/useStickyState';
 import '../../../../components/business/business.css';
 import '../../../../pages/cases/v2/casesV2.css';
 
@@ -34,14 +35,18 @@ export default function PatientProfile() {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState('bills');
+  // Tab, open edit panel and its typed values come back after a reload.
+  const [tab, setTab] = useStickyState('tab', 'bills');
   const [reload, setReload] = useState(0);
   // Edit drawer
-  const [editOpen, setEditOpen] = useState(false);
-  const [formData, setFormData] = useState(null);
+  const [editOpen, setEditOpen] = useStickyState('edit', false);
+  const [formData, setFormData] = useStickyState('form', null);
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [doctors, setDoctors] = useState([]);
+  useEffect(() => {
+    if (editOpen && !doctors.length) getDoctors().then((res) => setDoctors(res?.data || [])).catch(() => {});
+  }, [editOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -201,7 +206,7 @@ export default function PatientProfile() {
 
       {formData && (
         <PatientFormModal
-          isOpen={editOpen}
+          isOpen={editOpen && !!formData}
           onClose={() => setEditOpen(false)}
           onSubmit={saveEdit}
           formData={formData}

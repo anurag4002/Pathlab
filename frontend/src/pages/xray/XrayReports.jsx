@@ -1,5 +1,6 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useEffect, useState } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getXrayCases } from '../../services/xrayService';
 import { getLabProfile, getSignatures } from '../../services/setupService';
@@ -47,7 +48,7 @@ const XrayReports = () => {
   const [signatures, setSignatures] = useState([]);
   const [printTarget, setPrintTarget] = useState(null);
   const [printOpen, setPrintOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const isV2 = useUiVersion() === 'v2';
   const navigate = useNavigate();
   const [uploadFor, setUploadFor] = useState(null);

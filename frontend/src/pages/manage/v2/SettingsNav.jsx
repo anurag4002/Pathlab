@@ -1,9 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 
 // Left-hand list of the sections on a settings page; clicking scrolls to
 // the card, and the one in view is highlighted.
 export default function SettingsNav({ sections = [] }) {
-  const [active, setActive] = useState(sections[0]?.id);
+  // The section last looked at is remembered and scrolled to after a reload.
+  const [active, setActive] = useStickyState('section', sections[0]?.id);
+  useEffect(() => {
+    if (active && active !== sections[0]?.id) {
+      const t = setTimeout(() => document.getElementById(active)?.scrollIntoView({ block: 'start' }), 300);
+      return () => clearTimeout(t);
+    }
+    return undefined;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const cards = sections.map((s) => document.getElementById(s.id)).filter(Boolean);
     if (!cards.length || typeof IntersectionObserver === 'undefined') return undefined;

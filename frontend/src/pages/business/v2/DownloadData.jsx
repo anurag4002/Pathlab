@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Download, FileText, Receipt, Users, Wallet } from 'lucide-react';
 import { downloadServerCsv, fetchExportPreviewCount, EXPORT_DATASETS } from '../../../services/exportService';
 import { PageHeader, Button } from '../../../components/common';
@@ -32,7 +33,7 @@ const canExportFor = (user) => {
 export default function DownloadData() {
   const { user } = useAuth();
   const canExport = canExportFor(user);
-  const [[from, to], setRange] = useState(() => presetRange('month'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('month'));
   const [counts, setCounts] = useState({});
   const [counting, setCounting] = useState(false);
   const [busy, setBusy] = useState('');

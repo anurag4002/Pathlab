@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { ChevronDown, Printer, RefreshCw } from 'lucide-react';
 import { getBills } from '../../../services/billService';
 import { PageHeader, Button, StatGroup, StatusBadge } from '../../../components/common';
@@ -56,11 +57,11 @@ function TypePicker({ value, onChange }) {
 // All bills report (new look): every bill in a period, with what was
 // received and what is still to collect.
 export default function AllBillsReport() {
-  const [[from, to], setRange] = useState(() => presetRange('month'));
-  const [types, setTypes] = useState([]);
-  const [status, setStatus] = useState('');
-  const [withCancelled, setWithCancelled] = useState(false);
-  const [search, setSearch] = useState('');
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('month'));
+  const [types, setTypes] = useStickyState('types', []);
+  const [status, setStatus] = useStickyState('status', '');
+  const [withCancelled, setWithCancelled] = useStickyState('withCancelled', false);
+  const [search, setSearch] = useStickyState('search', '');
   const debouncedSearch = useDebounce(search, 400);
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);

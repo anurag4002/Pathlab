@@ -1,5 +1,6 @@
 import './labV2.css';
 import React, { useEffect, useRef, useState } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
 import {
@@ -110,12 +111,12 @@ const ResultVerification = () => {
   // Server state — verification queue (list of reports)
   const [reports, setReports] = useState([]);
   const [pagination, setPagination] = useState(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Reported');
-  const [duration, setDuration] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [page, setPage] = useStickyState('page', 1);
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('status', 'Reported');
+  const [duration, setDuration] = useStickyState('duration', '');
+  const [from, setFrom] = useStickyState('from', '');
+  const [to, setTo] = useStickyState('to', '');
   const debouncedSearch = useDebounce(search, 500);
   const [reloadKey, setReloadKey] = useState(0);
   const [listLoading, setListLoading] = useState(true);

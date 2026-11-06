@@ -1,5 +1,6 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { useSearchParams } from 'react-router-dom';
 import { getUSGCases, createUSGCase, updateUSGCase, getUSGTemplates, getUSGServices, uploadUSGReport, uploadUSGImage } from '../../services/usgService';
 import { deleteUSGCase } from '../../services/modalityService';
@@ -88,21 +89,21 @@ const TodaysUSGCases = ({ reportsView = false }) => {
   // Unified Today + Search view: date scope + debounced search + pagination.
   // Backend /api/usg supports only `search` (patient name), `date`, `status`
   // — reg-no, doctor, from/to and pagination are applied client-side.
-  const [deptFilter, setDeptFilter] = useState('');
-  const [assignedFilter, setAssignedFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [searchFilter, setSearchFilter] = useState('');
-  const [dateScope, setDateScope] = useState(reportsView ? 'all' : 'today'); // 'today' | 'all'
+  const [deptFilter, setDeptFilter] = useStickyState('deptFilter', '');
+  const [assignedFilter, setAssignedFilter] = useStickyState('assignedFilter', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
+  const [searchFilter, setSearchFilter] = useStickyState('searchFilter', '');
+  const [dateScope, setDateScope] = useStickyState('dateScope', reportsView ? 'all' : 'today'); // 'today' | 'all'
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const debouncedSearch = useDebounce(searchFilter, 500);
   const { page, limit, goToPage, setLimit } = usePagination(1, 10);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCase, setEditingCase] = useState(null);
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingCase, setEditingCase] = useStickyState('editingCase', null);
   const [pickedPatient, setPickedPatient] = useState(null);
-  const [formData, setFormData] = useState({ patient: '', referringDoctor: '', templateName: '', findings: '', serviceType: 'with-report', status: 'Pending' });
+  const [formData, setFormData] = useStickyState('formData', { patient: '', referringDoctor: '', templateName: '', findings: '', serviceType: 'with-report', status: 'Pending' });
   const [reportFile, setReportFile] = useState(null);
   const [uploadTarget, setUploadTarget] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
@@ -347,7 +348,11 @@ const TodaysUSGCases = ({ reportsView = false }) => {
     goToPage(1);
   };
 
-  const keepDraftRef = useRef(false);
+  const keepDraftRef = useRef(isV2 && !editingCase && !!(formData.patient || formData.findings?.trim() || formData.templateName));
+  useEffect(() => {
+    // A chosen file cannot come back after a reload: forget it, keep the rest.
+    if (formData.file && !(formData.file instanceof Blob)) setFormData((prev) => ({ ...prev, file: null }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const closeForm = (saved = false) => {
     keepDraftRef.current = isV2 && !saved && !editingCase && !!(formData.patient || formData.findings?.trim() || formData.templateName);
     setFormOpen(false);

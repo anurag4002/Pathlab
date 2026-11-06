@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, Pencil, Plus, RefreshCw, Upload } from 'lucide-react';
 import {
@@ -204,9 +205,9 @@ const ResultEntry = () => {
   // Server state — pending case list
   const [cases, setCases] = useState([]);
   const [pagination, setPagination] = useState(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useStickyState('page', 1);
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('status', '');
   const debouncedSearch = useDebounce(search, 400);
   const [reloadKey, setReloadKey] = useState(0);
   const [listLoading, setListLoading] = useState(true);

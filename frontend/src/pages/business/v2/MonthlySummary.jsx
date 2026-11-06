@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { ChevronLeft, ChevronRight, Printer, RefreshCw } from 'lucide-react';
 import { getDailyBusiness } from '../../../services/dashboardService';
 import { getExpenses } from '../../../services/expenseService';
@@ -33,7 +34,7 @@ const localDay = (value) => { const d = new Date(value); return Number.isNaN(d.g
 // Monthly summary (new look): the month at a glance - totals, one line per
 // day with business, and where the money came from and went.
 export default function MonthlySummary() {
-  const [month, setMonth] = useState(thisMonth);
+  const [month, setMonth] = useStickyState('month', thisMonth);
   const range = useMemo(() => monthRange(month), [month]);
   const [ledger, setLedger] = useState(null);
   const [expenses, setExpenses] = useState([]);

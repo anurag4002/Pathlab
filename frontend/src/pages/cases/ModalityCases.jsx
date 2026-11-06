@@ -7,7 +7,7 @@ import { DataTable, PageHeader, Button, Modal, Input, StatusBadge, ConfirmDialog
 import { useUiVersion } from '../../utils/uiVersion';
 import './v2/casesV2.css';
 import useAuth from '../../hooks/useAuth';
-import usePagination from '../../hooks/usePagination';
+import useStickyState from '../../utils/useStickyState';
 import useDebounce from '../../hooks/useDebounce';
 import { Plus, ArrowRight, Trash2, Upload, Eye, Printer, Download } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
@@ -27,12 +27,14 @@ const ModalityCases = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   const [searchParams, setSearchParams] = useSearchParams();
-  const [modality, setModality] = useState(() => TABS.includes(searchParams.get('modality')) ? searchParams.get('modality') : 'CT');
+  // New look: tab, search, page and a half-made new case come back after a reload.
+  const [modality, setModality] = useStickyState('modality', 'CT');
+  useEffect(() => { const m = searchParams.get('modality'); if (TABS.includes(m)) setModality(m); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState({ patient: '', procedure: '', findings: '', impression: '' });
-  const [pickedPatient, setPickedPatient] = useState(null);
+  const [formOpen, setFormOpen] = useStickyState('open', false);
+  const [form, setForm] = useStickyState('form', { patient: '', procedure: '', findings: '', impression: '' });
+  const [pickedPatient, setPickedPatient] = useStickyState('patient', null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -63,9 +65,11 @@ const ModalityCases = () => {
   };
 
   // Server-side search + pagination (GET /api/modality/cases).
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
+  const [page, goToPage] = useStickyState('page', 1);
+  const [limit, setLimitRaw] = useStickyState('limit', 10);
+  const setLimit = (n) => { setLimitRaw(Math.max(1, Number(n) || 10)); goToPage(1); };
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
 
   const fetchCases = async () => {

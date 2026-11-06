@@ -1,5 +1,6 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { useSearchParams } from 'react-router-dom';
 import { getXrayCases, createXrayCase, updateXrayCase, uploadXrayImage } from '../../services/xrayService';
 import { deleteXrayCase } from '../../services/modalityService';
@@ -86,20 +87,20 @@ const TodaysXrayCases = () => {
   // pagination. Backend /api/xray supports only `search` (patient name),
   // `date`, `status` — reg-no, doctor, from/to and pagination are applied
   // client-side so the list works before server support lands.
-  const [dateScope, setDateScope] = useState('today'); // 'today' | 'all'
+  const [dateScope, setDateScope] = useStickyState('dateScope', 'today'); // 'today' | 'all'
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [doctorFilter, setDoctorFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
+  const [doctorFilter, setDoctorFilter] = useStickyState('doctorFilter', '');
   const debouncedSearch = useDebounce(search, 500);
   const { page, limit, goToPage, setLimit } = usePagination(1, 10);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCase, setEditingCase] = useState(null);
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingCase, setEditingCase] = useStickyState('editingCase', null);
   const [pickedPatient, setPickedPatient] = useState(null);
-  const [formData, setFormData] = useState({ patient: '', referringDoctor: '', findings: '', file: null, status: 'Completed' });
+  const [formData, setFormData] = useStickyState('formData', { patient: '', referringDoctor: '', findings: '', file: null, status: 'Completed' });
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
   // Phase 14 — gallery images for the case being edited. Uploads run in
@@ -254,7 +255,11 @@ const TodaysXrayCases = () => {
     goToPage(1);
   };
 
-  const keepDraftRef = useRef(false);
+  const keepDraftRef = useRef(isV2 && !editingCase && !!(formData.patient || formData.findings?.trim()));
+  useEffect(() => {
+    // A chosen file cannot come back after a reload: forget it, keep the rest.
+    if (formData.file && !(formData.file instanceof Blob)) setFormData((prev) => ({ ...prev, file: null }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [uploadFor, setUploadFor] = useState(null);
   const closeForm = (saved = false) => {
     keepDraftRef.current = isV2 && !saved && !editingCase && !!(formData.patient || formData.findings?.trim());

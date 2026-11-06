@@ -7,6 +7,7 @@ import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import useStickyState from '../../utils/useStickyState';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -14,19 +15,24 @@ const STATUS_OPTIONS = [
   { value: 'Inactive', label: 'Inactive' }
 ];
 
+const EMPTY_CONTACT = { name: '', phone: '', commissionPercentage: '5', status: 'Active' };
+
 const Agents = () => {
   const isV2 = useUiVersion() === 'v2';
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', commissionPercentage: '', status: 'Active' });
+  // New look: the open panel, what was typed in it, search and tab come back after a reload.
+  const [formOpen, setFormOpen] = useStickyState('open', false);
+  const [editingAgent, setEditingAgentRaw] = useState(null);
+  const [editingId, setEditingId] = useStickyState('editing', null);
+  const setEditingAgent = (item) => { setEditingAgentRaw(item); setEditingId(item ? item._id : null); };
+  const [formData, setFormData] = useStickyState('form', { name: '', phone: '', commissionPercentage: '', status: 'Active' });
   const [errors, setErrors] = useState({});
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('status', '');
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -56,6 +62,18 @@ const Agents = () => {
   useEffect(() => {
     fetchAgents();
   }, []);
+
+  const closeForm = () => {
+    setFormOpen(false);
+    if (editingAgent) { setEditingAgent(null); setFormData(EMPTY_CONTACT); }
+  };
+  // After a reload: the edited record comes back once the list has loaded.
+  useEffect(() => {
+    if (!isV2 || !formOpen || !editingId || editingAgent || !agents.length) return;
+    const found = agents.find((x) => String(x._id) === String(editingId));
+    if (found) setEditingAgentRaw(found); else { setEditingId(null); setFormOpen(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isV2, formOpen, editingId, agents]);
 
   const handleOpenCreate = () => {
     // New look: a half-typed new agent survives closing the panel.
@@ -141,7 +159,7 @@ const Agents = () => {
   const footer = (
     <>
       {isV2 && !editingAgent && <span className="cases-drawer-note">Closing keeps what you typed.</span>}
-      <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={formSubmitLoading}>
+      <Button variant="secondary" onClick={closeForm} disabled={formSubmitLoading}>
         Cancel
       </Button>
       <Button variant="primary" onClick={handleFormSubmit} loading={formSubmitLoading}>
@@ -235,7 +253,7 @@ const Agents = () => {
 
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         title={isV2 ? (editingAgent ? 'Edit agent' : 'New agent') : editingAgent ? 'Edit Agent Profile' : 'Add Collection Agent'}
         variant="drawer"
         footer={footer}

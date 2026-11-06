@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getReferralReport } from '../../../services/dashboardService';
 import { PageHeader, Button, StatGroup, Modal } from '../../../components/common';
@@ -23,13 +24,13 @@ const statementSection = (r) => ({
 // Doctor commission (new look): who referred patients, how much was billed
 // and what each doctor is owed - with a statement per doctor.
 export default function DoctorCommission() {
-  const [[from, to], setRange] = useState(() => presetRange('month'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('month'));
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(null);
+  const [search, setSearch] = useStickyState('search', '');
+  const [openKey, setOpenKey] = useStickyState('open', null);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +95,7 @@ export default function DoctorCommission() {
     ['Doctor', 'Date', 'Bill no', 'Patient', 'Bill amount', 'Commission'],
     shown.flatMap((r) => (r.billsList || []).map((b) => [r.doctorName, dayLabel(b.date), b.billNumber, b.patientName, b.amount, b.commissionAmount])));
 
+  const open = openKey ? (shown.find((r) => (r.doctorId || r.doctorName) === openKey) || null) : null;
   return (
     <div className="biz-page">
       <PageHeader
@@ -129,7 +131,7 @@ export default function DoctorCommission() {
 
       <section className="biz-section">
         <div className="biz-section-head"><h2>By doctor</h2><p>Click a doctor to see their bills and print a statement.</p></div>
-        <ReportTable loading={loading} rows={shown} rowKey={(r) => r.doctorId || r.doctorName} onRowClick={setOpen}
+        <ReportTable loading={loading} rows={shown} rowKey={(r) => r.doctorId || r.doctorName} onRowClick={(r) => setOpenKey(r.doctorId || r.doctorName)}
           empty="No doctor referred a patient in this period."
           columns={[
             { key: 'doctor', label: 'Doctor', render: (r) => <><div className="strong">{r.doctorName}</div><div className="muted">{r.clinicHospital || r.contact || 'No clinic added'}</div></> },
@@ -141,7 +143,7 @@ export default function DoctorCommission() {
           totals={{ doctor: 'Total', bills: String(bills), billed: money(billed), commission: money(commission) }} />
       </section>
 
-      <Modal isOpen={!!open} onClose={() => setOpen(null)} variant="drawer" size="lg"
+      <Modal isOpen={!!open} onClose={() => setOpenKey(null)} variant="drawer" size="lg"
         title={open ? open.doctorName : ''}
         footer={open && <>
           <span className="bill-drawer-note">{periodLabel(from, to)}</span>

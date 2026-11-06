@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { RefreshCw } from 'lucide-react';
 import { getMyCases } from '../../../services/doctorPortalService';
 import { PageHeader, Button, StatGroup, IdentityCell, StatusBadge } from '../../../components/common';
@@ -23,9 +24,9 @@ export default function DoctorPortalV2() {
   const [data, setData] = useState({ bills: [], usg: [], xray: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [[from, to], setRange] = useState(() => presetRange('days30'));
-  const [kind, setKind] = useState('all');
-  const [search, setSearch] = useState('');
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('days30'));
+  const [kind, setKind] = useStickyState('kind', 'all');
+  const [search, setSearch] = useStickyState('search', '');
   const [reload, setReload] = useState(0);
 
   useEffect(() => {

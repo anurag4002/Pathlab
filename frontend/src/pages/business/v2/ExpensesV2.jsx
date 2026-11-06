@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Plus, Printer, Tags } from 'lucide-react';
 import { getExpenses, createExpense, updateExpense, deleteExpense } from '../../../services/expenseService';
 import { EXPENSE_CATEGORIES } from '../../../constants/businessConstants';
@@ -21,12 +22,12 @@ const loadCats = () => { try { const saved = JSON.parse(localStorage.getItem('ex
 // Expenses (new look): what the lab spent in a period, by category, with
 // recording and editing in a side panel.
 export default function ExpensesV2() {
-  const [[from, to], setRange] = useState(() => presetRange('month'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('month'));
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [category, setCategory] = useState('');
-  const [search, setSearch] = useState('');
+  const [category, setCategory] = useStickyState('category', '');
+  const [search, setSearch] = useStickyState('search', '');
   const [reload, setReload] = useState(0);
   const [cats, setCats] = useState(loadCats);
   const allCats = cats || EXPENSE_CATEGORIES;
@@ -34,16 +35,16 @@ export default function ExpensesV2() {
   const canFinance = can('finance');
 
   // Record / edit panel
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({});
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editing, setEditing] = useStickyState('editing', null);
+  const [form, setForm] = useStickyState('form', {});
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   // Categories panel
-  const [catOpen, setCatOpen] = useState(false);
+  const [catOpen, setCatOpen] = useStickyState('catOpen', false);
   const [newCat, setNewCat] = useState('');
 
   useEffect(() => {
@@ -71,6 +72,8 @@ export default function ExpensesV2() {
   const saveCats = (list) => { setCats(list); try { localStorage.setItem('expense_cats', JSON.stringify(list)); } catch { /* ignore */ } };
 
   const openCreate = () => {
+    // A half-typed new expense (closed by mistake) comes back as it was.
+    if (!editing && form && (form.amount || form.name || form.description || form.notes)) { setFormErrors({}); setFormOpen(true); return; }
     setEditing(null);
     setForm({ category: allCats[0], amount: '', date: today(), paymentMethod: 'Cash', name: '', description: '', notes: '' });
     setFormErrors({});
@@ -97,6 +100,7 @@ export default function ExpensesV2() {
       const res = editing ? await updateExpense(editing._id, payload) : await createExpense(payload);
       if (res?.success) {
         setFormOpen(false);
+        setForm({}); setEditing(null);
         notify(editing ? 'Expense updated' : 'Expense recorded');
         setReload((n) => n + 1);
       }

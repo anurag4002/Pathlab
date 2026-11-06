@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Plus, RefreshCw } from 'lucide-react';
 import { getTickets, createTicket, setTicketStatus } from '../../../services/supportService';
 import { PageHeader, Button, Modal, Input, RowMenu } from '../../../components/common';
@@ -24,10 +25,14 @@ export default function TicketsV2() {
   const isAdmin = user?.role === 'Admin';
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [show, setShow] = useState('open');
-  const [open, setOpen] = useState(false);
-  const [viewing, setViewing] = useState(null);
+  const [search, setSearch] = useStickyState('search', '');
+  const [show, setShow] = useStickyState('tab', 'open');
+  const [open, setOpen] = useStickyState('askOpen', false);
+  const [viewing, setViewingState] = useState(null);
+  // The request being read is reopened after a reload.
+  const [viewId, setViewId] = useStickyState('viewing', null);
+  const setViewing = (t) => { setViewingState(t); setViewId(t?._id || null); };
+  const restored = useRef(false);
   const [form, setForm, clearForm] = useDraft('ticket', EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -39,6 +44,12 @@ export default function TicketsV2() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (restored.current || !viewId || !list.length) return;
+    restored.current = true;
+    const t = list.find((x) => x._id === viewId);
+    if (t) setViewingState(t); else setViewId(null);
+  }, [list, viewId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isOpen = (t) => t.status === 'Open' || t.status === 'InProgress';
   const rows = useMemo(() => {

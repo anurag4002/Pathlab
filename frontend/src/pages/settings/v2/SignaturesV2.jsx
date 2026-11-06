@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Plus, RefreshCw } from 'lucide-react';
 import { PageHeader, Button, Modal, Input, ConfirmDialog, RowMenu } from '../../../components/common';
 import { getSignatures, createSignature, deleteSignature, updateSignature } from '../../../services/setupService';
@@ -17,7 +18,8 @@ export default function SignaturesV2() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [open, setOpen] = useState(false);
+  // The add panel reopens after a reload with the typed name/title/departments (the picture must be chosen again).
+  const [open, setOpen] = useStickyState('panelOpen', false);
   const [form, setForm, clearForm] = useDraft('signature-new', EMPTY);
   const [file, setFile] = useState(null);
   const [formError, setFormError] = useState('');

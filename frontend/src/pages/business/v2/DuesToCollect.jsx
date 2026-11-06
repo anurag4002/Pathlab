@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { CreditCard, Printer, RefreshCw } from 'lucide-react';
 import { getBills, collectPayment } from '../../../services/billService';
 import { getSummary } from '../../../services/dashboardService';
@@ -24,8 +25,8 @@ export default function DuesToCollect() {
   const [totalDue, setTotalDue] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [dept, setDept] = useState('');
-  const [search, setSearch] = useState('');
+  const [dept, setDept] = useStickyState('dept', '');
+  const [search, setSearch] = useStickyState('search', '');
   const [reload, setReload] = useState(0);
   const { can } = usePermissions();
   const canCollect = can('billing') || can('finance');

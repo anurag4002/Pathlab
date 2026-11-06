@@ -124,6 +124,15 @@ const readPatientDraft = () => {
   try { const draft = JSON.parse(sessionStorage.getItem(PATIENT_DRAFT_KEY) || 'null'); return draft && !draft.isExistingPatient ? { ...EMPTY_PATIENT_FORM, ...draft } : null; } catch { return null; }
 };
 const clearPatientDraft = () => { try { sessionStorage.removeItem(PATIENT_DRAFT_KEY); } catch { /* ignore */ } };
+// New look: the whole half-made bill (tests, doctor, agent, department,
+// discount, amount received, payment mode, chosen patient) survives a reload
+// in this tab. Not used in edit mode or when opened from a booking.
+const BILL_DRAFT_KEY = 'ppl_bill_draft';
+const readBillDraft = () => {
+  if (!isNewUi()) return null;
+  try { return JSON.parse(sessionStorage.getItem(BILL_DRAFT_KEY) || 'null'); } catch { return null; }
+};
+const clearBillDraft = () => { try { sessionStorage.removeItem(BILL_DRAFT_KEY); } catch { /* ignore */ } };
 
 const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
   const rawName = String(b?.name || '').trim();
@@ -228,6 +237,9 @@ const BillCreateForm = ({
   // passes; cleared once the items are applied (see items effect below).
   // Skipped entirely in edit mode (a bill is already loaded).
   const [bookingPrefill] = useState(() => (editBill ? null : takeBookingPrefill(location.state?.booking || null)));
+  const [billDraft] = useState(() => (editBill || bookingPrefill ? null : readBillDraft()));
+  // Decided once on open: was anything brought back from before a reload?
+  const [restoredDraft] = useState(() => !editBill && !bookingPrefill && !!(readBillDraft() || readPatientDraft()));
 
   // Prefill Register New immediately so unregistered inquiry details show even
   // if a later effect is skipped (StrictMode / navigation timing).
@@ -240,7 +252,11 @@ const BillCreateForm = ({
       };
     }
     const b = takeBookingPrefill(null);
-    if (!b) return readPatientDraft() || EMPTY_PATIENT_FORM;
+    if (!b) {
+      // A chosen (registered) patient from the saved half-made bill.
+      if (billDraft?.patientForm?.isExistingPatient && billDraft.patientForm.selectedPatientId) return { ...EMPTY_PATIENT_FORM, ...billDraft.patientForm };
+      return readPatientDraft() || EMPTY_PATIENT_FORM;
+    }
     const linkedId = b.patientId && String(b.patientId) !== 'null' ? b.patientId : null;
     if (linkedId) {
       return {
@@ -276,10 +292,10 @@ const BillCreateForm = ({
   const [outsourceOpen, setOutsourceOpen] = useState(false);
   // Full picked patient object (may come from server search beyond the
   // preloaded first-100 list, so it can't be re-derived from `patients`).
-  const [pickedPatient, setPickedPatient] = useState(() => editPatient || null);
-  const [selectedDoctor, setSelectedDoctor] = useState(() => idOf(editBill?.referringDoctor));
-  const [selectedAgent, setSelectedAgent] = useState(() => idOf(editBill?.agent));
-  const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || 'ALL');
+  const [pickedPatient, setPickedPatient] = useState(() => editPatient || billDraft?.pickedPatient || null);
+  const [selectedDoctor, setSelectedDoctor] = useState(() => (editBill ? idOf(editBill.referringDoctor) : billDraft?.doctor || idOf(undefined)));
+  const [selectedAgent, setSelectedAgent] = useState(() => (editBill ? idOf(editBill.agent) : billDraft?.agent || idOf(undefined)));
+  const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || billDraft?.department || 'ALL');
   const [usgServices, setUSGServices] = useState([]);
   const [usgError, setUSGError] = useState('');
   const [usgRetry, setUSGRetry] = useState(0);
@@ -321,15 +337,30 @@ const BillCreateForm = ({
         price: Number(it.price || 0),
         _key: String(it._id || it.id || `bill-item-${i}`)
       }))
-      : []
+      : (Array.isArray(billDraft?.items) ? billDraft.items : [])
   ));
-  const [discountPercent, setDiscountPercent] = useState('');
-  const [discountValue, setDiscountValue] = useState(() => (editBill?.discount != null ? String(editBill.discount) : ''));
+  const [discountPercent, setDiscountPercent] = useState(() => billDraft?.discountPercent ?? '');
+  const [discountValue, setDiscountValue] = useState(() => (editBill?.discount != null ? String(editBill.discount) : billDraft?.discountValue ?? ''));
   // Edit mode starts on flat-₹ discount (the bill stores a flat amount) and
   // locks the already-collected amount (Pay/Refund flows own it).
-  const [discountMode, setDiscountMode] = useState(() => (editBill ? 'amount' : 'percent'));
-  const [paidAmount, setPaidAmount] = useState(() => (editBill ? Number(editBill.paidAmount || 0) : 0));
-  const [paymentMethod, setPaymentMethod] = useState(() => editBill?.paymentMethod || 'Cash');
+  const [discountMode, setDiscountMode] = useState(() => (editBill ? 'amount' : billDraft?.discountMode || 'percent'));
+  const [paidAmount, setPaidAmount] = useState(() => (editBill ? Number(editBill.paidAmount || 0) : Number(billDraft?.paidAmount || 0)));
+  const [paymentMethod, setPaymentMethod] = useState(() => editBill?.paymentMethod || billDraft?.paymentMethod || 'Cash');
+  // Save the half-made bill as it is typed (new look, new bills only).
+  useEffect(() => {
+    if (!isV2 || isEditMode) return;
+    const existing = patientForm.isExistingPatient && patientForm.selectedPatientId;
+    const started = selectedItems.length || selectedDoctor || selectedAgent || (activeDepartment && activeDepartment !== 'ALL')
+      || discountPercent || discountValue || Number(paidAmount) || existing;
+    try {
+      if (!started) { sessionStorage.removeItem(BILL_DRAFT_KEY); return; }
+      sessionStorage.setItem(BILL_DRAFT_KEY, JSON.stringify({
+        items: selectedItems, doctor: selectedDoctor, agent: selectedAgent, department: activeDepartment,
+        discountMode, discountPercent, discountValue, paidAmount, paymentMethod,
+        patientForm: existing ? patientForm : null, pickedPatient: existing ? pickedPatient : null,
+      }));
+    } catch { /* storage full or blocked */ }
+  }, [isV2, isEditMode, selectedItems, selectedDoctor, selectedAgent, activeDepartment, discountMode, discountPercent, discountValue, paidAmount, paymentMethod, patientForm, pickedPatient]);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const cartRef = useRef(null);
@@ -755,6 +786,7 @@ const BillCreateForm = ({
       if (res.success) {
         clearBookingPrefill();
         clearPatientDraft();
+        clearBillDraft();
         onBillCreated?.();
         // The Bills page shows a "saved" bar with the next steps for this bill.
         const saved = res.data?.bill || res.data || {};
@@ -918,7 +950,14 @@ const BillCreateForm = ({
           <h1 className="bill-head-title">{isEditMode ? `Edit bill ${editBill.billNumber || ''}`.trim() : 'New bill'}</h1>
           {!isEditMode && <PageTip path="/cases/bills/new" inline />}
         </div>
-      ) : (
+      ) : null}
+      {isV2 && restoredDraft && (
+        <div className="bill-restored" role="status">
+          Your unsaved bill was brought back.
+          <button type="button" onClick={() => { clearBillDraft(); clearPatientDraft(); window.location.reload(); }}>Start over</button>
+        </div>
+      )}
+      {!isV2 && (
       <Button
         variant="secondary"
         onClick={() => (isEditMode && onCancelEdit ? onCancelEdit() : navigate('/cases/bills'))}

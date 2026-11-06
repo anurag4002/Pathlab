@@ -24,7 +24,10 @@ export default function useStickyState(name, initial) {
   const { pathname } = useLocation();
   const enabled = getUiVersion() === 'v2';
   const key = keyFor(pathname, name);
-  const initialValue = typeof initial === 'function' ? initial() : initial;
+  // Work out the starting value once (it may read storage), not every render.
+  const initialRef = useRef(undefined);
+  if (initialRef.current === undefined) initialRef.current = { v: typeof initial === 'function' ? initial() : initial };
+  const initialValue = initialRef.current.v;
   const [value, setValue] = useState(() => (enabled ? read(key, initialValue) : initialValue));
   const first = useRef(true);
   useEffect(() => {

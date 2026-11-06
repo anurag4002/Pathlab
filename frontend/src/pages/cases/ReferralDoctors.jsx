@@ -7,11 +7,14 @@ import './v2/casesV2.css';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import useStickyState from '../../utils/useStickyState';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
   { value: 'Inactive', label: 'Inactive' }
 ];
+
+const EMPTY_CONTACT = { name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '10', status: 'Active' };
 
 const ReferralDoctors = () => {
   const isV2 = useUiVersion() === 'v2';
@@ -19,15 +22,18 @@ const ReferralDoctors = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingDoctor, setEditingDoctor] = useState(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '', status: 'Active' });
+  // New look: the open panel, what was typed in it, search and tab come back after a reload.
+  const [formOpen, setFormOpen] = useStickyState('open', false);
+  const [editingDoctor, setEditingDoctorRaw] = useState(null);
+  const [editingId, setEditingId] = useStickyState('editing', null);
+  const setEditingDoctor = (item) => { setEditingDoctorRaw(item); setEditingId(item ? item._id : null); };
+  const [formData, setFormData] = useStickyState('form', { name: '', phone: '', clinicHospital: '', address: '', referralPercentage: '', status: 'Active' });
   const [errors, setErrors] = useState({});
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
   // Search
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('status', '');
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -61,6 +67,18 @@ const ReferralDoctors = () => {
   useEffect(() => {
     fetchDoctors();
   }, []);
+
+  const closeForm = () => {
+    setFormOpen(false);
+    if (editingDoctor) { setEditingDoctor(null); setFormData(EMPTY_CONTACT); }
+  };
+  // After a reload: the edited record comes back once the list has loaded.
+  useEffect(() => {
+    if (!isV2 || !formOpen || !editingId || editingDoctor || !doctors.length) return;
+    const found = doctors.find((x) => String(x._id) === String(editingId));
+    if (found) setEditingDoctorRaw(found); else { setEditingId(null); setFormOpen(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isV2, formOpen, editingId, doctors]);
 
   const handleOpenCreate = () => {
     // New look: a half-typed new doctor survives closing the panel.
@@ -256,13 +274,13 @@ const ReferralDoctors = () => {
       {/* Profile Modal */}
       <Modal
         isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={closeForm}
         title={isV2 ? (editingDoctor ? 'Edit doctor' : 'New doctor') : editingDoctor ? 'Edit Doctor Profile' : 'Add Referral Doctor'}
         variant="drawer"
         footer={
           <>
             {isV2 && !editingDoctor && <span className="cases-drawer-note">Closing keeps what you typed.</span>}
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={formSubmitLoading}>
+            <Button variant="secondary" onClick={closeForm} disabled={formSubmitLoading}>
               Cancel
             </Button>
             <Button variant="primary" onClick={handleFormSubmit} loading={formSubmitLoading}>

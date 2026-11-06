@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { RefreshCw, RotateCcw } from 'lucide-react';
 import { getJobs, retryJob } from '../../../services/jobService';
 import { sendMessage } from '../../../services/notifyService';
@@ -25,7 +26,7 @@ const SHOW = [['Failed', 'Not sent'], ['Pending', 'Waiting'], ['Done', 'Sent'], 
 // Unsent messages (new look): SMS / WhatsApp / email that did not go out,
 // with "Send again". Two lists: the lab's outbox and this computer's tries.
 export default function JobsV2() {
-  const [status, setStatus] = useState('Failed');
+  const [status, setStatus] = useStickyState('tab', 'Failed');
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);

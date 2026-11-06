@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { getPanels, createPanel, updatePanel, deletePanel } from '../../services/panelService';
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
@@ -21,12 +22,12 @@ const TestPanels = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingPanel, setEditingPanel] = useState(null);
-  const [formData, setFormData] = useState({ name: '', price: '', tests: [], description: '', status: 'Active' });
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingPanel, setEditingPanel] = useStickyState('editingPanel', null);
+  const [formData, setFormData] = useStickyState('formData', { name: '', price: '', tests: [], description: '', status: 'Active' });
   // New look: a new panel being built survives an accidental close.
   const isV2 = useUiVersion() === 'v2';
-  const [createDraft, setCreateDraft] = useState(null);
+  const [createDraft, setCreateDraft] = useStickyState('createDraft', null);
   const closeForm = () => { if (isV2 && !editingPanel) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -36,8 +37,8 @@ const TestPanels = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Search + client-side pagination (GET /api/panels returns the full list).
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
   const filteredPanels = useMemo(() => {
     const q = search.trim().toLowerCase();
     return panels.filter((p) => {

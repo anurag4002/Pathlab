@@ -6,6 +6,7 @@ import ReportTable from '../../../components/business/ReportTable';
 import { notify } from '../../../components/common/Toast/toast';
 import { dateTimeLabel } from '../../../utils/reportFormat';
 import useDraft from './useDraft';
+import useStickyState from '../../../utils/useStickyState';
 import { plainAction } from '../../settings/v2/AuditLogV2';
 import '../../../components/business/business.css';
 import './manage.css';
@@ -25,9 +26,9 @@ export default function BrowserSecurityV2() {
   const [browsers, setBrowsers] = useState([]);
   const [logins, setLogins] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [open, setOpen] = useState(false);
-  const [form, setForm, clearForm] = useDraft('browser-new', { label: '', code: '' });
+  const [search, setSearch] = useStickyState('search', '');
+  const [open, setOpen] = useStickyState('panelOpen', false);
+  const [form, setForm, clearForm] = useDraft('browser-new', { label: '', code: '' }, { omit: ['code'] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [confirm, setConfirm] = useState(null); // { kind: 'block'|'delete', b }

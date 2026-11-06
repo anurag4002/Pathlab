@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { getTests, updateTest } from '../../../services/testService';
 import { PageHeader, Button, Input } from '../../../components/common';
 import ReportTable from '../../../components/business/ReportTable';
@@ -19,12 +20,13 @@ const SECTIONS = [{ id: 'tat-defaults', label: 'Report times' }, { id: 'tat-test
 // Report times (new look): how quickly reports should be ready.
 export default function TatConfigV2() {
   const [saved, setSaved] = useState(() => loadTatSettings());
-  const [form, setForm] = useState(() => loadTatSettings());
+  // Unsaved edits come back after a reload until saved or reset.
+  const [form, setForm] = useStickyState('form', loadTatSettings);
   const [error, setError] = useState('');
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [drafts, setDrafts] = useState({});
+  const [search, setSearch] = useStickyState('search', '');
+  const [drafts, setDrafts] = useStickyState('testTimes', {});
   const [savingId, setSavingId] = useState(null);
 
   useEffect(() => {

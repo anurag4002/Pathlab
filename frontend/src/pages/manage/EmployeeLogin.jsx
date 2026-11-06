@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Edit2, Trash2, UserCheck, UserX, RefreshCw } from 'lucide-react';
 import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
 import useAuth from '../../hooks/useAuth';
@@ -12,6 +12,7 @@ import { permsToMap } from './components/PermissionMatrix';
 import '../../styles/UserManagement.css';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import useStickyState from '../../utils/useStickyState';
 
 const STAFF_ROLES = ['Employee', 'Admin'];
 const ROLE_OPTIONS = [
@@ -22,6 +23,12 @@ const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
   { value: 'Inactive', label: 'Inactive' }
 ];
+// New look: the open add/edit panel and its typed values (never the password)
+// come back after a reload, in this browser tab only.
+const STAFF_DRAFT_KEY = 'ppl_draft:staff-form';
+const readStaffDraft = () => { try { return JSON.parse(sessionStorage.getItem(STAFF_DRAFT_KEY) || 'null'); } catch { return null; } };
+const clearStaffDraft = () => { try { sessionStorage.removeItem(STAFF_DRAFT_KEY); } catch { /* ignore */ } };
+
 const EMPTY_FORM = {
   name: '',
   email: '',
@@ -75,9 +82,9 @@ const EmployeeLogin = () => {
   const canManage = currentUser?.role === 'Admin';
 
   const [usersState, setUsersState] = useState({ key: null, data: [], error: '' });
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [roleFilter, setRoleFilter] = useStickyState('role', '');
+  const [statusFilter, setStatusFilter] = useStickyState('status', '');
   const [refreshKey, setRefreshKey] = useState(0);
   const debouncedSearch = useDebounce(search, 400);
   const requestKey = JSON.stringify([debouncedSearch, roleFilter, statusFilter, refreshKey]);
@@ -85,6 +92,9 @@ const EmployeeLogin = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  // Which panel was open ('new' or a user id); plain state in the classic look.
+  const [panel, setPanel] = useStickyState('panel', null);
+  const restoredPanel = useRef(false);
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -165,6 +175,28 @@ const EmployeeLogin = () => {
 
   const refreshUsers = () => setRefreshKey((value) => value + 1);
 
+  // Keep a copy of what is typed while the panel is open (password left out).
+  useEffect(() => {
+    if (!isV2 || !formOpen) return;
+    try {
+      const { password, ...rest } = formData; // eslint-disable-line no-unused-vars
+      sessionStorage.setItem(STAFF_DRAFT_KEY, JSON.stringify(rest));
+    } catch { /* storage unavailable */ }
+  }, [isV2, formOpen, formData]);
+
+  // After a reload, reopen the panel that was open with what had been typed.
+  useEffect(() => {
+    if (!isV2 || restoredPanel.current || !panel || formOpen || loading) return;
+    restoredPanel.current = true;
+    const saved = readStaffDraft() || {};
+    if (panel === 'new') { setEditingUser(null); setFormData({ ...EMPTY_FORM, ...saved, password: '' }); setFormOpen(true); return; }
+    const account = (usersState.data || []).find((u) => u._id === panel);
+    if (!account) { setPanel(null); clearStaffDraft(); return; }
+    setEditingUser(account);
+    setFormData({ ...EMPTY_FORM, ...saved, password: '' });
+    setFormOpen(true);
+  }, [isV2, panel, formOpen, loading, usersState.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const clearFormState = () => {
     setEditingUser(null);
     setFormData(EMPTY_FORM);
@@ -177,6 +209,8 @@ const EmployeeLogin = () => {
     clearFormState();
     setActionError('');
     setNotice('');
+    clearStaffDraft();
+    setPanel('new');
     setFormOpen(true);
   };
 
@@ -204,12 +238,16 @@ const EmployeeLogin = () => {
     });
     setFormErrors({});
     setFormError('');
+    clearStaffDraft();
+    setPanel(account._id);
     setFormOpen(true);
   };
 
   const closeForm = () => {
     if (submitLoading) return;
     setFormOpen(false);
+    setPanel(null);
+    clearStaffDraft();
     clearFormState();
   };
 
@@ -289,6 +327,8 @@ const EmployeeLogin = () => {
         return;
       }
       setFormOpen(false);
+      setPanel(null);
+      clearStaffDraft();
       clearFormState();
       setNotice(response.message || 'User account saved.');
       refreshUsers();

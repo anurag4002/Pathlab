@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { getPackages, createPackage, updatePackage, deletePackage } from '../../services/packageService';
 import { getTests } from '../../services/testService';
 import formatCurrency from '../../utils/formatCurrency';
@@ -21,12 +22,12 @@ const TestPackages = () => {
   const [loading, setLoading] = useState(false);
 
   // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingPackage, setEditingPackage] = useState(null);
-  const [formData, setFormData] = useState({ name: '', price: '', gender: 'All', includedTests: [], description: '', status: 'Active' });
+  const [formOpen, setFormOpen] = useStickyState('formOpen', false);
+  const [editingPackage, setEditingPackage] = useStickyState('editingPackage', null);
+  const [formData, setFormData] = useStickyState('formData', { name: '', price: '', gender: 'All', includedTests: [], description: '', status: 'Active' });
   // New look: a new package being built survives an accidental close.
   const isV2 = useUiVersion() === 'v2';
-  const [createDraft, setCreateDraft] = useState(null);
+  const [createDraft, setCreateDraft] = useStickyState('createDraft', null);
   const closeForm = () => { if (isV2 && !editingPackage) setCreateDraft(formData); setFormOpen(false); };
   const [errors, setErrors] = useState({});
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -36,8 +37,8 @@ const TestPackages = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Search + client-side pagination (GET /api/packages returns the full list).
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [statusFilter, setStatusFilter] = useStickyState('statusFilter', '');
   const filteredPackages = useMemo(() => {
     const q = search.trim().toLowerCase();
     return packages.filter((p) => {

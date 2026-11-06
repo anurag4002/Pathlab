@@ -29,7 +29,7 @@ import PaymentCollectModal from '../components/PaymentCollectModal';
 import { LabelPrintSheet } from '../../../components/lab';
 import VoidReasonDialog from '../components/VoidReasonDialog';
 import { usePermissions } from '../../../hooks/usePermission';
-import usePagination from '../../../hooks/usePagination';
+import useStickyState from '../../../utils/useStickyState';
 import useDebounce from '../../../hooks/useDebounce';
 import useAuth from '../../../hooks/useAuth';
 import { Plus, Printer, CreditCard, FileDown, Eye, RefreshCw, Tag, FileEdit } from 'lucide-react';
@@ -153,18 +153,22 @@ const BillsPage = () => {
   // List view
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
+  // New look: filters, search and page come back after a reload (this tab).
+  const [search, setSearch] = useStickyState('search', '');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
+  const [page, goToPage] = useStickyState('page', 1);
+  const [limit, setLimitRaw] = useStickyState('limit', 10);
+  // Changing rows-per-page always returns to page 1 (page counts shift).
+  const setLimit = (n) => { setLimitRaw(Math.max(1, Number(n) || 10)); goToPage(1); };
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterDept, setFilterDept] = useState('');
-  const [filterPatient, setFilterPatient] = useState('');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterTo, setFilterTo] = useState('');
-  const [filterVoided, setFilterVoided] = useState('');
-  const [filterBranch, setFilterBranch] = useState('');
-  const [adv, setAdv] = useState({
+  const [filterStatus, setFilterStatus] = useStickyState('filterStatus', '');
+  const [filterDept, setFilterDept] = useStickyState('filterDept', '');
+  const [filterPatient, setFilterPatient] = useStickyState('filterPatient', '');
+  const [filterFrom, setFilterFrom] = useStickyState('filterFrom', '');
+  const [filterTo, setFilterTo] = useStickyState('filterTo', '');
+  const [filterVoided, setFilterVoided] = useStickyState('filterVoided', '');
+  const [filterBranch, setFilterBranch] = useStickyState('filterBranch', '');
+  const [adv, setAdv] = useStickyState('adv', {
     duration: '',
     regNo: '',
     firstName: '',

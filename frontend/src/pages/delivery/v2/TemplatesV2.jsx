@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Plus, RefreshCw } from 'lucide-react';
 import { getTemplates, saveTemplate } from '../../../services/notifyService';
 import { PageHeader, Button, Modal, Input } from '../../../components/common';
@@ -23,11 +24,12 @@ const fill = (body) => String(body || '').replace(/\{\{\s*(\w+)\s*\}\}|\{(\w+)\}
 export default function TemplatesV2() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const [channel, setChannel] = useState('');
-  const [open, setOpen] = useState(false);
-  const [isNew, setIsNew] = useState(false);
-  const [form, setForm] = useState({ key: '', channel: 'sms', body: '' });
+  const [search, setSearch] = useStickyState('search', '');
+  const [channel, setChannel] = useStickyState('channel', '');
+  // The open edit panel and its unsaved text come back after a reload.
+  const [open, setOpen] = useStickyState('panelOpen', false);
+  const [isNew, setIsNew] = useStickyState('isNew', false);
+  const [form, setForm] = useStickyState('form', { key: '', channel: 'sms', body: '' });
   const [vars, setVars] = useState(VARS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -40,6 +42,12 @@ export default function TemplatesV2() {
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
+  // After a reload the click-to-insert words come from the message being edited.
+  useEffect(() => {
+    if (!open || isNew || !list.length) return;
+    const t = list.find((x) => x.key === form.key);
+    if (t?.variables?.length) setVars(t.variables);
+  }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();

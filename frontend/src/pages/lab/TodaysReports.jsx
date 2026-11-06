@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import useStickyState from '../../utils/useStickyState';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WhatsAppShare, RowMenu, IdentityCell } from '../../components/common';
 import { useUiVersion } from '../../utils/uiVersion';
@@ -145,9 +146,9 @@ const TodaysReports = () => {
   const [loading, setLoading] = useState(false);
 
   // Phase 1 — worklist tabs + department filter (Phase 6 — TAT settings drive due logic).
-  const [tab, setTab] = useState('today');
-  const [dept, setDept] = useState('All');
-  const [search, setSearch] = useState('');
+  const [tab, setTab] = useStickyState('tab', 'today');
+  const [dept, setDept] = useStickyState('dept', 'All');
+  const [search, setSearch] = useStickyState('search', '');
   const [tatSettings] = useState(() => loadTatSettings());
   const [pendingCases, setPendingCases] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getPatients, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
+import { getPatients, getPatientById, createPatient, updatePatient, deletePatient } from '../../../services/patientService';
 import { getDoctors } from '../../../services/doctorService';
 import { DataTable, PageHeader, Button, ConfirmDialog, AdvancedFilterBar, BranchFilter, IdentityCell, RowMenu } from '../../../components/common';
 import { useUiVersion } from '../../../utils/uiVersion';
 import { PATIENT_TABLE_HEADERS } from '../../../constants/patientConstants';
 import PatientFormModal, { EMPTY_FORM } from '../components/PatientFormModal';
-import usePagination from '../../../hooks/usePagination';
+import useStickyState from '../../../utils/useStickyState';
 import useDebounce from '../../../hooks/useDebounce';
 import { FolderOpen, Edit2, Trash2, UserPlus, FilePlus } from 'lucide-react';
 import { notify } from '../../../components/common/Toast/toast';
@@ -36,18 +36,23 @@ const PatientsPage = () => {
   const [loading, setLoading] = useState(false);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
 
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpenRaw] = useState(false);
+  // New look: which panel was open ('new' or a patient id) comes back after a
+  // reload, with what was typed in it.
+  const [openPanel, setOpenPanel] = useStickyState('panel', null);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formData, setFormData] = useStickyState('form', EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
 
-  const [search, setSearch] = useState('');
-  const [branch, setBranch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
+  const [branch, setBranch] = useStickyState('branch', '');
   const debouncedSearch = useDebounce(search, 500);
-  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
+  const [page, goToPage] = useStickyState('page', 1);
+  const [limit, setLimitRaw] = useStickyState('limit', 10);
+  const setLimit = (n) => { setLimitRaw(Math.max(1, Number(n) || 10)); goToPage(1); };
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
-  const [adv, setAdv] = useState({ uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' });
+  const [adv, setAdv] = useStickyState('adv', { uhid: '', firstName: '', lastName: '', mobile: '', patientId: '', from: '', to: '' });
   const setAdvKey = (k, v) => setAdv((p) => ({ ...p, [k]: v }));
 
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -119,12 +124,20 @@ const PatientsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formOpen]);
 
+  const setFormOpen = (open) => {
+    setFormOpenRaw(open);
+    if (open) return;
+    setOpenPanel(null);
+    // An edit is not a draft: closing it drops the values (a new patient keeps them).
+    if (editingPatient) { setFormData(EMPTY_FORM); setEditingPatient(null); }
+  };
   const openCreate = () => {
     const keepDraft = isV2 && !editingPatient;
     setEditingPatient(null);
     if (!keepDraft) setFormData(EMPTY_FORM);
     setErrors({});
-    setFormOpen(true);
+    setFormOpenRaw(true);
+    setOpenPanel('new');
   };
 
   const openEdit = (patient) => {
@@ -144,8 +157,22 @@ const PatientsPage = () => {
       referringDoctor: patient.referringDoctor?._id || ''
     });
     setErrors({});
-    setFormOpen(true);
+    setFormOpenRaw(true);
+    setOpenPanel(patient._id);
   };
+
+  // After a reload: reopen the panel that was open, keeping what was typed.
+  useEffect(() => {
+    if (!isV2 || formOpen || !openPanel) return;
+    if (openPanel === 'new') { setEditingPatient(null); setFormOpenRaw(true); return; }
+    let active = true;
+    const found = patients.find((p) => String(p._id) === String(openPanel));
+    const reopen = (patient) => { if (!active || !patient) return; setEditingPatient(patient); setFormOpenRaw(true); };
+    if (found) reopen(found);
+    else getPatientById(openPanel).then((res) => reopen(res?.data)).catch(() => setOpenPanel(null));
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isV2, openPanel]);
 
   const handleFormSubmit = async (e) => {
     e?.preventDefault();
@@ -164,6 +191,7 @@ const PatientsPage = () => {
 
       if (res.success) {
         setFormOpen(false);
+        setEditingPatient(null);
         if (isV2) setFormData(EMPTY_FORM);
         fetchPatientsList();
       }

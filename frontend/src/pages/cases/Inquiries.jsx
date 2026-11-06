@@ -4,7 +4,7 @@ import { getInquiries, setInquiryStatus, updateInquiry } from '../../services/in
 import { DataTable, PageHeader, StatusBadge, Select, Modal, Input, Button, AdvancedFilterBar, IdentityCell, RowMenu } from '../../components/common';
 import { useUiVersion } from '../../utils/uiVersion';
 import './v2/casesV2.css';
-import usePagination from '../../hooks/usePagination';
+import useStickyState from '../../utils/useStickyState';
 import useDebounce from '../../hooks/useDebounce';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
@@ -31,20 +31,25 @@ const Inquiries = () => {
   const isV2 = useUiVersion() === 'v2';
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useStickyState('search', '');
   const debouncedSearch = useDebounce(search, 500);
-  const [statusFilter, setStatusFilter] = useState('');
-  const { page, limit, goToPage, setLimit } = usePagination(1, 10);
+  const [statusFilter, setStatusFilter] = useStickyState('status', '');
+  const [page, goToPage] = useStickyState('page', 1);
+  const [limit, setLimitRaw] = useStickyState('limit', 10);
+  const setLimit = (n) => { setLimitRaw(Math.max(1, Number(n) || 10)); goToPage(1); };
   const [paginationInfo, setPaginationInfo] = useState({ total: 0, pages: 0 });
   const [updatingId, setUpdatingId] = useState('');
 
   // Edit-booking modal state (modification requests).
-  const [editTarget, setEditTarget] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editPreferred, setEditPreferred] = useState('');
-  const [editNote, setEditNote] = useState('');
-  const [editItems, setEditItems] = useState([]);
+  const [editTarget, setEditTargetRaw] = useState(null);
+  // New look: the booking being edited, and what was typed, come back after a reload.
+  const [editId, setEditId] = useStickyState('editing', null);
+  const setEditTarget = (inq) => { setEditTargetRaw(inq); setEditId(inq ? inq._id : null); };
+  const [editName, setEditName] = useStickyState('editName', '');
+  const [editPhone, setEditPhone] = useStickyState('editPhone', '');
+  const [editPreferred, setEditPreferred] = useStickyState('editPreferred', '');
+  const [editNote, setEditNote] = useStickyState('editNote', '');
+  const [editItems, setEditItems] = useStickyState('editItems', []);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -132,6 +137,13 @@ const Inquiries = () => {
   };
 
   // Open the edit modal prefilled with the booking's current details.
+  useEffect(() => {
+    if (!isV2 || !editId || editTarget || !items.length) return;
+    const found = items.find((it) => String(it._id) === String(editId));
+    if (found) setEditTargetRaw(found); else setEditId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isV2, editId, items]);
+
   const openEdit = (inq) => {
     setEditTarget(inq);
     setEditName(inq.name || '');

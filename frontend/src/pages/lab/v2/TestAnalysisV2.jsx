@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import useStickyState from '../../../utils/useStickyState';
 import { Link } from 'react-router-dom';
 import { Printer, RefreshCw } from 'lucide-react';
 import { getTestUsage } from '../../../services/analysisService';
@@ -16,7 +17,7 @@ const clean = (name) => String(name || '').replace(/\s*\(bundle\)\s*$/i, '').tri
 // Test analysis (new look): which departments do the most work in a period,
 // and the busiest test in each. Per-test detail lives on Test usage.
 export default function TestAnalysisV2() {
-  const [[from, to], setRange] = useState(() => presetRange('days30'));
+  const [[from, to], setRange] = useStickyState('range', () => presetRange('days30'));
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
