@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileSidebar from './MobileSidebar';
 import { preloadBusyScreens } from '../../routes/preloadScreens';
+import { applyUiVersion } from '../../utils/uiVersion';
 
 const MOBILE_BREAKPOINT = 1024;
 
@@ -14,6 +15,9 @@ const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  // The UI choice is per user: re-apply after sign-in / user switch.
+  useEffect(() => { applyUiVersion(); }, []);
 
   // "/" jumps to the search box of the current screen (as in Gmail/GitHub),
   // unless the user is already typing somewhere.

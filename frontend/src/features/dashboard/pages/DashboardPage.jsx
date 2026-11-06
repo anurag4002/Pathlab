@@ -26,6 +26,10 @@ import QuickActions from '../components/QuickActions';
 import LedgerSummaryCard from '../components/LedgerSummaryCard';
 import RecentTransactionsTable from '../components/RecentTransactionsTable';
 import '../Dashboard.css';
+import StatGroup from '../../../components/common/StatGroup/StatGroup';
+import UiVersionBanner from '../../../components/common/UiVersionBanner';
+import { useUiVersion } from '../../../utils/uiVersion';
+import usePendingResultCount from '../../../hooks/usePendingResultCount';
 
 const hasValue = (value) =>
   value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
@@ -461,6 +465,8 @@ const DashboardPage = () => {
   const canViewLabWork = role === 'Admin' || role === 'Employee';
   const canViewReports = role === 'Admin' || role === 'Employee';
   const canVerify = role === 'Admin';
+  const isV2 = useUiVersion() === 'v2';
+  const pendingResults = usePendingResultCount();
 
   const [statsState, setStatsState] = useState({ key: null, data: null, error: null });
   const [refreshKey, setRefreshKey] = useState(0);
@@ -533,25 +539,43 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      <UiVersionBanner />
+
       {statsError && <DashboardErrorBanner message={statsError} onRetry={handleRefresh} />}
 
-      {role === 'Admin' && <OnboardingWidget refreshKey={refreshKey} onRefresh={handleRefresh} />}
+      {/* New look: setup checklist only until the lab starts billing. */}
+      {role === 'Admin' && (!isV2 || (!statsLoading && Number(stats?.totalCasesCount || 0) === 0)) && <OnboardingWidget refreshKey={refreshKey} onRefresh={handleRefresh} />}
 
-      <DashboardStats
-        stats={stats}
-        canViewFinance={canViewFinance}
-        loading={statsLoading}
-      />
-
-      <div className="dashboard-split-grid">
-        <QuickActions />
-        {canViewFinance && !statsError && (
-          <LedgerSummaryCard
-            paymentSummary={stats?.paymentSummary}
+      {isV2 ? (
+        <>
+          <StatGroup loading={statsLoading} label="Today at a glance" items={[
+            canViewFinance && { label: 'Collected today', value: formatMoney(stats?.todayRevenue), to: '/business/daily' },
+            { label: 'Bills today', value: formatCount(stats?.todayBills), to: '/cases/bills' },
+            canViewLabWork && { label: 'Waiting for results', value: String(pendingResults), to: '/lab/result-entry', tone: pendingResults > 0 ? 'warning' : undefined },
+            canViewFinance && { label: 'Balance due', value: formatMoney(stats?.pendingPayments), to: '/business/dues', tone: Number(stats?.pendingPayments) > 0 ? 'danger' : undefined },
+            { label: 'Patients', value: formatCount(stats?.totalPatients), to: '/cases/patients' },
+          ]} />
+          <QuickActions compact />
+        </>
+      ) : (
+        <>
+          <DashboardStats
+            stats={stats}
+            canViewFinance={canViewFinance}
             loading={statsLoading}
           />
-        )}
-      </div>
+
+          <div className="dashboard-split-grid">
+            <QuickActions />
+            {canViewFinance && !statsError && (
+              <LedgerSummaryCard
+                paymentSummary={stats?.paymentSummary}
+                loading={statsLoading}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       {(canViewBusiness || canViewLabWork) && (
         <div className="dashboard-section-grid">
@@ -571,9 +595,9 @@ const DashboardPage = () => {
 
       {canViewBusiness && <RecentActivityCard refreshKey={refreshKey} onRefresh={handleRefresh} />}
 
-      <p className="dashboard-footnote">
+      {!isV2 && <p className="dashboard-footnote">
         Summary labels distinguish today’s metrics from all-time ledger values. Active test definitions and case records are catalog/summary counts, not tests performed. All-time case records follow the API’s Bill + USG + X-Ray scope; all-time due values may include voided bills. No missing API value is converted to zero.
-      </p>
+      </p>}
     </div>
   );
 };

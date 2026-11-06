@@ -7,6 +7,7 @@ const USGCase = require('../models/USGCase');
 const XrayCase = require('../models/XrayCase');
 const Activity = require('../models/Activity');
 const Doctor = require('../models/Doctor');
+const { rangeStart, rangeEnd } = require('../utils/dateRange');
 
 const getDashboardStats = async (branch) => {
   const today = new Date();
@@ -43,7 +44,8 @@ const getDashboardStats = async (branch) => {
       date: { $gte: today, $lte: endOfToday }
     }),
     Bill.aggregate([
-      { $match: { ...bMatch } },
+      // Voided / cancelled bills are not owed: same definition as the dues list.
+      { $match: { ...bMatch, isVoided: { $ne: true }, cancelled: { $ne: true } } },
       {
         $group: {
           _id: null,
@@ -83,8 +85,8 @@ const getDashboardStats = async (branch) => {
 };
 
 const getDailyBusiness = async (startDate, endDate, branch, options = {}) => {
-  const start = new Date(startDate || new Date().setHours(0, 0, 0, 0));
-  const end = new Date(endDate || new Date().setHours(23, 59, 59, 999));
+  const start = rangeStart(startDate, new Date(new Date().setHours(0, 0, 0, 0)));
+  const end = rangeEnd(endDate, new Date(new Date().setHours(23, 59, 59, 999)));
   const bMatch = branch ? { branch } : {};
   const lite = Boolean(options.lite);
 
@@ -136,7 +138,7 @@ const getDailyBusiness = async (startDate, endDate, branch, options = {}) => {
       date: { $gte: start, $lte: end }
     }).lean(),
     Bill.aggregate([
-      { $match: { ...bMatch, date: { $gte: start, $lte: end }, isVoided: { $ne: true } } },
+      { $match: { ...bMatch, date: { $gte: start, $lte: end }, isVoided: { $ne: true }, cancelled: { $ne: true } } },
       { $group: { _id: '$department', count: { $sum: 1 }, billed: { $sum: '$totalAmount' }, collected: { $sum: '$paidAmount' }, due: { $sum: '$dueAmount' } } },
       { $sort: { billed: -1 } }
     ])
@@ -222,10 +224,9 @@ const getReferralBusiness = async (startDate, endDate, branch) => {
   if (branch) query.branch = branch;
   if (startDate || endDate) {
     query.date = {};
-    if (startDate) query.date.$gte = new Date(startDate);
+    if (startDate) query.date.$gte = rangeStart(startDate);
     if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      const end = rangeEnd(endDate);
       query.date.$lte = end;
     }
   }

@@ -7,6 +7,7 @@ import Toaster from './components/common/Toast/Toaster';
 import './styles/global.css';
 import './styles/shell.css';
 import './styles/responsive.css';
+import './styles/ui-v2.css';
 
 function App() {
   return (

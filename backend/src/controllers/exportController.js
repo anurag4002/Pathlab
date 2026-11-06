@@ -15,10 +15,9 @@ function toCsv(headers, rows) {
 function windowed(query, { startDate, endDate }, field = 'date') {
   if (startDate || endDate) {
     query[field] = {};
-    if (startDate) query[field].$gte = new Date(startDate);
+    if (startDate) query[field].$gte = rangeStart(startDate);
     if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      const end = rangeEnd(endDate);
       query[field].$lte = end;
     }
   }
@@ -26,6 +25,7 @@ function windowed(query, { startDate, endDate }, field = 'date') {
 }
 
 const { getBranchFilter } = require('../middleware/branchMiddleware');
+const { rangeStart, rangeEnd } = require('../utils/dateRange');
 
 const exportCsv = async (req, res, next) => {
   try {

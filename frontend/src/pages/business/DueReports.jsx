@@ -37,11 +37,11 @@ const DueReports = () => {
   const fetchDueBills = async () => {
     setLoading(true);
     try {
-      // Outstanding = Pending/Partial payment status; fully paid rows are
-      // excluded below as a safety net.
+      // Outstanding = anything still owed (unpaid and part-paid); fully paid
+      // rows are excluded below as a safety net.
       const res = await getBills({
         search: debouncedSearch,
-        paymentStatus: 'Pending',
+        paymentStatus: 'Outstanding',
         page,
         limit
       });

@@ -37,6 +37,13 @@ const createBill = async (billData, createdByUserId) => {
   const discVal = Number(discount) || 0;
   const totalAmount = Math.max(0, subtotal - discVal);
   const paidVal = Number(paidAmount) || 0;
+  // Money received can never exceed the bill: an overpaid bill showed due
+  // ₹0 and broke every due / collection total. Refunds go through refund.
+  if (paidVal < 0 || paidVal > totalAmount + 0.005) {
+    const err = new Error(paidVal < 0 ? 'Amount received cannot be negative.' : `Amount received (₹${paidVal}) is more than the bill total (₹${totalAmount}).`);
+    err.statusCode = 400;
+    throw err;
+  }
   const dueAmount = Math.max(0, totalAmount - paidVal);
 
   let paymentStatus = 'Pending';
@@ -168,7 +175,10 @@ const getBills = async (filters = {}) => {
   if (filters.department) {
     query.department = String(filters.department).toUpperCase();
   }
-  if (filters.paymentStatus) {
+  if (filters.paymentStatus === 'Outstanding') {
+    // Anything still owed: unpaid and part-paid bills (dues list).
+    query.dueAmount = { $gt: 0 };
+  } else if (filters.paymentStatus) {
     query.paymentStatus = filters.paymentStatus;
   }
   if (filters.patientId) query.patient = filters.patientId;
@@ -298,6 +308,11 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
 
   if (bill.dueAmount <= 0) {
     const err = new Error('This invoice is already fully paid');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (paidVal > bill.dueAmount + 0.005) {
+    const err = new Error(`Payment (₹${paidVal}) is more than the amount due (₹${bill.dueAmount}).`);
     err.statusCode = 400;
     throw err;
   }

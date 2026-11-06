@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, Keyboard, LogOut } from 'lucide-react';
+import { ChevronDown, Keyboard, LogOut, Sparkles } from 'lucide-react';
+import { setUiVersion, useUiVersion } from '../../utils/uiVersion';
 import useAuth from '../../hooks/useAuth';
 import './Header.css';
 
 const UserDropdown = () => {
   const { user, logout } = useAuth();
+  const uiVersion = useUiVersion();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -72,6 +74,13 @@ const UserDropdown = () => {
           <div className="user-dropdown-header">
             Signed in as: <strong>{user.email}</strong>
           </div>
+          {/* Classic / New look switch (per user on this browser) */}
+          <button type="button" className="user-dropdown-item" role="menuitemcheckbox" aria-checked={uiVersion === 'v2'}
+            onClick={() => setUiVersion(uiVersion === 'v2' ? 'classic' : 'v2')}>
+            <Sparkles size={16} />
+            <span>New look</span>
+            <span className={`ui-switch${uiVersion === 'v2' ? ' is-on' : ''}`} aria-hidden="true"><span /></span>
+          </button>
           <Link to="/shortcuts" className="user-dropdown-item" role="menuitem" onClick={() => setIsOpen(false)}>
             <Keyboard size={16} />
             <span>Keyboard shortcuts</span>

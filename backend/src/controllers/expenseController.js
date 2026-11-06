@@ -4,6 +4,7 @@ const Activity = require('../models/Activity');
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { rangeStart, rangeEnd } = require('../utils/dateRange');
 
 const getExpenses = async (req, res, next) => {
   try {
@@ -24,10 +25,9 @@ const getExpenses = async (req, res, next) => {
       }
     } else if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
+      if (startDate) query.date.$gte = rangeStart(startDate);
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        const end = rangeEnd(endDate);
         query.date.$lte = end;
       }
     }

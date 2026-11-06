@@ -1,0 +1,134 @@
+/*
+ * New look (pathlab-ui skill). Everything is scoped under html.ui-v2, which
+ * the user turns on from the user menu or the dashboard banner. With the
+ * class absent the classic UI renders exactly as before.
+ *
+ * The result-entry sheet (.ls-*) and printed/report previews keep their
+ * report-like styling on purpose.
+ */
+
+/* ---- Switch prompt (shown in both looks) ---------------------------- */
+.ui-banner {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 0 0 var(--space-4, 1rem);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--color-primary-subtle, #dbeafe);
+  background: var(--color-primary-light, #eff6ff);
+  border-radius: var(--radius-lg, 12px);
+  color: var(--color-text, #0f172a);
+}
+.ui-banner > svg { color: var(--color-primary, #2563eb); flex-shrink: 0; }
+.ui-banner-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 0.85rem; }
+.ui-banner-text span { color: var(--color-text-secondary, #334155); }
+.ui-banner-close { border: 0; background: none; color: var(--color-text-muted, #64748b); cursor: pointer; padding: 0.25rem; border-radius: 6px; line-height: 0; }
+.ui-banner-close:hover { background: rgba(15, 23, 42, 0.06); }
+.ui-banner--quiet { padding: 0.45rem 0.7rem; background: var(--color-surface, #fff); border-color: var(--color-border, #e2e8f0); font-size: 0.8rem; color: var(--color-text-muted, #64748b); }
+.ui-banner-link { border: 0; background: none; padding: 0; color: var(--color-primary, #2563eb); font: inherit; font-weight: 600; cursor: pointer; }
+.ui-banner-link:hover { text-decoration: underline; }
+@media (max-width: 640px) { .ui-banner { flex-wrap: wrap; } .ui-banner-text { flex-basis: calc(100% - 3rem); } }
+
+/* ---- Canvas, cards, headers ------------------------------------------ */
+html.ui-v2 body { background: #fafafa; }
+html.ui-v2 .page-container { background: transparent; }
+html.ui-v2 .page-header { margin-bottom: var(--space-5, 1.25rem); align-items: flex-end; }
+html.ui-v2 .page-header-title { font-size: 1.75rem; font-weight: 600; letter-spacing: -0.01em; }
+html.ui-v2 .page-header-subtitle { color: var(--color-text-muted, #64748b); max-width: 60ch; }
+
+html.ui-v2 .card,
+html.ui-v2 .dashboard-card,
+html.ui-v2 .data-table-container,
+html.ui-v2 .afb {
+  box-shadow: none;
+  border-color: var(--color-border, #e5e7eb);
+}
+html.ui-v2 .data-table-container { border-radius: var(--radius-lg, 12px); }
+
+/* ---- Filters: a light strip instead of a heavy card ------------------ */
+html.ui-v2 .afb {
+  background: #f6f7f9;
+  border-color: #eceef2;
+  padding: 0.7rem 0.8rem;
+}
+html.ui-v2 .afb-field .form-label { font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted, #64748b); text-transform: none; letter-spacing: 0; }
+html.ui-v2 .afb .form-control,
+html.ui-v2 .afb .select-control { background: #fff; }
+html.ui-v2 .afb-segmented { background: #fff; }
+
+/* ---- Tables ------------------------------------------------------------ */
+html.ui-v2 .data-table th,
+html.ui-v2 .page-container table:not(.ls-table) thead th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #64748b);
+  background: #fafbfc;
+}
+html.ui-v2 .data-table td { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+html.ui-v2 .data-table tbody tr { transition: background-color 0.12s ease; }
+html.ui-v2 .data-table tbody tr:hover { background: #f8fafc; }
+html.ui-v2 .data-table-toolbar { padding: 0.65rem 0.8rem; border-bottom: 1px solid var(--color-border, #eef0f3); }
+html.ui-v2 .data-table-search-input { border-radius: 8px; }
+
+/* Numbers line up in columns. */
+html.ui-v2 .data-table td,
+html.ui-v2 .stat-card-value { font-variant-numeric: tabular-nums; }
+
+/* Empty value: muted italic (use <span className="cell-empty">No code</span>). */
+.cell-empty { color: var(--color-text-muted, #94a3b8); font-style: italic; font-weight: 400; }
+
+/* ---- Stat cards on pages not yet moved to StatGroup ------------------ */
+html.ui-v2 .stat-card { box-shadow: none; border-color: var(--color-border, #e5e7eb); }
+html.ui-v2 .stat-card-icon-box { background: transparent !important; width: auto; height: auto; padding: 0; }
+html.ui-v2 .stat-card-title { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* ---- Buttons ------------------------------------------------------------ */
+html.ui-v2 .btn { border-radius: 8px; }
+html.ui-v2 .btn-secondary { box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04); }
+html.ui-v2 .btn-secondary:hover:not(:disabled) { background: #f8fafc; border-color: var(--color-border-hover, #cbd5e1); }
+
+/* ---- Status badges: quieter pills ------------------------------------- */
+html.ui-v2 .status-badge { font-weight: 500; letter-spacing: 0; text-transform: none; }
+
+/* ---- Sidebar ------------------------------------------------------------ */
+html.ui-v2 .sidebar { background: #fbfbfc; }
+html.ui-v2 .sidebar-link.active,
+html.ui-v2 .sidebar-submenu-header.active { background: #eef0f3; color: var(--color-text, #0f172a); }
+html.ui-v2 .sidebar-link.active svg,
+html.ui-v2 .sidebar-submenu-header.active svg { color: var(--color-primary, #2563eb); }
+html.ui-v2 .sidebar-submenu-link.active { background: #eef0f3; color: var(--color-text, #0f172a); }
+
+/* ---- Dashboard ---------------------------------------------------------- */
+html.ui-v2 .dashboard-hero { margin-bottom: var(--space-4, 1rem); }
+html.ui-v2 .dashboard-hero-title { font-size: 1.6rem; font-weight: 600; }
+html.ui-v2 .dashboard-card-title { font-size: 0.95rem; font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+.quick-actions-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 var(--space-5, 1.25rem); }
+.quick-actions-bar-item {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.45rem 0.75rem; border-radius: 8px;
+  border: 1px solid var(--color-border, #e2e8f0); background: #fff;
+  color: var(--color-text, #0f172a); font: inherit; font-size: 0.85rem; font-weight: 500;
+  cursor: pointer; transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.quick-actions-bar-item svg { color: var(--color-text-muted, #64748b); }
+.quick-actions-bar-item:hover { background: #f8fafc; border-color: var(--color-border-hover, #cbd5e1); }
+.quick-actions-bar-item:focus-visible { outline: 2px solid var(--color-border-focus, #2563eb); outline-offset: 2px; }
+.quick-actions-bar-item kbd { margin-left: 0.15rem; padding: 0 0.35rem; font: 600 0.68rem/1.5 inherit; color: var(--color-text-muted, #64748b); border: 1px solid var(--color-border, #e2e8f0); border-radius: 999px; }
+@media (max-width: 640px) { .quick-actions-bar-item kbd { display: none; } }
+
+/* Dashboard widgets: no API wording; snapshot figures as one grouped card. */
+html.ui-v2 .dashboard-widget-description,
+html.ui-v2 .dashboard-subheading > span { display: none; }
+html.ui-v2 .dashboard-inline-metrics {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
+  border: 1px solid var(--color-border, #e5e7eb); border-radius: 12px; overflow: hidden;
+}
+html.ui-v2 .dashboard-inline-metric { border: 0; border-left: 1px solid var(--color-border, #e5e7eb); border-radius: 0; background: #fff; box-shadow: none; }
+html.ui-v2 .dashboard-inline-metric:first-child { border-left: 0; }
+html.ui-v2 .dashboard-inline-metric span { text-transform: none; letter-spacing: 0; }
+@media (max-width: 640px) {
+  html.ui-v2 .dashboard-inline-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.ui-v2 .dashboard-inline-metric:nth-child(odd) { border-left: 0; }
+  html.ui-v2 .dashboard-inline-metric:nth-child(n+3) { border-top: 1px solid var(--color-border, #e5e7eb); }
+}

@@ -26,13 +26,36 @@ const ICON_MAP = {
   Upload
 };
 
-const QuickActions = () => {
+// Shortcut shown on the action it triggers (new look).
+const KEYS = { '/cases/bills/new': 'Ctrl B' };
+
+const QuickActions = ({ compact = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const userActions = QUICK_ACTIONS.filter(
     (action) => !action.roles || action.roles.includes(user?.role)
   );
+
+  if (compact) {
+    // New look: one row of quiet actions, sentence case, no descriptions.
+    return (
+      <nav className="quick-actions-bar" aria-label="Quick actions">
+        {userActions.map((action) => {
+          const Icon = ICON_MAP[action.icon] || FilePlus;
+          // Sentence case, keeping acronyms (USG, CBC) as they are.
+          const label = action.label.split(' ').map((word, i) => (i === 0 || word === word.toUpperCase() ? word : word.toLowerCase())).join(' ');
+          return (
+            <button type="button" key={action.label} className="quick-actions-bar-item" onClick={() => navigate(action.path)} title={action.description}>
+              <Icon size={16} aria-hidden="true" />
+              <span>{label}</span>
+              {KEYS[action.path] && <kbd>{KEYS[action.path]}</kbd>}
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
 
   return (
     <div className="dashboard-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
