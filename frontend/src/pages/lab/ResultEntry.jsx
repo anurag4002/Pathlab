@@ -1294,10 +1294,10 @@ const ResultEntry = () => {
                     )}
                     {!isReportFinal(entry?.report?.status) && (
                       <>
-                        <Button variant="secondary" icon={<CheckCircle2 size={16} />} onClick={() => handleAction('submit')} loading={busy === 'submit'} disabled={busy !== null}>
+                        <Button variant="secondary" icon={<CheckCircle2 size={16} />} onClick={() => handleAction('submit')} loading={busy === 'submit'} disabled={busy !== null} title="Final (Ctrl+Enter)">
                           Final
                         </Button>
-                        <Button variant="secondary" onClick={() => handleAction('draft')} loading={busy === 'draft'} disabled={busy !== null}>
+                        <Button variant="secondary" onClick={() => handleAction('draft')} loading={busy === 'draft'} disabled={busy !== null} title="Save only (Ctrl+S)">
                           Save only
                         </Button>
                       </>

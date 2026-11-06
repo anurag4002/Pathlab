@@ -218,7 +218,7 @@ const BusinessAnalysis = () => {
           {!hasWorkload ? (
             <EmptyState title="No collections" message="No daily collections recorded in this window." />
           ) : (
-            <SvgBars data={workloadBars} height={200} />
+            <SvgBars data={workloadBars} height={200} label="Daily income" formatValue={(v) => formatCurrency(v)} />
           )}
         </section>
 
@@ -228,7 +228,7 @@ const BusinessAnalysis = () => {
             <EmptyState title="No trend yet" message="Revenue trends populate automatically as bills and transactions complete." />
           ) : (
             <>
-              <SvgLine data={trendLine} height={200} />
+              <SvgLine data={trendLine} height={200} label="Monthly revenue" formatValue={(v) => formatCurrency(v)} />
               <p className="bi-card-sub">Monthly gross totals from ledger transactions.</p>
             </>
           )}

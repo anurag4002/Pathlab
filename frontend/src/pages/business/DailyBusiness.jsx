@@ -453,9 +453,10 @@ const DailyBusiness = () => {
               <SvgGroupedBars
                 data={overviewGrouped}
                 height={200}
+                label="Income and net per day"
                 series={[
-                  { key: 'income', label: 'Income', color: 'var(--color-primary)' },
-                  { key: 'net', label: 'Net', color: 'var(--color-success)' }
+                  { key: 'income', label: 'Income', color: '#2a78d6' },
+                  { key: 'net', label: 'Net', color: '#eb6834' }
                 ]}
                 formatValue={(v) => formatCurrency(v)}
               />

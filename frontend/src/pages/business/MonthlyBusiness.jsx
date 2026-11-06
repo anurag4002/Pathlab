@@ -574,19 +574,19 @@ const MonthlyBusiness = () => {
                 {dailyCollectionData.length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--font-size-sm)' }}>Collections by day</h4>
-                    <SvgBars data={dailyCollectionData} height={190} />
+                    <SvgBars data={dailyCollectionData} height={190} label="Daily collection" formatValue={(v) => formatCurrency(v)} />
                   </div>
                 )}
                 {dailyNetData.length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--font-size-sm)' }}>Net income by day</h4>
-                    <SvgLine data={dailyNetData} height={190} />
+                    <SvgLine data={dailyNetData} height={190} label="Daily net" formatValue={(v) => formatCurrency(v)} />
                   </div>
                 )}
                 {dailyExpenseData.length > 0 && (
                   <div>
                     <h4 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--font-size-sm)' }}>Expenses by day</h4>
-                    <SvgBars data={dailyExpenseData} height={190} color="var(--color-danger)" />
+                    <SvgBars data={dailyExpenseData} height={190} color="#eb6834" label="Daily expenses" formatValue={(v) => formatCurrency(v)} />
                   </div>
                 )}
               </div>

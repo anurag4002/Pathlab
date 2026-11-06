@@ -220,7 +220,7 @@ const BusinessOverview = ({ refreshKey, onRefresh }) => {
         <LoadingSpinner label="Loading collection trend..." />
       ) : trendData.length > 0 ? (
         <div style={{ overflowX: 'auto' }}>
-          <SvgLine data={trendData} height={190} color="var(--color-primary)" />
+          <SvgLine data={trendData} height={190} label="Monthly revenue" formatValue={(v) => formatCurrency(v)} />
         </div>
       ) : (
         <EmptyState title="No collection trend" message="The trend API returned no monthly collection points." />

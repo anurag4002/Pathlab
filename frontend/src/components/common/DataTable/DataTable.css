@@ -171,3 +171,7 @@
 @media (prefers-reduced-motion: reduce) {
   .data-table-skeleton td span, .data-table-wrapper.is-refreshing::before { animation: none; }
 }
+
+.data-table-search { position: relative; }
+.data-table-search-kbd { position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%); pointer-events: none; padding: 0 0.35rem; font: 600 0.7rem/1.5 ui-monospace, Consolas, monospace; color: var(--color-text-muted, #64748b); border: 1px solid var(--color-border, #cbd5e1); border-bottom-width: 2px; border-radius: 4px; background: var(--color-surface, #fff); }
+@media (hover: none) { .data-table-search-kbd { display: none; } }

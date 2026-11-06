@@ -153,6 +153,7 @@ const AdvancedFilterBar = ({
           <input
             id={`afb-${f.key}`}
             type={f.type === 'search' ? 'search' : 'text'}
+            data-filter-text=""
             className="form-control"
             placeholder={f.placeholder ?? f.label ?? ''}
             value={value ?? ''}

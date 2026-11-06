@@ -11,7 +11,7 @@ const GROUPS = [
     title: 'Anywhere',
     items: [
       [['?'], 'Open this list of shortcuts'],
-      [['/'], 'Jump to the search box on the current screen'],
+      [['/'], 'Search on this screen: jumps to its search box (on screens without one, opens the global search)'],
       [[MOD, 'K'], 'Search patients, bills and reports'],
       [['Esc'], 'Close a dialog, menu or search'],
       [['Tab'], 'Next field or button (Shift+Tab goes back)'],
@@ -24,7 +24,7 @@ const GROUPS = [
       [['↑ / ↓'], 'In the test search: move the highlight'],
       [['Esc'], 'In the test search: clear it'],
       [['← / →'], 'On the department or All / Tests / Packages / Panels buttons: switch'],
-      [['Alt', 'Enter'], 'Create the invoice (also Ctrl+Enter). Missing details are named and shown'],
+      [[MOD, 'Enter'], 'Create the invoice from anywhere on the form (Alt+Enter also works where the keyboard allows it). Missing details are named and shown'],
     ],
   },
   {

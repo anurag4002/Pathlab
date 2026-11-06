@@ -468,10 +468,10 @@ async function download(page, trigger) {
     await page.keyboard.press('Shift+?');
     await page.waitForURL(/\/shortcuts$/, { timeout: 5000 });
     await page.getByRole('heading', { name: 'Keyboard shortcuts' }).waitFor({ timeout: 10000 });
-    assert.match(await page.locator('main').innerText(), /Keyboard shortcuts[\s\S]*Alt[\s\S]*Enter[\s\S]*Create the invoice/);
+    assert.match(await page.locator('main').innerText(), /Keyboard shortcuts[\s\S]*Ctrl[\s\S]*Enter[\s\S]*Create the invoice/);
     // Alt+Enter with nothing filled in names what is missing.
     await page.goto(BASE + '/cases/bills/new', { waitUntil: 'networkidle' });
-    await page.keyboard.press('Alt+Enter');
+    await page.keyboard.press('Control+Enter');
     await page.locator('.toast-error').first().waitFor({ timeout: 5000 });
     assert.match(await page.locator('.toast-error').first().innerText(), /patient|name|test/i);
     // Returning patient: last visit's tests in one click, then Alt+Enter.
@@ -488,6 +488,7 @@ async function download(page, trigger) {
     // From the test search, Tab reaches Create Invoice within a few stops
     // (the 200-test list is not walked through), and Alt+Enter creates it.
     await page.getByPlaceholder(/Search all tests/i).focus();
+    assert.match(await page.locator('#picker-keys-tip').innerText(), /Enter\s*add[\s\S]*Ctrl\s*\+\s*Enter\s*create invoice/, 'keyboard tip shows while searching');
     let stops = 0;
     while (stops < 12 && !(await page.evaluate(() => /Create Invoice/.test(document.activeElement?.innerText || '')))) { await page.keyboard.press('Tab'); stops++; }
     assert.ok(stops < 12, `Create Invoice reached by Tab in ${stops} stops`);

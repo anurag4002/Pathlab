@@ -154,3 +154,9 @@ body {
 @keyframes route-loading-show { to { opacity: 1; } }
 @keyframes route-loading-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @media (prefers-reduced-motion: reduce) { .route-loading::after { animation: none; width: 100%; opacity: 0.4; } }
+
+/* Inline keyboard tips shown next to the control they belong to */
+.kbd-tip { margin: 0.35rem 0 0.5rem; font-size: 0.72rem; color: var(--color-text-muted, #64748b); opacity: 0; transition: opacity 0.15s ease; }
+.kbd-tip.is-visible { opacity: 1; }
+.kbd-tip kbd { display: inline-block; min-width: 1.15rem; margin: 0 1px; padding: 0 0.25rem; text-align: center; font: 600 0.68rem/1.45 ui-monospace, Consolas, monospace; color: var(--color-text, #0f172a); background: var(--color-surface, #fff); border: 1px solid var(--color-border, #cbd5e1); border-bottom-width: 2px; border-radius: 4px; }
+@media (hover: none) { .kbd-tip { display: none; } }

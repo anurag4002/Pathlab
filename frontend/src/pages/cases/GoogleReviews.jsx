@@ -116,7 +116,7 @@ const GoogleReviews = () => {
             </button>
           ))}
         </div>
-        <Input id="gr-search" name="gr-search" aria-label="Search patients" placeholder="Search name, phone or bill no." value={search}
+        <Input id="gr-search" name="gr-search" data-page-search="" aria-label="Search patients" placeholder="Search name, phone or bill no." value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(1); setLoading(true); }} />
       </div>
       {error && <div className="gr-banner gr-banner-error" role="alert">{error} <Button variant="secondary" size="sm" onClick={() => { setLoading(true); setReloadKey((k) => k + 1); }}>Retry</Button></div>}

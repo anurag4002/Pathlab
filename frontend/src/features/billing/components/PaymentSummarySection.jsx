@@ -143,11 +143,12 @@ const PaymentSummarySection = ({
         onClick={onSubmit}
         loading={submitting}
         disabled={submitting}
+        title={submitHint ? `${submitLabel} (${submitHint})` : undefined}
         style={{ height: '2.625rem', fontWeight: 'var(--font-weight-bold)' }}
       >
         {submitLabel}
       </Button>
-      {submitHint && <p className="bill-submit-hint">or press <kbd>{submitHint}</kbd></p>}
+      {submitHint && <p className="bill-submit-hint">or press {submitHint.split('+').map((key, i) => <React.Fragment key={key}>{i > 0 && '+'}<kbd>{key}</kbd></React.Fragment>)}</p>}
     </div>
   );
 };

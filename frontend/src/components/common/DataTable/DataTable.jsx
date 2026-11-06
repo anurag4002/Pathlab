@@ -42,6 +42,7 @@ const DataTable = ({
                 className="data-table-search-input"
                 aria-label="Filter table records"
               />
+              {!searchValue && <kbd className="data-table-search-kbd" title="Press / to jump here">/</kbd>}
             </div>
           ) : (
             <div />

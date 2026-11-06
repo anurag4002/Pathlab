@@ -421,7 +421,7 @@ const TestAnalysis = () => {
         ) : (
           <>
             <div style={{ overflowX: 'auto', marginBottom: 'var(--space-4)' }}>
-              <SvgBars data={categoryChartData} height={210} color="var(--color-info)" />
+              <SvgBars data={categoryChartData} height={210} label="Tests per category" />
             </div>
             <DataTable
               headers={['Category', 'Configured test records']}

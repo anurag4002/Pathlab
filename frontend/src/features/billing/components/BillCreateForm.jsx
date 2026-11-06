@@ -279,6 +279,7 @@ const BillCreateForm = ({
   // the search so the next test can be typed straight away.
   const [pickerHighlight, setPickerHighlight] = useState(0);
   const pickerInputRef = useRef(null);
+  const [pickerFocused, setPickerFocused] = useState(false);
   const [serverResults, setServerResults] = useState([]);
   const [serverSearching, setServerSearching] = useState(false);
   const [selectedItems, setSelectedItems] = useState(() => (
@@ -1092,6 +1093,9 @@ const BillCreateForm = ({
               <div className="test-picker-search" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                 <input
                   ref={pickerInputRef}
+                  onFocus={() => setPickerFocused(true)}
+                  onBlur={() => setPickerFocused(false)}
+                  aria-describedby="picker-keys-tip"
                   type="search"
                   className="form-control"
                   value={pickerQuery}
@@ -1131,6 +1135,10 @@ const BillCreateForm = ({
                   </span>
                 )}
               </div>
+              {/* Always takes its space (only fades in while typing), so the list never moves under the mouse. */}
+              {activeDepartment !== 'USG' && (
+                <p id="picker-keys-tip" className={`kbd-tip${pickerFocused ? ' is-visible' : ''}`}><kbd>↑</kbd><kbd>↓</kbd> choose · <kbd>Enter</kbd> add · <kbd>Esc</kbd> clear · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> create invoice</p>
+              )}
               {/* Mouse or the search box (Up/Down/Enter) pick tests; the list is not a Tab stop. */}
               <div className="test-picker-list" tabIndex={-1}>
                 {filteredPickerItems.length === 0 ? (
@@ -1207,7 +1215,7 @@ const BillCreateForm = ({
             dueAmount={dueAmount}
             errors={errors}
             onSubmit={handleSubmit}
-            submitHint="Alt+Enter"
+            submitHint="Ctrl+Enter"
             submitting={submitting}
             isEditMode={isEditMode}
             submitLabel={isEditMode ? 'Save Bill' : 'Create Invoice'}

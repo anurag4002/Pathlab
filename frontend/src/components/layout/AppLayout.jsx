@@ -24,11 +24,17 @@ const AppLayout = () => {
       if (target.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
       // "?" opens the list of keyboard shortcuts.
       if (event.key === '?') { event.preventDefault(); navigate('/shortcuts'); return; }
-      const box = [...document.querySelectorAll('main input[type="search"], main .data-table-search-input, main input[placeholder^="Search" i]')]
-        .find((input) => !input.disabled && input.offsetParent !== null);
-      if (!box) return;
       event.preventDefault();
-      box.focus();
+      // The screen's own search box, most specific first. Screens without one
+      // (Dashboard, Result Entry, Verification ...) open the global search.
+      const usable = (input) => input && !input.disabled && !input.readOnly && input.offsetParent !== null;
+      const box = ['main [data-page-search]', 'main input[type="search"]', 'main .data-table-search-input', 'main input[data-filter-text]']
+        .map((selector) => [...document.querySelectorAll(selector)].find(usable))
+        .find(Boolean);
+      if (!box) { document.querySelector('.search-trigger')?.click(); return; }
+      const rect = box.getBoundingClientRect();
+      if (rect.top < 64 || rect.bottom > window.innerHeight) box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      box.focus({ preventScroll: true });
       box.select?.();
     };
     window.addEventListener('keydown', onKey);
