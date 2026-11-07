@@ -30,7 +30,7 @@
 }
 
 .patient-back-link:hover {
-  color: #116a70;
+  color: var(--public-brand, #116a70);
 }
 
 .patient-portal-header {
@@ -82,7 +82,7 @@
   height: 48px;
   border-radius: 10px;
   background-color: #eff7f4;
-  color: #116a70;
+  color: var(--public-brand, #116a70);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,7 +147,7 @@
 }
 
 .patient-input-prefix:focus-within {
-  border-color: #116a70;
+  border-color: var(--public-brand, #116a70);
   box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
@@ -171,7 +171,7 @@
 }
 
 .patient-btn {
-  background-color: #116a70;
+  background-color: var(--public-brand, #116a70);
   color: #ffffff;
   border: none;
   padding: 0.8125rem 1.25rem;
@@ -184,7 +184,7 @@
 }
 
 .patient-btn:hover:not(:disabled) {
-  background-color: #0a5057;
+  background-color: var(--public-brand-dark, #0a5057);
 }
 
 .patient-btn:disabled {
@@ -224,7 +224,7 @@
 }
 
 .otp-digit-input:focus {
-  border-color: #116a70;
+  border-color: var(--public-brand, #116a70);
   box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
@@ -248,7 +248,7 @@
 .patient-link-btn {
   background: none;
   border: none;
-  color: #116a70;
+  color: var(--public-brand, #116a70);
   font-weight: 600;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -420,7 +420,7 @@
   justify-content: center;
   gap: 0.4rem;
   background-color: #eff7f4;
-  color: #116a70;
+  color: var(--public-brand, #116a70);
   border: 1px solid #cee3dd;
   padding: 0.5rem 0.875rem;
   border-radius: 6px;
@@ -571,14 +571,14 @@
 }
 
 .highlight-value {
-  color: #116a70;
+  color: var(--public-brand, #116a70);
   font-weight: 700;
 }
 
 .findings-text-box,
 .impression-text-box {
   background-color: #f8fafc;
-  border-left: 3px solid #116a70;
+  border-left: 3px solid var(--public-brand, #116a70);
   padding: 0.875rem;
   font-size: 0.875rem;
   color: #334155;
@@ -636,7 +636,7 @@
   flex-wrap: wrap;
   padding: 0.55rem 0.8rem;
   border-radius: 6px;
-  background-color: #116a70;
+  background-color: var(--public-brand, #116a70);
   color: #ffffff;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -645,7 +645,7 @@
 }
 
 .patient-google-review-link:hover {
-  background-color: #0a5057;
+  background-color: var(--public-brand-dark, #0a5057);
 }
 
 .patient-google-review-link:focus-visible {
@@ -759,8 +759,8 @@
 }
 
 .patient-tab.active {
-  background: #116a70;
-  border-color: #116a70;
+  background: var(--public-brand, #116a70);
+  border-color: var(--public-brand, #116a70);
   color: #fff;
 }
 
@@ -775,7 +775,7 @@
 
 .patient-tab.active .patient-tab-count {
   background: #fff;
-  color: #116a70;
+  color: var(--public-brand, #116a70);
 }
 
 .patient-alert-success {
@@ -792,7 +792,7 @@
 }
 
 .patient-new-hint {
-  color: #0a5057;
+  color: var(--public-brand-dark, #0a5057);
   font-weight: 600;
 }
 
@@ -807,7 +807,7 @@
 
 .patient-text-input:focus {
   outline: none;
-  border-color: #116a70;
+  border-color: var(--public-brand, #116a70);
   box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.12);
 }
 
@@ -867,14 +867,14 @@
 }
 
 .patient-select-row.selected {
-  border-color: #116a70;
+  border-color: var(--public-brand, #116a70);
   background: #eff7f4;
 }
 
 .patient-select-row input {
   width: 16px;
   height: 16px;
-  accent-color: #116a70;
+  accent-color: var(--public-brand, #116a70);
   flex-shrink: 0;
 }
 
@@ -1074,7 +1074,7 @@
 .patient-auth-shell .patient-step-desc { color: #64757c; font-size: 13px; line-height: 1.8; margin-bottom: 23px; }
 .patient-login-methods { display: flex; gap: 5px; background: #f3f7f5; padding: 5px; border: 1px solid #e2ebe6; border-radius: 9px; margin-bottom: 23px; }
 .patient-login-methods > button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: 1; padding: 10px 6px; border: 1px solid transparent; border-radius: 6px; font-size: 12px; font-weight: 550; background: transparent; color: #607770; min-height: 43px; }
-.patient-login-methods > button[aria-pressed='true'] { border-color: #dbe6df; background: #fff; color: #116a70; box-shadow: 0 2px 4px #28422e0a; }
+.patient-login-methods > button[aria-pressed='true'] { border-color: #dbe6df; background: #fff; color: var(--public-brand, #116a70); box-shadow: 0 2px 4px #28422e0a; }
 .patient-login-methods > button:disabled { cursor: wait; }
 .patient-auth-shell .patient-form { gap: 20px; }
 .patient-auth-shell .patient-form-label { font-size: 13px; color: #344f55; font-weight: 600; }
@@ -1086,7 +1086,7 @@
 .patient-field-hint { font-size: 11px; line-height: 1.6; color: #64757c; margin-top: 1px; }
 .patient-auth-shell .patient-sign-in-submit { display: flex; align-items: center; justify-content: center; gap: 11px; min-height: 49px; font-size: 14px; border-radius: 7px; margin-top: 1px; }
 .patient-new-patient { padding-top: 21px; margin-top: 2px; font-size: 12px; color: #64757c; line-height: 1.75; }
-.patient-new-patient > button { display: flex; align-items: center; gap: 6px; min-height: 33px; margin-top: 3px; padding: 3px 0; background: transparent; border: 0; color: #116a70; font-size: 12px; font-weight: 600; }
+.patient-new-patient > button { display: flex; align-items: center; gap: 6px; min-height: 33px; margin-top: 3px; padding: 3px 0; background: transparent; border: 0; color: var(--public-brand, #116a70); font-size: 12px; font-weight: 600; }
 .patient-new-patient > button:hover { text-decoration: underline; text-underline-offset: 4px; }
 .patient-auth-shell .patient-security-note { justify-content: flex-start; text-align: left; color: #64757c; font-size: 11px; margin-top: 20px; padding-top: 17px; gap: 7px; }
 .patient-auth-shell .patient-security-note > svg { flex-shrink: 0; color: #4e8b78; }
@@ -1094,7 +1094,7 @@
 .patient-otp-explainer svg { flex-shrink: 0; margin-top: 4px; color: #508a77; }
 .patient-signin-help { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 15px; padding: 23px 10px 0; font-size: 12px; color: #64757c; }
 .patient-signin-help > span, .patient-signin-help > a { display: inline-flex; align-items: center; gap: 7px; }
-.patient-signin-help > a { color: #116a70; min-height: 30px; font-weight: 550; }
+.patient-signin-help > a { color: var(--public-brand, #116a70); min-height: 30px; font-weight: 550; }
 .patient-signin-help > a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .patient-signin-help > a:last-child { border-left: 1px solid #cfdfd7; padding-left: 15px; }
 .patient-workspace-content { width: 100%; }
@@ -1158,7 +1158,7 @@
 .patient-report-search-row { display: flex; gap: 12px; margin-bottom: 16px; }
 .patient-report-search { display: flex; flex: 1; align-items: center; gap: 10px; padding-inline: 13px; border: 1px solid #dce7e2; border-radius: 7px; color: #71918a; min-width: 0; background: #fff; }
 .patient-report-search input { border: none; outline: none; background: transparent; font-size: 13px; padding: 13px 0; width: 100%; min-width: 0; color: #284542; }
-.patient-report-search:focus-within { outline: 2px solid #67afb5; outline-offset: 1px; }
+.patient-report-search:focus-within { outline: 2px solid var(--public-brand, #67afb5); outline-offset: 1px; }
 .patient-report-search-row select { border: 1px solid #dce7e2; border-radius: 7px; background: #fff; font-size: 13px; color: #42685b; padding: 10px 32px 10px 12px; max-width: 230px; }
 .patient-report-filter-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .patient-report-filter-row > div { display: flex; flex-wrap: wrap; gap: 7px; }

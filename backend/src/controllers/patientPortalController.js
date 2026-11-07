@@ -41,7 +41,7 @@ const loginWithBirthYear = async (req, res, next) => {
     });
     if (!patients.length) return errorResponse(res, 'Mobile number or birth year does not match', 401);
     const token = jwt.sign({ phone, role: 'Patient', patientIds: patients.map(patient => String(patient._id)) }, JWT_SECRET, { expiresIn: '2h' });
-    return successResponse(res, 'Patient login successful', { token, phone, patients: patients.map(patient => ({ _id: patient._id, name: patient.name, registrationNumber: patient.registrationNumber })), isNew: false });
+    return successResponse(res, 'Patient login successful', { token, phone, patients: patients.map(patient => ({ _id: patient._id, name: patient.name, registrationNumber: patient.registrationNumber, title: patient.title, age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender })), isNew: false });
   } catch (error) { next(error); }
 };
 
@@ -89,7 +89,7 @@ const verifyOtp = async (req, res, next) => {
       { expiresIn: '2h' }
     );
 
-    const patients = await Patient.find({ phone: cleanPhone }).select('name registrationNumber gender age');
+    const patients = await Patient.find({ phone: cleanPhone }).select('name registrationNumber title gender age ageUnit');
 
     return successResponse(res, MESSAGES.PATIENT_PORTAL.OTP_VERIFIED, {
       token,

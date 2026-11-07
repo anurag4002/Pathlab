@@ -6,6 +6,7 @@ import { getTests } from '../../services/testService';
 import { getPackages } from '../../services/packageService';
 import { LAB_PHONE_LINK, PublicFooter, PublicHeader } from '../../components/public/PublicLayout';
 import './LandingPage.css';
+import Home from './v2/Home';
 
 const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value));
 const activeItems = response => Array.isArray(response?.data) ? response.data.filter(item => !item.isDeleted && item.status !== 'Inactive' && !item.isDerived) : [];
@@ -42,7 +43,7 @@ function SampleReport() {
   </div>;
 }
 
-export default function LandingPage() {
+function ClassicLandingPage() {
   const { hash } = useLocation();
   const [catalog, setCatalog] = useState({ tests: [], packages: [] });
   const [loading, setLoading] = useState(true);
@@ -124,4 +125,10 @@ export default function LandingPage() {
     </main>
     <PublicFooter />
   </div>;
+}
+
+// The new website; the previous one is still reachable with ?look=classic.
+export default function LandingPage() {
+  const { search } = useLocation();
+  return new URLSearchParams(search).get('look') === 'classic' ? <ClassicLandingPage /> : <Home />;
 }

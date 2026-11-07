@@ -139,3 +139,9 @@ export const fetchBarcodeSvgUrl = async (billId) => {
 export const getBillBarcodeUrl = (billNumber) => `/api/public/bill/${billNumber}/barcode`;
 export const fetchBillQr = async (billId) => (await apiClient.get(`/bills/${billId}/qr`)).data;
 export const fetchReportQr = async (reportId) => (await apiClient.get(`/reports/${reportId}/qr`)).data;
+
+// Lab name, address and contact for the public website (same as on reports).
+export const getLabInfo = async () => (await apiClient.get('/public/lab-info')).data;
+
+// Website price list: names, categories and prices only (cached on the server).
+export const getPriceList = async () => (await apiClient.get('/public/catalog')).data;

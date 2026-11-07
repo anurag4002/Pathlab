@@ -1,0 +1,180 @@
+/* Patient portal on the new website: sign-in drawn as the specimen label,
+   same tokens as the home page (pages/public/v2/site.css). */
+.pps.patient-public-page { background: var(--paper); }
+.pps .patient-sign-in { background:
+  radial-gradient(560px 300px at 88% 8%, rgba(156, 136, 240, 0.14), transparent 70%),
+  radial-gradient(480px 260px at 75% 100%, rgba(87, 182, 227, 0.12), transparent 70%);
+  padding-bottom: 4rem; }
+.pps .patient-portal-nav { width: min(1180px, 100% - 40px); margin: 0 auto; padding-top: 1.25rem; color: var(--muted); font-size: 0.875rem; }
+.pps .patient-portal-nav a { color: var(--ink-2); text-decoration: none; }
+.pps .patient-auth-shell { width: min(1180px, 100% - 40px); margin: 1.5rem auto 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 30rem); gap: 4rem; align-items: center; background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0; }
+
+/* Left: what you get */
+.pps .pps-signin-intro { background: none !important; border: 0 !important; padding: 0 !important; }
+.pps .pps-signin-intro h1 { font-family: var(--display); font-size: clamp(2.5rem, 5vw, 4.25rem); line-height: 1; font-weight: 700; letter-spacing: -0.04em; color: var(--ink); }
+.pps .pps-signin-intro h1 span { color: var(--blue); }
+.pps .pps-signin-intro > p:not(.pps-hindi):not(.pps-signin-help) { margin: 1.25rem 0 0; max-width: 30rem; font-size: 1.1rem; color: var(--ink-2); line-height: 1.55; }
+.pps .pps-signin-points { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; gap: 1rem; }
+.pps .pps-signin-points li { display: flex; gap: 0.85rem; align-items: flex-start; }
+.pps .pps-signin-points .pps-cap { width: 14px; height: 18px; margin-top: 0.25rem; border-radius: 5px 5px 3px 3px; }
+.pps .pps-signin-points strong { display: block; font-weight: 600; color: var(--ink); }
+.pps .pps-signin-points p { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.95rem; }
+.pps .pps-signin-help { margin: 2rem 0 0; color: var(--muted); font-size: 0.95rem; }
+.pps .pps-signin-help a { color: var(--blue); font-family: var(--mono); font-size: 0.9rem; }
+
+/* Right: the label card - reset the old card look. */
+.pps .patient-card.pps-signin-label { padding: 0; border: 0; background: var(--paper); border-radius: 22px; box-shadow: 0 1px 0 var(--line), 0 30px 60px -30px rgba(14, 23, 38, 0.35), 0 0 0 1px var(--line); max-width: none; margin: 0; }
+.pps .pps-signin-label .patient-auth-eyebrow { display: none; }
+.pps .pps-signin-label .patient-step-title { margin: 0; font-family: var(--display); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.pps .pps-signin-label .patient-step-desc { margin: 0.25rem 0 1rem; color: var(--muted); }
+.pps .patient-login-methods { display: flex; padding: 4px; gap: 2px; border-radius: 999px; background: var(--wash); border: 0; margin-bottom: 1rem; }
+.pps .patient-login-methods button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; height: 2.5rem; border: 0; border-radius: 999px; background: none; font: 500 0.92rem var(--text); color: var(--ink-2); cursor: pointer; box-shadow: none; }
+.pps .patient-login-methods button[aria-pressed='true'] { background: var(--ink); color: #fff; }
+.pps .patient-form { display: grid; gap: 0.95rem; }
+.pps .patient-form-group { margin: 0; }
+.pps .patient-form-label { display: block; margin-bottom: 0.35rem; font-size: 0.875rem; font-weight: 500; color: var(--ink-2); }
+.pps .patient-input-prefix { display: flex; align-items: center; height: 3.25rem; border: 1.5px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+.pps .patient-input-prefix:focus-within, .pps .pps-signin-label .patient-phone-input:not(.patient-input-prefix .patient-phone-input):focus { border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-soft); }
+.pps .patient-phone-flag { padding: 0 0.2rem 0 0.95rem; border: 0; background: none; font-family: var(--mono); color: var(--muted); }
+.pps .patient-input-prefix .patient-phone-input { border: 0 !important; box-shadow: none !important; height: 100%; }
+.pps .patient-phone-input { width: 100%; height: 3.25rem; padding: 0 0.95rem; border: 1.5px solid var(--line); border-radius: 14px; outline: 0; font: 500 1.1rem var(--mono); letter-spacing: 0.06em; color: var(--ink); background: #fff; }
+.pps .patient-phone-input::placeholder { font-family: var(--text); letter-spacing: 0; font-weight: 400; font-size: 1rem; color: #a3abb9; }
+.pps .patient-field-hint { display: block; margin-top: 0.3rem; color: var(--muted); font-size: 0.8rem; }
+.pps .patient-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; height: 3.1rem; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font: 600 1rem var(--text); cursor: pointer; box-shadow: none; }
+.pps .patient-btn:hover { background: var(--blue-ink); }
+.pps .patient-btn-secondary { background: #fff; color: var(--ink); border: 1.5px solid var(--line); width: auto; height: 2.4rem; padding: 0 1rem; }
+.pps .patient-new-patient { margin: 0.9rem 0 0; color: var(--muted); font-size: 0.875rem; text-align: center; }
+.pps .patient-new-patient button { border: 0; background: none; color: var(--blue); font: 500 0.875rem var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; }
+.pps .patient-otp-explainer { display: flex; gap: 0.5rem; margin: 0; padding: 0.7rem 0.85rem; border-radius: 12px; background: var(--wash); color: var(--ink-2); font-size: 0.875rem; }
+.pps .patient-security-note { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.9rem; color: var(--muted); font-size: 0.8rem; border: 0; padding: 0; background: none; }
+.pps .patient-alert-error { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.65rem 0.8rem; margin-bottom: 0.9rem; border-radius: 12px; background: #fdf0f1; color: #a12d3d; font-size: 0.875rem; border: 0; }
+
+/* OTP and new-profile steps share the label look without the barcode. */
+.pps .patient-sign-in .patient-card:not(.pps-signin-label) { border-radius: 22px; border: 0; padding: 1.75rem; box-shadow: 0 30px 60px -30px rgba(14, 23, 38, 0.35), 0 0 0 1px var(--line); border-left: 14px solid var(--cap-lavender); }
+.pps .patient-sign-in .patient-card-icon-header { display: none; }
+.pps .patient-sign-in .patient-step-title { font-family: var(--display); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+.pps .otp-digit-container { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
+.pps .otp-digit-input { height: 3.5rem; border: 1.5px solid var(--line); border-radius: 14px; text-align: center; font: 600 1.4rem var(--mono); color: var(--ink); }
+.pps .otp-digit-input:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-soft); }
+.pps .patient-text-input { height: 3.1rem; border: 1.5px solid var(--line); border-radius: 14px; padding: 0 0.95rem; font: inherit; }
+
+/* Signed in: same fonts and colours, layout unchanged. */
+.pps .patient-workspace h1 { font-family: var(--display); letter-spacing: -0.03em; }
+
+@media (max-width: 960px) {
+  .pps .patient-auth-shell { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .pps .pps-signin-label { order: -1; }
+  .pps .pps-signin-points { display: none; }
+}
+@media (max-width: 640px) {
+  .pps .patient-portal-nav, .pps .patient-auth-shell { width: calc(100% - 32px); }
+  .pps .patient-auth-shell { margin-top: 1rem; }
+  .pps .pps-signin-intro h1 { font-size: 2.4rem; }
+  .pps .patient-phone-input, .pps .otp-digit-input { font-size: 16px; }
+  .pps .patient-sign-in { padding-bottom: 6rem; }
+}
+.pps .pps-signin-points .pps-cap { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+.pps .pps-signin-points .cap-lavender { background: var(--cap-lavender) !important; }
+.pps .pps-signin-points .cap-gold { background: var(--cap-gold) !important; }
+.pps .pps-signin-points .cap-sky { background: var(--cap-sky) !important; }
+.pps .pps-signin-intro .pps-hindi { color: var(--blue) !important; font-size: 1.05rem !important; margin: 0 0 1rem !important; }
+
+/* Signed-in area: the old portal colours point at the new ones. */
+.pps.public-site { --public-brand: var(--blue); --public-brand-dark: var(--blue-ink); --public-ink: var(--ink); --public-muted: var(--muted); --public-border: var(--line); font-family: var(--text); }
+.pps.public-site :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.pps .public-eyebrow { color: var(--blue); }
+
+/* ---- Signed-in patient page (PatientHome): one simple column ------------ */
+.pps .patient-workspace { padding-bottom: 4rem; background: var(--wash); }
+.pps .patient-workspace .patient-portal-nav { width: min(640px, 100% - 32px); }
+.pps .patient-workspace-content { width: min(640px, 100% - 32px); margin: 0 auto; padding: 0; background: none; border: 0; box-shadow: none; }
+.ph { display: grid; gap: 1.25rem; margin-top: 0.75rem; }
+.ph-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; }
+.ph-me { padding: 1.25rem; border-radius: 22px; background: var(--ink); color: #fff; }
+.ph-me-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.ph-hello { margin: 0; font-family: var(--display); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; color: #fff; }
+.ph-number { margin: 0.25rem 0 0; color: #aab3c3; font-size: 0.9rem; }
+.ph-signout { display: inline-flex; align-items: center; gap: 0.35rem; flex-shrink: 0; height: 2.4rem; padding: 0 0.9rem; border-radius: 999px; border: 1px solid #3a4760; background: transparent; color: #fff; font: 500 0.875rem var(--text); cursor: pointer; }
+.ph-signout:hover { background: #1c2740; }
+.ph-people { list-style: none; margin: 1.1rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.ph-people li { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0.8rem; border-radius: 14px; background: #1a2539; }
+.ph-avatar { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 999px; background: #2a3650; color: #cdd4e1; flex-shrink: 0; }
+.ph-person { display: flex; flex-direction: column; min-width: 0; }
+.ph-person b { font-weight: 600; font-size: 1rem; }
+.ph-person small { color: #aab3c3; font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.02em; }
+.ph-alert { display: flex; gap: 0.5rem; align-items: flex-start; margin: 0; padding: 0.75rem 0.9rem; border-radius: 14px; font-size: 0.925rem; }
+.ph-alert.is-error { background: #fdf0f1; color: #a12d3d; }
+.ph-alert.is-ok { background: #e9f7ef; color: #146c43; }
+.ph-block { display: grid; gap: 0.75rem; }
+.ph-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
+.ph-head h2, .ph-bookings h2 { margin: 0; font-family: var(--display); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+.ph-head p { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.9rem; }
+.ph-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+.ph-search { display: flex; align-items: center; gap: 0.5rem; height: 3rem; padding: 0 0.95rem; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; color: var(--muted); }
+.ph-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: var(--ink); }
+.ph-reports { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; }
+.ph-report { position: relative; padding: 1rem 1.1rem 1.1rem 1.35rem; overflow: hidden; }
+.ph-report::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--cap-green); }
+.ph-report.is-pending::before { background: var(--cap-gold); }
+.ph-report-top { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.ph-status { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.ph-status.is-ready { background: #e9f7ef; color: #146c43; }
+.ph-status.is-pending { background: #fdf4e3; color: #8a5a08; }
+.ph-date { color: var(--muted); font-size: 0.85rem; font-family: var(--mono); }
+.ph-report h3 { margin: 0.6rem 0 0; font-family: var(--display); font-size: 1.15rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; }
+.ph-report-who { margin: 0.25rem 0 0; color: var(--ink-2); font-size: 0.9rem; }
+.ph-actions { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0.5rem; margin-top: 0.9rem; }
+.ph-actions .pps-btn { height: 2.85rem; padding: 0 0.75rem; font-size: 0.95rem; }
+.ph-wait { margin: 0.75rem 0 0; color: var(--muted); font-size: 0.875rem; }
+.ph-empty { padding: 1.25rem; border-radius: 18px; border: 1.5px dashed var(--line); background: #fff; color: var(--ink-2); }
+.ph-empty p { margin: 0 0 0.35rem; }
+.ph-skel { padding: 1.1rem; display: grid; gap: 0.6rem; }
+.ph-skel span { display: block; height: 0.9rem; border-radius: 6px; background: linear-gradient(90deg, #eef1f5, #e3e7ee, #eef1f5); }
+.ph-skel span:nth-child(2) { width: 70%; }
+.ph-skel span:nth-child(3) { width: 40%; }
+.ph-book { display: flex; align-items: center; gap: 0.9rem; width: 100%; padding: 1rem 1.1rem; border-radius: 18px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+.ph-book:hover { border-color: var(--blue); }
+.ph-book > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
+.ph-book b { font-family: var(--display); font-size: 1.15rem; font-weight: 600; }
+.ph-book small { color: var(--muted); font-size: 0.875rem; }
+.ph-book-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 14px; background: var(--blue-soft); color: var(--blue); flex-shrink: 0; }
+.ph-bookings { display: grid; gap: 0.6rem; margin-top: 0.5rem; }
+.ph-bookings ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.ph-booking { display: grid; gap: 0.2rem; padding: 0.9rem 1.1rem; }
+.ph-booking b { font-weight: 600; }
+.ph-booking small { color: var(--muted); font-size: 0.85rem; }
+.ph-booking-state { margin-top: 0.35rem; font-size: 0.85rem; font-weight: 600; color: var(--blue); }
+.ph-muted { color: var(--muted); margin: 0; }
+.ph-subhead { width: min(640px, 100%); margin: 0.5rem auto 1rem; }
+.ph-subhead h1 { margin: 0.5rem 0 0; font-family: var(--display); font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+.ph-subhead p { margin: 0.25rem 0 0; color: var(--muted); }
+.ph-back { display: inline-flex; align-items: center; gap: 0.35rem; border: 0; background: none; padding: 0.3rem 0; font: 500 0.95rem var(--text); color: var(--blue); cursor: pointer; }
+.pps .ph-booking-screen { width: min(640px, 100%); margin: 0 auto; border-radius: 18px; padding: 1.1rem; border: 1px solid var(--line); box-shadow: none; }
+.pps .ph-booking-screen .patient-booking-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.pps .ph-booking-screen .patient-catalog-list { max-height: 22rem; overflow: auto; border: 1px solid var(--line); border-radius: 14px; }
+.pps .ph-booking-screen .patient-select-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.85rem 0.9rem; border-bottom: 1px solid var(--line); cursor: pointer; }
+.pps .ph-booking-screen .patient-select-row.selected { background: var(--blue-soft); }
+.pps .ph-booking-screen .patient-select-row input { width: 1.2rem; height: 1.2rem; accent-color: var(--blue); flex-shrink: 0; }
+.pps .ph-booking-screen .patient-select-name { flex: 1; min-width: 0; }
+.pps .ph-booking-screen .patient-select-price { font-family: var(--mono); font-weight: 600; }
+.pps .ph-booking-screen .patient-book-group { margin: 0; padding: 0.6rem 0.9rem; background: var(--wash); font-size: 0.8rem; text-transform: none; color: var(--muted); }
+.pps .ph-booking-screen .patient-form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; }
+.pps .ph-booking-screen .patient-text-input { width: 100%; font-size: 16px; }
+
+@media (max-width: 640px) {
+  .ph-hello { font-size: 1.5rem; }
+  .pps .ph-booking-screen .patient-form-row { grid-template-columns: minmax(0, 1fr); }
+  .pps .patient-workspace .patient-portal-nav { display: none; }
+}
+
+/* Full-width grey page behind the signed-in column. */
+.pps main.patient-workspace { padding-left: 0 !important; padding-right: 0 !important; max-width: none !important; width: 100% !important; margin: 0 !important; }
+/* Booking screen: the heading already explains it; neutral selection box. */
+.pps .ph-booking-screen .patient-book-note { display: none; }
+.pps .ph-booking-screen .patient-book-foot { background: var(--wash); border: 0; border-radius: 14px; padding: 1rem; }
+.pps .ph-booking-screen .patient-selection-title h3 { font-family: var(--display); font-size: 1.1rem; color: var(--ink); }
+.pps .ph-booking-screen .patient-selection-empty { color: var(--muted); }
+.pps .ph-booking-screen .patient-book-total strong { color: var(--ink); font-family: var(--mono); }
+.pps .ph-booking-screen .patient-btn:disabled { background: #b9c2f2; cursor: not-allowed; }
+.pps .ph-booking-screen .patient-select-row { border-radius: 0; border-left: 0; border-right: 0; margin: 0; background: #fff; }
+.pps .ph-booking-screen .patient-select-name { font-size: 0.95rem; color: var(--ink); }

@@ -13,4 +13,10 @@ router.get('/bill/:billNumber/barcode', publicLimiter, publicController.billBarc
 router.get('/case/:caseId/barcode', publicLimiter, publicController.caseBarcode);
 router.get('/sample/:sampleId/barcode', publicLimiter, publicController.sampleBarcode);
 
+// Lab name, address and contact for the public website (the same details
+// printed on every report). Nothing private.
+router.get('/lab-info', publicLimiter, publicController.labInfo);
+// Price list for the website: names, categories and prices only (cached).
+router.get('/catalog', publicLimiter, publicController.priceList);
+
 module.exports = router;

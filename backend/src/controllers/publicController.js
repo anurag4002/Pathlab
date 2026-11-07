@@ -191,4 +191,57 @@ async function sampleBarcode(req, res, next) {
   }
 }
 
-module.exports = { verifyReport, downloadPublicReport, verifyBill, downloadPublicBill, billBarcodeByNumber, caseBarcode, sampleBarcode };
+
+// GET /api/public/lab-info - public website details (already on every report).
+const labInfo = async (req, res, next) => {
+  try {
+    const LabProfile = require('../models/LabProfile');
+    const p = (await LabProfile.findOne().lean()) || {};
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({ success: true, data: {
+      labName: p.labName || 'PURE PATH LAB',
+      tagline: p.tagline || '',
+      address: p.address || '',
+      phone: p.phone || '',
+      email: p.email || '',
+      logoUrl: p.logoUrl || '',
+      website: p.website || '',
+      googleReviewLink: p.googleReviewLink || ''
+    } });
+  } catch (error) { next(error); }
+};
+
+
+// GET /api/public/catalog - the website price list. Only what the page
+// shows (name, code, category, price; test count for packages), built once
+// and kept for 5 minutes, so the home page does not load the whole test
+// setup (ranges, parameters, formulas) on every visit.
+let priceListCache = { at: 0, data: null };
+const PRICE_LIST_TTL = 5 * 60 * 1000;
+const priceList = async (req, res, next) => {
+  try {
+    if (!priceListCache.data || Date.now() - priceListCache.at > PRICE_LIST_TTL) {
+      const Test = require('../models/Test');
+      const TestPackage = require('../models/TestPackage');
+      require('../models/TestCategory');
+      const [tests, packages] = await Promise.all([
+        Test.find({ isDeleted: { $ne: true }, status: { $ne: 'Inactive' }, isDerived: { $ne: true } })
+          .select('name code price category').populate('category', 'name').sort({ name: 1 }).lean(),
+        TestPackage.find({ isDeleted: { $ne: true }, status: { $ne: 'Inactive' } })
+          .select('name price includedTests').sort({ name: 1 }).lean(),
+      ]);
+      priceListCache = {
+        at: Date.now(),
+        data: {
+          tests: tests.map((t) => ({ _id: t._id, name: t.name, code: t.code || '', price: t.price, category: t.category?.name || '' })),
+          packages: packages.map((p) => ({ _id: p._id, name: p.name, price: p.price, testCount: (p.includedTests || []).length })),
+        },
+      };
+    }
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.json({ success: true, data: priceListCache.data });
+  } catch (error) { next(error); }
+};
+
+module.exports = {
+  labInfo, priceList, verifyReport, downloadPublicReport, verifyBill, downloadPublicBill, billBarcodeByNumber, caseBarcode, sampleBarcode };

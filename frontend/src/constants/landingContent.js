@@ -7,14 +7,16 @@ export const LAB_PROFILE = {
   name: 'PURE PATH LAB',
   tagline: 'Diagnostic & Pathology Laboratory',
   subtitle: 'Reliable laboratory testing with a simple and secure way to access your reports.',
-  phone: '+91 77030 21000',
+  phone: '8052112151',
   email: 'hishivammishrahello@gmail.com',
-  address: 'Sector 12, Main Healthcare Road, New Delhi, 110075',
+  address: 'Infront of Cantabile, beside District Hospital & Moti Chai, Gonda - 271001',
   operatingHours: {
     weekdays: '7:00 AM – 9:00 PM',
     sunday: '7:00 AM – 2:00 PM',
     sampleCollection: 'Routine & Fasting collections available from 7:00 AM daily'
-  }
+  },
+  // Same hours as above, for the live "Open now" line (24h clock; 0 = Sunday).
+  openHours: { 0: [7, 14], 1: [7, 21], 2: [7, 21], 3: [7, 21], 4: [7, 21], 5: [7, 21], 6: [7, 21] }
 };
 
 export const LAB_SERVICES = [
