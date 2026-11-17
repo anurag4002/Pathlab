@@ -4,7 +4,7 @@ import { previewDocumentFormat } from '../../services/setupService';
 import './DocumentFormatEditor.css';
 
 const numericFields = [
-  ['pageMargin', 'Page margin (pt)', 12, 54], ['headerHeight', 'Header height (pt)', 60, 160],
+  ['pageMargin', 'Page margin (pt)', 12, 54], ['headerHeight', 'Header height (pt)', 60, 480],
   ['footerHeight', 'Footer height (pt)', 30, 110], ['fontSize', 'Body text size (pt)', 8, 12], ['rowPadding', 'Table row padding (pt)', 2, 8]
 ];
 const selectFields = [

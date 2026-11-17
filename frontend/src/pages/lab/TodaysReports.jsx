@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import useAuth from '../../hooks/useAuth';
 import useStickyState from '../../utils/useStickyState';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WhatsAppShare, RowMenu, IdentityCell } from '../../components/common';
@@ -186,7 +187,12 @@ const TodaysReports = () => {
   const tatRef = useRef(null);
   const [gridBusy, setGridBusy] = useState(false);
   const [caseSaving, setCaseSaving] = useState(false);
-  const entryFinal = ['Signed', 'Verified', 'Completed'].includes(activeReport?.status);
+  const { user: authUser } = useAuth();
+  const isAdminUser = authUser?.role === 'Admin';
+  // Admins can unlock a signed report to change it; saving removes the
+  // sign-off and it must be signed again.
+  const [adminEditing, setAdminEditing] = useState(false);
+  const entryFinal = ['Signed', 'Verified', 'Completed'].includes(activeReport?.status) && !adminEditing;
   const [sigId, setSigId] = useState('');
   // Phase 3 — idempotent sign: guards double-click/double-submit.
   const [signing, setSigning] = useState(false);
@@ -656,7 +662,9 @@ const TodaysReports = () => {
 
     if (outsource) {
       setEntryMode('upload');
-      setEntryOpen(true);
+      setAdminEditing(false);
+      setAdminEditing(false);
+    setEntryOpen(true);
       setEntryLoading(false);
       return;
     }
@@ -665,6 +673,7 @@ const TodaysReports = () => {
     // Same grid data as lab/result-entry — the shared grid renders auto-calc,
     // flags, ranges and options from this payload.
     setEntryData(entryPayload || fallbackEntry(nextReport));
+    setAdminEditing(false);
     setEntryOpen(true);
     setEntryLoading(false);
   };
@@ -1382,7 +1391,11 @@ const TodaysReports = () => {
               <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, pdfOptions)}><FileDown size={14} /> PDF</Button>
               <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
               {entryFinal ? (
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — no further edits</span>
+                isAdminUser ? (
+                  <Button variant="secondary" onClick={() => setAdminEditing(true)} title="Change the results of this signed report">Edit report</Button>
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>Submitted — only an admin can change it</span>
+                )
               ) : (
                 <Button variant="primary" onClick={saveCaseEntry} loading={gridBusy || caseSaving} disabled={gridBusy || caseSaving}>Save Results</Button>
               )}

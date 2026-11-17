@@ -305,8 +305,12 @@ async function updateInterpretations(req, res, next) {
   try {
     await assertReportAccess(req, req.params.id);
     const report = await Report.findById(req.params.id);
+    let reopenedFrom = null;
     if (['Signed', 'Verified', 'Completed'].includes(report.status)) {
-      return errorResponse(res, 'Reopen the report before editing its interpretation', 409);
+      // Admins may change a signed-off report; it goes back to Reported and
+      // must be signed again. Other staff cannot.
+      if (req.user?.role !== 'Admin') return errorResponse(res, 'Only an admin can change a signed report.', 403);
+      reopenedFrom = report.status;
     }
     let entries = req.body.interpretations;
     if (!Array.isArray(entries) || entries.length > 500 || entries.some(item => !item || typeof item.key !== 'string' || typeof item.text !== 'string' || item.text.length > 100000)) {
@@ -318,6 +322,14 @@ async function updateInterpretations(req, res, next) {
     const allowed = new Set([...sections, ...targets].map(section => section.key));
     if (entries.some(item => !allowed.has(item.key)) || new Set(entries.map(item => item.key)).size !== entries.length) {
       return errorResponse(res, 'Unknown or duplicate report section', 400);
+    }
+    if (reopenedFrom) {
+      report.signatures = [];
+      report.verifiedBy = null;
+      report.verifiedAt = null;
+      report.status = 'Reported';
+      await report.save();
+      await Activity.create({ user: req.user._id, action: 'Edit Submitted Report', module: 'Lab', description: `Changed the interpretation of ${report.registrationNumber} after it was ${reopenedFrom.toLowerCase()}; sign-off removed - sign it again.` });
     }
     let savedReport;
     if (req.body.merge === true) {
@@ -878,6 +890,18 @@ async function previewResults(req, res, next) {
 }
 
 // PUT /reports/:id/results/draft - Save results as draft (status stays Registered)
+// Activity line when an Admin changed a report after it was submitted.
+async function logEditAfterSubmit(req, report) {
+  const change = report?.$locals?.change;
+  if (!change?.editedAfterSubmit) return;
+  await Activity.create({
+    user: req.user._id, action: 'Edit Submitted Report', module: 'Lab',
+    description: change.reopened
+      ? `Changed results of ${report.registrationNumber} after it was ${String(change.was).toLowerCase()}; sign-off removed - sign it again.`
+      : `Changed results of ${report.registrationNumber} after it was submitted.`
+  });
+}
+
 async function saveResultsDraft(req, res, next) {
   try {
     await assertReportAccess(req, req.params.id);
@@ -890,6 +914,7 @@ async function saveResultsDraft(req, res, next) {
       user: req.user._id, action: 'Save Results Draft', module: 'Lab',
       description: `Saved ${report.results.length} results as draft for ${report.registrationNumber}.`
     });
+    await logEditAfterSubmit(req, report);
     return successResponse(res, 'Results saved as draft', report);
   } catch (error) {
     next(error);
@@ -909,6 +934,7 @@ async function submitResults(req, res, next) {
       user: req.user._id, action: 'Submit Results', module: 'Lab',
       description: `Submitted ${report.results.length} results for ${report.registrationNumber}.`
     });
+    await logEditAfterSubmit(req, report);
     return successResponse(res, 'Results submitted successfully', report);
   } catch (error) {
     next(error);

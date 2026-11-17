@@ -1,7 +1,7 @@
 // Version-controlled template and artwork ship with every deployment. Existing
 // profiles use this default immediately, without an upload or setup step.
 const REFERENCE_FORMAT = Object.freeze(require('../assets/document-formats/pure-path-reference.json'));
-const NUMBER_BOUNDS = { pageMargin: [12, 54], headerHeight: [60, 160], footerHeight: [30, 110], fontSize: [8, 12], rowPadding: [2, 8] };
+const NUMBER_BOUNDS = { pageMargin: [12, 54], headerHeight: [60, 480], footerHeight: [30, 110], fontSize: [8, 12], rowPadding: [2, 8] };
 const ENUMS = { fontFamily: ['Helvetica', 'Times-Roman', 'Courier'], tableStyle: ['outlined', 'plain', 'banded'], flagPlacement: ['before-value', 'last'], patientLayout: ['columns', 'stacked'] };
 function invalid(message) { const error = new Error(message); error.statusCode = 400; throw error; }
 function normalizeFormat(raw = {}, strict = false) {

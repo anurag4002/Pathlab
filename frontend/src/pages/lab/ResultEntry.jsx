@@ -217,6 +217,9 @@ const ResultEntry = () => {
   const [view, setView] = useState('list'); // 'list' | 'entry'
   const [activeRow, setActiveRow] = useState(null);
   const [entry, setEntry] = useState(null);
+  // Admins can unlock a submitted report to change it ("Edit report").
+  const [adminEditing, setAdminEditing] = useState(false);
+  const locked = isReportFinal(entry?.report?.status) && !adminEditing;
   const [entryLoading, setEntryLoading] = useState(false);
 
   // Outsource PDF/image upload (same API as Today's Reports)
@@ -375,7 +378,7 @@ const ResultEntry = () => {
     entry?.testEntries, compiledFormulas, values, entry?.patient
   ), [entry?.testEntries, compiledFormulas, values, entry?.patient]);
   // Submitted reports keep the saved results; editable reports calculate locally.
-  const calculated = isReportFinal(entry?.report?.status)
+  const calculated = locked
     ? buildCalculatedResults(entry?.testEntries, entry?.results)
     : localResults.calculated;
   const calculationErrors = localResults.errors;
@@ -392,6 +395,7 @@ const ResultEntry = () => {
         testEntry.existingValue != null && String(testEntry.existingValue) !== '' ? String(testEntry.existingValue) : template;
     });
     setEntry({ ...data, testEntries });
+    setAdminEditing(false);
     setValues(initial);
     setRemarks(Object.fromEntries(testEntries.filter((t) => t.existingRemark).map((t) => [entryKey(t), t.existingRemark])));
     setOpenRemarks({});
@@ -547,7 +551,7 @@ const ResultEntry = () => {
   const handleSign = async () => {
     if (busy || inFlightRef.current || !entry?.report?._id || !canSign) return;
     if (!selectedSignature) { setFeedback({ type: 'error', text: 'Choose a signature before signing.' }); return; }
-    const alreadySubmitted = isReportFinal(entry.report.status);
+    const alreadySubmitted = isReportFinal(entry.report.status) && !adminEditing;
     if (!alreadySubmitted && !(await handleAction('submit', { quiet: true }))) return;
     inFlightRef.current = true;
     setBusy('sign');
@@ -618,6 +622,7 @@ const ResultEntry = () => {
       // A submitted case leaves the pending list — refetch in the background
       // so Back shows it gone without a manual refresh.
       if (mode !== 'draft') {
+        setAdminEditing(false);
         setListLoading(true);
         setListError(null);
         setReloadKey((key) => key + 1);
@@ -643,11 +648,11 @@ const ResultEntry = () => {
   // Keyboard: Ctrl/Cmd+S saves, Ctrl/Cmd+Enter marks Final. The handler
   // reads the latest callbacks through a ref so it is registered once.
   const shortcutRef = useRef(null);
-  shortcutRef.current = { handleAction, entry, busy };
+  shortcutRef.current = { handleAction, entry, busy, locked };
   useEffect(() => {
     const onKey = (event) => {
-      const { handleAction: act, entry: current, busy: working } = shortcutRef.current;
-      if (!current?.report?._id || working || isReportFinal(current.report.status) || !(event.ctrlKey || event.metaKey)) return;
+      const { handleAction: act, entry: current, busy: working, locked: isLocked } = shortcutRef.current;
+      if (!current?.report?._id || working || isLocked || !(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       if (key === 's') { event.preventDefault(); act('draft'); }
       else if (key === 'enter') { event.preventDefault(); act('submit'); }
@@ -907,7 +912,7 @@ const ResultEntry = () => {
             value={customResultKeys[key] || (displayValue && !testEntry.resultOptions.includes(displayValue)) ? '__other__' : displayValue}
             options={[...testEntry.resultOptions.map((option) => ({ value: option, label: option })), { value: '__other__', label: 'Other / enter value' }]}
             placeholder="Select result (optional)"
-            disabled={busy !== null || isReportFinal(entry?.report?.status)}
+            disabled={busy !== null || locked}
             onChange={(event) => {
               const next = event.target.value;
               setCustomResultKeys((prev) => ({ ...prev, [key]: next === '__other__' }));
@@ -922,7 +927,7 @@ const ResultEntry = () => {
             placeholder={isDerived ? 'Calculated value' : 'Enter value'}
             value={displayValue}
             onChange={(event) => handleValueChange(key, event.target.value)}
-            disabled={isDerived || testEntry.legacyScalar || busy !== null || isReportFinal(entry?.report?.status)}
+            disabled={isDerived || testEntry.legacyScalar || busy !== null || locked}
             helperText={
               isDerived
                 ? calcRow
@@ -948,7 +953,7 @@ const ResultEntry = () => {
         <tr className="ls-remark-row"><td colSpan={5}>
           <label className="ls-remark-label" htmlFor={`remark-${key}`}>Remark</label>
           <input id={`remark-${key}`} className="ls-remark-input" type="text" maxLength={500} placeholder="Printed under the test name"
-            value={remarks[key] || ''} disabled={busy !== null || isReportFinal(entry?.report?.status)}
+            value={remarks[key] || ''} disabled={busy !== null || locked}
             onChange={(event) => { const next = event.target.value; setRemarks((prev) => ({ ...prev, [key]: next })); setDirty(true); }} />
         </td></tr>
       )}
@@ -956,12 +961,12 @@ const ResultEntry = () => {
         <tr className="ls-document-row"><td colSpan={5}>
           <DocumentResultEditor id={`result-${key}`} label={`Result value for ${testEntry.testName || 'test'}`}
             value={displayValue} onChange={(next) => handleValueChange(key, next)}
-            disabled={busy !== null || isReportFinal(entry?.report?.status)} />
+            disabled={busy !== null || locked} />
         </td></tr>
       )}
       <DifferentialTotalRow total={differentialTotals.get(key)} withFlagColumn />
       {openInterpretations[key] && (hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && <tr className="re-interp-row"><td colSpan={5}>
-        <InlineTestInterpretation reportId={entry.report._id} testEntry={testEntry} readOnly={['Signed', 'Verified', 'Completed'].includes(entry.report.status)} />
+        <InlineTestInterpretation reportId={entry.report._id} testEntry={testEntry} readOnly={locked} />
       </td></tr>}
       </React.Fragment>
     );
@@ -1329,7 +1334,7 @@ const ResultEntry = () => {
                 </label>
               </section>
                 <div className="re-actions re-actions-bar">
-                  {!isReportFinal(entry?.report?.status) && (
+                  {!locked && (
                     <div className="re-save-state" aria-live="polite">
                       {dirty ? <span className="re-save-dirty">● Unsaved changes</span>
                         : savedAt ? <span className="re-save-done">✓ Saved</span> : null}
@@ -1363,7 +1368,7 @@ const ResultEntry = () => {
                         )}
                       </span>
                     )}
-                    {!isReportFinal(entry?.report?.status) && (
+                    {!locked && (
                       <>
                         <Button variant="secondary" icon={<CheckCircle2 size={16} />} onClick={() => handleAction('submit')} loading={busy === 'submit'} disabled={busy !== null} title="Final (Ctrl+Enter)">
                           {isV2 ? 'Mark final' : 'Final'}
@@ -1373,7 +1378,19 @@ const ResultEntry = () => {
                         </Button>
                       </>
                     )}
-                    {isReportFinal(entry?.report?.status) && (
+                    {locked && canSign && (
+                      <Button variant="secondary" onClick={() => { setAdminEditing(true); setFeedback(null); }} disabled={busy !== null}
+                        title="Change the results of this submitted report">
+                        Edit report
+                      </Button>
+                    )}
+                    {adminEditing && (
+                      <Button variant="secondary" onClick={() => { setAdminEditing(false); openCase(activeRow || { report: entry.report, bill: entry.bill }); }} disabled={busy !== null}
+                        title="Stop editing and put back the saved values">
+                        Cancel editing
+                      </Button>
+                    )}
+                    {locked && (
                       <>
                         <ReportPrintActions reportId={entry.report._id} disabled={busy !== null} size="md" />
                         <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
@@ -1389,7 +1406,10 @@ const ResultEntry = () => {
                     )}
                   </div>
                   <p className="re-sub ls-bar-note" role="status">
-                    {signaturesError && canSign ? signaturesError
+                    {adminEditing ? (['Signed', 'Verified', 'Completed'].includes(entry?.report?.status)
+                        ? 'Editing a signed report. When you save, the signature is removed and it must be signed again.'
+                        : 'Editing a submitted report. Save draft or mark final when done.')
+                      : signaturesError && canSign ? signaturesError
                       : entry?.report?.status === 'Signed' ? 'Report signed and ready to print.'
                         : isReportFinal(entry?.report?.status) ? (canSign ? 'Results final. Sign off or print the report.' : 'Results final. An admin can sign off this report.')
                           : canSign && !signatures.length ? 'Add a signature in Setup to sign off from here.' : ''}

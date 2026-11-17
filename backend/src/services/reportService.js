@@ -267,11 +267,32 @@ const createResultReport = async ({ patient, bill, branch, entryMode }, user) =>
   return await report.save();
 };
 
+// A submitted report (Reported / Signed / Verified / Completed) can only be
+// changed by an Admin. If it was already signed or verified, changing a
+// result takes it back to Reported and removes the sign-off, so it is signed
+// again over the new values. Returns what happened, for the activity log.
+const FINAL_STATUSES = ['Reported', 'Signed', 'Verified', 'Completed'];
+const SIGNED_OFF_STATUSES = ['Signed', 'Verified', 'Completed'];
+const allowResultChange = (report, user) => {
+  if (!FINAL_STATUSES.includes(report.status)) return { reopened: false };
+  if (user?.role !== 'Admin') {
+    throw Object.assign(new Error('Only an admin can change a submitted report.'), { statusCode: 403 });
+  }
+  if (!SIGNED_OFF_STATUSES.includes(report.status)) return { reopened: false, editedAfterSubmit: true };
+  const was = report.status;
+  report.signatures = [];
+  report.verifiedBy = null;
+  report.verifiedAt = null;
+  report.status = 'Reported';
+  return { reopened: true, editedAfterSubmit: true, was };
+};
+
 // Save entered results: runs formula engine, evaluates abnormal flags
 // against Test normals + patient age/sex, stamps TAT, marks Reported.
 const saveResults = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  allowResultChange(report, user);
 
   const { results } = await calculateReportResults(report, entries);
   report.results = results;
@@ -344,6 +365,7 @@ const ensureQrToken = async (report) => {
 const saveResultsDraft = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  const change = allowResultChange(report, user);
 
   const { results } = await calculateReportResults(report, entries);
   report.results = results;
@@ -354,6 +376,7 @@ const saveResultsDraft = async (reportId, entries = [], user) => {
   // Keep status as Registered for draft
   if (report.status === 'Registered') report.status = 'Draft';
   await report.save();
+  report.$locals.change = change;
   return report;
 };
 
@@ -361,6 +384,7 @@ const saveResultsDraft = async (reportId, entries = [], user) => {
 const submitResults = async (reportId, entries = [], user) => {
   const report = await Report.findById(reportId).populate('patient');
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
+  const change = allowResultChange(report, user);
 
   const { results } = await calculateReportResults(report, entries);
   report.results = results;
@@ -371,6 +395,7 @@ const submitResults = async (reportId, entries = [], user) => {
   if (!report.tat.reported) report.tat.reported = new Date();
   report.status = 'Reported';
   await report.save();
+  report.$locals.change = change;
   return report;
 };
 
