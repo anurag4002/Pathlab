@@ -285,7 +285,8 @@ const ResultVerification = () => {
           <td><StatusBadge status={report.status} /></td>
           <td>
             <div className="row-actions-v2">
-              {pending ? <Button size="sm" variant="primary" onClick={() => openReview(report)}>Review</Button> : <span className="cell-empty">Done</span>}
+              {pending ? <Button size="sm" variant="primary" onClick={() => openReview(report)}>Review</Button> : !canVerify && <span className="cell-empty">Done</span>}
+              {canVerify && ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && <Button size="sm" variant="secondary" onClick={() => navigate(`/lab/result-entry?report=${report._id}&edit=1`)} aria-label={`Edit report for ${report.patient?.name || 'patient'}`}>Edit</Button>}
             </div>
           </td>
         </tr>
@@ -308,15 +309,18 @@ const ResultVerification = () => {
         {/* Registered → reported (or registered → now while open) — display-only. */}
         <td className="rv-muted">{formatReportTat(report)}</td>
         <td>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {pending ? (
             <Button size="sm" variant="secondary" onClick={() => openReview(report)}>
               Review
             </Button>
-          ) : (
+          ) : !canVerify ? (
             <span className="rv-muted" aria-label="No action available">
               —
             </span>
-          )}
+          ) : null}
+          {canVerify && ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && <Button size="sm" variant="secondary" onClick={() => navigate(`/lab/result-entry?report=${report._id}&edit=1`)} aria-label={`Edit report for ${report.patient?.name || 'patient'}`}>Edit</Button>}
+          </div>
         </td>
       </tr>
     );

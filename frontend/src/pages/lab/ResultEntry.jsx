@@ -219,6 +219,7 @@ const ResultEntry = () => {
   const [entry, setEntry] = useState(null);
   // Admins can unlock a submitted report to change it ("Edit report").
   const [adminEditing, setAdminEditing] = useState(false);
+  const openForEditRef = useRef(false);
   const locked = isReportFinal(entry?.report?.status) && !adminEditing;
   const [entryLoading, setEntryLoading] = useState(false);
 
@@ -395,7 +396,8 @@ const ResultEntry = () => {
         testEntry.existingValue != null && String(testEntry.existingValue) !== '' ? String(testEntry.existingValue) : template;
     });
     setEntry({ ...data, testEntries });
-    setAdminEditing(false);
+    setAdminEditing(openForEditRef.current && isAdmin(user) && isReportFinal(data.report?.status));
+    openForEditRef.current = false;
     setValues(initial);
     setRemarks(Object.fromEntries(testEntries.filter((t) => t.existingRemark).map((t) => [entryKey(t), t.existingRemark])));
     setOpenRemarks({});
@@ -702,6 +704,7 @@ const ResultEntry = () => {
     const link = reportId ? `report:${reportId}` : billId && patientId ? `bill:${billId}` : '';
     if (!link || linkedCaseRef.current === link) return;
     linkedCaseRef.current = link;
+    openForEditRef.current = searchParams.get('edit') === '1';
     openCase(reportId ? { report: { _id: reportId } } : { bill: { _id: billId, patient: { _id: patientId } }, report: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -832,9 +835,17 @@ const ResultEntry = () => {
         </td>
         <td>
           {final && !outsource ? (
-            <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
-              View results
-            </Button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
+                View results
+              </Button>
+              {canSign && (
+                <Button size="sm" variant="secondary" onClick={() => { openForEditRef.current = true; openCase(row); }}
+                  aria-label={`Edit report for ${patient?.name || 'patient'}`}>
+                  Edit
+                </Button>
+              )}
+            </div>
           ) : final ? (
             <span className="re-sub">Submitted — no action</span>
           ) : showBoth ? (

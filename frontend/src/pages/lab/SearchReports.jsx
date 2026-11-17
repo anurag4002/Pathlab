@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import { isAdmin } from '../../utils/permissions';
 import { getReports } from '../../services/reportService';
 import { getTests } from '../../services/testService';
 import { getDoctors } from '../../services/doctorService';
@@ -34,6 +36,11 @@ const cleanParam = (v) => {
 
 const SearchReports = () => {
   const isV2 = useUiVersion() === 'v2';
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  // Admins can open a submitted lab report straight into editing.
+  const canEdit = (report) => isAdmin(user) && ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && report.entryMode !== 'outsource';
+  const editReport = (report) => navigate(`/lab/result-entry?report=${report._id}&edit=1`);
   const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -181,6 +188,7 @@ const SearchReports = () => {
               <td><StatusBadge status={report.status} /></td>
               <td>
                 <div className="row-actions-v2">
+                  {canEdit(report) && <button type="button" className="btn btn-secondary btn-sm" onClick={() => editReport(report)} aria-label={`Edit report ${report.registrationNumber}`}>Edit</button>}
                   <ReportPrintActions reportId={report._id} />
                   {reported && <WhatsAppShare kind="report" id={report._id} phone={p.phone} name={p.name} iconOnly />}
                   <RowMenu label={`More actions for report ${report.registrationNumber}`} items={menu} />
@@ -199,6 +207,11 @@ const SearchReports = () => {
             <td>{report.status}</td>
             <td>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {canEdit(report) && (
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => editReport(report)} aria-label={`Edit report ${report.registrationNumber}`}>
+                    Edit
+                  </button>
+                )}
                 <ReportPrintActions reportId={report._id} />
                 {['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && (
                   <WhatsAppShare kind="report" id={report._id} phone={report.patient?.phone} name={report.patient?.name} iconOnly />
