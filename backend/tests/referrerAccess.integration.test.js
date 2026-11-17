@@ -186,7 +186,8 @@ test('my patients shows only cases referred by this doctor, with report status o
   const a2 = rows.find((r) => r.billNumber === billA2.billNumber);
   assert.deepEqual(a2.reports.map((r) => r.ready), [false], 'Reported but not signed is still processing');
   const text = JSON.stringify(list.body);
-  assert.ok(!text.includes('13.5') && !text.includes('9.1') && !text.includes('Haemoglobin'), 'no result values in the list');
+  // Match whole JSON values: timestamps like ":39.123Z" also contain "9.1".
+  assert.ok(!text.includes('"13.5"') && !text.includes('"9.1"') && !/:\s*(13\.5|9\.1)[,}\]]/.test(text) && !text.includes('Haemoglobin'), 'no result values in the list');
   assert.ok(!text.includes('Sita Devi') || rows.some((r) => r.patient.name === 'Sita Devi'), 'other doctors’ cases stay hidden');
   assert.ok(!text.includes('Walk In') && !text.includes(billB1.billNumber) && !text.includes(billWalkIn.billNumber));
 
@@ -273,6 +274,8 @@ test('a doctor request becomes a booking tagged with the doctor, priced by the l
 });
 
 test('reset password ends old sessions; turning the login off blocks it', async () => {
+  // The old sign-in must be from an earlier second than the reset.
+  await new Promise((resolve) => setTimeout(resolve, 1100));
   const reset = await api('PUT', `/api/doctors/${doctorA._id}/login/password`, { token: adminToken, body: { password: 'fixture-pass-2' } });
   assert.equal(reset.status, 200);
   await new Promise((resolve) => setTimeout(resolve, 1100));
@@ -317,11 +320,23 @@ test('startup migration moves only invite-linked Doctor logins to Referrer, once
   await Doctor.create({ name: 'Invited Doc', phone: '9876500033', linkedUser: invited._id });
   const linkedAdmin = await User.create({ name: 'Linked Admin', email: 'linked-admin@example.test', password: 'fixture-only', role: 'Admin' });
   await Doctor.create({ name: 'Linked Admin', phone: '9876500044', linkedUser: linkedAdmin._id });
-  assert.deepEqual(await migrateReferrerUsers(), { moved: 1 });
+  // A pathologist who once accepted an invite (so is linked) but has signed
+  // a report is lab staff: never moved.
+  const signer = await User.create({ name: 'Linked Pathologist', email: 'linked-path@example.test', password: 'fixture-only', role: 'Doctor' });
+  await Doctor.create({ name: 'Linked Pathologist', phone: '9876500066', linkedUser: signer._id });
+  const Report = require('../src/models/Report');
+  const oid = () => new mongoose.Types.ObjectId();
+  await Report.collection.insertOne({ registrationNumber: 'MIG-1', patient: oid(), bill: oid(), uploadedBy: oid(), status: 'Signed', signatures: [{ signedBy: signer._id }] });
+  assert.deepEqual(await migrateReferrerUsers(), { moved: 1, restored: 0 });
   assert.equal((await User.findById(invited._id)).role, 'Referrer');
+  assert.equal((await User.findById(signer._id)).role, 'Doctor', 'pathologist who signed reports stays');
   assert.equal((await User.findById(pathologist._id)).role, 'Doctor', 'unlinked pathologist untouched');
   assert.equal((await User.findById(linkedAdmin._id)).role, 'Admin', 'only Doctor-role logins move');
-  assert.deepEqual(await migrateReferrerUsers(), { moved: 0 }, 'safe to run again');
+  assert.deepEqual(await migrateReferrerUsers(), { moved: 0, restored: 0 }, 'safe to run again');
+  // Someone moved by the earlier version who has done lab work is moved back.
+  await User.updateOne({ _id: signer._id }, { $set: { role: 'Referrer' } });
+  assert.deepEqual(await migrateReferrerUsers(), { moved: 0, restored: 1 });
+  assert.equal((await User.findById(signer._id)).role, 'Doctor', 'wrongly moved pathologist restored');
 });
 
 test('invite acceptance gives a Referrer login and never converts a staff login', async () => {

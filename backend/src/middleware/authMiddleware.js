@@ -47,7 +47,8 @@ const protect = async (req, res, next) => {
       if (req.user.role === ROLES.REFERRER) {
         // A password reset by the lab ends sign-ins made before it.
         const changed = req.user.passwordChangedAt ? new Date(req.user.passwordChangedAt).getTime() : 0;
-        if (changed && (!decoded.iat || decoded.iat * 1000 < changed - 1000)) {
+        // Token times are whole seconds: only a sign-in in that same second survives.
+        if (changed && (!decoded.iat || decoded.iat < Math.floor(changed / 1000))) {
           return errorResponse(res, 'Your password was changed. Please sign in again.', 401);
         }
         if (!referrerMayUse(req)) {
