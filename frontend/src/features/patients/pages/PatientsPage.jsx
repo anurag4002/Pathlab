@@ -20,7 +20,6 @@ const validatePatient = (formData) => {
     errs.age = 'Valid age is required';
   }
   if (!formData.gender) errs.gender = 'Gender is required';
-  if (!formData.phone.trim()) errs.phone = 'Phone number is required';
   return errs;
 };
 

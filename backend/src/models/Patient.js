@@ -24,9 +24,12 @@ const PatientSchema = new mongoose.Schema({
     enum: ['Male', 'Female', 'Other'],
     required: true
   },
+  // Optional: without a number the patient simply cannot use the website
+  // sign-in, online reports or booking (all of them work by mobile number).
   phone: {
     type: String,
-    required: true,
+    default: '',
+    trim: true,
     index: true
   },
   // Universal Health ID (Labsmart §11). Optional + sparse so existing

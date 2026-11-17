@@ -5,6 +5,8 @@ import { Input, Select, PatientPicker, Modal, Button } from '../../../components
 import { PATIENT_TITLES } from '../billingConstants';
 import '../Billing.css';
 import { useUiVersion } from '../../../utils/uiVersion';
+import { sexForTitle, titleSexMismatch } from '../../../utils/titleSex';
+import capitalizeName from '../../../utils/capitalizeName';
 
 const PatientDetailsSection = ({
   isExistingPatient,
@@ -75,7 +77,7 @@ const PatientDetailsSection = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {/* Mobile Number */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Mobile Number</label>
+            <label className="form-label">Mobile Number <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>(optional)</span></label>
             <div style={{ display: 'flex' }}>
               <span
                 style={{
@@ -105,7 +107,7 @@ const PatientDetailsSection = ({
                 }}
               />
             </div>
-            {errors?.phone && <p className="form-error">{errors.phone}</p>}
+            {errors?.phone ? <p className="form-error">{errors.phone}</p> : <p className="form-helper" style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Needed only if the patient wants online reports or booking.</p>}
           </div>
 
           {/* Title + First + Last Name */}
@@ -113,21 +115,21 @@ const PatientDetailsSection = ({
             <Select
               label="Title"
               value={patientTitle}
-              onChange={(e) => setPatientTitle(e.target.value)}
+              onChange={(e) => { setPatientTitle(e.target.value); const sex = sexForTitle(e.target.value); if (sex) setPatientGender(sex); }}
               options={PATIENT_TITLES.map((t) => ({ value: t, label: t }))}
               placeholder=""
             />
             <Input
               label="First Name *"
               value={patientFirstName}
-              onChange={(e) => setPatientFirstName(e.target.value)}
+              onChange={(e) => setPatientFirstName(capitalizeName(e.target.value))}
               error={errors?.firstName}
               placeholder="First Name"
             />
             <Input
               label="Last Name"
               value={patientLastName}
-              onChange={(e) => setPatientLastName(e.target.value)}
+              onChange={(e) => setPatientLastName(capitalizeName(e.target.value))}
               placeholder="Last Name"
             />
           </div>
@@ -147,6 +149,9 @@ const PatientDetailsSection = ({
                 </button>
               ))}
             </div>
+            {titleSexMismatch(patientTitle, patientGender) && (
+              <p className="form-error" role="alert">{titleSexMismatch(patientTitle, patientGender)}</p>
+            )}
           </div>
 
           {/* Age */}
@@ -193,11 +198,11 @@ const PatientDetailsSection = ({
     </div>
   );
   const profileFilled = [patientEmail && 'email', patientAadhaar && 'Aadhaar', patientAddress && 'address', patientHistory && 'history'].filter(Boolean);
-  const fieldErrors = errors?.firstName || errors?.phone || errors?.age;
+  const fieldErrors = errors?.firstName || errors?.phone || errors?.age || errors?.title;
   React.useEffect(() => { if (isV2 && fieldErrors && !isExistingPatient) openDrawer('new'); }, [isV2, fieldErrors, isExistingPatient]);
   const draftName = [patientTitle, patientFirstName, patientLastName].filter(Boolean).join(' ');
   const draftAge = [patientAgeYears && `${patientAgeYears} Y`, patientAgeMonths && `${patientAgeMonths} M`, patientAgeDays && `${patientAgeDays} D`].filter(Boolean).join(' ');
-  const draftMissing = [!patientPhone && 'phone', !patientFirstName && 'name', !patientGender && 'sex', !(patientAgeYears || patientAgeMonths || patientAgeDays) && 'age'].filter(Boolean);
+  const draftMissing = [!patientFirstName && 'name', !patientGender && 'sex', !(patientAgeYears || patientAgeMonths || patientAgeDays) && 'age'].filter(Boolean);
   const newPatientSummary = (
     <div className={`bill-new-patient-summary${draftMissing.length ? ' is-incomplete' : ''}`}>
       <div className="bill-new-patient-text">

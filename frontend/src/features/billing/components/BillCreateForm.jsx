@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createBill, updateBill, getBills, getBillById } from '../../../services/billService';
 import { rovingKeyDown } from '../../../utils/rovingFocus';
 import { useUiVersion, isNewUi } from '../../../utils/uiVersion';
+import { titleSexMismatch } from '../../../utils/titleSex';
+import capitalizeName from '../../../utils/capitalizeName';
 import PageTip from '../../../components/common/PageTip';
 import { notify } from '../../../components/common/Toast/toast';
 
@@ -139,9 +141,11 @@ const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
   const parts = rawName.split(/\s+/).filter(Boolean);
   const titles = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mr', 'Mrs', 'Ms', 'Dr'];
   const hasTitle = parts.length && titles.includes(parts[0]);
+  const gender = b?.gender || prev.patientGender || 'Male';
+  // No title given: use one that matches the sex (Mr. would block a female bill).
   const title = hasTitle
     ? (parts[0].endsWith('.') ? parts[0] : `${parts[0]}.`)
-    : (b?.title || prev.patientTitle || 'Mr.');
+    : (b?.title || (gender === 'Female' ? 'Ms.' : 'Mr.'));
   const nameParts = hasTitle ? parts.slice(1) : parts;
   return {
     ...prev,
@@ -151,15 +155,15 @@ const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
     showAddress: true,
     showAadhaar: true,
     showHistory: true,
-    patientTitle: ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(title) ? title : 'Mr.',
-    patientFirstName: nameParts[0] || '',
-    patientLastName: nameParts.slice(1).join(' ') || '',
+    patientTitle: ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(title) ? title : (gender === 'Female' ? 'Ms.' : 'Mr.'),
+    patientFirstName: capitalizeName(nameParts[0] || ''),
+    patientLastName: capitalizeName(nameParts.slice(1).join(' ') || ''),
     patientPhone: b?.phone || '',
     patientEmail: b?.email || '',
     patientAddress: b?.address || '',
     patientAadhaar: b?.aadhaar || '',
     patientHistory: b?.history || b?.note || '',
-    patientGender: b?.gender || prev.patientGender || 'Male',
+    patientGender: gender,
     patientAgeYears: b?.age != null && b?.age !== '' ? String(b.age) : prev.patientAgeYears
   };
 };
@@ -639,8 +643,13 @@ const BillCreateForm = ({
     }
     if (!patientForm.isExistingPatient) {
       if (!patientForm.patientFirstName.trim()) errs.firstName = 'First name is required';
-      if (!patientForm.patientPhone.trim()) errs.phone = 'Phone is required';
       if (!patientForm.patientAgeYears) errs.age = 'Age is required';
+      const mismatch = titleSexMismatch(patientForm.patientTitle, patientForm.patientGender);
+      if (mismatch) errs.title = mismatch;
+    } else if (patientForm.selectedPatientId) {
+      const chosen = pickedPatient || patients.find((p) => p._id === patientForm.selectedPatientId);
+      const mismatch = chosen ? titleSexMismatch(chosen.title, chosen.gender) : '';
+      if (mismatch) errs.patient = `${mismatch} Fix it on the patient's page first.`;
     }
     if (selectedItems.length === 0) errs.items = 'Please select at least one test or package';
     if (discountMode === 'percent') {
@@ -1033,7 +1042,7 @@ const BillCreateForm = ({
               </div>
               {isAdmin ? <>
                 <Input id="invoice-patient-name" label="Patient name" value={identity.name} onChange={e => setIdentity(prev => ({ ...prev, name: e.target.value }))} disabled={identityBusy} required />
-                <Input id="invoice-patient-phone" label="Phone number" value={identity.phone} onChange={e => setIdentity(prev => ({ ...prev, phone: e.target.value }))} disabled={identityBusy} required />
+                <Input id="invoice-patient-phone" label="Phone number (optional)" value={identity.phone} onChange={e => setIdentity(prev => ({ ...prev, phone: e.target.value }))} disabled={identityBusy} />
                 <Button variant="secondary" onClick={saveIdentity} loading={identityBusy} disabled={identityBusy || !editPatientId}>Save patient details</Button>
                 {identityMessage && <p role={identityMessage.error ? 'alert' : 'status'} style={{ color: identityMessage.error ? '#b91c1c' : '#166534' }}>{identityMessage.text}</p>}
               </> : <>
@@ -1330,7 +1339,7 @@ const BillCreateForm = ({
                         className={`test-picker-item${highlighted ? ' is-highlighted' : ''}${alreadyAdded ? ' is-added' : ''}`}
                         ref={highlighted ? (node) => node?.scrollIntoView?.({ block: 'nearest' }) : undefined}
                         onMouseEnter={() => setPickerHighlight(itemIndex)}
-                        onClick={() => !alreadyAdded && handlePickerSelect(item)}
+                        onClick={() => { if (alreadyAdded) return; handlePickerSelect(item); setPickerQuery(''); setPickerHighlight(0); requestAnimationFrame(() => pickerInputRef.current?.focus({ preventScroll: true })); }}
                         role="button"
                         tabIndex={-1}
                         aria-disabled={alreadyAdded}

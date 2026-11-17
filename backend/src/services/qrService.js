@@ -22,16 +22,18 @@ function verifyPublicToken(token, secret) {
   return signToken(raw, secret) === token;
 }
 
+const { normalizeBaseUrl, joinUrl } = require('../utils/baseUrl');
+
 function publicBase() {
-  return (PUBLIC_BASE_URL || CLIENT_URL || '').replace(/\/$/, '');
+  return normalizeBaseUrl(PUBLIC_BASE_URL || CLIENT_URL);
 }
 
 function reportVerifyUrl(qrToken) {
-  return `${publicBase()}/r/${qrToken}`;
+  return joinUrl(publicBase(), `r/${qrToken}`);
 }
 
 function billVerifyUrl(qrToken) {
-  return `${publicBase()}/patient/report`;
+  return joinUrl(publicBase(), 'patient/report');
 }
 
 async function qrDataURL(text, opts = {}) {

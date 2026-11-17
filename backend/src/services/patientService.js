@@ -76,7 +76,12 @@ const getPatientById = async (id) => {
   return await Patient.findById(id).populate('referringDoctor');
 };
 
+const { titleSexMismatch } = require('../utils/titleSex');
+const badRequest = (message) => Object.assign(new Error(message), { statusCode: 400 });
+
 const createPatient = async (patientData) => {
+  const mismatch = titleSexMismatch(patientData.title, patientData.gender);
+  if (mismatch) throw badRequest(mismatch);
   const registrationNumber = await generateRegistrationNumber();
   const age = Number(patientData.age);
   const ageYears = patientData.ageUnit === 'months' ? Math.floor(age / 12) : patientData.ageUnit === 'days' ? Math.floor(age / 365.25) : Math.floor(age);
@@ -102,6 +107,13 @@ const assertPatientAccess = async (patientId, req) => {
 };
 
 const updatePatient = async (id, patientData) => {
+  if (patientData.title !== undefined || patientData.gender !== undefined) {
+    const current = await Patient.findById(id).select('title gender').lean();
+    const title = patientData.title !== undefined ? patientData.title : current?.title;
+    const gender = patientData.gender !== undefined ? patientData.gender : current?.gender;
+    const mismatch = titleSexMismatch(title, gender);
+    if (mismatch) throw badRequest(mismatch);
+  }
   return await Patient.findByIdAndUpdate(id, patientData, {
     new: true,
     runValidators: true

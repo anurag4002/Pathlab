@@ -1,4 +1,5 @@
 import React from 'react';
+import capitalizeName from '../../../utils/capitalizeName';
 import { Modal, Button, Input, Select } from '../../../components/common';
 import { GENDER_OPTIONS } from '../../../constants/patientConstants';
 import useAuth from '../../../hooks/useAuth';
@@ -34,8 +35,9 @@ const PatientFormModal = ({
   const { user } = useAuth();
   const isV2 = useUiVersion() === 'v2';
   const identityLocked = isEditing && user?.role !== 'Admin';
+  // Names start with a capital letter ("rahul kumar" -> "Rahul Kumar").
   const handleChange = (field) => (e) =>
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [field]: field === 'name' ? capitalizeName(e.target.value) : e.target.value }));
 
   const footer = (
     <>
@@ -114,14 +116,13 @@ const PatientFormModal = ({
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
           <Input
-            label={isV2 ? 'Phone number' : 'Phone Number'}
+            label={isV2 ? 'Phone number (optional)' : 'Phone Number (optional)'}
             name="phone"
             disabled={identityLocked}
-            helperText={identityLocked ? 'Only Admin can change the phone number.' : undefined}
+            helperText={identityLocked ? 'Only Admin can change the phone number.' : 'Needed only for online reports and booking.'}
             value={formData.phone}
             onChange={handleChange('phone')}
             error={errors.phone}
-            required
           />
           <Input
             label="UHID"

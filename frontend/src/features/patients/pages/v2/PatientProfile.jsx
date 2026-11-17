@@ -86,7 +86,6 @@ export default function PatientProfile() {
     e?.preventDefault();
     const errs = {};
     if (!String(formData.name || '').trim()) errs.name = 'Enter the patient name.';
-    if (!String(formData.phone || '').trim()) errs.phone = 'Enter a phone number.';
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     setSaving(true);
     try {

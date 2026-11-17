@@ -59,10 +59,12 @@ if (!JWT_SECRET) {
   console.warn('[env] JWT_SECRET not set — using insecure dev placeholder. Do not use this in production.');
 }
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+// Base addresses work with or without a trailing "/" (see utils/baseUrl).
+const { normalizeBaseUrl } = require('../utils/baseUrl');
+const CLIENT_URL = normalizeBaseUrl(process.env.CLIENT_URL) || 'http://localhost:5173';
 
 // Absolute public base used inside QR codes (backend serves /r/:token).
-const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || CLIENT_URL || '').replace(/\/$/, '');
+const PUBLIC_BASE_URL = normalizeBaseUrl(process.env.PUBLIC_BASE_URL || CLIENT_URL);
 
 // Build the CORS allowlist.
 // - If CORS_ORIGIN is explicitly set, honour it exactly (operator intent).

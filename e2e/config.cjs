@@ -15,7 +15,8 @@ function loadPlaywright() {
 }
 
 module.exports = {
-  BASE: process.env.E2E_BASE || 'http://localhost:3000',
+  // With or without a trailing "/".
+  BASE: (process.env.E2E_BASE || 'http://localhost:3000').trim().replace(/\/+$/, ''),
   OUT: path.resolve(__dirname, 'output'),
   loadPlaywright,
   chromePath: () => first(process.env.CHROME_PATH, path.join(home, 'AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe')),

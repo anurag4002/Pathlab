@@ -22,15 +22,14 @@ const validateGender = (gender, errors) => {
   }
 };
 
+// Phone is optional; when given it must look like a phone number.
 const validatePhone = (phone, errors) => {
-  if (!phone || String(phone).trim() === '') {
-    errors.phone = 'Phone number is required';
-  } else if (!PHONE_RE.test(String(phone).trim())) {
+  if (phone !== undefined && phone !== null && String(phone).trim() !== '' && !PHONE_RE.test(String(phone).trim())) {
     errors.phone = 'Phone number format is invalid';
   }
 };
 
-/** Full create — name / age / gender / phone required. Profile extras optional. */
+/** Full create — name / age / gender required; phone optional. Profile extras optional. */
 const validatePatient = (data) => {
   const errors = {};
   if (data.birthYear !== undefined && data.birthYear !== null && data.birthYear !== '' && (!Number.isInteger(Number(data.birthYear)) || Number(data.birthYear) < 1850 || Number(data.birthYear) > Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Kolkata', year: 'numeric' }).format(new Date())))) errors.birthYear = 'Enter a valid four-digit birth year';
@@ -68,13 +67,7 @@ const validatePatientUpdate = (data) => {
       errors.gender = 'Gender must be Male, Female, or Other';
     }
   }
-  if (data.phone !== undefined) {
-    if (!data.phone || String(data.phone).trim() === '') {
-      errors.phone = 'Phone number is required';
-    } else if (!PHONE_RE.test(String(data.phone).trim())) {
-      errors.phone = 'Phone number format is invalid';
-    }
-  }
+  if (data.phone !== undefined) validatePhone(data.phone, errors);
   if (data.email !== undefined && data.email !== null && String(data.email).trim() !== '') {
     const email = String(data.email).trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

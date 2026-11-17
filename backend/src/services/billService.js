@@ -28,6 +28,15 @@ const createBill = async (billData, createdByUserId) => {
   }
   const { patient, referringDoctor, agent, items, discount, paidAmount, paymentMethod, department, collectionCentre, caseType, uhid, dailyCaseNo, onlineReportRequested, discountPercent, branch } = billData;
 
+  // No bill for a patient whose title and sex disagree (Mrs + Male, Mr + Female).
+  {
+    const { titleSexMismatch } = require('../utils/titleSex');
+    const Patient = require('../models/Patient');
+    const who = patient ? await Patient.findById(patient).select('title gender').lean() : null;
+    const mismatch = who ? titleSexMismatch(who.title, who.gender) : '';
+    if (mismatch) throw Object.assign(new Error(`${mismatch} Fix the patient's details, then create the bill.`), { statusCode: 400 });
+  }
+
   // Calculate totals
   let subtotal = 0;
   items.forEach(item => {

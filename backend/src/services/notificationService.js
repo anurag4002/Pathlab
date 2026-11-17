@@ -98,6 +98,8 @@ async function sendEmailViaProvider(to, subject, text) {
 // ---- Templated send with toggles + credit deduction ----
 
 async function sendTemplated(channel, templateKey, to, vars = {}) {
+  // Phone (and email) are optional on a patient: nothing to send to, nothing sent.
+  if (!String(to || '').trim()) return { ok: false, skipped: true, error: channel === 'email' ? 'No email address for this patient' : 'No mobile number for this patient' };
   const toggles = await labToggles();
   if (channel !== 'email' && !toggles[channel]) return { ok: false, error: `${channel} disabled in Lab Profile` };
   if (channel === 'email' && !toggles.email) return { ok: false, error: 'email disabled in Lab Profile' };
