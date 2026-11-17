@@ -5,7 +5,9 @@ const { assertBranchAccess } = require('../middleware/branchMiddleware');
 const { documentPdf } = require('../services/formattedPdfService');
 const { resolveUploadAbsolute, reportOptionsFromQuery } = require('../services/pdfService');
 
-exports.forModel = (Model, department) => async (req, res, next) => {
+// verified: the caller already checked who may see this record (the
+// referring doctor's API), so the staff branch check is skipped.
+exports.forModel = (Model, department, { verified = false } = {}) => async (req, res, next) => {
   try {
     let query = Model.findById(req.params.id).populate('patient');
     if (Model.schema.path('reportFile.data')) query = query.select('+reportFile.data');
@@ -13,7 +15,7 @@ exports.forModel = (Model, department) => async (req, res, next) => {
     if (Model.schema.path('bill')) query = query.populate({ path: 'bill', populate: { path: 'referringDoctor' } });
     const record = await query;
     if (!record) { const error = new Error('Report not found'); error.statusCode = 404; throw error; }
-    assertBranchAccess(req, record.branch);
+    if (!verified) assertBranchAccess(req, record.branch);
     if (record.modality === 'ECG' || (['USG', 'X-RAY'].includes(department) && record.reportFile?.data?.length)) {
       const label = record.modality === 'ECG' ? 'ECG' : department;
       const original = record.reportFile?.data;

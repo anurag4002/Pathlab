@@ -30,7 +30,7 @@ import QuickAddContact from './QuickAddContact';
 import SearchSelect from '../../../components/common/SearchSelect/SearchSelect';
 import { createDoctor } from '../../../services/doctorService';
 import { createAgent } from '../../../services/agentService';
-import { filterTestsByDepartment, DEPT_TO_CASE_TYPE } from '../billingConstants';
+import { filterTestsByDepartment, DEPT_TO_CASE_TYPE, PATIENT_TITLES } from '../billingConstants';
 import { ArrowLeft, Plus, ShoppingCart, ExternalLink } from 'lucide-react';
 import formatCurrency from '../../../utils/formatCurrency';
 import '../Billing.css';
@@ -157,7 +157,8 @@ const bookingToNewPatientForm = (b, prev = EMPTY_PATIENT_FORM) => {
     showAddress: true,
     showAadhaar: true,
     showHistory: true,
-    patientTitle: ['Mr.', 'Mrs.', 'Ms.', 'Dr.'].includes(title) ? title : (gender === 'Female' ? 'Ms.' : 'Mr.'),
+    // Use the spelling the Title list has ('Ms', not 'Ms.'), or the list shows Mr.
+    patientTitle: [title, title.replace(/\.$/, '')].find((t) => PATIENT_TITLES.includes(t)) || (gender === 'Female' ? 'Ms' : 'Mr'),
     patientFirstName: capitalizeName(nameParts[0] || ''),
     patientLastName: capitalizeName(nameParts.slice(1).join(' ') || ''),
     patientPhone: b?.phone || '',
@@ -300,7 +301,7 @@ const BillCreateForm = ({
   // Full picked patient object (may come from server search beyond the
   // preloaded first-100 list, so it can't be re-derived from `patients`).
   const [pickedPatient, setPickedPatient] = useState(() => editPatient || billDraft?.pickedPatient || null);
-  const [selectedDoctor, setSelectedDoctor] = useState(() => (editBill ? idOf(editBill.referringDoctor) : billDraft?.doctor || idOf(undefined)));
+  const [selectedDoctor, setSelectedDoctor] = useState(() => (editBill ? idOf(editBill.referringDoctor) : idOf(bookingPrefill?.referringDoctor) || billDraft?.doctor || idOf(undefined)));
   const [selectedAgent, setSelectedAgent] = useState(() => (editBill ? idOf(editBill.agent) : billDraft?.agent || idOf(undefined)));
   const [activeDepartment, setActiveDepartment] = useState(() => editBill?.department || billDraft?.department || 'ALL');
   const [usgServices, setUSGServices] = useState([]);
@@ -560,7 +561,7 @@ const BillCreateForm = ({
     if (!bookingPrefill?.items?.length || bookingItemsAppliedRef.current) return;
     // Wait for catalog load when booking lines may match tests/packages/panels.
     const needsCatalog = bookingPrefill.items.some(
-      (it) => it.refId || it.kind === 'Test' || it.kind === 'Package'
+      (it) => it.refId || it.kind === 'Test' || it.kind === 'Package' || it.kind === 'Panel'
     );
     if (needsCatalog && !tests.length && !packages.length && !panels.length) return;
 
@@ -579,6 +580,10 @@ const BillCreateForm = ({
       } else if (kind === 'Package') {
         match = (it.refId && findById(it.refId, packages)) || findByName(it.name, packages);
         itemType = 'TestPackage';
+      } else if (kind === 'Panel') {
+        // Doctor requests can name a panel (e.g. CBC).
+        match = (it.refId && findById(it.refId, panels)) || findByName(it.name, panels);
+        itemType = 'TestPanel';
       } else {
         match = (it.refId && findById(it.refId, tests))
           || findByName(it.name, tests)
@@ -597,7 +602,7 @@ const BillCreateForm = ({
       } else if (it.refId && /^[a-fA-F0-9]{24}$/.test(String(it.refId))) {
         resolved.push({
           itemId: it.refId,
-          itemType: kind === 'Package' ? 'TestPackage' : 'Test',
+          itemType: kind === 'Package' ? 'TestPackage' : kind === 'Panel' ? 'TestPanel' : 'Test',
           name: it.name,
           price: Number(it.price) || 0
         });

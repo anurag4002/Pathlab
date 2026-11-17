@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const InquiryItemSchema = new mongoose.Schema({
   kind: {
     type: String,
-    enum: ['Test', 'Package', 'Other'],
+    enum: ['Test', 'Package', 'Panel', 'Other'],
     default: 'Other'
   },
   refId: {
@@ -71,7 +71,21 @@ const InquirySchema = new mongoose.Schema({
   source: {
     type: String,
     default: 'portal'
-  }
+  },
+  // Request sent by a referring doctor: "Referred by" on the bill made from it.
+  referringDoctor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Doctor',
+    default: null,
+    index: true
+  },
+  requestedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  age: { type: Number, min: 0, max: 150, default: null },
+  gender: { type: String, enum: ['Male', 'Female', 'Other', ''], default: '' }
 }, {
   timestamps: true
 });

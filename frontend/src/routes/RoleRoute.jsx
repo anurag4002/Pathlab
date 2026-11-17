@@ -13,6 +13,8 @@ const RoleRoute = ({ allowedRoles }) => {
   }
 
   if (!user || !hasRole(allowedRoles)) {
+    // A referring doctor has only their own pages.
+    if (user?.role === 'Referrer') return <Navigate to="/referrer" replace />;
     return <Navigate to="/dashboard" replace />;
   }
 

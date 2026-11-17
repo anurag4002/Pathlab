@@ -5,10 +5,9 @@ const { protect } = require('../middleware/authMiddleware');
 const { authLimiter, verifyLimiter } = require('../middleware/rateLimitMiddleware');
 
 router.post('/login', authLimiter, authController.login);
-router.get('/google/url', authController.getGoogleAuthUrl);
-router.post('/google', authLimiter, authController.googleAuth);
-router.get('/facebook/url', authController.getFacebookAuthUrl);
-router.post('/facebook', authLimiter, authController.facebookAuth);
+// Google / Facebook sign-in is not offered by the app, so these routes are
+// not mounted. Add them back only together with server-side verification of
+// the provider's ID token.
 router.post('/forgot-password', authLimiter, authController.forgotPassword);
 router.post('/reset-password', verifyLimiter, authController.resetPassword);
 router.post('/email-otp/request', authLimiter, authController.requestEmailOtp);

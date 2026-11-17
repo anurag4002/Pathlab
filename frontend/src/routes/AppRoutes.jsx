@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
+import StaffRoute from './StaffRoute';
 import AppLayout from '../components/layout/AppLayout';
 
 // Public Landing Page
@@ -88,6 +89,12 @@ const Templates = lazy(() => import('../pages/delivery/Templates'));
 const Tickets = lazy(() => import('../pages/support/Tickets'));
 const DoctorPortal = lazy(() => import('../pages/doctor/DoctorPortal'));
 
+// Referring doctors (role 'Referrer'): own pages, no staff sidebar.
+const ReferrerLayout = lazy(() => import('../pages/referrer/ReferrerLayout'));
+const ReferrerCases = lazy(() => import('../pages/referrer/ReferrerCases'));
+const ReferrerRequest = lazy(() => import('../pages/referrer/ReferrerRequest'));
+const ReferrerRequests = lazy(() => import('../pages/referrer/ReferrerRequests'));
+
 
 const KeyboardShortcuts = lazy(() => import('../pages/help/KeyboardShortcuts'));
 
@@ -110,8 +117,18 @@ const AppRoutes = () => {
       <Route path="/r/:token" element={<VerifyReportPage />} />
       <Route path="/r/bill/:token" element={<VerifyBill />} />
 
-      {/* Protected Master Admin/Staff Portal Layout */}
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      {/* Referring doctor's own pages */}
+      <Route element={<ProtectedRoute><RoleRoute allowedRoles={['Referrer']} /></ProtectedRoute>}>
+        <Route element={<ReferrerLayout />}>
+          <Route path="/referrer" element={<ReferrerCases />} />
+          <Route path="/referrer/send" element={<ReferrerRequest />} />
+          <Route path="/referrer/requests" element={<ReferrerRequests />} />
+        </Route>
+      </Route>
+
+      {/* Protected Master Admin/Staff Portal Layout (staff only: a referring
+          doctor's login is sent to /referrer) */}
+      <Route element={<ProtectedRoute><StaffRoute><AppLayout /></StaffRoute></ProtectedRoute>}>
         <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />

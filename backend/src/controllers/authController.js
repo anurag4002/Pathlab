@@ -18,13 +18,22 @@ const login = async (req, res, next) => {
     }
 
     // Browser allow-list enforcement (bootstrap mode when none registered).
+    // Referring doctors sign in from their own phones, so the list of
+    // approved lab computers does not apply to them (their login only
+    // reaches their own referred cases).
     const browserCheck = await authService.checkBrowserAllowed(req.body.browserCode || req.headers['x-browser-code']);
-    if (!browserCheck.allowed) {
-      return errorResponse(res, browserCheck.reason, 403);
-    }
 
     const { email, password, remember } = req.body;
-    const authData = await authService.login(email, password, remember === true);
+    let authData;
+    try {
+      authData = await authService.login(email, password, remember === true);
+    } catch (error) {
+      if (!browserCheck.allowed) return errorResponse(res, browserCheck.reason, 403);
+      throw error;
+    }
+    if (!browserCheck.allowed && !(authData && authData.user.role === 'Referrer')) {
+      return errorResponse(res, browserCheck.reason, 403);
+    }
 
     if (!authData) {
       return errorResponse(res, MESSAGES.AUTH.INVALID_CREDENTIALS, 401);

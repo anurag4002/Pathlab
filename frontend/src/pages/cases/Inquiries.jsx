@@ -116,9 +116,11 @@ const Inquiries = () => {
         address: linked?.address || '',
         aadhaar: linked?.aadhaar || '',
         history: linked?.history || source.note || inq.note || '',
-        age: linked?.age,
-        gender: linked?.gender,
+        age: linked?.age ?? source.age ?? undefined,
+        gender: linked?.gender || source.gender || undefined,
         title: linked?.title || '',
+        // A doctor's request: "Referred by" on the new bill is that doctor.
+        referringDoctor: source.referringDoctor?._id || source.referringDoctor || inq.referringDoctor?._id || inq.referringDoctor || null,
         items: source.items || inq.items || [],
         note: source.note || inq.note || '',
         preferredDate: source.preferredDate || inq.preferredDate || null
@@ -260,8 +262,8 @@ const Inquiries = () => {
             <td>
               <IdentityCell
                 name={inq.name}
-                clinical={inq.patient ? { age: inq.patient.age, ageUnit: inq.patient.ageUnit, gender: inq.patient.gender } : undefined}
-                meta={[inq.phone, `Booked ${formatDate(inq.createdAt)}`].filter(Boolean)}
+                clinical={inq.patient ? { age: inq.patient.age, ageUnit: inq.patient.ageUnit, gender: inq.patient.gender } : (inq.age != null || inq.gender ? { age: inq.age, gender: inq.gender } : undefined)}
+                meta={[inq.phone, inq.referringDoctor?.name && `Sent by ${inq.referringDoctor.name}`, `Booked ${formatDate(inq.createdAt)}`].filter(Boolean)}
                 onClick={inq.patient?._id ? () => navigate(`/cases/patients/${inq.patient._id}`) : undefined}
                 title={inq.patient?._id ? 'Open patient' : undefined}
               />
@@ -305,6 +307,16 @@ const Inquiries = () => {
                   {inq.patient.gender ? ` / ${inq.patient.gender}` : ''}
                   {inq.patient.aadhaar ? ` · Aadhaar ${inq.patient.aadhaar}` : ''}
                   {inq.patient.address ? ` · ${inq.patient.address}` : ''}
+                </span>
+              )}
+              {!inq.patient && (inq.age != null || inq.gender) && (
+                <span style={{ display: 'block', fontWeight: 400, fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                  {[inq.age != null ? `${inq.age}y` : '', inq.gender].filter(Boolean).join(' / ')}
+                </span>
+              )}
+              {inq.referringDoctor?.name && (
+                <span style={{ display: 'block', fontWeight: 500, fontSize: '0.72rem', color: 'var(--color-primary)' }}>
+                  Sent by {inq.referringDoctor.name}
                 </span>
               )}
             </td>

@@ -146,6 +146,7 @@ module.exports = {
   getCashbook,
   createManualCashEntry,
   billPdfDownload,
+  sendBillPdf,
   billQr,
   billBarcode
 };
@@ -174,6 +175,12 @@ async function voidBill(req, res, next) {
 }
 
 async function billPdfDownload(req, res, next) {
+  return sendBillPdf(req, res, next);
+}
+
+// branchCheck=false only for callers that already checked who may see this
+// bill (the referring doctor's API checks the bill is theirs).
+async function sendBillPdf(req, res, next, { branchCheck = true } = {}) {
   try {
     const { reportOptionsFromQuery } = require('../services/pdfService');
     const options = reportOptionsFromQuery(req.query);
@@ -181,7 +188,9 @@ async function billPdfDownload(req, res, next) {
     // part of the shared option set, so no special-casing needed).
     const bill = await Bill.findById(req.params.id).populate('patient').populate('referringDoctor').populate('agent').populate('items');
     if (!bill) return errorResponse(res, MESSAGES.BILL.NOT_FOUND, 404);
-    try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
+    if (branchCheck) {
+      try { assertBranchAccess(req, bill.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
+    }
     const token = await billService.ensureBillQrToken(bill);
     let profile = null;
     try { profile = await LabProfile.findOne(); } catch (e) { profile = null; }

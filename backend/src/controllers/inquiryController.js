@@ -1,4 +1,5 @@
 const Inquiry = require('../models/Inquiry');
+require('../models/Doctor'); // populated as "Sent by" on doctor requests
 const { successResponse, errorResponse } = require('../utils/response');
 
 // GET /api/inquiries?status=&search=&page=&limit= — staff queue of
@@ -32,6 +33,7 @@ const listInquiries = async (req, res, next) => {
     const [docs, total] = await Promise.all([
       Inquiry.find(query)
         .populate('patient', 'name registrationNumber age gender phone address email aadhaar uhid history')
+        .populate('referringDoctor', 'name clinicHospital')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -78,7 +80,7 @@ const updateInquiry = async (req, res, next) => {
         return errorResponse(res, 'Too many items in one booking (max 20)', 400);
       }
       updates.items = items.slice(0, 20).map((it) => ({
-        kind: ['Test', 'Package'].includes(it.kind) ? it.kind : 'Other',
+        kind: ['Test', 'Package', 'Panel'].includes(it.kind) ? it.kind : 'Other',
         refId: it.refId || null,
         name: String(it.name || 'Test').slice(0, 120),
         price: Math.max(0, Number(it.price) || 0)

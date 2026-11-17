@@ -71,21 +71,26 @@ const acceptInvite = async (req, res, next) => {
     if (!invite || invite.status !== 'Pending' || new Date() > invite.expiresAt) {
       return errorResponse(res, 'Invite is invalid or expired', 400);
     }
+    // Invited doctors are referring doctors: they get the 'Referrer' login
+    // (own referred cases only). A staff login with the same email is never
+    // turned into a doctor login here.
     let user = await User.findOne({ email: invite.email });
     if (!user) {
       user = await User.create({
         name: invite.name,
         email: invite.email,
-        phone: invite.phone || '0000000000',
-        role: 'Doctor',
+        phone: '',
+        role: 'Referrer',
         password,
         status: 'Active'
       });
-    } else {
-      user.role = 'Doctor';
+    } else if (user.role === 'Referrer') {
       user.password = password;
+      user.passwordChangedAt = new Date();
       user.status = 'Active';
       await user.save();
+    } else {
+      return errorResponse(res, 'This email already belongs to a lab staff login. Ask the lab to give you a doctor login instead.', 409);
     }
     // Link a Doctor referrer record by email when present.
     await Doctor.findOneAndUpdate(

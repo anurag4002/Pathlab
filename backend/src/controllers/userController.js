@@ -9,7 +9,8 @@ const getUsers = async (req, res, next) => {
     const { role, status, search, branch } = req.query;
     const query = {};
 
-    if (role) query.role = role;
+    // Referring-doctor logins are managed on the Referral doctors screen.
+    query.role = role || { $ne: 'Referrer' };
     if (status) query.status = status;
     if (branch) query.branch = branch;
     if (search) {

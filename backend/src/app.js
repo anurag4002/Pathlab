@@ -71,6 +71,7 @@ const jobRoutes = require('./routes/jobRoutes');
 const analysisRoutes = require('./routes/analysisRoutes');
 const inquiryRoutes = require('./routes/inquiryRoutes');
 const branchRoutes = require('./routes/branchRoutes');
+const referrerRoutes = require('./routes/referrerRoutes');
 
 // All API routers are mounted ONLY under /api.
 // Do NOT add a bare mount (registerAllRoutes('')): it doubles the attack
@@ -99,6 +100,8 @@ app.use('/api/notify', notifyRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/modality', modalityRoutes);
 app.use('/api/doctor', doctorPortalRoutes);
+// Referring doctors' own API (the only one a 'Referrer' login may use).
+app.use('/api/referrer', referrerRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/analysis', analysisRoutes);

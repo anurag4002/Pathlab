@@ -31,8 +31,10 @@ const LABELS = { report: 'WhatsApp', bill: 'WhatsApp', review: 'Google review' }
  * Google review link. Staff just press Send.
  *
  * kind: 'report' | 'bill' | 'review'; id: report or bill id (not for review).
+ * getLink / labName: screens that cannot use the staff APIs (the referring
+ * doctor's page) pass their own link loader and the lab name.
  */
-export default function WhatsAppShare({ kind, id, phone, name, billNumber, label, size = 'sm', variant = 'secondary', iconOnly = false, onShared }) {
+export default function WhatsAppShare({ kind, id, phone, name, billNumber, label, size = 'sm', variant = 'secondary', iconOnly = false, onShared, getLink, labName }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,7 +45,7 @@ export default function WhatsAppShare({ kind, id, phone, name, billNumber, label
     const target = window.open('about:blank', '_blank');
     setBusy(true);
     try {
-      const profile = await loadProfile();
+      const profile = labName ? { labName } : await loadProfile();
       const lab = profile.labName || 'our lab';
       const greeting = name ? `Dear ${name},` : 'Hello,';
       let text;
@@ -51,7 +53,7 @@ export default function WhatsAppShare({ kind, id, phone, name, billNumber, label
         if (!profile.googleReviewLink) throw new Error('Add your Google review link in Manage → Lab Profile first.');
         text = `${greeting} thank you for choosing ${lab}. We would be grateful if you could share your experience: ${profile.googleReviewLink}`;
       } else {
-        const response = kind === 'bill' ? await fetchBillQr(id) : await fetchReportQr(id);
+        const response = getLink ? await getLink(id) : kind === 'bill' ? await fetchBillQr(id) : await fetchReportQr(id);
         const link = absolute(response?.data?.verifyUrl || response?.verifyUrl);
         if (!link) throw new Error('Could not create the share link. Please try again.');
         text = kind === 'bill'

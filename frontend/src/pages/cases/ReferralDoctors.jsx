@@ -8,6 +8,8 @@ import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
 import useStickyState from '../../utils/useStickyState';
+import useAuth from '../../hooks/useAuth';
+import { useDoctorLogins, DoctorLoginStatus, DoctorLoginDialog, doctorLoginMenuItems, toggleDoctorLogin } from '../../components/referrer/DoctorLoginControls';
 
 const STATUS_OPTIONS = [
   { value: 'Active', label: 'Active' },
@@ -18,6 +20,16 @@ const EMPTY_CONTACT = { name: '', phone: '', clinicHospital: '', address: '', re
 
 const ReferralDoctors = () => {
   const isV2 = useUiVersion() === 'v2';
+  const { user } = useAuth();
+  // Only an admin gives referring doctors a login.
+  const isAdmin = user?.role === 'Admin';
+  const { logins, reload: reloadLogins } = useDoctorLogins(isAdmin);
+  const [loginTarget, setLoginTarget] = useState(null);
+  const openLogin = (doctor, mode) => setLoginTarget({ doctor, mode });
+  const loginItems = (doctor) => (isAdmin ? doctorLoginMenuItems(doctor, logins[String(doctor._id)], {
+    open: openLogin,
+    toggle: (d, l) => toggleDoctorLogin(d, l, reloadLogins)
+  }) : []);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -205,7 +217,9 @@ const ReferralDoctors = () => {
       />
 
       <DataTable
-        headers={isV2 ? ['Doctor', <span key="c" className="th-num">Commission</span>, 'Status', ''] : ['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', 'Status', 'Actions']}
+        headers={isV2
+          ? ['Doctor', <span key="c" className="th-num">Commission</span>, ...(isAdmin ? ['Login'] : []), 'Status', '']
+          : ['Name', 'Phone', 'Clinic / Hospital', 'Address', 'Commission %', ...(isAdmin ? ['Login'] : []), 'Status', 'Actions']}
         data={pg.paged}
         loading={loading}
         emptyMessage={isV2 ? (search || statusFilter ? 'No doctor matches these filters.' : 'No referral doctors yet. Add the doctors who send you patients.') : 'No referral doctor profiles matching your query.'}
@@ -236,6 +250,17 @@ const ReferralDoctors = () => {
                 </td>
               </>
             )}
+            {isAdmin && (
+              <td>
+                <span className="dl-actions">
+                  <DoctorLoginStatus login={logins[String(doctor._id)]} />
+                  {!isV2 && loginItems(doctor).map((item) => (
+                    <button key={item.label} type="button" className={`btn btn-${item.danger ? 'danger' : 'secondary'} btn-sm`}
+                      style={{ padding: '2px 8px', fontSize: '0.72rem' }} onClick={item.onClick}>{item.label}</button>
+                  ))}
+                </span>
+              </td>
+            )}
             <td>
               <StatusBadge status={doctor.status} />
             </td>
@@ -243,7 +268,11 @@ const ReferralDoctors = () => {
               {isV2 ? (
                 <div className="row-actions-v2">
                   <Button variant="secondary" size="sm" icon={<Edit2 size={14} />} onClick={() => handleOpenEdit(doctor)} aria-label={`Edit ${doctor.name}`}>Edit</Button>
+                  {isAdmin && !logins[String(doctor._id)] && (
+                    <Button variant="secondary" size="sm" onClick={() => openLogin(doctor, 'give')} aria-label={`Give ${doctor.name} a login`}>Give login</Button>
+                  )}
                   <RowMenu label={`More actions for ${doctor.name}`} items={[
+                    ...loginItems(doctor).filter((item) => item.label !== 'Give login'),
                     { label: doctor.status === 'Active' ? 'Make inactive' : 'Make active', onClick: () => toggleActive(doctor) },
                     { label: 'Delete doctor', onClick: () => setDeleteTarget(doctor), danger: true },
                   ]} />
@@ -347,6 +376,9 @@ const ReferralDoctors = () => {
           </div>
         </form>
       </Modal>
+
+      <DoctorLoginDialog doctor={loginTarget?.doctor} mode={loginTarget?.mode} login={loginTarget ? logins[String(loginTarget.doctor._id)] : null}
+        onClose={() => setLoginTarget(null)} onDone={reloadLogins} />
 
       {/* Delete Confirmation */}
       <ConfirmDialog

@@ -214,6 +214,7 @@ module.exports = {
   getInterpretations,
   updateInterpretations,
   reportPdfDownload,
+  sendReportPdf,
   reportQr,
   getPendingLabCases,
   getReportForEntry,
@@ -398,12 +399,18 @@ async function loadReportPdfContext(id, req, options = {}) {
 }
 
 async function reportPdfDownload(req, res, next) {
+  return sendReportPdf(req, res, next);
+}
+
+// branchCheck=false only for callers that already checked who may see this
+// report (the referring doctor's API checks the report is theirs and final).
+async function sendReportPdf(req, res, next, { branchCheck = true } = {}) {
   try {
     const { reportOptionsFromQuery } = require('../services/pdfService');
     // Per-request flags (?barcode=0&qr=0…) override the stored LabProfile
     // print options; absent flags fall back to the profile defaults.
     const options = reportOptionsFromQuery(req.query);
-    const ctx = await loadReportPdfContext(req.params.id, req, options);
+    const ctx = await loadReportPdfContext(req.params.id, branchCheck ? req : null, options);
     const { reportPdfCache, reportPdfKey } = require('../services/reportPdfCache');
     const etag = `"${reportPdfKey(ctx, options)}"`;
     res.setHeader('ETag', etag);

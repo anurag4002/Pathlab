@@ -507,6 +507,8 @@ module.exports = {
   signReport,
   updateTat,
   ensureQrToken,
+  FINAL_STATUSES,
+  SIGNED_OFF_STATUSES,
   verifyReport,
   rejectReport,
   resendReport,

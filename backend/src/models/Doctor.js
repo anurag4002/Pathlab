@@ -38,6 +38,12 @@ const DoctorSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  // Branch that receives this doctor's patient requests (none: Main).
+  branch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Branch',
+    default: null
+  },
   status: {
     type: String,
     enum: ['Active', 'Inactive'],

@@ -11,6 +11,12 @@ connectDatabase()
     } catch (e) {
       console.warn('Branch bootstrap skipped:', e.message);
     }
+    try {
+      const { migrateReferrerUsers } = require('./utils/migrateReferrers');
+      await migrateReferrerUsers();
+    } catch (e) {
+      console.warn('Referring-doctor login migration skipped:', e.message);
+    }
   })
   .catch(err => {
     console.error('Initial database connection warning:', err.message);

@@ -30,3 +30,9 @@ export const deleteDoctor = async (id) => {
   invalidateCatalog('doctors');
   return response.data;
 };
+
+// Referring-doctor logins (Admin): GET /doctors/logins, give / reset / turn off.
+export const getDoctorLogins = async () => (await apiClient.get('/doctors/logins')).data;
+export const giveDoctorLogin = async (id, data) => (await apiClient.post(`/doctors/${id}/login`, data)).data;
+export const resetDoctorPassword = async (id, password) => (await apiClient.put(`/doctors/${id}/login/password`, { password })).data;
+export const updateDoctorLogin = async (id, data) => (await apiClient.patch(`/doctors/${id}/login`, data)).data;

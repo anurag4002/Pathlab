@@ -104,6 +104,11 @@ const deleteDoctor = async (req, res, next) => {
     if (!doctor) {
       return errorResponse(res, 'Doctor not found', 404);
     }
+    // A referring doctor's login has nothing left to show: turn it off.
+    if (doctor.linkedUser) {
+      const User = require('../models/User');
+      await User.updateOne({ _id: doctor.linkedUser, role: 'Referrer' }, { $set: { status: 'Inactive' } });
+    }
 
     // Log Activity
     await Activity.create({

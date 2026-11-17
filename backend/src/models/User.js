@@ -22,7 +22,8 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Admin', 'Employee', 'Doctor'],
+    // 'Referrer' = outside referring doctor (own cases only, see /api/referrer).
+    enum: ['Admin', 'Employee', 'Doctor', 'Referrer'],
     default: 'Employee'
   },
   password: {
@@ -46,7 +47,10 @@ const UserSchema = new mongoose.Schema({
   joiningDate: { type: Date, default: null },
   departments: { type: [String], default: [] },
   documents: { type: [String], default: [] },
-  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null, index: true }
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null, index: true },
+  // Set when an admin resets a referring doctor's password: sign-ins made
+  // before it stop working.
+  passwordChangedAt: { type: Date, default: null }
 }, {
   timestamps: true
 });

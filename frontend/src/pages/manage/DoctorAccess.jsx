@@ -1,36 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
+import { Link } from 'react-router-dom';
+import { getDoctors } from '../../services/doctorService';
 import { getInvites, createInvite } from '../../services/doctorPortalService';
 import useClientPagination from '../../hooks/useClientPagination';
-import { Plus, Edit2, Trash2, Link2 } from 'lucide-react';
-import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
+import { Link2 } from 'lucide-react';
+import { DataTable, PageHeader, Button, AdvancedFilterBar } from '../../components/common';
 import { notify } from '../../components/common/Toast/toast';
 import DoctorAccessV2 from './v2/DoctorAccessV2';
 import { useUiVersion } from '../../utils/uiVersion';
+import { useDoctorLogins, DoctorLoginStatus, DoctorLoginDialog, doctorLoginMenuItems, toggleDoctorLogin, doctorLoginState } from '../../components/referrer/DoctorLoginControls';
 
-const STATUS_OPTIONS = [
-  { value: 'Active', label: 'Active' },
-  { value: 'Inactive', label: 'Inactive' }
+const LOGIN_FILTERS = [
+  { value: 'with', label: 'Has a login' },
+  { value: 'off', label: 'Login turned off' },
+  { value: 'none', label: 'No login' }
 ];
 
+// Doctor access: the referring doctors (the names in "Referred by" on
+// bills) and their logins. A doctor with a login sees only the patients
+// they referred, and signed reports.
 const DoctorAccess = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { logins, reload: reloadLogins } = useDoctorLogins();
+  const [loginTarget, setLoginTarget] = useState(null);
 
-  // Form States
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', role: 'Doctor', status: 'Active' });
-  const [errors, setErrors] = useState({});
-  const [submitLoading, setSubmitLoading] = useState(false);
-
-  // Search
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [loginFilter, setLoginFilter] = useState('');
 
-  // Delete State
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   // Invite section
   const [invites, setInvites] = useState([]);
   const [invLoading, setInvLoading] = useState(false);
@@ -38,29 +35,22 @@ const DoctorAccess = () => {
   const [invToken, setInvToken] = useState('');
   const [invSaving, setInvSaving] = useState(false);
 
-  // Client-side pagination for both tables.
   const pgInvites = useClientPagination(invites, 5);
   const filteredDoctors = doctors.filter((d) => {
-    if (statusFilter && d.status !== statusFilter) return false;
+    if (loginFilter && doctorLoginState(logins[String(d._id)]) !== loginFilter) return false;
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    return String(d.name || '').toLowerCase().includes(q)
-      || String(d.email || '').toLowerCase().includes(q)
-      || String(d.phone || '').toLowerCase().includes(q);
+    return `${d.name || ''} ${d.phone || ''} ${d.clinicHospital || ''} ${logins[String(d._id)]?.loginId || ''}`.toLowerCase().includes(q);
   });
   const pgDoctors = useClientPagination(filteredDoctors, 10);
 
   const fetchDoctors = async () => {
     setLoading(true);
     try {
-      const res = await getUsers();
-      if (res.success) {
-        // filter out only Doctors
-        const list = res.data.filter(u => u.role === 'Doctor');
-        setDoctors(list);
-      }
+      const res = await getDoctors();
+      if (res.success) setDoctors(res.data || []);
     } catch (err) {
-      console.error('Failed to load doctors access list', err);
+      console.error('Failed to load referral doctors', err);
     } finally {
       setLoading(false);
     }
@@ -79,93 +69,69 @@ const DoctorAccess = () => {
     catch (e) { notify(e.response?.data?.message || 'Invite failed'); } finally { setInvSaving(false); }
   };
 
-  const handleOpenCreate = () => {
-    setEditingDoc(null);
-    setFormData({ name: '', email: '', phone: '', password: '', role: 'Doctor', status: 'Active' });
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const handleOpenEdit = (doc) => {
-    setEditingDoc(doc);
-    setFormData({
-      name: doc.name,
-      email: doc.email,
-      phone: doc.phone || '',
-      password: '',
-      role: 'Doctor',
-      status: doc.status
-    });
-    setErrors({});
-    setFormOpen(true);
-  };
-
-  const validate = () => {
-    const errs = {};
-    if (!formData.name.trim()) errs.name = 'Name is required';
-    if (!formData.email.trim()) errs.email = 'Email is required';
-    if (!editingDoc && !formData.password) errs.password = 'Password is required';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setSubmitLoading(true);
-    try {
-      let res;
-      const payload = { ...formData };
-      if (!payload.password) delete payload.password;
-
-      if (editingDoc) {
-        res = await updateUser(editingDoc._id, payload);
-      } else {
-        res = await createUser(payload);
-      }
-
-      if (res.success) {
-        setFormOpen(false);
-        fetchDoctors();
-      }
-    } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to save account details' });
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      const res = await deleteUser(deleteTarget._id);
-      if (res.success) {
-        setDeleteTarget(null);
-        fetchDoctors();
-      }
-    } catch (err) {
-      notify(err.response?.data?.message || 'Failed to delete user');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
+  const menu = (doctor) => doctorLoginMenuItems(doctor, logins[String(doctor._id)], {
+    open: (d, mode) => setLoginTarget({ doctor: d, mode }),
+    toggle: (d, l) => toggleDoctorLogin(d, l, reloadLogins)
+  });
 
   return (
     <div>
       <PageHeader
         title="Doctor Portal Access"
-        subtitle="Manage secure diagnostic reporting logins for radiologists and referring doctors"
-        action={
-          <Button variant="primary" onClick={handleOpenCreate}>
-            <Plus size={16} /> Register Doctor Access
-          </Button>
-        }
+        subtitle='Referring doctors (the names in "Referred by" on bills). A doctor with a login sees only the patients they referred.'
+        action={<Link to="/cases/doctors" className="btn btn-secondary">Add or edit doctors</Link>}
       />
 
-      <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+      <AdvancedFilterBar
+        showSearchButton={false}
+        showClearButton={!!(search || loginFilter)}
+        onClear={() => { setSearch(''); setLoginFilter(''); pgDoctors.reset(); }}
+        values={{ search, login: loginFilter }}
+        onChange={(key, value) => {
+          pgDoctors.reset();
+          if (key === 'search') setSearch(value);
+          else if (key === 'login') setLoginFilter(value);
+        }}
+        fields={[
+          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Doctor, clinic or phone...' },
+          { key: 'login', label: 'Login', type: 'select', options: LOGIN_FILTERS, placeholder: 'All doctors' }
+        ]}
+      />
+
+      <DataTable
+        headers={['Doctor', 'Phone', 'Clinic / Hospital', 'Login', 'Actions']}
+        data={pgDoctors.paged}
+        loading={loading}
+        emptyMessage="No referral doctors. Add them under Cases > Referral Doctors."
+        pagination={{
+          total: pgDoctors.total,
+          page: pgDoctors.page,
+          limit: pgDoctors.limit,
+          pages: pgDoctors.pages,
+          onPageChange: pgDoctors.goToPage,
+          onLimitChange: pgDoctors.setLimit,
+        }}
+        renderRow={(doc) => (
+          <tr key={doc._id}>
+            <td style={{ fontWeight: '600' }}>{doc.name}{doc.status === 'Inactive' && <span className="dl-pill" style={{ marginLeft: 6 }}>Inactive</span>}</td>
+            <td>{doc.phone || '-'}</td>
+            <td>{doc.clinicHospital || '-'}</td>
+            <td><DoctorLoginStatus login={logins[String(doc._id)]} /></td>
+            <td>
+              <span className="dl-actions">
+                {menu(doc).map((item) => (
+                  <button key={item.label} type="button" className={`btn btn-${item.danger ? 'danger' : 'secondary'} btn-sm`}
+                    style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={item.onClick}>{item.label}</button>
+                ))}
+              </span>
+            </td>
+          </tr>
+        )}
+      />
+
+      <div className="card" style={{ marginTop: '1.5rem', padding: '1rem' }}>
         <h3 style={{ margin: '0 0 .75rem', display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={16} /> Invite Doctor (token link)</h3>
+        <p style={{ fontSize: '.8rem', margin: '0 0 .75rem' }}>The doctor chooses their own password with the code. Their login is linked to the referral doctor with the same email.</p>
         <form onSubmit={handleInvite} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input className="form-control" style={{ maxWidth: 200 }} placeholder="Name" value={invForm.name} onChange={(e) => setInvForm(s => ({ ...s, name: e.target.value }))} required />
           <input className="form-control" style={{ maxWidth: 220 }} placeholder="Email" value={invForm.email} onChange={(e) => setInvForm(s => ({ ...s, email: e.target.value }))} required />
@@ -185,146 +151,8 @@ const DoctorAccess = () => {
           renderRow={(iv, i) => (<tr key={iv._id || i}><td>{iv.name}</td><td>{iv.email}</td><td>{iv.phone || '-'}</td><td style={{ fontSize: '.78rem' }}><code>{iv.token || iv.status || '-'}</code></td></tr>)} />
       </div>
 
-      <AdvancedFilterBar
-        showSearchButton={false}
-        showClearButton={!!(search || statusFilter)}
-        onClear={() => { setSearch(''); setStatusFilter(''); pgDoctors.reset(); }}
-        values={{ search, status: statusFilter }}
-        onChange={(key, value) => {
-          pgDoctors.reset();
-          if (key === 'search') setSearch(value);
-          else if (key === 'status') setStatusFilter(value);
-        }}
-        fields={[
-          { key: 'search', label: 'Search', type: 'text', size: 'lg', placeholder: 'Search by doctor name...' },
-          { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS, placeholder: 'All statuses' }
-        ]}
-      />
-
-      <DataTable
-        headers={['Name', 'Email Address', 'Role', 'Status', 'Actions']}
-        data={pgDoctors.paged}
-        loading={loading}
-        emptyMessage="No Doctor accounts configured."
-        pagination={{
-          total: pgDoctors.total,
-          page: pgDoctors.page,
-          limit: pgDoctors.limit,
-          pages: pgDoctors.pages,
-          onPageChange: pgDoctors.goToPage,
-          onLimitChange: pgDoctors.setLimit,
-        }}
-        renderRow={(doc) => (
-          <tr key={doc._id}>
-            <td style={{ fontWeight: '600' }}>{doc.name}</td>
-            <td>{doc.email}</td>
-            <td>
-              <StatusBadge status={doc.role} />
-            </td>
-            <td>
-              <StatusBadge status={doc.status} />
-            </td>
-            <td>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                  onClick={() => handleOpenEdit(doc)}
-                >
-                  <Edit2 size={14} />
-                </button>
-                <button
-                  className="btn btn-danger"
-                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                  onClick={() => setDeleteTarget(doc)}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        )}
-      />
-
-      {/* Form Modal */}
-      <Modal
-        isOpen={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={editingDoc ? 'Edit Account' : 'Register Doctor Login'}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setFormOpen(false)} disabled={submitLoading}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleFormSubmit} loading={submitLoading}>
-              Save Account
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleFormSubmit} className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-          {errors.api && <div className="form-error">{errors.api}</div>}
-          
-          <Input
-            label="Doctor Name"
-            name="name"
-            value={formData.name}
-            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            error={errors.name}
-            placeholder="e.g. Dr. Anil Mehta"
-            required
-          />
-
-          <Input
-            label="Email Address / Login ID"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            error={errors.email}
-            required
-          />
-
-          <Input
-            label="Phone"
-            name="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-          />
-
-          <Input
-            label={editingDoc ? "Reset Password (Leave blank to keep current)" : "Password *"}
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-            error={errors.password}
-            required={!editingDoc}
-          />
-
-          <Select
-            label="Status"
-            value={formData.status}
-            onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-            options={[
-              { value: 'Active', label: 'Active' },
-              { value: 'Inactive', label: 'Inactive' }
-            ]}
-            required
-          />
-
-        </form>
-      </Modal>
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDeleteConfirm}
-        loading={deleteLoading}
-        title="Remove Doctor Access?"
-        message={`Are you sure you want to permanently delete the login files for ${deleteTarget?.name}?`}
-      />
+      <DoctorLoginDialog doctor={loginTarget?.doctor} mode={loginTarget?.mode} login={loginTarget ? logins[String(loginTarget.doctor._id)] : null}
+        onClose={() => setLoginTarget(null)} onDone={reloadLogins} />
     </div>
   );
 };

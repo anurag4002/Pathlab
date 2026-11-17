@@ -1,17 +1,18 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, RefreshCw, Send, Copy } from 'lucide-react';
-import { getUsers, createUser, updateUser, deleteUser } from '../../../services/authService';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RefreshCw, Send, Copy } from 'lucide-react';
+import { getDoctors } from '../../../services/doctorService';
 import { getInvites, createInvite } from '../../../services/doctorPortalService';
-import { PageHeader, Button, Modal, Input, ConfirmDialog, RowMenu, StatGroup } from '../../../components/common';
+import { PageHeader, Button, Modal, Input, RowMenu, StatGroup } from '../../../components/common';
 import ReportTable from '../../../components/business/ReportTable';
 import { notify } from '../../../components/common/Toast/toast';
 import { dayLabel } from '../../../utils/reportFormat';
 import useDraft from './useDraft';
 import useStickyState from '../../../utils/useStickyState';
+import { useDoctorLogins, DoctorLoginStatus, DoctorLoginDialog, doctorLoginMenuItems, toggleDoctorLogin, doctorLoginState } from '../../../components/referrer/DoctorLoginControls';
 import '../../../components/business/business.css';
 import './manage.css';
 
-const EMPTY_LOGIN = { name: '', email: '', phone: '', password: '', status: 'Active' };
 const EMPTY_INVITE = { name: '', email: '', phone: '' };
 const INVITE_STATUS = { Pending: ['Waiting', 'is-warn'], Accepted: ['Joined', 'is-good'], Expired: ['Expired', ''] };
 
@@ -22,22 +23,18 @@ const copyCode = async (token) => {
   catch { notify('Could not copy. Try again.'); }
 };
 
-// Doctor access (new look): doctors who can sign in to see their patients' reports.
+// Doctor access (new look): the referring doctors - the names in
+// "Referred by" on bills - and whether each can sign in to see their own
+// patients and signed reports.
 export default function DoctorAccessV2() {
   const [doctors, setDoctors] = useState([]);
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { logins, reload: reloadLogins } = useDoctorLogins();
   const [search, setSearch] = useStickyState('search', '');
   const [tab, setTab] = useStickyState('tab', 'doctors');
-
-  const [loginOpen, setLoginOpen] = useState(false);
-  // Which sign-in panel was open ('new' or a doctor id) - reopened after a reload.
-  const [loginPanel, setLoginPanel] = useStickyState('loginPanel', null);
-  const restored = useRef(false);
-  const [editing, setEditing] = useState(null);
-  const [login, setLogin] = useDraft('doctor-login', EMPTY_LOGIN, { omit: ['password'] });
-  const [loginError, setLoginError] = useState('');
-  const [savingLogin, setSavingLogin] = useState(false);
+  const [loginTab, setLoginTab] = useStickyState('loginTab', 'all');
+  const [loginTarget, setLoginTarget] = useState(null);
 
   const [inviteOpen, setInviteOpen] = useStickyState('inviteOpen', false);
   const [invite, setInvite, clearInvite] = useDraft('doctor-invite', EMPTY_INVITE);
@@ -45,47 +42,28 @@ export default function DoctorAccessV2() {
   const [inviteToken, setInviteToken] = useState('');
   const [savingInvite, setSavingInvite] = useState(false);
 
-  const [del, setDel] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-
   const load = async () => {
     setLoading(true);
     try {
-      const [u, i] = await Promise.allSettled([getUsers(), getInvites()]);
-      if (u.status === 'fulfilled' && u.value?.success) setDoctors((u.value.data || []).filter((x) => x.role === 'Doctor'));
+      const [d, i] = await Promise.allSettled([getDoctors(), getInvites()]);
+      if (d.status === 'fulfilled' && d.value?.success) setDoctors(d.value.data || []);
       if (i.status === 'fulfilled' && i.value?.success) setInvites(i.value.data?.invites || i.value.data || []);
     } finally { setLoading(false); }
+    reloadLogins();
   };
-  useEffect(() => { load(); }, []);
-  useEffect(() => {
-    if (restored.current || loading || !loginPanel) return;
-    if (loginPanel === 'new') { restored.current = true; setLoginOpen(true); return; }
-    const d = doctors.find((x) => x._id === loginPanel);
-    if (d) { restored.current = true; setEditing(d); setLoginOpen(true); } else if (doctors.length) { restored.current = true; setLoginPanel(null); }
-  }, [doctors, loading, loginPanel]); // eslint-disable-line react-hooks/exhaustive-deps
-  const closeLogin = () => { setLoginOpen(false); setLoginPanel(null); };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const q = search.trim().toLowerCase();
-  const doctorRows = useMemo(() => doctors.filter((d) => !q || `${d.name} ${d.email} ${d.phone}`.toLowerCase().includes(q)), [doctors, q]);
+  const loginOf = (d) => logins[String(d._id)];
+  const doctorRows = useMemo(() => doctors
+    .filter((d) => loginTab === 'all' || doctorLoginState(logins[String(d._id)]) === loginTab)
+    .filter((d) => !q || `${d.name} ${d.phone} ${d.clinicHospital || ''} ${logins[String(d._id)]?.loginId || ''}`.toLowerCase().includes(q)),
+  [doctors, logins, loginTab, q]);
   const inviteRows = useMemo(() => invites.filter((v) => !q || `${v.name} ${v.email} ${v.phone}`.toLowerCase().includes(q))
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), [invites, q]);
   const waiting = invites.filter((v) => v.status === 'Pending').length;
+  const count = (state) => doctors.filter((d) => doctorLoginState(logins[String(d._id)]) === state).length;
 
-  const openNewLogin = () => { setEditing(null); setLogin(EMPTY_LOGIN); setLoginError(''); setLoginOpen(true); setLoginPanel('new'); };
-  const openEdit = (d) => { setEditing(d); setLogin({ name: d.name || '', email: d.email || '', phone: d.phone || '', password: '', status: d.status || 'Active' }); setLoginError(''); setLoginOpen(true); setLoginPanel(d._id); };
-  const saveLogin = async (e) => {
-    e?.preventDefault();
-    if (!login.name.trim() || !login.email.trim()) { setLoginError('Enter the doctor\'s name and email.'); return; }
-    if (!editing && login.password.length < 6) { setLoginError('Choose a password of at least 6 characters.'); return; }
-    setSavingLogin(true); setLoginError('');
-    try {
-      const payload = { ...login, role: 'Doctor' };
-      if (!payload.password) delete payload.password;
-      const res = editing ? await updateUser(editing._id, payload) : await createUser(payload);
-      if (res.success) { closeLogin(); setLogin(EMPTY_LOGIN); notify(editing ? 'Doctor updated' : 'Doctor can now sign in'); load(); }
-    } catch (err) { setLoginError(err.response?.data?.message || 'Could not save. Try again.'); }
-    finally { setSavingLogin(false); }
-  };
   const sendInvite = async (e) => {
     e?.preventDefault();
     if (!invite.name.trim() || !invite.email.trim()) { setInviteError('Enter the doctor\'s name and email.'); return; }
@@ -96,33 +74,26 @@ export default function DoctorAccessV2() {
     } catch (err) { setInviteError(err.response?.data?.message || 'Could not create the invite.'); }
     finally { setSavingInvite(false); }
   };
-  const remove = async () => {
-    setDeleting(true);
-    try { const res = await deleteUser(del._id); if (res.success) { notify('Doctor removed'); load(); } }
-    catch (err) { notify(err.response?.data?.message || 'Could not remove.'); }
-    finally { setDeleting(false); setDel(null); }
-  };
-  const toggle = async (d) => {
-    const next = d.status === 'Active' ? 'Inactive' : 'Active';
-    try { const res = await updateUser(d._id, { name: d.name, email: d.email, phone: d.phone || '', role: 'Doctor', status: next }); if (res.success) { notify(next === 'Active' ? 'Sign-in allowed again' : 'Sign-in switched off'); load(); } }
-    catch (err) { notify(err.response?.data?.message || 'Could not update.'); }
-  };
+
+  const open = (d, mode) => setLoginTarget({ doctor: d, mode });
+  const items = (d) => doctorLoginMenuItems(d, loginOf(d), { open, toggle: (doc, l) => toggleDoctorLogin(doc, l, reloadLogins) });
 
   return (
     <div className="biz-page">
       <PageHeader
         title="Doctor access"
-        subtitle="Doctors who can sign in to see their own patients' reports. Invite them, or set up their sign-in yourself."
+        subtitle='The doctors in "Referred by" on bills. Give a doctor a login and they see only the patients they referred, and signed reports.'
         action={<div className="biz-actions">
           <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={load}>Refresh</Button>
-          <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={openNewLogin}>Set up sign-in</Button>
-          <Button variant="primary" size="sm" icon={<Send size={14} />} onClick={() => { setInviteError(''); setInviteToken(''); setInviteOpen(true); }}>Invite a doctor</Button>
+          <Link to="/cases/doctors" className="btn btn-secondary btn-sm">Add a doctor</Link>
+          <Button variant="secondary" size="sm" icon={<Send size={14} />} onClick={() => { setInviteError(''); setInviteToken(''); setInviteOpen(true); }}>Invite by email</Button>
         </div>}
       />
 
       <StatGroup loading={loading} items={[
-        { label: 'Doctors with access', value: String(doctors.filter((d) => d.status === 'Active').length) },
-        { label: 'Switched off', value: String(doctors.filter((d) => d.status !== 'Active').length) },
+        { label: 'Can sign in', value: String(count('with')) },
+        { label: 'Login turned off', value: String(count('off')) },
+        { label: 'No login yet', value: String(count('none')) },
         { label: 'Invites waiting', value: String(waiting), hint: 'Not joined yet', tone: waiting ? 'warning' : undefined },
       ]} />
 
@@ -131,25 +102,31 @@ export default function DoctorAccessV2() {
           <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>{label}<span>{n}</span></button>
         ))}
       </div>
-      <div className="form-group mg-hidden-search" style={{ display: 'none' }}><input type="search" data-page-search="" aria-label="Search doctors" placeholder="Doctor name, email or phone" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+      <div className="form-group" style={{ maxWidth: 360 }}>
+        <input type="search" data-page-search="" aria-label="Search doctors" placeholder="Doctor, clinic or phone" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
 
       {tab === 'doctors' ? (
-        <ReportTable loading={loading} rows={doctorRows} rowKey={(d) => d._id} onRowClick={openEdit}
-          empty="No doctor can sign in yet. Invite one, or set up their sign-in."
-          columns={[
-            { key: 'name', label: 'Doctor', render: (d) => <><div className="mg-name">{d.name}</div><div className="mg-sub">{d.email}</div></> },
-            { key: 'phone', label: 'Phone', render: (d) => d.phone || <span className="muted">Not set</span> },
-            { key: 'status', label: 'Sign-in', render: (d) => <span className={`mg-pill ${d.status === 'Active' ? 'is-good' : ''}`}>{d.status === 'Active' ? 'Allowed' : 'Switched off'}</span> },
-            { key: 'act', label: '', align: 'right', render: (d) => (
-              <span className="mg-row-actions" onClick={(e) => e.stopPropagation()}>
-                <Button variant="secondary" size="sm" onClick={() => openEdit(d)}>Edit</Button>
-                <RowMenu items={[
-                  { label: d.status === 'Active' ? 'Switch off sign-in' : 'Allow sign-in again', onClick: () => toggle(d) },
-                  { label: 'Remove', danger: true, onClick: () => setDel(d) },
-                ]} />
-              </span>
-            ) },
-          ]} />
+        <>
+          <div className="mg-seg" role="group" aria-label="Login" style={{ marginBottom: 12 }}>
+            {[['all', 'All'], ['with', 'Can sign in'], ['off', 'Turned off'], ['none', 'No login']].map(([value, label]) => (
+              <button key={value} type="button" className={loginTab === value ? 'is-on' : ''} aria-pressed={loginTab === value} onClick={() => setLoginTab(value)}>{label}</button>
+            ))}
+          </div>
+          <ReportTable loading={loading} rows={doctorRows} rowKey={(d) => d._id}
+            empty={q || loginTab !== 'all' ? 'No doctor matches.' : 'No referral doctors yet. Add them on the Referral doctors screen.'}
+            columns={[
+              { key: 'name', label: 'Doctor', render: (d) => <><div className="mg-name">{d.name}</div><div className="mg-sub">{[d.clinicHospital, d.phone].filter(Boolean).join(' · ')}</div></> },
+              { key: 'login', label: 'Login', render: (d) => <DoctorLoginStatus login={loginOf(d)} /> },
+              { key: 'act', label: '', align: 'right', render: (d) => (
+                <span className="mg-row-actions">
+                  {!loginOf(d)
+                    ? <Button variant="secondary" size="sm" onClick={() => open(d, 'give')} aria-label={`Give ${d.name} a login`}>Give login</Button>
+                    : items(d).length > 0 && <RowMenu label={`Login actions for ${d.name}`} items={items(d)} />}
+                </span>
+              ) },
+            ]} />
+        </>
       ) : (
         <ReportTable loading={loading} rows={inviteRows} rowKey={(v, i) => v._id || i} empty="No invites sent yet."
           columns={[
@@ -162,7 +139,7 @@ export default function DoctorAccessV2() {
           ]} />
       )}
 
-      <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} variant="drawer" title="Invite a doctor"
+      <Modal isOpen={inviteOpen} onClose={() => setInviteOpen(false)} variant="drawer" title="Invite a doctor by email"
         footer={inviteToken ? <Button variant="primary" onClick={() => setInviteOpen(false)}>Done</Button> : <>
           <span className="mg-draft-note">Closing keeps what you typed.</span>
           <Button variant="secondary" onClick={() => setInviteOpen(false)}>Cancel</Button>
@@ -182,47 +159,15 @@ export default function DoctorAccessV2() {
               <Input label="Doctor's name *" value={invite.name} onChange={(e) => setInvite((s) => ({ ...s, name: e.target.value }))} placeholder="e.g. Dr. Anil Sharma" autoFocus />
               <Input label="Email *" type="email" value={invite.email} onChange={(e) => setInvite((s) => ({ ...s, email: e.target.value }))} placeholder="doctor@example.com" />
               <Input label="Phone" value={invite.phone} onChange={(e) => setInvite((s) => ({ ...s, phone: e.target.value }))} placeholder="10-digit mobile" inputMode="tel" />
-              <p className="mg-help">Nothing is sent automatically. You will get a code to share.</p>
+              <p className="mg-help">Nothing is sent automatically. You will get a code to share. The login is linked to the referral doctor with this email; usually "Give login" is simpler.</p>
             </div>
             {inviteError && <p className="mg-error" role="alert">{inviteError}</p>}
           </form>
         )}
       </Modal>
 
-      <Modal isOpen={loginOpen} onClose={closeLogin} variant="drawer" title={editing ? `Edit ${editing.name}` : 'Set up a doctor\'s sign-in'}
-        footer={<>
-          <Button variant="secondary" onClick={closeLogin} disabled={savingLogin}>Cancel</Button>
-          <Button variant="primary" onClick={saveLogin} loading={savingLogin}>{editing ? 'Save changes' : 'Create sign-in'}</Button>
-        </>}>
-        <form className="mg-form" onSubmit={saveLogin} noValidate>
-          <div className="mg-form-section">
-            <h3>Doctor</h3>
-            <Input label="Name *" value={login.name} onChange={(e) => setLogin((s) => ({ ...s, name: e.target.value }))} autoFocus />
-            <div className="mg-grid-2">
-              <Input label="Email (used to sign in) *" type="email" value={login.email} onChange={(e) => setLogin((s) => ({ ...s, email: e.target.value }))} />
-              <Input label="Phone" value={login.phone} onChange={(e) => setLogin((s) => ({ ...s, phone: e.target.value }))} inputMode="tel" />
-            </div>
-          </div>
-          <div className="mg-form-section">
-            <h3>Password</h3>
-            <Input label={editing ? 'New password (leave empty to keep the current one)' : 'Password *'} type="password" autoComplete="new-password" value={login.password} onChange={(e) => setLogin((s) => ({ ...s, password: e.target.value }))} />
-          </div>
-          <div className="mg-form-section">
-            <h3>Sign-in</h3>
-            <div className="mg-seg" role="group" aria-label="Sign-in">
-              {[['Active', 'Allowed'], ['Inactive', 'Switched off']].map(([value, label]) => (
-                <button key={value} type="button" className={login.status === value ? 'is-on' : ''} aria-pressed={login.status === value} onClick={() => setLogin((s) => ({ ...s, status: value }))}>{label}</button>
-              ))}
-            </div>
-          </div>
-          {loginError && <p className="mg-error" role="alert">{loginError}</p>}
-        </form>
-      </Modal>
-
-      <ConfirmDialog isOpen={!!del} onClose={() => setDel(null)} onConfirm={remove} loading={deleting}
-        title="Remove this doctor's access?"
-        message={`${del?.name || 'This doctor'} will no longer be able to sign in. Their patients' reports are not affected. To stop access for a while, switch off sign-in instead.`}
-        confirmText="Remove" />
+      <DoctorLoginDialog doctor={loginTarget?.doctor} mode={loginTarget?.mode} login={loginTarget ? loginOf(loginTarget.doctor) : null}
+        onClose={() => setLoginTarget(null)} onDone={reloadLogins} />
     </div>
   );
 }
