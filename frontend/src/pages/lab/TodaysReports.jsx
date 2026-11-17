@@ -394,22 +394,29 @@ const TodaysReports = () => {
   }, []);
 
   // Reopen pop-ups from a shared/reloaded URL once the worklist is loaded.
+  // Only on the first load: a list refresh after an action must not reopen
+  // a pop-up whose key is still on its way out of the address.
+  const restoredRef = useRef(false);
   useEffect(() => {
-    if (!reports.length) return;
+    if (!reports.length || restoredRef.current) return;
+    // Done once every linked record was found (a filtered list may load later).
+    let missing = false;
     const find = (id) => reports.find((r) => String(r._id) === String(id));
+    const seek = (id) => { const found = find(id); if (!found) missing = true; return found; };
     if (searchParams.get('result') && !resultOpen) setResultOpen(true);
     const entryId = searchParams.get('entry');
-    if (entryId && entryId !== 'open' && !entryOpen) { const r = find(entryId); if (r) openEntry(r); }
+    if (entryId && entryId !== 'open' && !entryOpen) { const r = seek(entryId); if (r) openEntry(r); }
     const sendId = searchParams.get('send');
-    if (sendId && sendId !== 'open' && !sendOpen) { const r = find(sendId); if (r) openSend(r); }
+    if (sendId && sendId !== 'open' && !sendOpen) { const r = seek(sendId); if (r) openSend(r); }
     const previewId = searchParams.get('preview');
-    if (previewId && previewId !== 'open' && !previewOpen) { const r = find(previewId); if (r) handleOpenPreview(r); }
+    if (previewId && previewId !== 'open' && !previewOpen) { const r = seek(previewId); if (r) handleOpenPreview(r); }
     const rejectId = searchParams.get('reject');
-    if (rejectId && rejectId !== 'open' && !rejectOpen) { const r = find(rejectId); if (r) { setActiveReport(r); setRejectOpen(true); } }
+    if (rejectId && rejectId !== 'open' && !rejectOpen) { const r = seek(rejectId); if (r) { setActiveReport(r); setRejectOpen(true); } }
     const labelId = searchParams.get('label');
-    if (labelId && labelId !== 'open' && !labelTarget) { const r = find(labelId); if (r) setLabelTarget(r); }
+    if (labelId && labelId !== 'open' && !labelTarget) { const r = seek(labelId); if (r) setLabelTarget(r); }
     const delId = searchParams.get('del');
-    if (delId && delId !== 'open' && !deleteTarget) { const r = find(delId); if (r) setDeleteTarget(r); }
+    if (delId && delId !== 'open' && !deleteTarget) { const r = seek(delId); if (r) setDeleteTarget(r); }
+    restoredRef.current = !missing;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports]);
 

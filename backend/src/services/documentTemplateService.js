@@ -2,6 +2,12 @@
 // profiles use this default immediately, without an upload or setup step.
 const REFERENCE_FORMAT = Object.freeze(require('../assets/document-formats/pure-path-reference.json'));
 const NUMBER_BOUNDS = { pageMargin: [12, 54], headerHeight: [60, 480], footerHeight: [30, 330], fontSize: [8, 12], rowPadding: [2, 8] };
+// The names the Setup form shows, so validation messages read like the form.
+const FIELD_LABELS = {
+  pageMargin: 'Page margin', headerHeight: 'Header height', footerHeight: 'Footer height', fontSize: 'Body text size', rowPadding: 'Table row padding',
+  fontFamily: 'font', tableStyle: 'table appearance', flagPlacement: 'abnormal flag position', patientLayout: 'patient details layout',
+  id: 'format ID', name: 'format name', reportTitle: 'report title', billTitle: 'bill title', endOfReportText: 'end of report text'
+};
 // Header and footer can each be tall, but together they must leave room for
 // results on an A4 page (842 pt), or the report could not be laid out.
 const A4_HEIGHT = 842;
@@ -14,7 +20,7 @@ function normalizeFormat(raw = {}, strict = false) {
     if (raw[key] === undefined) continue;
     const value = Number(raw[key]);
     if (!Number.isFinite(value) || value < bounds[0] || value > bounds[1]) {
-      if (strict) invalid(`${key} must be between ${bounds[0]} and ${bounds[1]}.`);
+      if (strict) invalid(`${FIELD_LABELS[key]} must be between ${bounds[0]} and ${bounds[1]} pt.`);
     } else format[key] = value;
   }
   const resultsSpace = A4_HEIGHT - 2 * format.pageMargin - format.headerHeight - format.footerHeight;
@@ -27,12 +33,12 @@ function normalizeFormat(raw = {}, strict = false) {
   for (const [key, values] of Object.entries(ENUMS)) {
     if (raw[key] === undefined) continue;
     if (values.includes(raw[key])) format[key] = raw[key];
-    else if (strict) invalid(`Invalid ${key}.`);
+    else if (strict) invalid(`Choose a valid ${FIELD_LABELS[key]}.`);
   }
   for (const key of ['id', 'name', 'reportTitle', 'billTitle', 'endOfReportText']) {
     if (raw[key] === undefined) continue;
     if (typeof raw[key] !== 'string' || raw[key].length > 120 || (['id', 'name'].includes(key) && !raw[key].trim())) {
-      if (strict) invalid(`Enter a valid ${key} (up to 120 characters).`);
+      if (strict) invalid(`Enter a valid ${FIELD_LABELS[key]} (up to 120 characters).`);
     } else format[key] = raw[key].trim();
   }
   if (raw.accentColor !== undefined) {

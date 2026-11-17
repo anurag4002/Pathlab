@@ -1,12 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Input } from '../common';
 import { previewDocumentFormat } from '../../services/setupService';
+import { NUMERIC_FORMAT_FIELDS as numericFields, formatFieldKey } from './documentFormatFields';
 import './DocumentFormatEditor.css';
 
-const numericFields = [
-  ['pageMargin', 'Page margin (pt)', 12, 54], ['headerHeight', 'Header height (pt)', 60, 480],
-  ['footerHeight', 'Footer height (pt)', 30, 330], ['fontSize', 'Body text size (pt)', 8, 12], ['rowPadding', 'Table row padding (pt)', 2, 8]
-];
 const selectFields = [
   ['fontFamily', 'Font', [['Helvetica', 'Helvetica'], ['Times-Roman', 'Times'], ['Courier', 'Courier']]],
   ['tableStyle', 'Table appearance', [['outlined', 'Reference outline'], ['plain', 'Plain'], ['banded', 'Colored header and alternating rows']]],
@@ -14,7 +11,7 @@ const selectFields = [
   ['patientLayout', 'Patient details', [['columns', 'Three columns (reference)'], ['stacked', 'Stacked']]]
 ];
 
-export default function DocumentFormatEditor({ form, profile, disabled, canPreview, onChange }) {
+export default function DocumentFormatEditor({ form, profile, disabled, canPreview, onChange, fieldErrors = {} }) {
   const formats = form.documentFormats || profile.documentFormats || [];
   const [selectedId, setSelectedId] = useState('');
   const [kind, setKind] = useState('report');
@@ -23,13 +20,20 @@ export default function DocumentFormatEditor({ form, profile, disabled, canPrevi
   const [error, setError] = useState('');
   const selected = formats.find(f => f.id === selectedId) || formats[0];
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  // When a save is rejected for a format that is not on screen, switch to it
+  // so its highlighted field is visible.
+  const firstErrorFormat = formats.find(f => Object.keys(fieldErrors).some(k => k.startsWith(formatFieldKey(f.id, ''))));
+  useEffect(() => {
+    if (firstErrorFormat && !Object.keys(fieldErrors).some(k => selected && k.startsWith(formatFieldKey(selected.id, '')))) setSelectedId(firstErrorFormat.id);
+  }, [fieldErrors]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fieldError = key => (selected ? fieldErrors[formatFieldKey(selected.id, key)] : undefined);
   // Any change makes the previous PDF stale. A fresh preview always uses the
   // exact server renderer, including unsaved format and profile edits.
   const signature = JSON.stringify({ form, selected: selected?.id, kind });
   const latestSignature = useRef(signature);
   useEffect(() => { latestSignature.current = signature; setPreview(null); }, [signature]);
   function change(key, value) {
-    onChange('documentFormats', formats.map(f => f.id === selected.id ? { ...f, [key]: value } : f));
+    onChange('documentFormats', formats.map(f => f.id === selected.id ? { ...f, [key]: value } : f), formatFieldKey(selected.id, key));
   }
   function create() {
     const copy = { ...selected, id: `format-${crypto.randomUUID()}`, name: `${selected.name} copy` };
@@ -78,8 +82,8 @@ export default function DocumentFormatEditor({ form, profile, disabled, canPrevi
         <Button type="button" variant="secondary" disabled={disabled || formats.length <= 1} onClick={remove}>Delete selected format</Button>
       </div>
       <div className="document-format-grid">
-        <Input id="format-name" label="Format name" value={selected.name} maxLength={120} required disabled={disabled} onChange={e => change('name', e.target.value)} />
-        {numericFields.map(([key, label, min, max]) => <Input id={`format-${key}`} key={key} label={label} type="number" min={min} max={max} step="1" required value={selected[key]} disabled={disabled} onChange={e => change(key, e.target.value === '' ? '' : Number(e.target.value))} />)}
+        <Input id="format-name" label="Format name" value={selected.name} maxLength={120} required disabled={disabled} error={fieldError('name')} onChange={e => change('name', e.target.value)} />
+        {numericFields.map(([key, label, min, max]) => <Input id={`format-${key}`} key={key} label={label} type="number" min={min} max={max} step="1" required value={selected[key]} disabled={disabled} error={fieldError(key)} onChange={e => change(key, e.target.value === '' ? '' : Number(e.target.value))} />)}
         {selectFields.map(([key, label, options]) => <label className="form-group" key={key}>{label}
           <select className="form-control" disabled={disabled} value={selected[key]} onChange={e => change(key, e.target.value)}>
             {options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}

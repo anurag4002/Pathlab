@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { getBills, collectPayment, getBillById, voidBill, refundBill } from '../../../services/billService';
 import { getPatients } from '../../../services/patientService';
@@ -518,17 +518,24 @@ const BillsPage = () => {
     details: [!!detailsTarget, () => setDetailsTarget(null)],
     label: [!!labelTarget, () => setLabelTarget(null)]
   });
+  // Only on the first load: reloading the list after a payment must not
+  // reopen a pop-up whose key is still on its way out of the address.
+  const restoredRef = useRef(false);
   useEffect(() => {
-    if (isCreateView || !bills.length) return;
+    if (isCreateView || !bills.length || restoredRef.current) return;
+    // Done once every linked record was found (a filtered list may load later).
+    let missing = false;
     const find = (id) => bills.find((b) => String(b._id) === String(id));
+    const seek = (id) => { const found = find(id); if (!found) missing = true; return found; };
     const payId = searchParams.get('pay');
-    if (payId && payId !== 'open' && !paymentModalOpen) { const b = find(payId); if (b) handleOpenPayment(b); }
+    if (payId && payId !== 'open' && !paymentModalOpen) { const b = seek(payId); if (b) handleOpenPayment(b); }
     const voidId = searchParams.get('void');
-    if (voidId && voidId !== 'open' && !voidTarget) { const b = find(voidId); if (b) setVoidTarget(b); }
+    if (voidId && voidId !== 'open' && !voidTarget) { const b = seek(voidId); if (b) setVoidTarget(b); }
     const detailsId = searchParams.get('details');
-    if (detailsId && detailsId !== 'open' && !detailsTarget) { const b = find(detailsId); if (b) openDetails(b); }
+    if (detailsId && detailsId !== 'open' && !detailsTarget) { const b = seek(detailsId); if (b) openDetails(b); }
     const labelId = searchParams.get('label');
-    if (labelId && labelId !== 'open' && !labelTarget) { const b = find(labelId); if (b) setLabelTarget(b); }
+    if (labelId && labelId !== 'open' && !labelTarget) { const b = seek(labelId); if (b) setLabelTarget(b); }
+    restoredRef.current = !missing;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bills, isCreateView]);
 

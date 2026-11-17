@@ -20,6 +20,8 @@ import useAuth from '../../hooks/useAuth';
 import { validateEmail, validatePhone, validateNumber } from '../../utils/validators';
 import assetSrc from '../../utils/assetSrc';
 import DocumentFormatEditor from '../../components/lab/DocumentFormatEditor';
+import { validateDocumentFormats } from '../../components/lab/documentFormatFields';
+import { toast } from '../../components/common/Toast/toast';
 import '../../styles/LabProfile.css';
 import { useUiVersion } from '../../utils/uiVersion';
 import ConfirmDialog from '../../components/common/ConfirmDialog/ConfirmDialog';
@@ -427,8 +429,6 @@ const LabProfile = () => {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [formError, setFormError] = useState('');
-  const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -562,22 +562,20 @@ const LabProfile = () => {
   }, [profile]);
 
   const clearMessages = () => {
-    setFormError('');
-    setNotice('');
     setUploadError(null);
     setFieldErrors({});
   };
 
-  const updateField = (field, value) => {
+  // errorKey: the highlighted field this edit fixes (format editor fields
+  // live under documentFormats.<id>.<key>).
+  const updateField = (field, value, errorKey = field) => {
     setForm((current) => ({ ...current, [field]: value }));
     setFieldErrors((current) => {
-      if (!current[field]) return current;
+      if (!current[errorKey]) return current;
       const next = { ...current };
-      delete next[field];
+      delete next[errorKey];
       return next;
     });
-    setFormError('');
-    setNotice('');
     setUploadError(null);
   };
 
@@ -601,6 +599,7 @@ const LabProfile = () => {
     if (form.caseStartNumber !== undefined && (!Number.isSafeInteger(Number(form.caseStartNumber)) || Number(form.caseStartNumber) < 1)) errors.caseStartNumber = 'Enter a positive whole number.';
     const digits = Number(form.registrationDigits ?? profile?.registrationDigits ?? 6);
     if (!Number.isInteger(digits) || digits < 4 || digits > 12) errors.registrationDigits = 'Choose a whole number from 4 to 12 digits.';
+    if (form.documentFormats !== undefined) Object.assign(errors, validateDocumentFormats(form.documentFormats));
     return errors;
   };
 
@@ -646,13 +645,14 @@ const LabProfile = () => {
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
-      setFormError('Please correct the highlighted fields.');
+      // A toast stays in view wherever the person is on this long page; the
+      // banner at the top did not. Name the first problem so it is clear.
+      const messages = Object.values(errors);
+      toast.error(messages.length > 1 ? `${messages[0]} Fix the ${messages.length} highlighted fields.` : messages[0]);
       return;
     }
 
     setSaving(true);
-    setFormError('');
-    setNotice('');
 
     try {
       const response = await updateLabProfile(buildPayload());
@@ -667,11 +667,12 @@ const LabProfile = () => {
       setProfile(savedProfile);
       setForm(getFormValues(savedProfile));
       setIsEditing(false);
-      setNotice(response.message || 'Lab profile saved.');
+      toast.success(response.message || 'Lab profile saved.');
       await loadProfile({ showLoading: false });
     } catch (error) {
-      setFieldErrors(error.response?.data?.errors || {});
-      setFormError(getErrorMessage(error, 'Failed to save the lab profile.'));
+      const errors = error.response?.data?.errors;
+      setFieldErrors(errors && typeof errors === 'object' && !errors.stack ? errors : {});
+      toast.error(getErrorMessage(error, 'Failed to save the lab profile.'));
     } finally {
       setSaving(false);
     }
@@ -688,7 +689,6 @@ const LabProfile = () => {
 
     setUploading(kind);
     setUploadError(null);
-    setNotice('');
 
     try {
       const service = kind === 'logo' ? uploadLogo : kind === 'footer' ? uploadFooter : uploadLetterhead;
@@ -705,7 +705,7 @@ const LabProfile = () => {
       if (kind === 'letterhead') setSelectedLetterhead(null);
       if (kind === 'footer') setSelectedFooter(null);
       setAssetVersion((version) => version + 1);
-      setNotice(response.message || `Lab ${kind} uploaded.`);
+      toast.success(response.message || `Lab ${kind} uploaded.`);
       await loadProfile({ showLoading: false, preserveEditing: true });
     } catch (error) {
       setUploadError({ kind, message: getErrorMessage(error, `Failed to upload the lab ${kind}.`) });
@@ -718,7 +718,6 @@ const LabProfile = () => {
     const validationMessage = validateAssetFile(file, kind);
     if (validationMessage) {
       setUploadError({ kind, message: validationMessage });
-      setNotice('');
       return;
     }
 
@@ -765,8 +764,6 @@ const LabProfile = () => {
           onRetry={() => loadProfile({ preserveEditing: isEditing })}
         />
       )}
-      {formError && <ProfileAlert message={formError} />}
-      {notice && <ProfileAlert message={notice} type="success" />}
 
       {loading ? (
         <div className="lab-profile-loading" aria-busy="true">
@@ -983,7 +980,7 @@ const LabProfile = () => {
               </div>
             </section>
 
-            <DocumentFormatEditor form={form} profile={profile} disabled={fieldDisabled} canPreview={canEdit && !isBusy} onChange={updateField} />
+            <DocumentFormatEditor form={form} profile={profile} disabled={fieldDisabled} canPreview={canEdit && !isBusy} onChange={updateField} fieldErrors={fieldErrors} />
             <section className="lab-profile-section" id="lp-print" aria-labelledby="lab-profile-report-heading">
               <div className="lab-profile-section-heading">
                 <h2 id="lab-profile-report-heading">Report and letterhead</h2>

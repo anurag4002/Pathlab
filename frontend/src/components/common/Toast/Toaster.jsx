@@ -5,10 +5,27 @@ import './Toast.css';
 
 const ICONS = { success: CheckCircle2, error: AlertCircle, info: Info };
 
-// Renders notifications bottom-centre (thumb reach on phones, out of the way
-// of the sticky action bars). Hovering pauses the timer.
+// Bars pinned to the bottom of the screen (Save/Pay bars). Toasts sit above
+// them so they never cover the buttons. Pages can opt in with data-toast-avoid.
+const BOTTOM_BARS = '[data-toast-avoid], .lp-v2-actions, .bill-pay, .pps-actionbar';
+
+// Space taken at the bottom of the viewport by a pinned bar, in px.
+function bottomBarSpace() {
+  const vh = window.innerHeight;
+  let space = 0;
+  document.querySelectorAll(BOTTOM_BARS).forEach((el) => {
+    const rect = el.getBoundingClientRect();
+    if (!rect.height || rect.top >= vh || rect.bottom < vh - 24) return;
+    space = Math.max(space, vh - rect.top);
+  });
+  return Math.min(space, vh / 2);
+}
+
+// Renders notifications bottom-right (full width on phones), lifted above any
+// pinned action bar. Hovering pauses the timer.
 export default function Toaster() {
   const [items, setItems] = useState([]);
+  const [lift, setLift] = useState(0);
   const timers = useRef(new Map());
 
   const dismiss = (id) => {
@@ -34,8 +51,24 @@ export default function Toaster() {
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
+  // Track pinned bars only while something is showing.
+  const showing = items.length > 0;
+  useEffect(() => {
+    if (!showing) return undefined;
+    let frame = 0;
+    const measure = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => setLift(bottomBarSpace())); };
+    measure();
+    window.addEventListener('scroll', measure, { passive: true, capture: true });
+    window.addEventListener('resize', measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', measure, { capture: true });
+      window.removeEventListener('resize', measure);
+    };
+  }, [showing]);
+
   return (
-    <div className="toaster" aria-live="polite" aria-atomic="false">
+    <div className="toaster" aria-live="polite" aria-atomic="false" style={lift ? { '--toast-lift': `${Math.round(lift)}px` } : undefined}>
       {items.map((item) => {
         const Icon = ICONS[item.type] || Info;
         return (

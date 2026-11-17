@@ -14,8 +14,8 @@ function emit(type, message, { duration } = {}) {
   const text = String(message ?? '').trim();
   if (!text) return null;
   const id = nextId++;
-  // Errors stay until dismissed (or 8s); confirmations get out of the way.
-  const item = { id, type, text, duration: duration ?? (type === 'error' ? 8000 : 3200) };
+  // Errors stay until dismissed (or 10s; hover pauses); confirmations get out of the way.
+  const item = { id, type, text, duration: duration ?? (type === 'error' ? 10000 : 3200) };
   listeners.forEach((listener) => listener(item));
   return id;
 }

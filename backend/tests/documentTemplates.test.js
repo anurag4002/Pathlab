@@ -22,6 +22,10 @@ test('invalid layout settings are rejected before persistence', () => {
   for (const change of [{ pageMargin: 0 }, { fontSize: 40 }, { headerHeight: Infinity }, { accentColor: 'red' }, { tableStyle: 'anything' }, { name: '' }, { useReferenceBranding: 'false' }]) {
     assert.throws(() => validateFormatSettings({ documentFormats: [{ ...REFERENCE_FORMAT, ...change }] }), error => error.statusCode === 400);
   }
+  // Messages use the form's field names, not internal keys like pageMargin.
+  assert.throws(() => validateFormatSettings({ documentFormats: [{ ...REFERENCE_FORMAT, pageMargin: 5 }] }), { message: 'Page margin must be between 12 and 54 pt.' });
+  assert.throws(() => validateFormatSettings({ documentFormats: [{ ...REFERENCE_FORMAT, rowPadding: 20 }] }), { message: 'Table row padding must be between 2 and 8 pt.' });
+  assert.throws(() => validateFormatSettings({ documentFormats: [{ ...REFERENCE_FORMAT, tableStyle: 'x' }] }), { message: 'Choose a valid table appearance.' });
   assert.throws(() => validateFormatSettings({ documentFormats: [REFERENCE_FORMAT, REFERENCE_FORMAT] }), /unique/);
   assert.throws(() => validateFormatSettings({ documentFormats: [] }), /between 1 and 20/);
 });
