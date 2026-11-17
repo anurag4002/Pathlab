@@ -5,18 +5,24 @@ import './Toast.css';
 
 const ICONS = { success: CheckCircle2, error: AlertCircle, info: Info };
 
-// Bars pinned to the bottom of the screen (Save/Pay bars). Toasts sit above
-// them so they never cover the buttons. Pages can opt in with data-toast-avoid.
-const BOTTOM_BARS = '[data-toast-avoid], .lp-v2-actions, .bill-pay, .pps-actionbar';
+// Button bars at the bottom of the screen (Save / Pay bars, panel and dialog
+// footers). Toasts sit above them so they never cover the buttons. Pages can
+// opt in with data-toast-avoid.
+// Main buttons near the bottom (e.g. Create Invoice in Classic) count too.
+const BOTTOM_BARS = '[data-toast-avoid], .lp-v2-actions, .bill-pay, .pps-actionbar, .modal-footer, .re-actions-bar, .btn-primary';
 
-// Space taken at the bottom of the viewport by a pinned bar, in px.
+// Space to keep free at the bottom of the viewport, in px: the top of any
+// visible bar that reaches into the bottom-right corner where toasts appear.
 function bottomBarSpace() {
   const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const toastLeft = vw <= 640 ? 0 : vw - Math.min(26 * 16, vw - 32) - 40;
   let space = 0;
   document.querySelectorAll(BOTTOM_BARS).forEach((el) => {
     const rect = el.getBoundingClientRect();
-    if (!rect.height || rect.top >= vh || rect.bottom < vh - 24) return;
-    space = Math.max(space, vh - rect.top);
+    if (!rect.height || !rect.width || rect.top >= vh || rect.bottom < vh - 160) return;
+    if (rect.right <= toastLeft) return;
+    space = Math.max(space, vh - rect.top + 8);
   });
   return Math.min(space, vh / 2);
 }
