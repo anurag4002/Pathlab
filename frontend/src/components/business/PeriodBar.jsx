@@ -1,20 +1,22 @@
 import React from 'react';
 import { CalendarDays } from 'lucide-react';
 import { periodLabel } from '../../utils/reportFormat';
+import { istToday, addIstDays } from '../../utils/labDateTime';
 
 // Business screens (new look): one row to pick the period - Today,
 // Yesterday, Last 7 days, This month, Last month or your own dates - plus a
 // slot on the right for the page's own filters. Dates never run backwards.
-const iso = (d) => d.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-const shift = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return iso(d); };
+// Days are IST calendar days (YYYY-MM-DD), whatever the browser timezone.
+const shift = (days) => addIstDays(istToday(), days);
+const monthStart = (day) => `${day.slice(0, 8)}01`;
 
 export const PRESETS = {
-  today: { label: 'Today', range: () => [iso(new Date()), iso(new Date())] },
+  today: { label: 'Today', range: () => [istToday(), istToday()] },
   yesterday: { label: 'Yesterday', range: () => [shift(-1), shift(-1)] },
-  week: { label: 'Last 7 days', range: () => [shift(-6), iso(new Date())] },
-  days30: { label: 'Last 30 days', range: () => [shift(-29), iso(new Date())] },
-  month: { label: 'This month', range: () => { const n = new Date(); return [iso(new Date(n.getFullYear(), n.getMonth(), 1)), iso(n)]; } },
-  lastMonth: { label: 'Last month', range: () => { const n = new Date(); return [iso(new Date(n.getFullYear(), n.getMonth() - 1, 1)), iso(new Date(n.getFullYear(), n.getMonth(), 0))]; } },
+  week: { label: 'Last 7 days', range: () => [shift(-6), istToday()] },
+  days30: { label: 'Last 30 days', range: () => [shift(-29), istToday()] },
+  month: { label: 'This month', range: () => { const t = istToday(); return [monthStart(t), t]; } },
+  lastMonth: { label: 'Last month', range: () => { const end = addIstDays(monthStart(istToday()), -1); return [monthStart(end), end]; } },
 };
 
 export const presetRange = (key) => PRESETS[key].range();

@@ -13,8 +13,9 @@ import { money, dayLabel, sum } from '../../../utils/reportFormat';
 import { notify } from '../../../components/common/Toast/toast';
 import '../../../components/business/business.css';
 import './monthly.css';
+import { istToday, istDayOf } from '../../../utils/labDateTime';
 
-const thisMonth = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; };
+const thisMonth = () => istToday().slice(0, 7);
 const monthRange = (value) => {
   const [y, m] = value.split('-').map(Number);
   const last = new Date(y, m, 0).getDate();
@@ -29,7 +30,7 @@ const stepMonth = (value, delta) => {
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
-const localDay = (value) => { const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA'); };
+const localDay = (value) => istDayOf(value);
 
 // Monthly summary (new look): the month at a glance - totals, one line per
 // day with business, and where the money came from and went.

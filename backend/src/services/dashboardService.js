@@ -7,13 +7,13 @@ const USGCase = require('../models/USGCase');
 const XrayCase = require('../models/XrayCase');
 const Activity = require('../models/Activity');
 const Doctor = require('../models/Doctor');
-const { rangeStart, rangeEnd } = require('../utils/dateRange');
+const { rangeStart, rangeEnd, todayStart, todayEnd } = require('../utils/dateRange');
+const { istDayOf, istYearMonthOf, istMonthBounds } = require('../utils/istDay');
 
-const getDashboardStats = async (branch) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+const getDashboardStats = async (branch, now = new Date()) => {
+  // Today = the IST calendar day (server clock is UTC in production).
+  const today = todayStart(now);
+  const endOfToday = todayEnd(now);
   const bMatch = branch ? { branch } : {};
 
   // Run independent reads in parallel — sequential awaits were stacking latency.
@@ -85,8 +85,9 @@ const getDashboardStats = async (branch) => {
 };
 
 const getDailyBusiness = async (startDate, endDate, branch, options = {}) => {
-  const start = rangeStart(startDate, new Date(new Date().setHours(0, 0, 0, 0)));
-  const end = rangeEnd(endDate, new Date(new Date().setHours(23, 59, 59, 999)));
+  const now = options.now || new Date();
+  const start = rangeStart(startDate, todayStart(now));
+  const end = rangeEnd(endDate, todayEnd(now));
   const bMatch = branch ? { branch } : {};
   const lite = Boolean(options.lite);
 
@@ -193,13 +194,13 @@ const getDailyBusiness = async (startDate, endDate, branch, options = {}) => {
   // Monthly overview (BETA): per-day income/expenses/net for the window.
   const byDay = {};
   transactions.forEach(t => {
-    const k = new Date(t.date).toISOString().slice(0, 10);
+    const k = istDayOf(t.date);
     if (!byDay[k]) byDay[k] = { date: k, income: 0, refunds: 0, expenses: 0, net: 0 };
     if (t.type === 'Income') byDay[k].income += t.amount;
     if (t.type === 'Refund') byDay[k].refunds += t.amount;
   });
   expenses.forEach(e => {
-    const k = new Date(e.date).toISOString().slice(0, 10);
+    const k = istDayOf(e.date);
     if (!byDay[k]) byDay[k] = { date: k, income: 0, refunds: 0, expenses: 0, net: 0 };
     byDay[k].expenses += e.amount;
   });
@@ -286,21 +287,23 @@ const getActivities = async () => {
     .limit(100);
 };
 
-const getMonthlyTrends = async (branch) => {
+const getMonthlyTrends = async (branch, now = new Date()) => {
   const bMatch = branch ? { branch } : {};
   const months = [];
-  const now = new Date();
+  const current = istYearMonthOf(now);
 
-  // Generate last 6 months list
+  // Generate last 6 IST calendar months
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthName = d.toLocaleString('default', { month: 'short' });
-    const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-    const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    const index = current.year * 12 + (current.month - 1) - i;
+    const year = Math.floor(index / 12);
+    const monthNumber = (index % 12) + 1;
+    const { start: startOfMonth, end: endOfMonth } = istMonthBounds(year, monthNumber);
+    const monthName = new Date(Date.UTC(year, monthNumber - 1, 15)).toLocaleString('default', { month: 'short', timeZone: 'UTC' });
 
     months.push({
       month: monthName,
-      year: d.getFullYear(),
+      year,
+      monthNumber,
       startOfMonth,
       endOfMonth
     });
@@ -321,7 +324,7 @@ const getMonthlyTrends = async (branch) => {
       },
       {
         $group: {
-          _id: { y: { $year: '$date' }, m: { $month: '$date' } },
+          _id: { y: { $year: { date: '$date', timezone: '+05:30' } }, m: { $month: { date: '$date', timezone: '+05:30' } } },
           total: { $sum: '$amount' }
         }
       }
@@ -335,7 +338,7 @@ const getMonthlyTrends = async (branch) => {
       },
       {
         $group: {
-          _id: { y: { $year: '$date' }, m: { $month: '$date' } },
+          _id: { y: { $year: { date: '$date', timezone: '+05:30' } }, m: { $month: { date: '$date', timezone: '+05:30' } } },
           total: { $sum: '$amount' }
         }
       }
@@ -346,7 +349,7 @@ const getMonthlyTrends = async (branch) => {
   const expenseMap = new Map(expenseByMonth.map((r) => [`${r._id.y}-${r._id.m}`, r.total]));
 
   return months.map((m) => {
-    const key = `${m.startOfMonth.getFullYear()}-${m.startOfMonth.getMonth() + 1}`;
+    const key = `${m.year}-${m.monthNumber}`;
     const revenue = incomeMap.get(key) || 0;
     const expenses = expenseMap.get(key) || 0;
     return {

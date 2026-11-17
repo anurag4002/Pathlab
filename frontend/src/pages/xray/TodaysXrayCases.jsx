@@ -36,6 +36,7 @@ import '../../styles/Xray.css';
 import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import { istToday, istDayOf, istDayStartMs, istDayEndMs } from '../../utils/labDateTime';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -141,11 +142,7 @@ const TodaysXrayCases = () => {
       // Today scope filters server-side; All-dates scope loads everything
       // and filters client-side (backend has no from/to support).
       if (dateScope === 'today' && !debouncedSearch.trim() && !fromDate && !toDate) {
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        params.date = `${yyyy}-${mm}-${dd}`;
+        params.date = istToday();
       }
       const res = await getXrayCases(params);
       if (!res?.success) {
@@ -213,14 +210,15 @@ const TodaysXrayCases = () => {
   // Client-side filter pass (works regardless of server support).
   const filteredCases = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const todayStr = new Date().toISOString().split('T')[0];
-    const from = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
-    const to = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+    // IST calendar days, whatever the browser timezone.
+    const todayStr = istToday();
+    const from = fromDate ? istDayStartMs(istDayOf(fromDate)) : null;
+    const to = toDate ? istDayEndMs(istDayOf(toDate)) : null;
     return cases.filter((c) => {
       if (statusFilter && c.status !== statusFilter) return false;
       if (doctorFilter && (c.referringDoctor?._id || c.referringDoctor) !== doctorFilter) return false;
       if (dateScope === 'today' && !q && from === null && to === null) {
-        const d = c.date ? new Date(c.date).toISOString().split('T')[0] : '';
+        const d = c.date ? istDayOf(c.date) : '';
         if (d !== todayStr) return false;
       }
       if (from !== null || to !== null) {

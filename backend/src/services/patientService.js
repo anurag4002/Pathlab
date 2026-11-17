@@ -1,6 +1,7 @@
 const Patient = require('../models/Patient');
 const generateRegistrationNumber = require('../utils/generateRegistrationNumber');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
 const getAllPatients = async (filters = {}) => {
   const query = {};
@@ -30,8 +31,8 @@ const getAllPatients = async (filters = {}) => {
     query.createdAt = {};
     const from = filters.from || filters.startDate;
     const to = filters.to || filters.endDate;
-    if (from) query.createdAt.$gte = new Date(from);
-    if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); query.createdAt.$lte = e; }
+    if (from) query.createdAt.$gte = rangeStart(from);
+    if (to) query.createdAt.$lte = rangeEndOfDay(to);
   }
 
   if (filters.search) {

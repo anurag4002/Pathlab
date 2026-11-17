@@ -13,6 +13,7 @@ import { money, dayLabel, sum } from '../../utils/reportFormat';
 import { DataTable, PageHeader, Button, Modal, Input, Select, ConfirmDialog, StatusBadge, AdvancedFilterBar } from '../../components/common';
 import { usePermissions } from '../../hooks/usePermission';
 import { notify } from '../../components/common/Toast/toast';
+import { istToday, istDayOf } from '../../utils/labDateTime';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const YEARS = Array.from({ length: 10 }, (_, i) => 2018 + i);
@@ -122,7 +123,7 @@ const Expenses = () => {
 
   const handleOpenCreate = () => {
     setEditingExpense(null);
-    setFormData({ category: allCats[0], amount: '', date: new Date().toISOString().split('T')[0], description: '', paymentMethod: 'Cash', name: '', notes: '' });
+    setFormData({ category: allCats[0], amount: '', date: istToday(), description: '', paymentMethod: 'Cash', name: '', notes: '' });
     setErrors({});
     setFormOpen(true);
   };
@@ -132,7 +133,7 @@ const Expenses = () => {
     setFormData({
       category: exp.category,
       amount: String(exp.amount),
-      date: exp.date ? exp.date.split('T')[0] : '',
+      date: exp.date ? istDayOf(exp.date) : '',
       description: exp.description || '',
       paymentMethod: exp.paymentMethod,
       name: exp.name || '',

@@ -23,6 +23,7 @@ import {
   DatePicker,
   DataTable
 } from '../../components/common';
+import { istDayOf } from '../../utils/labDateTime';
 
 const PRESETS = ['Today', 'Last 31d', 'Last 365d', 'Custom'];
 
@@ -45,15 +46,8 @@ const DATASET_META = {
   }
 };
 
-const toDateInputValue = (date) => {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getLocalDate = (date = new Date()) => toDateInputValue(date);
+// IST calendar day of an instant, whatever the browser timezone.
+const getLocalDate = (date = new Date()) => (date instanceof Date ? istDayOf(date) : '');
 
 const shiftDate = (date, days) => {
   const shifted = new Date(date);

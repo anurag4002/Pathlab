@@ -14,6 +14,7 @@ import usePagination from '../../hooks/usePagination';
 import { usePermissions } from '../../hooks/usePermission';
 import TransactionTable from './components/TransactionTable';
 import CashSummaryCards from './components/CashSummaryCards';
+import { istToday } from '../../utils/labDateTime';
 
 // Phase 18 — Cashbook page.
 // Server has no dedicated cashbook/manual-entry endpoint
@@ -21,7 +22,7 @@ import CashSummaryCards from './components/CashSummaryCards';
 // so this page is built on GET /transactions + the daily-business ledger
 // for reconciliation. Manual-entry UI is deliberately omitted.
 const Cashbook = () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = istToday();
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [dateError, setDateError] = useState('');

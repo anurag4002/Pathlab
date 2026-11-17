@@ -3,6 +3,7 @@ const Bill = require('../models/Bill');
 const BillItem = require('../models/BillItem');
 const Test = require('../models/Test');
 const { successResponse, errorResponse } = require('../utils/response');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
 // GET /api/analysis/test-usage?from=&to=&search=&sort=desc|asc&page=&limit=
 // Server-side aggregation: Bills (window) -> BillItems (group by test) ->
@@ -19,12 +20,8 @@ const getTestUsage = async (req, res, next) => {
     const billMatch = { isVoided: { $ne: true } };
     if (from || to) {
       billMatch.date = {};
-      if (from) billMatch.date.$gte = new Date(from);
-      if (to) {
-        const end = new Date(to);
-        end.setHours(23, 59, 59, 999);
-        billMatch.date.$lte = end;
-      }
+      if (from) billMatch.date.$gte = rangeStart(from);
+      if (to) billMatch.date.$lte = rangeEndOfDay(to);
       if (billMatch.date.$gte && billMatch.date.$lte && billMatch.date.$gte > billMatch.date.$lte) {
         return errorResponse(res, 'Invalid date range: from is after to', 400);
       }

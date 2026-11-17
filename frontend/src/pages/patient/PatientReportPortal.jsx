@@ -35,6 +35,7 @@ import SpecimenLabel from '../../components/public/site/SpecimenLabel';
 import useLabInfo from '../../components/public/site/useLabInfo';
 import PatientHome from './PatientHome';
 import './portalV2.css';
+import { istToday } from '../../utils/labDateTime';
 
 // The patient contract may expose the existing LabProfile.googleReviewLink
 // field. Do not call staff-only profile/review endpoints from this portal.
@@ -864,7 +865,7 @@ const PatientReportPortal = () => {
                           type="date"
                           className="patient-text-input"
                           value={preferredDate}
-                          min={new Date().toISOString().split('T')[0]}
+                          min={istToday()}
                           onChange={(e) => setPreferredDate(e.target.value)}
                         />
                       </div>

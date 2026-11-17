@@ -25,14 +25,12 @@ import {
   StatusBadge,
   AdvancedFilterBar
 } from '../../components/common';
+import { istToday } from '../../utils/labDateTime';
 
 const MONTH_VALUE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const TRANSACTION_TYPE_FILTERS = ['Income', 'Refund', 'Expense'];
 
-const getLocalMonthValue = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-};
+const getLocalMonthValue = () => istToday().slice(0, 7);
 
 const getMonthRange = (monthValue) => {
   if (typeof monthValue !== 'string' || !MONTH_VALUE_PATTERN.test(monthValue)) return null;

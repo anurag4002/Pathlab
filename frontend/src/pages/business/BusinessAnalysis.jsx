@@ -7,13 +7,8 @@ import { PageHeader, StatCard, EmptyState, Button, AdvancedFilterBar } from '../
 import { TrendingUp, BarChart3, Wallet, Receipt, PiggyBank, Undo2, RefreshCw, Landmark, Users, Building2 } from 'lucide-react';
 import { SvgBars, SvgLine, SvgHBars } from '../../components/charts/SvgCharts';
 import './BusinessAnalysis.css';
+import { istToday, addIstDays } from '../../utils/labDateTime';
 
-const toISODate = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
 
 const PRESETS = [
   { value: 'today', label: 'Today' },
@@ -22,20 +17,13 @@ const PRESETS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+// Presets are IST calendar days, whatever the browser timezone.
 const rangeFor = (preset, from, to) => {
-  const end = new Date();
-  if (preset === 'today') return { start: toISODate(end), end: toISODate(end) };
-  if (preset === '7d') {
-    const s = new Date(end);
-    s.setDate(s.getDate() - 6);
-    return { start: toISODate(s), end: toISODate(end) };
-  }
-  if (preset === '30d') {
-    const s = new Date(end);
-    s.setDate(s.getDate() - 29);
-    return { start: toISODate(s), end: toISODate(end) };
-  }
-  return { start: from || toISODate(end), end: to || toISODate(end) };
+  const today = istToday();
+  if (preset === 'today') return { start: today, end: today };
+  if (preset === '7d') return { start: addIstDays(today, -6), end: today };
+  if (preset === '30d') return { start: addIstDays(today, -29), end: today };
+  return { start: from || today, end: to || today };
 };
 
 const BusinessAnalysis = () => {

@@ -9,9 +9,10 @@ import { PageHeader, DataTable, Modal, Button, AdvancedFilterBar } from '../../c
 import { useUiVersion } from '../../utils/uiVersion';
 import printReport from '../../utils/printReport';
 import { money, dayLabel, periodLabel, sum } from '../../utils/reportFormat';
+import { istToday, addIstDays } from '../../utils/labDateTime';
 
 const ReferralBusiness = () => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = istToday();
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
   const [period, setPeriod] = useState('Today');
@@ -54,20 +55,22 @@ const ReferralBusiness = () => {
 
   const setPreset = (p) => {
     setPeriod(p);
-    const fmt = (d) => d.toISOString().split('T')[0];
-    const now = new Date();
-    if (p === 'Today') { setStartDate(fmt(now)); setEndDate(fmt(now)); }
-    else if (p === 'Yesterday') { const y = new Date(); y.setDate(now.getDate() - 1); setStartDate(fmt(y)); setEndDate(fmt(y)); }
-    else if (p === 'Last Week') { const s = new Date(); s.setDate(now.getDate() - 6); setStartDate(fmt(s)); setEndDate(fmt(now)); }
+    // IST calendar days, built as strings (no UTC/local conversion).
+    const today = istToday();
+    if (p === 'Today') { setStartDate(today); setEndDate(today); }
+    else if (p === 'Yesterday') { const y = addIstDays(today, -1); setStartDate(y); setEndDate(y); }
+    else if (p === 'Last Week') { setStartDate(addIstDays(today, -6)); setEndDate(today); }
     else if (p === 'Custom') { /* keep dates */ }
     else {
       // Month names: September / August / July
       const months = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
       const m = months[p.toLowerCase()];
       if (m !== undefined) {
-        const y = now.getFullYear();
-        setStartDate(fmt(new Date(y, m, 1)));
-        setEndDate(fmt(new Date(y, m + 1, 0)));
+        const y = Number(today.slice(0, 4));
+        const mm = String(m + 1).padStart(2, '0');
+        const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+        setStartDate(`${y}-${mm}-01`);
+        setEndDate(`${y}-${mm}-${String(lastDay).padStart(2, '0')}`);
       }
     }
   };

@@ -82,10 +82,11 @@ import useClientPagination from '../../hooks/useClientPagination';
 import { DEPARTMENTS } from '../../features/billing/billingConstants';
 import { usePermissions } from '../../hooks/usePermission';
 import { notify } from '../../components/common/Toast/toast';
+import { istToday } from '../../utils/labDateTime';
 
 const DailyBusiness = () => {
   // Default window: today, following the app-wide ISO-date convention.
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = istToday();
   const [startDate, setStartDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
 
@@ -411,7 +412,7 @@ const DailyBusiness = () => {
               variant="secondary"
               size="sm"
               onClick={() => {
-                const t = new Date().toISOString().split('T')[0];
+                const t = istToday();
                 setStartDate(t);
                 setEndDate(t);
               }}

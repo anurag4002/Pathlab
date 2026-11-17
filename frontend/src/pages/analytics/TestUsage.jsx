@@ -9,13 +9,11 @@ import { Download, ArrowUpDown, FlaskConical, Receipt, ShoppingCart, FileText } 
 import './TestUsage.css';
 import { useUiVersion } from '../../utils/uiVersion';
 import TestUsageV2 from './v2/TestUsageV2';
+import { istToday, addIstDays } from '../../utils/labDateTime';
 
-const toISODate = (d) => d.toISOString().split('T')[0];
 const defaultRange = () => {
-  const today = new Date();
-  const s = new Date(today);
-  s.setDate(s.getDate() - 30);
-  return { from: toISODate(s), to: toISODate(today) };
+  const today = istToday();
+  return { from: addIstDays(today, -30), to: today };
 };
 
 // Test Usage & Reorder Analytics — server-aggregated

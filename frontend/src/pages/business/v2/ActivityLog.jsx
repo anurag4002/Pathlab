@@ -10,8 +10,9 @@ import printReport from '../../../utils/printReport';
 import { dateTimeLabel, periodLabel, downloadCsv } from '../../../utils/reportFormat';
 import '../../../components/business/business.css';
 import './businessV2Pages.css';
+import { istDayOf } from '../../../utils/labDateTime';
 
-const localDay = (value) => { const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA'); };
+const localDay = (value) => istDayOf(value);
 const who = (a) => a.user?.name || 'System';
 
 // Activity log (new look): who did what, and when.

@@ -5,20 +5,22 @@ const generateBillNumber = require('../utils/generateBillNumber');
 const { normalizeUSGBillItems } = require('./usgServiceOptions');
 const { classifyImagingItems, syncImagingCasesForBill } = require('./imagingBillService');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { istToday, istDayStart, istDayEnd, addIstDays } = require('../utils/istDay');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
 const CASE_TYPES = ['LabCase', 'UsgCase', 'DigitalXrayCase', 'XrayCase', 'OutsourceLabCase', 'EcgCase', 'CtScanCase', 'MriCase', 'EpsCase', 'OpgCase', 'CardiologyCase', 'EegCase', 'MammographyCase'];
 
-const durationToDates = (duration) => {
-  const now = new Date();
-  const end = new Date(); end.setHours(23, 59, 59, 999);
+// Duration presets count whole IST days ending today (IST), whatever the server timezone.
+const durationToDates = (duration, now = new Date()) => {
+  const today = istToday(now);
+  let end = istDayEnd(today);
   let start = null;
   const d = String(duration || '').toLowerCase();
-  if (d.includes('7') || d === 'past 7 days' || d === 'last 7') { start = new Date(); start.setDate(now.getDate() - 6); }
-  else if (d.includes('30') || d === 'past 30 days') { start = new Date(); start.setDate(now.getDate() - 29); }
-  else if (d.includes('90')) { start = new Date(); start.setDate(now.getDate() - 89); }
-  else if (d === 'today') { start = new Date(); }
-  else if (d === 'yesterday') { start = new Date(); start.setDate(now.getDate() - 1); end.setDate(now.getDate() - 1); }
-  if (start) start.setHours(0, 0, 0, 0);
+  if (d.includes('7') || d === 'past 7 days' || d === 'last 7') start = istDayStart(addIstDays(today, -6));
+  else if (d.includes('30') || d === 'past 30 days') start = istDayStart(addIstDays(today, -29));
+  else if (d.includes('90')) start = istDayStart(addIstDays(today, -89));
+  else if (d === 'today') start = istDayStart(today);
+  else if (d === 'yesterday') { const y = addIstDays(today, -1); start = istDayStart(y); end = istDayEnd(y); }
   return { start, end };
 };
 
@@ -226,12 +228,8 @@ const getBills = async (filters = {}) => {
   }
   if (filters.startDate || filters.endDate) {
     query.date = query.date || {};
-    if (filters.startDate) query.date.$gte = new Date(filters.startDate);
-    if (filters.endDate) {
-      const end = new Date(filters.endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date.$lte = end;
-    }
+    if (filters.startDate) query.date.$gte = rangeStart(filters.startDate);
+    if (filters.endDate) query.date.$lte = rangeEndOfDay(filters.endDate);
   }
 
   // Patient-scoped text: firstName / patient name / phone search
@@ -363,7 +361,7 @@ const addPayment = async (billId, paymentDetails, receivedByUserId) => {
 // Income/Refund/Expense). mode filter maps to paymentMethod.
 const getCashbook = async (filters = {}) => {
   const { from, to, mode, type, branch } = filters;
-  if (from && to && new Date(from) > new Date(to)) {
+  if (from && to && rangeStart(from) > rangeStart(to)) {
     const err = new Error('Invalid date range: from is after to');
     err.statusCode = 400;
     throw err;
@@ -372,12 +370,8 @@ const getCashbook = async (filters = {}) => {
   if (branch) query.branch = branch;
   if (from || to) {
     query.date = {};
-    if (from) query.date.$gte = new Date(from);
-    if (to) {
-      const end = new Date(to);
-      end.setHours(23, 59, 59, 999);
-      query.date.$lte = end;
-    }
+    if (from) query.date.$gte = rangeStart(from);
+    if (to) query.date.$lte = rangeEndOfDay(to);
   }
   if (mode) query.paymentMethod = mode;
   if (type) {

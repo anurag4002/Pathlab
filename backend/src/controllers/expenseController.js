@@ -5,6 +5,7 @@ const Activity = require('../models/Activity');
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
 const { rangeStart, rangeEnd } = require('../utils/dateRange');
+const { istMonthBounds, istYearMonthOf } = require('../utils/istDay');
 
 const getExpenses = async (req, res, next) => {
   try {
@@ -16,12 +17,14 @@ const getExpenses = async (req, res, next) => {
     if (search) query.$or = [{ category: { $regex: escapeRegex(search), $options: 'i' } }, { description: { $regex: escapeRegex(search), $options: 'i' } }, { name: { $regex: escapeRegex(search), $options: 'i' } }];
 
     if (month || year) {
-      const y = parseInt(year) || new Date().getFullYear();
+      // IST calendar month / year (server clock is UTC in production).
+      const y = parseInt(year) || istYearMonthOf().year;
       const m = month ? parseInt(month) : null;
       if (m) {
-        query.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0, 23, 59, 59, 999) };
+        const { start, end } = istMonthBounds(y, m);
+        query.date = { $gte: start, $lte: end };
       } else {
-        query.date = { $gte: new Date(y, 0, 1), $lte: new Date(y, 11, 31, 23, 59, 59, 999) };
+        query.date = { $gte: istMonthBounds(y, 1).start, $lte: istMonthBounds(y, 12).end };
       }
     } else if (startDate || endDate) {
       query.date = {};

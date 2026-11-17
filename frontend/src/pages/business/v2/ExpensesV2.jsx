@@ -14,9 +14,10 @@ import { usePermissions } from '../../../hooks/usePermission';
 import { notify } from '../../../components/common/Toast/toast';
 import '../../../components/business/business.css';
 import './businessPages.css';
+import { istToday, istDayOf } from '../../../utils/labDateTime';
 
 const modeClass = (mode) => `biz-pill is-${String(mode || '').toLowerCase()}`;
-const today = () => new Date().toLocaleDateString('en-CA');
+const today = () => istToday();
 const loadCats = () => { try { const saved = JSON.parse(localStorage.getItem('expense_cats') || 'null'); return Array.isArray(saved) && saved.length ? saved : null; } catch { return null; } };
 
 // Expenses (new look): what the lab spent in a period, by category, with
@@ -81,7 +82,7 @@ export default function ExpensesV2() {
   };
   const openEdit = (exp) => {
     setEditing(exp);
-    setForm({ category: exp.category, amount: String(exp.amount), date: exp.date ? String(exp.date).slice(0, 10) : today(), paymentMethod: exp.paymentMethod || 'Cash', name: exp.name || '', description: exp.description || '', notes: exp.notes || '' });
+    setForm({ category: exp.category, amount: String(exp.amount), date: exp.date ? istDayOf(exp.date) : today(), paymentMethod: exp.paymentMethod || 'Cash', name: exp.name || '', description: exp.description || '', notes: exp.notes || '' });
     setFormErrors({});
     setFormOpen(true);
   };

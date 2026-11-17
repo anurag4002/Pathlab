@@ -6,6 +6,7 @@ const { getUSGServices: loadUSGServices, getUSGService } = require('../services/
 
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { parseIstDayParam, istDayBounds, istDayOf } = require('../utils/istDay');
 
 const getUSGCases = async (req, res, next) => {
   try {
@@ -17,10 +18,8 @@ const getUSGCases = async (req, res, next) => {
     if (status) query.status = status;
     
     if (date) {
-      const start = new Date(date);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setHours(23, 59, 59, 999);
+      // The IST calendar day (server clock is UTC in production).
+      const { start, end } = parseIstDayParam(date) || istDayBounds(istDayOf(new Date(date)));
       query.date = { $gte: start, $lte: end };
     }
 

@@ -14,6 +14,7 @@ import { usePermissions } from '../../../hooks/usePermission';
 import { notify } from '../../../components/common/Toast/toast';
 import '../../../components/business/business.css';
 import './businessPages.css';
+import { istToday } from '../../../utils/labDateTime';
 
 const daysOld = (d) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
 const daysText = (n) => (n === 0 ? 'Today' : n === 1 ? '1 day' : `${n} days`);
@@ -94,7 +95,7 @@ export default function DuesToCollect() {
 
   const print = () => printReport({
     title: 'Dues - money still to collect',
-    period: `As on ${dayLabel(new Date().toLocaleDateString('en-CA'))}`,
+    period: `As on ${dayLabel(istToday())}`,
     filters: [dept && `Department: ${dept}`, search && `Search: ${search}`],
     summary: [
       { label: 'Bills with a balance', value: String(rows.length) },

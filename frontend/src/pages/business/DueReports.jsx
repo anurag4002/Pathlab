@@ -15,6 +15,7 @@ import { useUiVersion } from '../../utils/uiVersion';
 import { getSummary } from '../../services/dashboardService';
 import { usePermissions } from '../../hooks/usePermission';
 import { notify } from '../../components/common/Toast/toast';
+import { istToday } from '../../utils/labDateTime';
 
 const DueReports = () => {
   const isV2 = useUiVersion() === 'v2';
@@ -127,7 +128,7 @@ const DueReports = () => {
       const daysOld = (d) => Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
       await printReport({
         title: 'Dues - money still to collect',
-        period: `As on ${dayLabel(new Date().toISOString().slice(0, 10))}`,
+        period: `As on ${dayLabel(istToday())}`,
         filters: [deptFilter && `Department: ${deptFilter}`, debouncedSearch && `Search: ${debouncedSearch}`],
         summary: [
           { label: 'Bills with a balance', value: String(all.length) },

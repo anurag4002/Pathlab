@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { istToday } from '../utils/labDateTime';
 
 export const getReportInterpretations = async id => (await apiClient.get(`/reports/${id}/interpretations`)).data;
 export const updateReportInterpretations = async (id, interpretations) => (await apiClient.put(`/reports/${id}/interpretations`, { interpretations })).data;
@@ -14,9 +15,9 @@ export const getReports = async (params = {}) => {
 };
 
 // Phase 1 — today's worklist. Thin wrapper over GET /reports filtered to
-// the current calendar day (no dedicated backend endpoint exists).
+// the current IST calendar day (no dedicated backend endpoint exists).
 export const getTodaysReports = async (params = {}) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = istToday();
   return getReports({ from: today, to: today, limit: 100, ...params });
 };
 

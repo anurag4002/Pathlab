@@ -2,6 +2,7 @@ const Activity = require('../models/Activity');
 const User = require('../models/User');
 const { successResponse, errorResponse } = require('../utils/response');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
 // GET /api/audit-log — Admin only, append-only (no edit/delete routes exist).
 // Query: actor (user name or id), action (substring), entity/module (substring
@@ -29,14 +30,13 @@ const listAuditLogs = async (req, res, next) => {
 
     const dateRange = {};
     if (from) {
-      const d = new Date(from);
+      const d = rangeStart(from);
       if (Number.isNaN(d.getTime())) return errorResponse(res, 'Invalid `from` date', 400);
       dateRange.$gte = d;
     }
     if (to) {
-      const d = new Date(to);
+      const d = rangeEndOfDay(to);
       if (Number.isNaN(d.getTime())) return errorResponse(res, 'Invalid `to` date', 400);
-      d.setHours(23, 59, 59, 999);
       dateRange.$lte = d;
     }
     if (Object.keys(dateRange).length) and.push({ date: dateRange });

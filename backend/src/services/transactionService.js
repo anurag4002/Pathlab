@@ -1,5 +1,6 @@
 const Transaction = require('../models/Transaction');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
 const getTransactions = async (filters = {}) => {
   const query = {};
@@ -16,12 +17,10 @@ const getTransactions = async (filters = {}) => {
   if (filters.startDate || filters.endDate) {
     query.date = {};
     if (filters.startDate) {
-      query.date.$gte = new Date(filters.startDate);
+      query.date.$gte = rangeStart(filters.startDate);
     }
     if (filters.endDate) {
-      const end = new Date(filters.endDate);
-      end.setHours(23, 59, 59, 999);
-      query.date.$lte = end;
+      query.date.$lte = rangeEndOfDay(filters.endDate);
     }
   }
 

@@ -7,6 +7,7 @@ const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require(
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { isPdfUpload, assignReportPdf } = require('../services/xrayReportService');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { parseIstDayParam, istDayBounds, istDayOf } = require('../utils/istDay');
 
 const getXrayCases = async (req, res, next) => {
   try {
@@ -18,10 +19,8 @@ const getXrayCases = async (req, res, next) => {
     if (status) query.status = status;
 
     if (date) {
-      const start = new Date(date);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(date);
-      end.setHours(23, 59, 59, 999);
+      // The IST calendar day (server clock is UTC in production).
+      const { start, end } = parseIstDayParam(date) || istDayBounds(istDayOf(new Date(date)));
       query.date = { $gte: start, $lte: end };
     }
 

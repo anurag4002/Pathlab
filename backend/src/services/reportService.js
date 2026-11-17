@@ -6,16 +6,18 @@ const storageService = require('./storageService');
 const { calculateReportResults } = require('./reportCalculationService');
 const { newPublicToken } = require('./qrService');
 const { JWT_SECRET } = require('../config/environment');
+const { istToday, istDayStart, istDayEnd, addIstDays } = require('../utils/istDay');
+const { rangeStart, rangeEndOfDay } = require('../utils/dateRange');
 
-const durationToDates = (duration) => {
-  const now = new Date();
-  const end = new Date(); end.setHours(23, 59, 59, 999);
+// Duration presets count whole IST days ending today (IST), whatever the server timezone.
+const durationToDates = (duration, now = new Date()) => {
+  const today = istToday(now);
+  const end = istDayEnd(today);
   let start = null;
   const d = String(duration || '').toLowerCase();
-  if (d.includes('7')) { start = new Date(); start.setDate(now.getDate() - 6); }
-  else if (d.includes('30')) { start = new Date(); start.setDate(now.getDate() - 29); }
-  else if (d.includes('90')) { start = new Date(); start.setDate(now.getDate() - 89); }
-  if (start) start.setHours(0, 0, 0, 0);
+  if (d.includes('7')) start = istDayStart(addIstDays(today, -6));
+  else if (d.includes('30')) start = istDayStart(addIstDays(today, -29));
+  else if (d.includes('90')) start = istDayStart(addIstDays(today, -89));
   return { start, end };
 };
 
@@ -54,8 +56,8 @@ const getReports = async (filters = {}) => {
   const to = filters.to || filters.endDate;
   if (from || to) {
     query.reportDate = query.reportDate || {};
-    if (from) query.reportDate.$gte = new Date(from);
-    if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); query.reportDate.$lte = e; }
+    if (from) query.reportDate.$gte = rangeStart(from);
+    if (to) query.reportDate.$lte = rangeEndOfDay(to);
   }
   if (filters.search) {
     const s = String(filters.search);
