@@ -196,7 +196,11 @@ test('only Admin can change patient identity, including direct API requests', as
   }
   await call(patientController.updatePatient, params, { $set: { name: 'Operator bypass' }, address: 'Allowed address' }, employee);
   assert.equal((await Patient.findById(patient._id)).name, 'Identity Test');
-  const saved = await call(patientController.updatePatient, params, { name: 'Corrected Name', phone: '8888888888' });
+  // A new phone needs a birth year (the patient's online password).
+  const noYear = await call(patientController.updatePatient, params, { phone: '8888888888' });
+  assert.equal(noYear.statusCode, 400);
+  assert.ok(noYear.body.errors.birthYear);
+  const saved = await call(patientController.updatePatient, params, { name: 'Corrected Name', phone: '8888888888', birthYear: 2004 });
   assert.equal(saved.body.data.name, 'Corrected Name');
   assert.equal(saved.body.data.phone, '8888888888');
 });

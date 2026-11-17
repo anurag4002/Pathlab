@@ -13,7 +13,8 @@
   align-self: start;
   max-height: calc(100vh - var(--header-height) - var(--space-8));
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* No overscroll-behavior: contain - once the cart is scrolled to its end the
+     wheel must hand over to the page (contain made the page stop scrolling). */
   z-index: 5;
 }
 
@@ -378,3 +379,18 @@
 html.ui-v2 .bill-restored { display: flex; align-items: center; gap: 0.6rem; margin: -0.4rem 0 0.75rem; padding: 0.4rem 0.7rem; border: 1px solid #fde68a; border-radius: 8px; background: #fffbeb; color: #78350f; font-size: 0.85rem; }
 html.ui-v2 .bill-restored button { border: 0; background: none; padding: 0.1rem 0.3rem; border-radius: 5px; color: #92400e; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 html.ui-v2 .bill-restored button:hover { background: #fef3c7; }
+
+/* New patient: age (years / months / days) with the birth year beside it.
+   The birth year is the patient's password for online reports and booking. */
+.bill-age-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5rem;
+  gap: var(--space-2);
+  align-items: start;
+}
+.bill-age-row .bill-birth-year { margin-bottom: 0; }
+.bill-birth-year-hint {
+  margin: -0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}

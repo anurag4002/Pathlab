@@ -1,5 +1,5 @@
 const path = require('path');
-const { resolveFormat } = require('./documentTemplateService');
+const { resolveFormat, REFERENCE_FORMAT } = require('./documentTemplateService');
 const { encode } = require('./code39Service');
 const { resolveReferenceRange } = require('./referenceRangeService');
 const { expandTests } = require('./testDefinitions');
@@ -52,13 +52,31 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       ? bold ? 'ClinicalUnicodeBold' : 'ClinicalUnicode' : font(bold);
   // Without a drawn letterhead the lab prints on preprinted stationery — keep
   // the configured blank band so content does not ride up into the physical header.
+  // The format's header height is that band on the paper, so it is honoured
+  // here as well as the older lab-profile "Header space" (whichever is larger).
   const preprintTop = (() => {
     if (options.letterhead || plainBill) return m;
     const configured = Number(profile.letterheadTopMargin);
-    return Math.max(m, Number.isFinite(configured) ? configured : 90);
+    return Math.max(m, Number.isFinite(configured) ? configured : 90, m + format.headerHeight);
   })();
-  // Preprinted footers also need their band; digital letterhead may dip slightly.
-  let limit = doc.page.height - (!plainBill && (options.footer || !options.letterhead) ? format.footerHeight + 10 : 30) - m;
+  // Height a header/footer image occupies when drawn full width, capped by the
+  // configured band. The band never shrinks below the reference size (so the
+  // default layout is unchanged), but a band taller than the artwork does not
+  // leave blank paper under a drawn letterhead: the extra height is blank space
+  // meant for preprinted stationery only.
+  function artSlot(source, w, band, referenceBand) {
+    let natural = band;
+    try { const img = source && doc.openImage(source); if (img && img.width > 0) natural = w * img.height / img.width; } catch (_) { /* unreadable: keep the band */ }
+    return Math.min(band, Math.max(natural, referenceBand));
+  }
+  const customFooter = options.footer && profile.footerUrl ? resolveUploadAbsolute(profile.footerUrl) : null;
+  const footerSlot = !options.footer ? 0 : customFooter
+    ? artSlot(customFooter, width, format.footerHeight, REFERENCE_FORMAT.footerHeight)
+    : artSlot(path.join(assets, 'reference-footer.jpg'), width * 0.778, format.footerHeight, REFERENCE_FORMAT.footerHeight);
+  // Preprinted footers need their configured band; a drawn footer needs only its
+  // own height; digital letterhead without a footer may dip slightly.
+  const footerReserve = plainBill ? 0 : !options.letterhead ? Math.max(format.footerHeight, footerSlot) : footerSlot;
+  let limit = doc.page.height - (footerReserve ? footerReserve + 10 : 30) - m;
   const pageBottom = options.letterhead ? doc.page.height - m - 12 : limit;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
@@ -167,7 +185,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       return;
     }
     const headerImage = imagePath(profile.letterheadUrl, 'reference-header.jpg');
-    if (headerImage && (image(headerImage, m, y, width, format.headerHeight) || image(referenceAsset('reference-header.jpg'), m, y, width, format.headerHeight))) y += format.headerHeight + 6;
+    const drawHeader = source => {
+      const slot = artSlot(source, width, format.headerHeight, REFERENCE_FORMAT.headerHeight);
+      return image(source, m, y, width, slot) && slot;
+    };
+    const headerSlot = headerImage && (drawHeader(headerImage) || drawHeader(referenceAsset('reference-header.jpg')));
+    if (headerSlot) y += headerSlot + 6;
     else {
       const logo = imagePath(profile.logoUrl);
       const logoWidth = logo && image(logo, m, y, 48, 48) ? 58 : 0;
@@ -864,14 +887,14 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
     if (options.footer) {
-      const footerTop = doc.page.height - m - format.footerHeight;
-      const customFooterDrawn = profile.footerUrl && image(resolveUploadAbsolute(profile.footerUrl), m, footerTop, width, format.footerHeight);
+      const footerTop = doc.page.height - m - footerSlot;
+      const customFooterDrawn = customFooter && image(customFooter, m, footerTop, width, footerSlot);
       if (!customFooterDrawn && format.useReferenceBranding) {
-        image(path.join(assets, 'reference-footer.jpg'), m + width * 0.222, footerTop, width * 0.778, format.footerHeight);
-        image(path.join(assets, 'reference-corner.jpg'), m, footerTop + format.footerHeight * 0.2, width * 0.222, format.footerHeight * 0.8);
+        image(path.join(assets, 'reference-footer.jpg'), m + width * 0.222, footerTop, width * 0.778, footerSlot);
+        image(path.join(assets, 'reference-corner.jpg'), m, footerTop + footerSlot * 0.2, width * 0.222, footerSlot * 0.8);
       }
     }
-    const labelY = doc.page.height - m - (!plainBill && (options.footer || !options.letterhead) ? format.footerHeight + 17 : 15);
+    const labelY = doc.page.height - m - (footerReserve ? footerReserve + 17 : 15);
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
     if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, labelY, width, { size: 8, align: 'right' });
   }

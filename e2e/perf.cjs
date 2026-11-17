@@ -38,7 +38,7 @@ const als = new AsyncLocalStorage();
   const cbc = await TestPanel.findOne({ name: 'Complete Blood Count (CBC)' }).lean();
   const tests = await Test.find({ name: { $in: ['Serum Creatinine', 'Urine Sugar Fasting', 'Widal (Tube Method)'] } }).lean();
   for (let i = 0; i < PATIENTS; i++) {
-    const patient = await call('POST', '/api/patients', { name: `Perf Patient ${i}`, age: 20 + (i % 50), gender: i % 2 ? 'Male' : 'Female', phone: `98${String(76000000 + i).padStart(8, '0')}` }, token);
+    const patient = await call('POST', '/api/patients', { name: `Perf Patient ${i}`, age: 20 + (i % 50), gender: i % 2 ? 'Male' : 'Female', phone: `98${String(76000000 + i).padStart(8, '0')}`, birthYear: 2006 - (i % 50) }, token);
     const items = [{ itemType: 'TestPanel', itemId: cbc._id, name: cbc.name, price: cbc.price || 300 }, ...tests.slice(0, 1 + (i % 3)).map(t => ({ itemType: 'Test', itemId: t._id, name: t.name, price: t.price || 100 }))];
     const bill = await call('POST', '/api/bills', { patient: patient.data._id, items, paidAmount: i % 2 ? 0 : Math.min(500, items.reduce((sum, item) => sum + item.price, 0)), paymentMethod: 'Cash' }, token);
     if (i % 4 === 3) continue; // some cases wait for results

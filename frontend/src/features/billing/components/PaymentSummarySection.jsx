@@ -51,9 +51,11 @@ const PaymentSummarySection = ({
   const [showDiscount, setShowDiscount] = React.useState(false);
   const discountInUse = Number(discountPercent) > 0 || Number(discountValue) > 0;
 
-  // New look, new bill: one tidy payment bar. Every cell is a label on top
-  // and a 40px value or field below, so everything lines up in one row.
-  if (isV2 && !isEditMode) {
+  // New look: one tidy payment bar. Every cell is a label on top and a 40px
+  // value or field below, so everything lines up in one row. Editing a bill
+  // shows what was already paid (locked) plus the collection centre and the
+  // admin override, in the same row.
+  if (isV2) {
     const sub = Number(subtotal) || 0;
     const isPercent = discountMode !== 'amount';
     const discountShown = showDiscount || discountInUse || !!errors?.discount;
@@ -67,7 +69,7 @@ const PaymentSummarySection = ({
     const discountAmount = isPercent ? (sub * (Number(discountPercent) || 0)) / 100 : Number(discountValue) || 0;
     const discountError = errors?.discount || (discountAmount > sub && sub > 0 ? 'More than the total' : '');
     return (
-      <div className="bill-form-card bill-pay" onKeyDown={onFieldEnter}>
+      <div className={`bill-form-card bill-pay${isEditMode ? ' bill-pay--edit' : ''}`} onKeyDown={onFieldEnter}>
         <div className="pay-cell">
           <span className="pay-label">{discountShown && discountAmount > 0 ? 'Total after discount' : 'Total'}</span>
           <span className="pay-value pay-value--total">{formatCurrency(totalAmount)}</span>
@@ -91,6 +93,13 @@ const PaymentSummarySection = ({
           {discountError && <span className="pay-error" role="alert">{discountError}</span>}
         </div>
 
+        {isEditMode ? (
+          <div className="pay-cell">
+            <span className="pay-label">Already paid</span>
+            <span className={`pay-value${Number(paidAmount) > 0 ? ' is-clear' : ''}`}>{formatCurrency(Number(paidAmount) || 0)}</span>
+            <span className="pay-note">Change it with Pay / Refund</span>
+          </div>
+        ) : (
         <div className="pay-cell">
           <label className="pay-label" htmlFor="bill-amount-received">Amount received now</label>
           <div className="pay-control pay-amount">
@@ -100,6 +109,7 @@ const PaymentSummarySection = ({
           </div>
           {errors?.paidAmount && <span className="pay-error" role="alert">{errors.paidAmount}</span>}
         </div>
+        )}
 
         <div className="pay-cell">
           <label className="pay-label" htmlFor="bill-paid-by">Paid by</label>
@@ -112,17 +122,32 @@ const PaymentSummarySection = ({
           <span className="pay-label">Still to pay</span>
           <span className="pay-value-row">
             <span className={`pay-value ${dueAmount > 0 ? 'is-due' : totalAmount > 0 ? 'is-clear' : ''}`}>{formatCurrency(dueAmount)}</span>
-            {dueAmount > 0 && (
+            {dueAmount > 0 && !isEditMode && (
               <button type="button" className="pay-full" onClick={() => setPaidAmount(totalAmount)} title="Patient pays the full amount">Paid in full</button>
             )}
           </span>
         </div>
+
+        {isEditMode && setCollectionCentre && (
+          <div className="pay-cell">
+            <label className="pay-label" htmlFor="bill-collection-centre">Collection centre <span className="pay-required" aria-hidden="true">*</span></label>
+            <select id="bill-collection-centre" className="form-control pay-control" value={collectionCentre || ''} onChange={(e) => setCollectionCentre(e.target.value)} required>
+              {collectionCentreOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="pay-cell pay-cell--action">
           <Button variant="primary" onClick={onSubmit} loading={submitting} disabled={submitting}
             title={submitHint ? `${submitLabel} (Enter in Amount received, or ${submitHint})` : undefined}>
             {submitLabel}{submitHint && <kbd className="pay-kbd">{submitHint.replace('+', ' ')}</kbd>}
           </Button>
+          {isEditMode && setAdminOverride && (
+            <label className="pay-override" title="Allow editing a paid or locked bill">
+              <input type="checkbox" checked={!!adminOverride} onChange={(e) => setAdminOverride(e.target.checked)} />
+              Admin override (paid / locked bill)
+            </label>
+          )}
         </div>
       </div>
     );

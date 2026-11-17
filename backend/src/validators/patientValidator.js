@@ -29,6 +29,10 @@ const validatePhone = (phone, errors) => {
   }
 };
 
+const hasValue = (v) => v !== undefined && v !== null && String(v).trim() !== '';
+const hasPhone = hasValue;
+const BIRTH_YEAR_NEEDED = 'Birth year is required when a phone number is given. It is the patient password for online reports and booking.';
+
 /** Full create — name / age / gender required; phone optional. Profile extras optional. */
 const validatePatient = (data) => {
   const errors = {};
@@ -40,6 +44,9 @@ const validatePatient = (data) => {
   validateAge(data.age, errors, data.ageUnit || 'years');
   validateGender(data.gender, errors);
   validatePhone(data.phone, errors);
+  // The birth year is the patient's password for online reports and booking,
+  // so a patient with a phone number must have one.
+  if (hasPhone(data.phone) && !hasValue(data.birthYear) && !errors.birthYear) errors.birthYear = BIRTH_YEAR_NEEDED;
 
   return {
     errors,
@@ -82,6 +89,7 @@ const validatePatientUpdate = (data) => {
 };
 
 module.exports = {
+  BIRTH_YEAR_NEEDED,
   validatePatient,
   validatePatientUpdate
 };

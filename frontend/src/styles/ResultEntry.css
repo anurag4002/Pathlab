@@ -518,3 +518,10 @@
 @media (max-width: 768px) { .re-shortcuts { display: none; } }
 /* The value being edited stands out in long panels */
 tr.ls-row:focus-within { background: var(--color-primary-light, #eff6ff); }
+
+/* View bill / Modify case sit at the top, beside Back to cases. */
+.re-topbar-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

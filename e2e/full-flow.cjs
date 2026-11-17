@@ -43,6 +43,7 @@ async function download(page, trigger) {
     await page.getByRole('textbox', { name: 'First Name' }).fill('E2E');
     await page.getByRole('textbox', { name: /Last Name/i }).fill('Patient One').catch(() => {});
     await page.getByPlaceholder('Years').fill('41');
+    await page.getByLabel(/Birth year/).fill('1985');
     await page.getByRole('textbox', { name: /Phone/i }).first().fill('9876500001');
     const gender = page.getByRole('button', { name: /^Male$/i }).first();
     if (await gender.count()) await gender.click(); else await page.locator('select[name*="gender" i], #patientGender').first().selectOption({ label: 'Male' }).catch(() => {});

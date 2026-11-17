@@ -315,6 +315,45 @@ test('without letterhead reserves letterheadTopMargin for preprinted stationery'
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+// Top (from the page's upper edge) of the first text drawn that contains `label`.
+function textTop(pdf, label) {
+  const source = pdf.toString('latin1');
+  const pageHeight = Number((source.match(/\/MediaBox\s*\[0 0 [\d.]+ ([\d.]+)\]/) || [])[1] || 841.89);
+  for (const match of source.matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)) {
+    let content; try { content = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { continue; }
+    for (const block of content.matchAll(/BT([\s\S]*?)ET/g)) {
+      const tm = block[1].match(/([\d.-]+) ([\d.-]+) Tm/);
+      const value = [...block[1].matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join('');
+      if (tm && value.includes(label)) return pageHeight - Number(tm[2]);
+    }
+  }
+  return null;
+}
+
+test('header height is blank space on preprinted paper but leaves no gap under a drawn letterhead', async () => {
+  const at = async (headerHeight, letterhead) => textTop(await reportPdf({
+    ...context,
+    profile: { ...context.profile, documentFormats: [{ ...REFERENCE_FORMAT, headerHeight }] }
+  }, { letterhead, footer: letterhead, qr: false, barcode: false }), 'Test Patient');
+  const drawnDefault = await at(REFERENCE_FORMAT.headerHeight, true);
+  const drawnTall = await at(200, true);
+  assert.ok(drawnDefault > REFERENCE_FORMAT.pageMargin + 100, `letterhead art drawn above patient (${drawnDefault})`);
+  assert.ok(Math.abs(drawnTall - drawnDefault) < 1, `with letterhead patient block stays under the art: ${drawnTall} vs ${drawnDefault}`);
+  const blankTall = await at(200, false);
+  assert.ok(blankTall >= REFERENCE_FORMAT.pageMargin + 200, `without letterhead patient block below the 200 pt band, got ${blankTall}`);
+  assert.ok(blankTall < REFERENCE_FORMAT.pageMargin + 200 + 30);
+});
+
+test('footer height is reserved on preprinted paper but a drawn footer only takes its own height', async () => {
+  const label = async (footerHeight, letterhead) => textTop(await reportPdf({
+    ...context,
+    profile: { ...context.profile, documentFormats: [{ ...REFERENCE_FORMAT, footerHeight }] }
+  }, { letterhead, footer: letterhead, pageno: true, qr: false, barcode: false }), 'Page 1 of');
+  const drawnDefault = await label(REFERENCE_FORMAT.footerHeight, true);
+  assert.ok(Math.abs(await label(200, true) - drawnDefault) < 1);
+  assert.ok(await label(200, false) <= 841.89 - REFERENCE_FORMAT.pageMargin - 200);
+});
+
 test('long tabular interpretations continue across pages with all cells preserved', async () => {
   const interpretation = ['Item\tMeaning\tComment', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}\tComment${i + 1}`)].join('\n');
   const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation } } });

@@ -25,7 +25,7 @@ const routes = [...fs.readFileSync(path.resolve(__dirname, '../frontend/src/rout
   const names = ['Ravi Kumar', 'Sunita Sharma', 'Mohd. Irfan', 'Priya Verma', 'Anil Gupta', 'Kavita Singh', 'Rahul Yadav', 'Neha Tiwari', 'Suresh Pal', 'Pooja Mishra', 'Arjun Mehta', 'Fatima Khan', 'Deepak Joshi', 'Ritu Saxena', 'Manoj Pandey', 'Seema Rawat', 'Vikas Dubey', 'Asha Devi'];
   for (const [i, name] of names.entries()) {
     const female = ['Sunita Sharma', 'Priya Verma', 'Kavita Singh', 'Neha Tiwari', 'Pooja Mishra', 'Fatima Khan', 'Ritu Saxena', 'Seema Rawat', 'Asha Devi'].includes(name);
-    const patient = await call('POST', '/api/patients', { name, age: 22 + (i * 3) % 50, gender: female ? 'Female' : 'Male', phone: `98${String(71000000 + i * 137).padStart(8, '0')}` });
+    const patient = await call('POST', '/api/patients', { name, age: 22 + (i * 3) % 50, gender: female ? 'Female' : 'Male', phone: `98${String(71000000 + i * 137).padStart(8, '0')}`, birthYear: 2004 - (i * 3) % 50 });
     const items = [{ itemType: 'TestPanel', itemId: cbc._id, name: cbc.name, price: cbc.price || 350 }, { itemType: 'Test', itemId: tests[i % tests.length]._id, name: tests[i % tests.length].name, price: tests[i % tests.length].price || 150 }];
     const bill = await call('POST', '/api/bills', { patient: patient.data._id, items, paidAmount: i % 3 === 0 ? 0 : Math.min(500, items.reduce((sum, item) => sum + item.price, 0)), paymentMethod: ['Cash', 'UPI', 'Card'][i % 3] });
     if (i % 4 === 3) continue;

@@ -4,6 +4,7 @@ import useStickyState from '../../utils/useStickyState';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WhatsAppShare, RowMenu, IdentityCell } from '../../components/common';
 import { useUiVersion } from '../../utils/uiVersion';
+import { useModalUrl, useCloseOnBack } from '../../utils/modalHistory';
 
 import useClientPagination from '../../hooks/useClientPagination';
 import {
@@ -130,17 +131,8 @@ const TodaysReports = () => {
   // Every pop-up stays React state for rendering but is mirrored to the URL
   // (?upload, ?result, ?entry=<id>, ?send=<id>, ?preview=<id>, ?reject=<id>,
   // ?label=<id>, ?del=<id>) so refresh / share reopens the same view.
-  const mirrorModal = (key, isOpen, id) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (isOpen) next.set(key, id ? String(id) : 'open');
-        else next.delete(key);
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  // Each one is a history step, so the browser's Back closes it.
+  const mirrorModal = useModalUrl(setSearchParams);
   const [reports, setReports] = useState([]);
   const [stationery, setStationery] = useState('default');
   const pdfOptions = stationeryOptions(stationery);
@@ -381,6 +373,16 @@ const TodaysReports = () => {
   useEffect(() => { mirrorModal('reject', rejectOpen, activeReport?._id); }, [rejectOpen, activeReport?._id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { mirrorModal('del', !!deleteTarget, deleteTarget?._id); }, [deleteTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useCloseOnBack(searchParams, {
+    upload: [uploadOpen, () => setUploadOpen(false)],
+    result: [resultOpen, () => setResultOpen(false)],
+    entry: [entryOpen, () => setEntryOpen(false)],
+    send: [sendOpen, () => setSendOpen(false)],
+    preview: [previewOpen, () => setPreviewOpen(false)],
+    reject: [rejectOpen, () => setRejectOpen(false)],
+    label: [!!labelTarget, () => setLabelTarget(null)],
+    del: [!!deleteTarget, () => setDeleteTarget(null)]
+  });
 
   // Dashboard quick action links here with ?upload=true — open the upload modal directly.
   useEffect(() => {

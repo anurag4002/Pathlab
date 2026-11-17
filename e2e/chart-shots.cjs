@@ -15,7 +15,7 @@ const { BASE, OUT } = require('./config.cjs');
   const call = async (method, url, body) => JSON.parse((await env.inject({ method, url, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: body ? Buffer.from(JSON.stringify(body)) : undefined })).body.toString() || '{}');
   const tests = await mongoose.model('Test').find({ status: 'Active' }).limit(25).lean();
   for (let i = 0; i < 90; i++) {
-    const patient = await call('POST', '/api/patients', { name: `Chart Patient ${i}`, age: 25 + (i % 40), gender: i % 2 ? 'Male' : 'Female', phone: `97${String(10000000 + i).padStart(8, '0')}` });
+    const patient = await call('POST', '/api/patients', { name: `Chart Patient ${i}`, age: 25 + (i % 40), gender: i % 2 ? 'Male' : 'Female', phone: `97${String(10000000 + i).padStart(8, '0')}`, birthYear: 2001 - (i % 40) });
     const picks = [tests[i % tests.length], tests[(i * 7) % tests.length]].filter((t, k, a) => a.indexOf(t) === k);
     const items = picks.map((t) => ({ itemType: 'Test', itemId: t._id, name: t.name, price: Math.max(100, t.price || 100) * (1 + (i % 3)) }));
     const total = items.reduce((s, it) => s + it.price, 0);

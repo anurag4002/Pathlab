@@ -16,7 +16,7 @@ const { run, results, BASE, OUT, assert, start, openBrowser, login } = { ...requ
   const cbc = await env.mongoose.model('TestPanel').findOne({ name: 'Complete Blood Count (CBC)' }).lean();
   const seeded = [];
   for (const [i, person] of [['Meera Iyer', 'Female', 34], ['Karan Malhotra', 'Male', 51]].entries()) {
-    const patient = await call('POST', '/api/patients', { name: person[0], gender: person[1], age: person[2], phone: `98765${String(43210 + i)}` });
+    const patient = await call('POST', '/api/patients', { name: person[0], gender: person[1], age: person[2], phone: `98765${String(43210 + i)}`, birthYear: 2026 - person[2] });
     const price = cbc.price || 350;
     const bill = await call('POST', '/api/bills', { patient: patient.data._id, items: [{ itemType: 'TestPanel', itemId: cbc._id, name: cbc.name, price }], paidAmount: i ? price : 0, paymentMethod: 'Cash' });
     await call('POST', '/api/reports/result', { patient: patient.data._id, bill: bill.data._id, entryMode: 'inhouse' });

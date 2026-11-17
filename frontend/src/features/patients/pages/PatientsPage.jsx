@@ -11,6 +11,7 @@ import useDebounce from '../../../hooks/useDebounce';
 import { FolderOpen, Edit2, Trash2, UserPlus, FilePlus } from 'lucide-react';
 import { notify } from '../../../components/common/Toast/toast';
 import formatDate from '../../../utils/formatDate';
+import birthYearError from '../../../utils/birthYear';
 import '../../../pages/cases/v2/casesV2.css';
 
 const validatePatient = (formData) => {
@@ -20,6 +21,8 @@ const validatePatient = (formData) => {
     errs.age = 'Valid age is required';
   }
   if (!formData.gender) errs.gender = 'Gender is required';
+  const yearError = birthYearError(formData.phone, formData.birthYear);
+  if (yearError) errs.birthYear = yearError;
   return errs;
 };
 
@@ -195,7 +198,7 @@ const PatientsPage = () => {
         fetchPatientsList();
       }
     } catch (err) {
-      setErrors({ api: err.response?.data?.message || 'Failed to submit patient details' });
+      setErrors({ ...(err.response?.data?.errors || {}), api: err.response?.data?.message || 'Failed to submit patient details' });
     } finally {
       setFormSubmitLoading(false);
     }

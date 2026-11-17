@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { getBills, collectPayment, getBillById, voidBill, refundBill } from '../../../services/billService';
 import { getPatients } from '../../../services/patientService';
@@ -40,6 +40,7 @@ import '../Billing.css';
 import '../../../pages/cases/v2/casesV2.css';
 import { WhatsAppShare, RowMenu, IdentityCell } from '../../../components/common';
 import { useUiVersion } from '../../../utils/uiVersion';
+import { useModalUrl, useCloseOnBack } from '../../../utils/modalHistory';
 
 // New look: patient first, bill second, no discount column (in details).
 const num = (text) => <span className="th-num">{text}</span>;
@@ -120,21 +121,8 @@ const BillsPage = () => {
   // reopens the same view instead of losing it.
   // Only a modal that was opened clears its URL param when closed; a deep
   // link (?details=<id>) must survive until the bills load and open it.
-  const openedModalsRef = useRef({});
-  const mirrorModal = (key, isOpen, id) => {
-    if (isOpen) openedModalsRef.current[key] = true;
-    else if (!openedModalsRef.current[key]) return;
-    else openedModalsRef.current[key] = false;
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (isOpen) next.set(key, id ? String(id) : 'open');
-        else next.delete(key);
-        return next;
-      },
-      { replace: true }
-    );
-  };
+  // Each one is a history step, so the browser's Back closes it.
+  const mirrorModal = useModalUrl(setSearchParams);
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
 
@@ -524,6 +512,12 @@ const BillsPage = () => {
   useEffect(() => { if (voidTarget || searchParams.get('void')) mirrorModal('void', !!voidTarget, voidTarget?._id); }, [voidTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (detailsTarget || searchParams.get('details')) mirrorModal('details', !!detailsTarget, detailsTarget?._id); }, [detailsTarget]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (labelTarget || searchParams.get('label')) mirrorModal('label', !!labelTarget, labelTarget?._id); }, [labelTarget]); // eslint-disable-line react-hooks/exhaustive-deps
+  useCloseOnBack(searchParams, {
+    pay: [paymentModalOpen, () => setPaymentModalOpen(false)],
+    void: [!!voidTarget, () => { setVoidTarget(null); setVoidError(null); }],
+    details: [!!detailsTarget, () => setDetailsTarget(null)],
+    label: [!!labelTarget, () => setLabelTarget(null)]
+  });
   useEffect(() => {
     if (isCreateView || !bills.length) return;
     const find = (id) => bills.find((b) => String(b._id) === String(id));

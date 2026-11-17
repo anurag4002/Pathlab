@@ -13,7 +13,19 @@ const ReportTatEditor = forwardRef(function ReportTatEditor({ report, onSaved, c
 export default ReportTatEditor;
 
 function ReportTatForm({ report, onSaved, apiRef, compact }) {
-  const [draft, setDraft] = useState({});
+  // Collected / Received / Reported start with the Registered date and time
+  // when they are still empty (staff change them if they differ). They are
+  // saved together with the results, like any other edit here.
+  // Only the date is filled in; the time stays blank for staff to type. A
+  // date saved with a blank time takes the time of saving.
+  const [draft, setDraft] = useState(() => {
+    const registered = toLabDateTime(report?.tat?.registered);
+    if (!registered) return {};
+    const day = registered.slice(0, 10);
+    return Object.fromEntries(['collected', 'received', 'reported']
+      .filter((key) => !report?.tat?.[key])
+      .map((key) => [key, `${day}T`]));
+  });
   const values = { ...Object.fromEntries(fields.map(key => [key, toLabDateTime(report?.tat?.[key])])), ...draft };
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
@@ -24,7 +36,10 @@ function ReportTatForm({ report, onSaved, apiRef, compact }) {
     if (!values.registered) throw new Error('Registered date and time is required.');
     setBusy(true); setMessage(null);
     try {
-      const payload = Object.fromEntries(fields.map(key => [key, fromLabDateTime(values[key])]));
+      // A date with a blank time is saved with the current time.
+      const nowTime = toLabDateTime(new Date()).slice(11, 16);
+      const complete = (value) => (value && /T$/.test(value) ? `${value}${nowTime}` : value);
+      const payload = Object.fromEntries(fields.map(key => [key, fromLabDateTime(complete(values[key]))]));
       const res = await updateReportTat(report._id, payload);
       onSaved?.(res.data);
       setDraft({});
@@ -40,7 +55,8 @@ function ReportTatForm({ report, onSaved, apiRef, compact }) {
   }));
   const setPart = (key, part, next) => {
     const [datePart = '', timePart = ''] = String(values[key] || '').split('T');
-    const combined = part === 'date' ? (next ? `${next}T${timePart || '00:00'}` : '') : (datePart ? `${datePart}T${next || '00:00'}` : '');
+    // A blank time stays blank (filled with the time of saving), never 00:00.
+    const combined = part === 'date' ? (next ? `${next}T${timePart}` : '') : (datePart ? `${datePart}T${next || ''}` : '');
     setMessage(null); setDraft(prev => ({ ...prev, [key]: combined }));
   };
   if (compact) return <fieldset disabled={busy} className="ls-tat">

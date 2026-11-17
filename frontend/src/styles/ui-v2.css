@@ -527,7 +527,10 @@ html.ui-v2 .bill-step-tests > .bill-card-header { gap: 0.75rem; flex-wrap: wrap;
   html.ui-v2 .bill-form-grid--v2 .bill-step-tests { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
   html.ui-v2 .bill-form-grid--v2 .bill-step-tests > .form-group:last-child { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   html.ui-v2 .bill-form-grid--v2 .bill-step-tests .test-picker-list { flex: 1; min-height: 0; height: auto; max-height: none; }
-  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { min-height: 0; height: auto; max-height: none; overflow-y: auto; overscroll-behavior: contain; }
+  /* No overscroll-behavior: contain here - on Edit bill this box rarely overflows,
+     and a non-scrolling 'contain' box swallows the mouse wheel, so the page
+     would not scroll with the pointer over the bill. */
+  html.ui-v2 .bill-form-grid--v2 .bill-step-cart { min-height: 0; height: auto; max-height: none; overflow-y: auto; }
 }
 html.ui-v2 .bill-items-wrap .bill-items-table thead th { position: sticky; top: -1rem; background: #fff; z-index: 1; }
 
@@ -582,3 +585,35 @@ html.ui-v2 .afb-v2-row > .afb-field:has(.is-driven-by-header) { display: none; }
   html.ui-v2 main td, html.ui-v2 main td * { overflow-wrap: anywhere; }
 }
 @media (max-width: 640px) { html.ui-v2 main td small, html.ui-v2 main td span { white-space: normal; } }
+
+/* Edit bill: the patient box is taller here, so the page is not locked to
+   the window - it scrolls, and the test list / bill keep real space. */
+@media (min-width: 961px) {
+  html.ui-v2 .bill-form-grid--v2.is-edit { height: auto !important; grid-template-rows: auto auto auto !important; }
+  html.ui-v2 .bill-form-grid--v2.is-edit .bill-step-tests { min-height: 0; overflow: visible; }
+  html.ui-v2 .bill-form-grid--v2.is-edit .bill-step-tests .test-picker-list { flex: none; height: 22rem !important; max-height: none; }
+  html.ui-v2 .bill-form-grid--v2.is-edit .bill-step-cart { height: auto !important; max-height: 30rem; min-height: 16rem; }
+  /* Not pinned: pinned, it covered a third of a laptop screen over the tests. */
+  html.ui-v2 .bill-form-grid--v2.is-edit .bill-pay { position: static; }
+}
+
+/* Edit bill: name, phone and save on one line; the payment bar adds
+   "Already paid" (locked), collection centre and the admin override. */
+html.ui-v2 .bill-edit-identity { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 0 0.9rem; align-items: end; }
+html.ui-v2 .bill-edit-identity .form-group { margin-bottom: 0; }
+html.ui-v2 .bill-edit-identity > .btn { height: 2.625rem; margin-bottom: 1px; }
+html.ui-v2 .bill-pay--edit { grid-template-columns: minmax(6.5rem, auto) 7.5rem minmax(8rem, auto) minmax(7.5rem, auto) 7.5rem 8.5rem 1fr; gap: 0 0.9rem !important; }
+html.ui-v2 .pay-note { font-size: 0.72rem; color: #71717a; white-space: nowrap; margin-top: -0.2rem; }
+html.ui-v2 .pay-required { color: #dc2626; }
+html.ui-v2 .pay-override { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.45rem; font-size: 0.75rem; color: #52525b; white-space: nowrap; cursor: pointer; }
+html.ui-v2 .pay-override input { margin: 0; }
+@media (max-width: 1180px) {
+  html.ui-v2 .bill-pay--edit { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem 1rem !important; }
+}
+@media (max-width: 640px) {
+  html.ui-v2 .bill-pay--edit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.ui-v2 .bill-edit-identity { grid-template-columns: 1fr; gap: 0.6rem; }
+}
+html.ui-v2 .bill-pay--edit .pay-cell--action { min-width: 0; }
+html.ui-v2 .bill-pay--edit .pay-cell--action .btn { min-width: 9.5rem; }
+html.ui-v2 .bill-pay--edit .pay-cell--action { display: flex; flex-direction: column; align-items: flex-end; }

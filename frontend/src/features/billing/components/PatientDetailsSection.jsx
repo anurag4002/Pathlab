@@ -31,6 +31,8 @@ const PatientDetailsSection = ({
   setPatientAgeMonths,
   patientAgeDays,
   setPatientAgeDays,
+  patientBirthYear,
+  setPatientBirthYear,
   onlineReportRequested,
   setOnlineReportRequested,
   showEmail,
@@ -73,6 +75,8 @@ const PatientDetailsSection = ({
     { key: 'history', label: 'Patient History', active: showHistory, toggle: () => (isV2 ? open('history') : setShowHistory((v) => !v)) }
   ].filter((f) => !f.active);
 
+  const suggestedBirthYear = Number(patientAgeYears) > 0 && Number(patientAgeYears) <= 150
+    ? new Date().getFullYear() - Number(patientAgeYears) : '';
   const newPatientFields = (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           {/* Mobile Number */}
@@ -107,7 +111,7 @@ const PatientDetailsSection = ({
                 }}
               />
             </div>
-            {errors?.phone ? <p className="form-error">{errors.phone}</p> : <p className="form-helper" style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Needed only if the patient wants online reports or booking.</p>}
+            {errors?.phone ? <p className="form-error">{errors.phone}</p> : <p className="form-helper" style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Needed only if the patient wants online reports or booking. With a phone, birth year is also needed.</p>}
           </div>
 
           {/* Title + First + Last Name */}
@@ -154,7 +158,9 @@ const PatientDetailsSection = ({
             )}
           </div>
 
-          {/* Age */}
+          {/* Age + birth year. With a phone number the birth year is needed:
+              it is the patient's password for online reports and booking. */}
+          <div className="bill-age-row">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Age *</label>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 'var(--space-2)' }}>
@@ -179,6 +185,23 @@ const PatientDetailsSection = ({
               />
             </div>
           </div>
+          <Input
+            id="bill-birth-year"
+            label="Birth year"
+            required={!!String(patientPhone || '').trim()}
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            value={patientBirthYear}
+            onChange={(e) => setPatientBirthYear?.(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            placeholder={suggestedBirthYear ? `e.g. ${suggestedBirthYear}` : 'YYYY'}
+            error={errors?.birthYear}
+            className="bill-birth-year"
+          />
+          </div>
+          {String(patientPhone || '').trim() && !errors?.birthYear && (
+            <p className="form-helper bill-birth-year-hint">Birth year is the patient's password to see reports online and book tests.</p>
+          )}
         </div>
   );
 
@@ -198,11 +221,11 @@ const PatientDetailsSection = ({
     </div>
   );
   const profileFilled = [patientEmail && 'email', patientAadhaar && 'Aadhaar', patientAddress && 'address', patientHistory && 'history'].filter(Boolean);
-  const fieldErrors = errors?.firstName || errors?.phone || errors?.age || errors?.title;
+  const fieldErrors = errors?.firstName || errors?.phone || errors?.age || errors?.title || errors?.birthYear;
   React.useEffect(() => { if (isV2 && fieldErrors && !isExistingPatient) openDrawer('new'); }, [isV2, fieldErrors, isExistingPatient]);
   const draftName = [patientTitle, patientFirstName, patientLastName].filter(Boolean).join(' ');
   const draftAge = [patientAgeYears && `${patientAgeYears} Y`, patientAgeMonths && `${patientAgeMonths} M`, patientAgeDays && `${patientAgeDays} D`].filter(Boolean).join(' ');
-  const draftMissing = [!patientFirstName && 'name', !patientGender && 'sex', !(patientAgeYears || patientAgeMonths || patientAgeDays) && 'age'].filter(Boolean);
+  const draftMissing = [!patientFirstName && 'name', !patientGender && 'sex', !(patientAgeYears || patientAgeMonths || patientAgeDays) && 'age', String(patientPhone || '').trim() && !patientBirthYear && 'birth year'].filter(Boolean);
   const newPatientSummary = (
     <div className={`bill-new-patient-summary${draftMissing.length ? ' is-incomplete' : ''}`}>
       <div className="bill-new-patient-text">

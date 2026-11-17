@@ -4,6 +4,7 @@ import { createBill, updateBill, getBills, getBillById } from '../../../services
 import { rovingKeyDown } from '../../../utils/rovingFocus';
 import { useUiVersion, isNewUi } from '../../../utils/uiVersion';
 import { titleSexMismatch } from '../../../utils/titleSex';
+import birthYearError from '../../../utils/birthYear';
 import capitalizeName from '../../../utils/capitalizeName';
 import PageTip from '../../../components/common/PageTip';
 import { notify } from '../../../components/common/Toast/toast';
@@ -105,6 +106,7 @@ const EMPTY_PATIENT_FORM = {
   patientAgeYears: '',
   patientAgeMonths: '',
   patientAgeDays: '',
+  patientBirthYear: '',
   onlineReportRequested: false,
   // Email / Address / Aadhaar / History are always on by default in billing
   showEmail: true,
@@ -188,6 +190,7 @@ const applyPatientToForm = (pat, prev = EMPTY_PATIENT_FORM) => {
     patientLastName: last || prev.patientLastName,
     patientGender: pat.gender || prev.patientGender || 'Male',
     patientAgeYears: pat.age != null && pat.age !== '' ? String(pat.age) : prev.patientAgeYears,
+    patientBirthYear: pat.birthYear ? String(pat.birthYear) : (prev.patientBirthYear || ''),
     patientEmail: pat.email || '',
     patientAddress: pat.address || '',
     patientAadhaar: pat.aadhaar || '',
@@ -644,6 +647,9 @@ const BillCreateForm = ({
     if (!patientForm.isExistingPatient) {
       if (!patientForm.patientFirstName.trim()) errs.firstName = 'First name is required';
       if (!patientForm.patientAgeYears) errs.age = 'Age is required';
+      // The birth year is the patient's password for online reports and booking.
+      const yearError = birthYearError(patientForm.patientPhone, patientForm.patientBirthYear);
+      if (yearError) errs.birthYear = yearError;
       const mismatch = titleSexMismatch(patientForm.patientTitle, patientForm.patientGender);
       if (mismatch) errs.title = mismatch;
     } else if (patientForm.selectedPatientId) {
@@ -743,6 +749,7 @@ const BillCreateForm = ({
           ...profilePayload,
           name: `${patientForm.patientTitle} ${patientForm.patientFirstName} ${patientForm.patientLastName}`.trim(),
           age: Number(patientForm.patientAgeYears),
+          ...(String(patientForm.patientBirthYear || '').trim() ? { birthYear: Number(patientForm.patientBirthYear) } : {}),
           address: patientForm.showAddress ? patientForm.patientAddress : '',
           email: patientForm.showEmail ? patientForm.patientEmail : '',
           aadhaar: patientForm.showAadhaar ? patientForm.patientAadhaar : '',
@@ -1029,7 +1036,7 @@ const BillCreateForm = ({
         </div>
       )}
 
-      <div ref={gridRef} className={`bill-form-grid${isV2 ? ' bill-form-grid--v2' : ''}`}>
+      <div ref={gridRef} className={`bill-form-grid${isV2 ? ' bill-form-grid--v2' : ''}${isV2 && isEditMode ? ' is-edit' : ''}`}>
         {/* Left Column */}
         <div className="bill-form-main" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
           {isEditMode ? (
@@ -1041,9 +1048,11 @@ const BillCreateForm = ({
                 </div>
               </div>
               {isAdmin ? <>
-                <Input id="invoice-patient-name" label="Patient name" value={identity.name} onChange={e => setIdentity(prev => ({ ...prev, name: e.target.value }))} disabled={identityBusy} required />
-                <Input id="invoice-patient-phone" label="Phone number (optional)" value={identity.phone} onChange={e => setIdentity(prev => ({ ...prev, phone: e.target.value }))} disabled={identityBusy} />
-                <Button variant="secondary" onClick={saveIdentity} loading={identityBusy} disabled={identityBusy || !editPatientId}>Save patient details</Button>
+                <div className="bill-edit-identity">
+                  <Input id="invoice-patient-name" label="Patient name" value={identity.name} onChange={e => setIdentity(prev => ({ ...prev, name: e.target.value }))} disabled={identityBusy} required />
+                  <Input id="invoice-patient-phone" label={isV2 ? 'Phone (optional)' : 'Phone number (optional)'} value={identity.phone} onChange={e => setIdentity(prev => ({ ...prev, phone: e.target.value }))} disabled={identityBusy} />
+                  <Button variant="secondary" onClick={saveIdentity} loading={identityBusy} disabled={identityBusy || !editPatientId}>{isV2 ? 'Save patient' : 'Save patient details'}</Button>
+                </div>
                 {identityMessage && <p role={identityMessage.error ? 'alert' : 'status'} style={{ color: identityMessage.error ? '#b91c1c' : '#166534' }}>{identityMessage.text}</p>}
               </> : <>
               <div className="payment-summary-row">
@@ -1059,10 +1068,13 @@ const BillCreateForm = ({
               </div>
               <p>Only Admin can edit patient name and phone number.</p>
               </>}
+              {/* New look shows this in the payment bar. */}
+              {!isV2 && (
               <div className="payment-summary-row">
                 <span>Already paid</span>
                 <strong style={{ color: 'var(--color-success)' }}>{formatCurrency(Number(editBill.paidAmount || 0))}</strong>
               </div>
+              )}
             </div>
           ) : (
           <PatientDetailsSection
@@ -1084,6 +1096,8 @@ const BillCreateForm = ({
             setPatientGender={(v) => setPatientForm((p) => ({ ...p, patientGender: v }))}
             patientAgeYears={patientForm.patientAgeYears}
             setPatientAgeYears={(v) => setPatientForm((p) => ({ ...p, patientAgeYears: v }))}
+            patientBirthYear={patientForm.patientBirthYear}
+            setPatientBirthYear={(v) => setPatientForm((p) => ({ ...p, patientBirthYear: v }))}
             patientAgeMonths={patientForm.patientAgeMonths}
             setPatientAgeMonths={(v) => setPatientForm((p) => ({ ...p, patientAgeMonths: v }))}
             patientAgeDays={patientForm.patientAgeDays}

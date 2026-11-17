@@ -14,6 +14,7 @@ import { notify } from '../../../../components/common/Toast/toast';
 import useStickyState from '../../../../utils/useStickyState';
 import '../../../../components/business/business.css';
 import '../../../../pages/cases/v2/casesV2.css';
+import birthYearError from '../../../../utils/birthYear';
 
 const initials = (name) => String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 const ageSex = (p) => {
@@ -86,13 +87,15 @@ export default function PatientProfile() {
     e?.preventDefault();
     const errs = {};
     if (!String(formData.name || '').trim()) errs.name = 'Enter the patient name.';
+    const yearError = birthYearError(formData.phone, formData.birthYear);
+    if (yearError) errs.birthYear = yearError;
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
     setSaving(true);
     try {
       const res = await updatePatient(patient._id, { ...formData, referringDoctor: formData.referringDoctor || null });
       if (res?.success) { setEditOpen(false); setFormData(null); notify('Patient details saved'); setReload((n) => n + 1); }
     } catch (err) {
-      setFormErrors({ api: err.response?.data?.message || 'Could not save. Try again.' });
+      setFormErrors({ ...(err.response?.data?.errors || {}), api: err.response?.data?.message || 'Could not save. Try again.' });
     } finally { setSaving(false); }
   };
 

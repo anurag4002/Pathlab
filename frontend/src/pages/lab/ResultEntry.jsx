@@ -220,6 +220,9 @@ const ResultEntry = () => {
   // Admins can unlock a submitted report to change it ("Edit report").
   const [adminEditing, setAdminEditing] = useState(false);
   const openForEditRef = useRef(false);
+  const entryRef = useRef(null);
+  const dirtyRef = useRef(false);
+  const listStepAddedRef = useRef('');
   const locked = isReportFinal(entry?.report?.status) && !adminEditing;
   const [entryLoading, setEntryLoading] = useState(false);
 
@@ -244,10 +247,11 @@ const ResultEntry = () => {
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
   const [openInterpretations, setOpenInterpretations] = useState({});
   const navigate = useNavigate();
+  entryRef.current = entry;
+  dirtyRef.current = dirty;
   const [remarks, setRemarks] = useState({});
   const [openRemarks, setOpenRemarks] = useState({});
   const [openNotes, setOpenNotes] = useState({});
-  const [signMenuOpen, setSignMenuOpen] = useState(false);
   // Print options per section (reference LIS checkboxes), saved on the report
   // immediately so the PDF reflects them.
   // Saved edits for the open report; otherwise the report's stored settings.
@@ -492,8 +496,10 @@ const ResultEntry = () => {
     }
   };
 
-  const openCase = async (row) => {
+  const openCase = async (row, { fromUrl = false } = {}) => {
     if (inFlightRef.current) return;
+    // Opened from the list: Back should return to the list.
+    const fromList = view !== 'entry' && !fromUrl;
     // Outsource shells use PDF/image upload — not numeric result grids.
     if (isOutsourceWork(row?.report, row?.bill)) {
       openUploadForCase(row);
@@ -536,6 +542,13 @@ const ResultEntry = () => {
       }
       const res = await getReportForEntry(reportId);
       applyEntry(res.data);
+      // Put the open case in the address: a reload keeps it open and the
+      // browser's Back button returns to the Result entry list.
+      const link = `report:${reportId}`;
+      if (linkedCaseRef.current !== link) {
+        linkedCaseRef.current = link;
+        navigate(`/lab/result-entry?report=${reportId}`, { replace: !fromList, state: { reCase: true } });
+      }
     } catch (err) {
       setEntryError(getApiErrorMessage(err, 'Failed to open this case.'));
     } finally {
@@ -675,18 +688,22 @@ const ResultEntry = () => {
     const timer = setTimeout(() => setSavedAt(0), 2500);
     return () => clearTimeout(timer);
   }, [savedAt]);
-  // Value cells: Enter / Down go to the next value, Up to the previous, and
-  // focusing a value selects it so typing replaces it.
+  // Value cells: Enter / Tab / Down go to the next value, Shift+Enter /
+  // Shift+Tab / Up to the previous - skipping the +, pencil and other buttons
+  // in between. Focusing a value selects it so typing replaces it.
   const valueFields = (root) => [...root.querySelectorAll('tr.ls-row input.form-control:not([disabled]), tr.ls-row select:not([disabled])')];
   const onSheetKeyDown = (event) => {
     const field = event.target;
     if (!field.closest?.('tr.ls-row') || event.altKey || event.ctrlKey || event.metaKey) return;
     const isSelect = field.tagName === 'SELECT';
-    const step = event.key === 'Enter' ? (event.shiftKey ? -1 : 1)
+    const step = event.key === 'Enter' || event.key === 'Tab' ? (event.shiftKey ? -1 : 1)
       : !isSelect && event.key === 'ArrowDown' ? 1 : !isSelect && event.key === 'ArrowUp' ? -1 : 0;
     if (!step) return;
     const fields = valueFields(event.currentTarget);
-    const next = fields[fields.indexOf(field) + step];
+    const index = fields.indexOf(field);
+    if (index === -1) return;
+    // Past the last (or before the first) value, Tab moves on as usual.
+    const next = fields[index + step];
     if (!next) return;
     event.preventDefault();
     next.focus();
@@ -702,16 +719,43 @@ const ResultEntry = () => {
     const billId = searchParams.get('bill');
     const patientId = searchParams.get('patient');
     const link = reportId ? `report:${reportId}` : billId && patientId ? `bill:${billId}` : '';
-    if (!link || linkedCaseRef.current === link) return;
+    if (!link) {
+      // Browser Back from an open case: close it (ask first if values are unsaved).
+      if (linkedCaseRef.current) {
+        const openId = entryRef.current?.report?._id;
+        if (dirtyRef.current && openId) {
+          navigate(`/lab/result-entry?report=${openId}`, { state: { reCase: true } });
+          setDiscardOpen(true);
+          return;
+        }
+        linkedCaseRef.current = '';
+        performBack({ fromHistory: true });
+      }
+      return;
+    }
+    if (linkedCaseRef.current === link) return;
+    // Opened from a link or another page: add the Result entry list as the
+    // step before it, so Back lands on the list rather than that page.
+    if (!window.history.state?.usr?.reCase) {
+      if (listStepAddedRef.current === link) return; // already done (dev double-run)
+      listStepAddedRef.current = link;
+      navigate('/lab/result-entry', { replace: true });
+      navigate(`/lab/result-entry?${searchParams.toString()}`, { state: { reCase: true } });
+      return;
+    }
     linkedCaseRef.current = link;
     openForEditRef.current = searchParams.get('edit') === '1';
-    openCase(reportId ? { report: { _id: reportId } } : { bill: { _id: billId, patient: { _id: patientId } }, report: null });
+    openCase(reportId ? { report: { _id: reportId } } : { bill: { _id: billId, patient: { _id: patientId } }, report: null }, { fromUrl: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const performBack = () => {
+  const performBack = ({ fromHistory = false } = {}) => {
     setDiscardOpen(false);
-    if (searchParams.get('report') || searchParams.get('bill')) setSearchParams({}, { replace: true });
+    linkedCaseRef.current = '';
+    if (!fromHistory && (searchParams.get('report') || searchParams.get('bill'))) {
+      if (window.history.state?.usr?.reCase) navigate(-1);
+      else setSearchParams({}, { replace: true });
+    }
     doctorReqRef.current += 1; // drop any in-flight referrer lookup
     setView('list');
     setEntry(null);
@@ -1123,6 +1167,18 @@ const ResultEntry = () => {
             >
               Back to cases
             </Button>
+            {entry?.bill?._id && !entryLoading && (
+              <span className="re-topbar-links">
+                <Button variant="secondary" size="sm" onClick={() => navigate(`/cases/bills?search=${encodeURIComponent(entry.bill.billNumber || '')}&details=${entry.bill._id}`)}>
+                  View bill
+                </Button>
+                {canSign && (
+                  <Button variant="secondary" size="sm" onClick={() => navigate(`/cases/bills/edit/${entry.bill._id}`)}>
+                    Modify case
+                  </Button>
+                )}
+              </span>
+            )}
           </div>
 
           {feedback ? (
@@ -1353,19 +1409,6 @@ const ResultEntry = () => {
                     </div>
                   )}
                   <div className="re-action-buttons">
-                    {entry?.bill?._id && (
-                      <span className="ls-case-menu">
-                        <Button variant="secondary" aria-haspopup="menu" aria-expanded={signMenuOpen} onClick={() => setSignMenuOpen((open) => !open)} title="Bill and case actions">
-                          Case <ChevronDown size={14} />
-                        </Button>
-                        {signMenuOpen && (
-                          <span className="ls-case-menu-list" role="menu" onMouseLeave={() => setSignMenuOpen(false)}>
-                            <button type="button" role="menuitem" onClick={() => { setSignMenuOpen(false); navigate(`/cases/bills?search=${encodeURIComponent(entry.bill.billNumber || '')}&details=${entry.bill._id}`); }}>View bill</button>
-                            {canSign && <button type="button" role="menuitem" onClick={() => { setSignMenuOpen(false); navigate(`/cases/bills/edit/${entry.bill._id}`); }}>Modify case</button>}
-                          </span>
-                        )}
-                      </span>
-                    )}
                     {canSign && entry?.report?.status !== 'Signed' && (
                       <span className="ls-signoff">
                         <Button variant="primary" icon={<CheckCircle2 size={16} />} onClick={handleSign} loading={busy === 'sign'} disabled={busy !== null || !selectedSignature}
@@ -1434,7 +1477,7 @@ const ResultEntry = () => {
       <ConfirmDialog
         isOpen={discardOpen}
         onClose={() => setDiscardOpen(false)}
-        onConfirm={performBack}
+        onConfirm={() => performBack()}
         title="Discard unsaved changes?"
         message="You have unsaved result values for this case. Leaving now will discard them."
         confirmText="Discard changes"

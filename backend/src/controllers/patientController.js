@@ -4,7 +4,7 @@ const Report = require('../models/Report');
 const Transaction = require('../models/Transaction');
 const Activity = require('../models/Activity');
 const { successResponse, errorResponse } = require('../utils/response');
-const { validatePatient, validatePatientUpdate } = require('../validators/patientValidator');
+const { validatePatient, validatePatientUpdate, BIRTH_YEAR_NEEDED } = require('../validators/patientValidator');
 const MESSAGES = require('../constants/messages');
 
 const getPatients = async (req, res, next) => {
@@ -110,7 +110,14 @@ const updatePatient = async (req, res, next) => {
     const allowed = ['name', 'phone', 'title', 'birthYear', 'age', 'ageUnit', 'gender', 'address', 'email', 'aadhaar', 'history', 'uhid', 'referringDoctor'];
     const payload = Object.fromEntries(allowed.filter(key => req.body[key] !== undefined).map(key => [key, req.body[key]]));
     const { errors, isValid } = validatePatientUpdate(payload);
-    if (!isValid) {
+    // Adding a phone to a patient with no birth year: the birth year is their
+    // online password, so it must come with the phone.
+    // Only checked when the phone is being set or changed, so older patients
+    // without a birth year can still be edited otherwise.
+    const phoneChanged = payload.phone !== undefined && String(payload.phone || '').trim() && String(payload.phone).trim() !== String(current.phone || '').trim();
+    const birthYearAfter = payload.birthYear !== undefined ? payload.birthYear : current.birthYear;
+    if (phoneChanged && !String(birthYearAfter ?? '').trim() && !errors.birthYear) errors.birthYear = BIRTH_YEAR_NEEDED;
+    if (!isValid || errors.birthYear) {
       return errorResponse(res, MESSAGES.GENERAL.VALIDATION_ERROR, 400, errors);
     }
 
