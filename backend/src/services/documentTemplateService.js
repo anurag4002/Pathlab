@@ -1,7 +1,11 @@
 // Version-controlled template and artwork ship with every deployment. Existing
 // profiles use this default immediately, without an upload or setup step.
 const REFERENCE_FORMAT = Object.freeze(require('../assets/document-formats/pure-path-reference.json'));
-const NUMBER_BOUNDS = { pageMargin: [12, 54], headerHeight: [60, 480], footerHeight: [30, 110], fontSize: [8, 12], rowPadding: [2, 8] };
+const NUMBER_BOUNDS = { pageMargin: [12, 54], headerHeight: [60, 480], footerHeight: [30, 330], fontSize: [8, 12], rowPadding: [2, 8] };
+// Header and footer can each be tall, but together they must leave room for
+// results on an A4 page (842 pt), or the report could not be laid out.
+const A4_HEIGHT = 842;
+const MIN_RESULTS_SPACE = 200;
 const ENUMS = { fontFamily: ['Helvetica', 'Times-Roman', 'Courier'], tableStyle: ['outlined', 'plain', 'banded'], flagPlacement: ['before-value', 'last'], patientLayout: ['columns', 'stacked'] };
 function invalid(message) { const error = new Error(message); error.statusCode = 400; throw error; }
 function normalizeFormat(raw = {}, strict = false) {
@@ -12,6 +16,13 @@ function normalizeFormat(raw = {}, strict = false) {
     if (!Number.isFinite(value) || value < bounds[0] || value > bounds[1]) {
       if (strict) invalid(`${key} must be between ${bounds[0]} and ${bounds[1]}.`);
     } else format[key] = value;
+  }
+  const resultsSpace = A4_HEIGHT - 2 * format.pageMargin - format.headerHeight - format.footerHeight;
+  if (resultsSpace < MIN_RESULTS_SPACE) {
+    if (strict) invalid(`Header and footer are too tall together: only ${Math.max(0, Math.round(resultsSpace))} pt would be left for results. Reduce them by ${Math.round(MIN_RESULTS_SPACE - resultsSpace)} pt in total.`);
+    // A stored format that is too tall falls back to the defaults for these two.
+    format.headerHeight = REFERENCE_FORMAT.headerHeight;
+    format.footerHeight = REFERENCE_FORMAT.footerHeight;
   }
   for (const [key, values] of Object.entries(ENUMS)) {
     if (raw[key] === undefined) continue;
