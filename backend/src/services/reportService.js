@@ -317,10 +317,17 @@ const signReport = async (reportId, signatureId, user) => {
   return report;
 };
 
+const TAT_DATE_ONLY_KEYS = ['collected', 'received', 'reported'];
+const istDay = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(value));
+
 const updateTat = async (reportId, updates = {}) => {
   const report = await Report.findById(reportId);
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
   const nextTat = { ...(report.tat?.toObject ? report.tat.toObject() : report.tat || {}) };
+  // Collected / received / reported may be saved as a date alone (time left blank).
+  let dateOnly = (Array.isArray(nextTat.dateOnly) ? nextTat.dateOnly : []).filter(key => TAT_DATE_ONLY_KEYS.includes(key));
+  if (Array.isArray(updates.dateOnly)) dateOnly = TAT_DATE_ONLY_KEYS.filter(key => updates.dateOnly.includes(key));
+  else dateOnly = dateOnly.filter(key => updates[key] === undefined);
   for (const key of ['registered', 'collected', 'received', 'reported']) {
     if (updates[key] === undefined) continue;
     const value = updates[key];
@@ -329,15 +336,19 @@ const updateTat = async (reportId, updates = {}) => {
     if (Number.isNaN(parsed.getTime())) throw Object.assign(new Error(`Invalid ${key} date and time`), { statusCode: 400 });
     nextTat[key] = parsed;
   }
+  nextTat.dateOnly = dateOnly.filter(key => nextTat[key]);
+  // A date without a time is only compared by its day.
+  const isBefore = (a, aKey, b, bKey) => (nextTat.dateOnly.includes(aKey) || nextTat.dateOnly.includes(bKey)
+    ? istDay(a) < istDay(b) : a < b);
   if (nextTat.received && !nextTat.collected) {
     throw Object.assign(new Error('Collect the sample before marking it received'), { statusCode: 400 });
   }
   const nextCollected = nextTat.collected;
   const nextReceived = nextTat.received;
-  if (nextCollected && nextReceived && nextReceived < nextCollected) {
+  if (nextCollected && nextReceived && isBefore(nextReceived, 'received', nextCollected, 'collected')) {
     throw Object.assign(new Error('Received time cannot be earlier than collected time'), { statusCode: 400 });
   }
-  if (nextTat.reported && (nextReceived || nextCollected) && nextTat.reported < (nextReceived || nextCollected)) {
+  if (nextTat.reported && (nextReceived || nextCollected) && isBefore(nextTat.reported, 'reported', nextReceived || nextCollected, nextReceived ? 'received' : 'collected')) {
     throw Object.assign(new Error('Reported time cannot be earlier than sample collection or receipt'), { statusCode: 400 });
   }
   report.tat = nextTat;

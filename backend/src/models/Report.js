@@ -111,7 +111,10 @@ const ReportSchema = new mongoose.Schema({
     registered: { type: Date, default: Date.now },
     collected: { type: Date, default: null },
     received: { type: Date, default: null },
-    reported: { type: Date, default: null }
+    reported: { type: Date, default: null },
+    // Dates entered without a time (time left blank): stored at 00:00 IST
+    // and printed as the date alone, never with another step's time.
+    dateOnly: { type: [String], default: [] }
   },
   // E-signatures placed on the PDF ( Signature refs + placement ).
   signatures: [{

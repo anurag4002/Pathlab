@@ -1,5 +1,5 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Button, Input } from '../common';
+import { Button } from '../common';
 import { updateReportTat } from '../../services/reportService';
 import { fromLabDateTime, toLabDateTime } from '../../utils/labDateTime';
 
@@ -16,8 +16,9 @@ function ReportTatForm({ report, onSaved, apiRef, compact }) {
   // Collected / Received / Reported start with the Registered date and time
   // when they are still empty (staff change them if they differ). They are
   // saved together with the results, like any other edit here.
-  // Only the date is filled in; the time stays blank for staff to type. A
-  // date saved with a blank time takes the time of saving.
+  // Only the date is filled in; the time stays blank for staff to type.
+  // Collected / Received saved with a blank time stay blank (date only, also
+  // on the print) - never the reported time. Reported takes the time of saving.
   const [draft, setDraft] = useState(() => {
     const registered = toLabDateTime(report?.tat?.registered);
     if (!registered) return {};
@@ -26,20 +27,28 @@ function ReportTatForm({ report, onSaved, apiRef, compact }) {
       .filter((key) => !report?.tat?.[key])
       .map((key) => [key, `${day}T`]));
   });
-  const values = { ...Object.fromEntries(fields.map(key => [key, toLabDateTime(report?.tat?.[key])])), ...draft };
+  const savedDateOnly = report?.tat?.dateOnly || [];
+  const savedValue = (key) => {
+    const value = toLabDateTime(report?.tat?.[key]);
+    return value && savedDateOnly.includes(key) ? `${value.slice(0, 10)}T` : value;
+  };
+  const values = { ...Object.fromEntries(fields.map(key => [key, savedValue(key)])), ...draft };
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
   const fallbackRef = useRef(null);
-  const dirty = fields.some(key => values[key] !== toLabDateTime(report?.tat?.[key]));
+  const dirty = fields.some(key => values[key] !== savedValue(key));
   const save = async () => {
     if (busy || !report?._id) return;
     if (!values.registered) throw new Error('Registered date and time is required.');
     setBusy(true); setMessage(null);
     try {
-      // A date with a blank time is saved with the current time.
+      // Reported with a blank time takes the current time; collected and
+      // received keep a blank time (saved as the date alone).
       const nowTime = toLabDateTime(new Date()).slice(11, 16);
-      const complete = (value) => (value && /T$/.test(value) ? `${value}${nowTime}` : value);
-      const payload = Object.fromEntries(fields.map(key => [key, fromLabDateTime(complete(values[key]))]));
+      const blankTime = (value) => !!value && /T$/.test(value);
+      const dateOnly = ['collected', 'received'].filter((key) => blankTime(values[key]));
+      const complete = (key, value) => (blankTime(value) ? `${value}${dateOnly.includes(key) ? '00:00' : nowTime}` : value);
+      const payload = { ...Object.fromEntries(fields.map(key => [key, fromLabDateTime(complete(key, values[key]))])), dateOnly };
       const res = await updateReportTat(report._id, payload);
       onSaved?.(res.data);
       setDraft({});
@@ -77,8 +86,19 @@ function ReportTatForm({ report, onSaved, apiRef, compact }) {
   return <fieldset disabled={busy} style={{ border: '1px solid var(--color-border)', borderRadius: 8, padding: 12, margin: '16px 0' }}>
     <legend>Report date and time (IST)</legend>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-      {fields.map(key => <Input key={key} id={`tat-${report?._id}-${key}`} type="datetime-local" label={`${key[0].toUpperCase()}${key.slice(1)} (TAT)`}
-        value={values[key] || ''} onChange={e => { setMessage(null); setDraft(prev => ({ ...prev, [key]: e.target.value })); }} required={key === 'registered'} />)}
+      {fields.map(key => {
+        const [datePart = '', timePart = ''] = String(values[key] || '').split('T');
+        const label = `${key[0].toUpperCase()}${key.slice(1)} (TAT)`;
+        return <div key={key} className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label" htmlFor={`tat-${report?._id}-${key}`}>{label}{key === 'registered' ? ' *' : ''}</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 7rem', gap: 6 }}>
+            <input id={`tat-${report?._id}-${key}`} type="date" className="form-control" value={datePart} aria-label={`${label} date`} required={key === 'registered'}
+              onChange={e => setPart(key, 'date', e.target.value)} />
+            <input type="time" className="form-control" value={timePart.slice(0, 5)} aria-label={`${label} time`} disabled={!datePart}
+              onChange={e => setPart(key, 'time', e.target.value)} />
+          </div>
+        </div>;
+      })}
     </div>
     <Button variant="secondary" onClick={() => { save().catch(() => {}); }} disabled={!report?._id || !values.registered || busy} loading={busy}>Save date and time</Button>
     {message && <p role={message.error ? 'alert' : 'status'} style={{ color: message.error ? '#b91c1c' : '#166534' }}>{message.text}</p>}

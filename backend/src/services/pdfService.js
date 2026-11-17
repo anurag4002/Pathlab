@@ -333,13 +333,14 @@ function drawPatientBand(doc, { patient, bill, report, referredName, token }, { 
     midBottom = drawBarcodeAt(doc, report?.registrationNumber || bill?.billNumber, midX, midBottom, midW);
   }
   if (tat && report?.tat) {
-    const f = (d) => (d ? new Date(d).toLocaleString() : '-');
+    const dateOnly = report.tat.dateOnly || [];
+    const f = (d, key) => (d ? (dateOnly.includes(key) ? new Date(d).toLocaleDateString() : new Date(d).toLocaleString()) : '-');
     doc.fontSize(9).font('Helvetica').fillColor('#1f2937');
     [
-      `Registered on : ${f(report.tat.registered)}`,
-      `Collected on  : ${f(report.tat.collected)}`,
-      `Received on   : ${f(report.tat.received)}`,
-      `Reported on   : ${f(report.tat.reported)}`
+      `Registered on : ${f(report.tat.registered, 'registered')}`,
+      `Collected on  : ${f(report.tat.collected, 'collected')}`,
+      `Received on   : ${f(report.tat.received, 'received')}`,
+      `Reported on   : ${f(report.tat.reported, 'reported')}`
     ].forEach((line) => {
       doc.text(line, midX, midBottom, { width: midW });
       midBottom = doc.y + 1;

@@ -6,8 +6,10 @@ const { expandTests } = require('./testDefinitions');
 const { reportNoteBlocks, documentBlocks } = require('./interpretationLayout');
 const assets = path.join(__dirname, '../assets/document-formats');
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
-const date = value => {
+const date = (value, dateOnly = false) => {
   if (!value || Number.isNaN(new Date(value).getTime())) return '-';
+  // Time left blank when it was entered: print the date alone.
+  if (dateOnly) return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
   return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date(value)).replace(',', '').toUpperCase();
 };
 // Reference report interpretation band: light slate panel with generous
@@ -240,7 +242,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       text(code, mx, midY + 19, middleWidth, { size: 8 }); midY += 32;
     }
     const dates = kind === 'bill' ? [`Bill No: ${bill.billNumber || '-'}`, `Date: ${date(bill.date)}`, patient.phone && `Phone: ${patient.phone}`].filter(Boolean)
-      : options.tat ? Object.entries({ Registered: report.tat?.registered || report.reportDate, Collected: report.tat?.collected, Received: report.tat?.received, Reported: report.tat?.reported || report.reportDate }).map(([label, value]) => `${label} on : ${date(value)}`) : [];
+      : options.tat ? Object.entries({ Registered: report.tat?.registered || report.reportDate, Collected: report.tat?.collected, Received: report.tat?.received, Reported: report.tat?.reported || report.reportDate }).map(([label, value]) => `${label} on : ${date(value, (report.tat?.dateOnly || []).includes(label.toLowerCase()))}`) : [];
     dates.forEach(value => lines(value, stacked ? width - qrWidth - 10 : middleWidth, false, 8).forEach(line => { text(line, mx, midY, stacked ? width - qrWidth - 10 : middleWidth, { size: 8 }); midY += 11; }));
     let bottom = Math.max(leftY, midY);
     if (qrWidth) {
