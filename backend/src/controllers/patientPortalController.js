@@ -8,6 +8,7 @@ const XrayCase = require('../models/XrayCase');
 const Test = require('../models/Test');
 const TestPackage = require('../models/TestPackage');
 const Inquiry = require('../models/Inquiry');
+const { ensureMainBranch } = require('../utils/ensureBranch');
 const LabProfile = require('../models/LabProfile');
 const Signature = require('../models/Signature');
 const generateRegistrationNumber = require('../utils/generateRegistrationNumber');
@@ -491,8 +492,14 @@ const createInquiry = async (req, res, next) => {
       if (Number.isNaN(d.getTime())) return errorResponse(res, 'Invalid preferred date', 400);
       prefDate = d;
     }
+    // Give the booking a branch so branch staff see it: the patient's own
+    // branch, else the Main branch (an online booking has no branch).
+    let branch = null;
+    if (patientRef) branch = (await Patient.findById(patientRef).select('branch').lean())?.branch || null;
+    if (!branch) branch = (await ensureMainBranch())?._id || null;
     const inquiry = await Inquiry.create({
       patient: patientRef,
+      branch,
       name: displayName,
       phone,
       items: cleanItems,

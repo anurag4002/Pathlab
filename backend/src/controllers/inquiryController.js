@@ -3,7 +3,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 
 // GET /api/inquiries?status=&search=&page=&limit= — staff queue of
 // self-service booking inquiries (Admin + Employee).
-const { getBranchFilter, assertBranchAccess } = require('../middleware/branchMiddleware');
+const { getBranchFilter, assertBranchAccess, getUserBranchId } = require('../middleware/branchMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
 
 const listInquiries = async (req, res, next) => {
@@ -12,7 +12,10 @@ const listInquiries = async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
-    const query = { ...getBranchFilter(req) };
+    // Staff see their branch's bookings plus any not yet given a branch
+    // (online bookings), so none is hidden from the front desk.
+    const branchFilter = getBranchFilter(req);
+    const query = branchFilter.branch ? { $and: [{ $or: [{ branch: branchFilter.branch }, { branch: null }] }] } : {};
     if (status) query.status = status;
     if (String(search).trim()) {
       const s = String(search).trim();
@@ -117,7 +120,9 @@ const setInquiryStatus = async (req, res, next) => {
     const existing = await Inquiry.findById(req.params.id).select('branch');
     if (!existing) return errorResponse(res, 'Inquiry not found', 404);
     try { assertBranchAccess(req, existing.branch); } catch (e) { return errorResponse(res, 'Access denied for this branch', 403); }
-    const doc = await Inquiry.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    // A booking with no branch joins the branch of the staff member handling it.
+    const claim = !existing.branch && getUserBranchId(req.user) ? { branch: getUserBranchId(req.user) } : {};
+    const doc = await Inquiry.findByIdAndUpdate(req.params.id, { status, ...claim }, { new: true });
     if (!doc) return errorResponse(res, 'Inquiry not found', 404);
     return successResponse(res, 'Inquiry updated', doc);
   } catch (error) {
