@@ -85,7 +85,7 @@ test('asynchronous signature loading preserves the recorded signatory', async ()
   await report.save();
   const original = storageService.getFilePath;
   storageService.getFilePath = function (value) {
-    return value === 'pdf-signature-test-image' ? path.resolve(__dirname, '../src/assets/document-formats/reference-watermark.jpg') : original.call(this, value);
+    return value === 'pdf-signature-test-image' ? path.resolve(__dirname, '../src/assets/document-formats/reference-watermark.png') : original.call(this, value);
   };
   try {
     const { bytes } = await render(report, { letterhead: '0', qr: '0' });

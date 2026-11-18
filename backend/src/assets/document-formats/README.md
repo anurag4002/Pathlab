@@ -1,7 +1,7 @@
-The reference header and watermark are extracted from the lab report supplied
-for this project; the footer (24/7 badge and notes) from the lab's letterhead
-pad, without its preprinted signature labels. They contain no patient results,
-registration barcode, QR code or signature artwork. Signatures are rendered
+The reference header, watermark and footer are cut from the lab's letterhead
+pad (header, faded logo, and footer with its 24/7 badge, notes and the pad's
+printed signature labels). They contain no patient results, registration
+barcode or QR code. Each report's own signatures are still rendered
 only from the corresponding report's stored sign-off records.
 
 These assets are the default when a document format enables reference

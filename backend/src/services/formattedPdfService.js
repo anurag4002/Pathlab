@@ -200,12 +200,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       patientBand();
       return;
     }
-    const headerImage = imagePath(profile.letterheadUrl, 'reference-header.jpg');
+    const headerImage = imagePath(profile.letterheadUrl, 'reference-header.png');
     const drawHeader = source => {
       const slot = artSlot(source, width, format.headerHeight, REFERENCE_FORMAT.headerHeight);
       return image(source, m, y, width, slot) && slot;
     };
-    const headerSlot = headerImage && (drawHeader(headerImage) || drawHeader(referenceAsset('reference-header.jpg')));
+    const headerSlot = headerImage && (drawHeader(headerImage) || drawHeader(referenceAsset('reference-header.png')));
     if (headerSlot) y += headerSlot + 6;
     else {
       const logo = imagePath(profile.logoUrl);
@@ -221,9 +221,9 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     }
     if (options.watermark) {
       const custom = !!profile.logoUrl;
-      const watermark = imagePath(profile.logoUrl, 'reference-watermark.jpg');
+      const watermark = imagePath(profile.logoUrl, 'reference-watermark.png');
       const uploadedLogo = !!resolveUploadAbsolute(profile.logoUrl);
-      if (!image(watermark, m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, custom && uploadedLogo ? 0.07 : 1)) image(referenceAsset('reference-watermark.jpg'), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300);
+      if (!image(watermark, m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, custom && uploadedLogo ? 0.07 : 1)) image(referenceAsset('reference-watermark.png'), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300);
     }
     patientBand();
   }
