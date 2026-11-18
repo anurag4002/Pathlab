@@ -1,15 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Input } from '../common';
 import { previewDocumentFormat } from '../../services/setupService';
-import { NUMERIC_FORMAT_FIELDS as numericFields, formatFieldKey } from './documentFormatFields';
+import { Link } from 'react-router-dom';
+import { NUMERIC_FORMAT_FIELDS as numericFields, SELECT_FORMAT_FIELDS as selectFields, formatFieldKey } from './documentFormatFields';
 import './DocumentFormatEditor.css';
-
-const selectFields = [
-  ['fontFamily', 'Font', [['Helvetica', 'Helvetica'], ['Times-Roman', 'Times'], ['Courier', 'Courier']]],
-  ['tableStyle', 'Table appearance', [['outlined', 'Reference outline'], ['plain', 'Plain'], ['banded', 'Colored header and alternating rows']]],
-  ['flagPlacement', 'Abnormal flag position', [['before-value', 'Before value (reference)'], ['last', 'Last column']]],
-  ['patientLayout', 'Patient details', [['columns', 'Three columns (reference)'], ['stacked', 'Stacked']]]
-];
 
 export default function DocumentFormatEditor({ form, profile, disabled, canPreview, onChange, fieldErrors = {} }) {
   const formats = form.documentFormats || profile.documentFormats || [];
@@ -64,6 +58,7 @@ export default function DocumentFormatEditor({ form, profile, disabled, canPrevi
       <div className="lab-profile-section-heading">
         <h2 id="document-format-heading">Report and bill formats</h2>
         <p>Based on your reference PDF. Create a format from a copy, customize it, and select the defaults. Use Save changes to apply formats to future downloads and prints.</p>
+        <p><Link to="/setup/report-template">Open the report template page</Link> to see each change on the real report PDF as you type.</p>
       </div>
       <div className="document-format-grid">
         <label className="form-group">Format to edit

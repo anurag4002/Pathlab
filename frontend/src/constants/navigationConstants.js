@@ -116,6 +116,7 @@ export const SIDEBAR_NAV_ITEMS = [
       { title: 'Doctor Access', v2Title: 'Doctor access', path: '/manage/doctors' },
       { title: 'Browser Security', v2Title: 'Approved computers', path: '/manage/security' },
       { title: 'Lab Profile', v2Title: 'Lab profile', path: '/setup/profile' },
+      { title: 'Report Template', v2Title: 'Report template', path: '/setup/report-template' },
       { title: 'Job Queue', v2Title: 'Unsent messages', path: '/settings/jobs' },
       { title: 'Onboarding', v2Title: 'Getting started', path: '/setup/onboarding' },
       { title: 'Templates', v2Title: 'Message wording', path: '/delivery/templates' },

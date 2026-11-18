@@ -5,6 +5,14 @@ export const NUMERIC_FORMAT_FIELDS = [
   ['footerHeight', 'Footer height (pt)', 30, 330], ['fontSize', 'Body text size (pt)', 8, 12], ['rowPadding', 'Table row padding (pt)', 2, 8]
 ];
 
+// Choice settings of a format: key, form label, [value, option text] pairs.
+export const SELECT_FORMAT_FIELDS = [
+  ['fontFamily', 'Font', [['Helvetica', 'Helvetica'], ['Times-Roman', 'Times'], ['Courier', 'Courier']]],
+  ['tableStyle', 'Table appearance', [['outlined', 'Reference outline'], ['plain', 'Plain'], ['banded', 'Colored header and alternating rows']]],
+  ['flagPlacement', 'Abnormal flag position', [['before-value', 'Before value (reference)'], ['last', 'Last column']]],
+  ['patientLayout', 'Patient details', [['columns', 'Three columns (reference)'], ['stacked', 'Stacked']]]
+];
+
 // Field-error key for one setting of one format, e.g. documentFormats.<id>.pageMargin.
 export const formatFieldKey = (formatId, key) => `documentFormats.${formatId}.${key}`;
 

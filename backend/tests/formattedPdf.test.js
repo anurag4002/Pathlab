@@ -472,3 +472,21 @@ test('letterhead signature row is its own image and an upload replaces only it',
     assert.ok(replaced.length !== bundled.length && fs.existsSync(upload));
   } finally { pdfService.resolveUploadAbsolute = original; }
 });
+
+test('an uploaded letterhead and footer also run edge to edge', async () => {
+  const pdfService = require('../src/services/pdfService');
+  const original = pdfService.resolveUploadAbsolute;
+  const art = require('path').resolve(__dirname, '../src/assets/document-formats/reference-header.png');
+  pdfService.resolveUploadAbsolute = value => (/^uploads\/letterheads\/(head|foot)\.png$/.test(value) ? art : original(value));
+  try {
+    const pdf = await reportPdf({ ...context, profile: { ...context.profile, documentFormats: [REFERENCE_FORMAT], letterheadUrl: 'uploads/letterheads/head.png', footerUrl: 'uploads/letterheads/foot.png' } },
+      { letterhead: true, footer: true, watermark: false, qr: false, barcode: false });
+    const placed = [];
+    for (const match of pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)) {
+      let content; try { content = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { continue; }
+      for (const cm of content.matchAll(/([\d.-]+) 0 0 ([\d.-]+) ([\d.-]+) ([\d.-]+) cm\s*\/I/g)) placed.push(cm.slice(1).map(Number));
+    }
+    assert.ok(placed.some(([w, h, x, y]) => Math.abs(w - 595.28) < 1 && x === 0 && Math.abs(y + h) < 1), 'uploaded header from the top edge, full width');
+    assert.ok(placed.some(([w, , x, y]) => Math.abs(w - 595.28) < 1 && x === 0 && Math.abs(y - 841.89) < 1), 'uploaded footer down to the bottom edge, full width');
+  } finally { pdfService.resolveUploadAbsolute = original; }
+});

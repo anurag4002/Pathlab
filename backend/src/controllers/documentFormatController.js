@@ -21,6 +21,7 @@ exports.preview = async (req, res, next) => {
       if (body[key] !== undefined && typeof body[key] === 'string' && body[key].length <= 2000) profile[key] = body[key];
     }
     for (const key of Object.keys(profile).filter(key => key.startsWith('show'))) if (typeof body[key] === 'boolean') profile[key] = body[key];
+    if (typeof body.printSignatures === 'boolean') profile.printSignatures = body.printSignatures;
     const now = new Date();
     const context = {
       preview: true, profile, patient: { name: 'Sample Patient', age: 32, gender: 'M', registrationNumber: nextNumber, phone: '0000000000' },
@@ -36,7 +37,11 @@ exports.preview = async (req, res, next) => {
       items: [{ name: 'Kidney Function Test', price: 900 }]
     };
     const qrPng = await qrBuffer('Format preview - sample data');
-    const pdf = await documentPdf(context, { qrPng }, body.kind === 'bill' ? 'bill' : 'report');
+    // Report template page: preview on blank paper with the drawn letterhead,
+    // or as it prints on the lab's pre-printed pad (letterhead: false).
+    const requestOptions = { qrPng };
+    if (typeof body.letterhead === 'boolean') requestOptions.letterhead = body.letterhead;
+    const pdf = await documentPdf(context, requestOptions, body.kind === 'bill' ? 'bill' : 'report');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Disposition', 'inline; filename="Format-preview.pdf"');

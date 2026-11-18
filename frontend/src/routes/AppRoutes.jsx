@@ -83,6 +83,7 @@ const Signatures = lazy(() => import('../pages/settings/Signatures'));
 
 // Setup / Delivery / Support / Doctor
 const LabProfile = lazy(() => import('../pages/setup/LabProfile'));
+const ReportTemplate = lazy(() => import('../pages/setup/ReportTemplate'));
 const Onboarding = lazy(() => import('../pages/setup/Onboarding'));
 const TatConfig = lazy(() => import('../pages/settings/TatConfig'));
 const Templates = lazy(() => import('../pages/delivery/Templates'));
@@ -205,6 +206,7 @@ const AppRoutes = () => {
           <Route path="/settings/rate-revision" element={<RateRevision />} />
           <Route path="/settings/signatures" element={<Signatures />} />
           <Route path="/setup/profile" element={<LabProfile />} />
+          <Route path="/setup/report-template" element={<ReportTemplate />} />
           <Route path="/setup/onboarding" element={<Onboarding />} />
           <Route path="/settings/jobs" element={<Jobs />} />
           <Route path="/settings/tat" element={<TatConfig />} />

@@ -43,7 +43,10 @@ async function render(report, query = {}, user = admin, requestHeaders = {}) {
   return { bytes: res.bytes, headers, status: res.statusCode };
 }
 function textOf(pdf) {
-  return [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)].map(match => {
+  // PDFKit ends streams with "\nendstream". Do not strip a "\r" before it: a
+  // compressed stream may end with that byte, and dropping it made the stream
+  // unreadable (no text found) about once in 256 renders.
+  return [...pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)].map(match => {
     try {
       const stream = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1');
       return [...stream.matchAll(/<([\da-f]+)>/gi)].map(m => Buffer.from(m[1], 'hex').toString('latin1')).join('');

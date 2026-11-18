@@ -13,6 +13,8 @@ const SIGNATURE_ROW = { x: 300 / 1620, w: 1320 / 1620, h: 204 / 449 };
 // the top and its footer (signature labels, 24/7 badge, notes) starts about
 // 162 pt from the bottom. Without a drawn letterhead, content stays clear of both.
 const PREPRINT_HEADER_CLEAR = 134;
+// Tallest an uploaded header or footer image may be drawn (about a quarter page).
+const UPLOADED_ART_CAP = 220;
 const PREPRINT_FOOTER_CLEAR = 172;
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
 const date = (value, dateOnly = false) => {
@@ -85,10 +87,18 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     const img = doc.openImage(source);
     return w * img.height / img.width;
   }
+  // Uploaded art: its height at full page width, capped; 0 when unreadable.
+  function safeHeight(source, w, cap) {
+    try { return Math.min(naturalHeight(source, w), cap); } catch (_) { return 0; }
+  }
   const customFooter = options.footer && profile.footerUrl ? resolveUploadAbsolute(profile.footerUrl) : null;
   // The pad's own footer art runs edge to edge, down to the paper's bottom.
-  const bleedFooter = !!options.footer && !customFooter && format.useReferenceBranding && !plainBill;
-  const footerSlot = !options.footer ? 0 : customFooter
+  // An uploaded footer does too (capped to the footer band plus the margin).
+  const customFooterHeight = customFooter && !plainBill
+    ? safeHeight(customFooter, doc.page.width, Math.max(format.footerHeight + m, UPLOADED_ART_CAP)) : 0;
+  const bleedCustomFooter = !!customFooterHeight;
+  const bleedFooter = !!options.footer && !plainBill && (bleedCustomFooter || (!customFooter && format.useReferenceBranding));
+  const footerSlot = !options.footer ? 0 : bleedCustomFooter ? customFooterHeight : customFooter
     ? artSlot(customFooter, width, format.footerHeight, REFERENCE_FORMAT.footerHeight)
     : naturalHeight(REFERENCE_FOOTER, bleedFooter ? doc.page.width : width);
   // Preprinted footers need their configured band; a drawn footer needs only its
@@ -209,12 +219,16 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       patientBand();
       return;
     }
+    // Header art - an uploaded letterhead, else the pad's - runs edge to edge
+    // from the paper's top, as printed on the pad.
     const uploadedHeader = profile.letterheadUrl ? resolveUploadAbsolute(profile.letterheadUrl) : null;
-    // The pad's header art runs edge to edge from the paper's top, as printed.
-    if (!uploadedHeader && format.useReferenceBranding) {
-      const art = path.join(assets, 'reference-header.png');
-      const h = naturalHeight(art, doc.page.width);
-      if (image(art, 0, 0, doc.page.width, h)) { y = Math.max(m, h + 6); drawWatermark(); patientBand(); return; }
+    const headerArts = [
+      uploadedHeader && [uploadedHeader, Math.max(format.headerHeight + m, UPLOADED_ART_CAP)],
+      format.useReferenceBranding && [path.join(assets, 'reference-header.png'), Infinity]
+    ].filter(Boolean);
+    for (const [art, cap] of headerArts) {
+      const h = safeHeight(art, doc.page.width, cap);
+      if (h && image(art, 0, 0, doc.page.width, h)) { y = Math.max(m, h + 6); drawWatermark(); patientBand(); return; }
     }
     const headerImage = imagePath(profile.letterheadUrl, 'reference-header.png');
     const drawHeader = source => {
@@ -931,7 +945,8 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         const box = [x + w * SIGNATURE_ROW.x, top, w * SIGNATURE_ROW.w, footerSlot * SIGNATURE_ROW.h];
         if (!(uploaded && image(uploaded, ...box))) image(REFERENCE_SIGNATURES, ...box);
       };
-      if (bleedFooter) {
+      if (bleedCustomFooter) image(customFooter, 0, doc.page.height - footerSlot, doc.page.width, footerSlot);
+      else if (bleedFooter) {
         image(REFERENCE_FOOTER, 0, doc.page.height - footerSlot, doc.page.width, footerSlot);
         signatureRow(0, doc.page.height - footerSlot, doc.page.width);
       } else {

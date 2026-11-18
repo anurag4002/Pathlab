@@ -1,0 +1,77 @@
+/* Report template: settings on the left, live report PDF on the right. */
+.report-template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.report-template-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.report-template-fields {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 4px 16px 12px;
+  max-height: calc(100vh - 170px);
+  overflow-y: auto;
+}
+.report-template-fields fieldset { border: 0; border-bottom: 1px solid var(--color-border); margin: 0; padding: 12px 0 4px; min-width: 0; }
+.report-template-fields fieldset:last-child { border-bottom: 0; }
+.report-template-fields legend { font-size: 15px; font-weight: 600; color: var(--color-text); padding: 0; margin-bottom: 10px; float: left; width: 100%; }
+.report-template-fields legend + * { clear: left; }
+.report-template-fields label.form-group { font-size: var(--font-size-sm, 13px); color: var(--color-text-secondary); gap: 4px; }
+.report-template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+.report-template-grid .form-group { min-width: 0; }
+.report-template-check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--color-text); margin: 0 0 12px; cursor: pointer; }
+.report-template-check input { margin-top: 3px; flex: none; }
+.report-template-toggles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
+.report-template-toggles .report-template-check { margin-bottom: 8px; }
+.report-template-note { font-size: 13px; color: var(--color-text-muted); margin: 8px 0; }
+
+.report-template-preview { position: sticky; top: 12px; min-width: 0; }
+.report-template-preview-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.report-template-segment { display: inline-flex; border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; background: var(--color-surface); }
+.report-template-segment button { border: 0; background: transparent; padding: 7px 12px; font: inherit; font-size: 13px; color: var(--color-text-secondary); cursor: pointer; }
+.report-template-segment button + button { border-left: 1px solid var(--color-border); }
+.report-template-segment button:hover { background: var(--color-surface-hover); }
+.report-template-segment button.is-on { background: var(--color-primary-light); color: var(--color-text); font-weight: 600; }
+.report-template-segment button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.report-template-status { font-size: 13px; color: var(--color-text-muted); flex: 1 1 12em; min-width: 0; }
+.report-template-open { font-size: 13px; margin-left: auto; color: var(--color-primary); }
+
+.report-template-callout {
+  background: var(--color-warning-bg); border: 1px solid var(--color-warning-border); border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; color: var(--color-text); margin-bottom: 10px;
+}
+
+.report-template-frame {
+  position: relative;
+  height: calc(100vh - 230px);
+  min-height: 520px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #525659; /* the browser PDF viewer's backdrop, so no flash between renders */
+}
+.report-template-frame iframe { display: block; width: 100%; height: 100%; border: 0; transition: opacity .15s; }
+.report-template-frame.is-busy iframe { opacity: .6; }
+.report-template-empty { display: grid; place-items: center; height: 100%; color: #e4e4e7; font-size: 14px; }
+.report-template-progress { position: absolute; inset: 0 0 auto; height: 3px; z-index: 1; background: var(--color-primary); animation: report-template-progress 1s ease-in-out infinite alternate; transform-origin: left; }
+@keyframes report-template-progress { from { transform: scaleX(.15); } to { transform: scaleX(.85); } }
+
+@media (max-width: 1000px) {
+  .report-template-layout { grid-template-columns: 1fr; }
+  .report-template-fields { max-height: none; }
+  .report-template-preview { position: static; }
+  .report-template-frame { height: 80vh; }
+}
+@media (max-width: 480px) {
+  .report-template-grid, .report-template-toggles { grid-template-columns: 1fr; }
+}
+
+/* New look: zinc type, quieter field labels. */
+html.ui-v2 .report-template-fields legend { color: #18181b; }
+html.ui-v2 .report-template-fields label.form-group,
+html.ui-v2 .report-template-check { color: #3f3f46; }
+html.ui-v2 .report-template-note, html.ui-v2 .report-template-status { color: #71717a; }
