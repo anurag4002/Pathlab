@@ -6,6 +6,9 @@ const { expandTests } = require('./testDefinitions');
 const { reportNoteBlocks, documentBlocks } = require('./interpretationLayout');
 const assets = path.join(__dirname, '../assets/document-formats');
 const REFERENCE_FOOTER = path.join(assets, 'reference-footer.png');
+const REFERENCE_SIGNATURES = path.join(assets, 'reference-signatures.png');
+// Where the pad's signature row sits inside the footer art (fractions of it).
+const SIGNATURE_ROW = { x: 300 / 1620, w: 1320 / 1620, h: 204 / 449 };
 // The lab's printed letterhead pad (A4): its header art ends about 124 pt from
 // the top and its footer (signature labels, 24/7 badge, notes) starts about
 // 162 pt from the bottom. Without a drawn letterhead, content stays clear of both.
@@ -83,23 +86,29 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     return w * img.height / img.width;
   }
   const customFooter = options.footer && profile.footerUrl ? resolveUploadAbsolute(profile.footerUrl) : null;
+  // The pad's own footer art runs edge to edge, down to the paper's bottom.
+  const bleedFooter = !!options.footer && !customFooter && format.useReferenceBranding && !plainBill;
   const footerSlot = !options.footer ? 0 : customFooter
     ? artSlot(customFooter, width, format.footerHeight, REFERENCE_FORMAT.footerHeight)
-    : naturalHeight(REFERENCE_FOOTER, width);
+    : naturalHeight(REFERENCE_FOOTER, bleedFooter ? doc.page.width : width);
   // Preprinted footers need their configured band; a drawn footer needs only its
   // own height; digital letterhead without a footer may dip slightly.
   const footerReserve = plainBill ? 0 : !options.letterhead ? Math.max(format.footerHeight, footerSlot) : footerSlot;
   let limit = doc.page.height - (footerReserve ? footerReserve + 10 : 30) - m;
   // The lab's printed pad: never write into its preprinted footer, whatever
   // footer height the format has.
+  if (bleedFooter) limit = doc.page.height - footerSlot - 8;
   if (!options.letterhead && !plainBill) limit = Math.min(limit, doc.page.height - PREPRINT_FOOTER_CLEAR);
-  const pageBottom = options.letterhead ? doc.page.height - m - 12 : limit;
+  // Only a letterhead without a footer lets the report's ending dip lower.
+  const pageBottom = options.letterhead && !footerSlot ? doc.page.height - m - 12 : limit;
+  // Page numbers sit in the pad's empty bottom-right corner, under the footer notes.
+  const cornerPageNo = bleedFooter || (!options.letterhead && !plainBill);
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
   const imagePath = (url, fallback) => (url ? resolveUploadAbsolute(url) : null) || referenceAsset(fallback);
-  function image(source, x, top, w, h, opacity = 1) {
+  function image(source, x, top, w, h, opacity = 1, align = 'center') {
     if (!source) return false;
-    try { doc.save(); doc.opacity(opacity); doc.image(source, x, top, { fit: [w, h], align: 'center', valign: 'center' }); doc.restore(); return true; }
+    try { doc.save(); doc.opacity(opacity); doc.image(source, x, top, { fit: [w, h], align, valign: 'center' }); doc.restore(); return true; }
     catch (_) { doc.restore(); return false; }
   }
   function text(value, x, top, w, { bold = false, size = format.fontSize, color = '#111111', align = 'left' } = {}) {
@@ -200,6 +209,13 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       patientBand();
       return;
     }
+    const uploadedHeader = profile.letterheadUrl ? resolveUploadAbsolute(profile.letterheadUrl) : null;
+    // The pad's header art runs edge to edge from the paper's top, as printed.
+    if (!uploadedHeader && format.useReferenceBranding) {
+      const art = path.join(assets, 'reference-header.png');
+      const h = naturalHeight(art, doc.page.width);
+      if (image(art, 0, 0, doc.page.width, h)) { y = Math.max(m, h + 6); drawWatermark(); patientBand(); return; }
+    }
     const headerImage = imagePath(profile.letterheadUrl, 'reference-header.png');
     const drawHeader = source => {
       const slot = artSlot(source, width, format.headerHeight, REFERENCE_FORMAT.headerHeight);
@@ -219,13 +235,16 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       }
       y = Math.max(y, m + 54) + 8;
     }
-    if (options.watermark) {
-      const custom = !!profile.logoUrl;
-      const watermark = imagePath(profile.logoUrl, 'reference-watermark.png');
-      const uploadedLogo = !!resolveUploadAbsolute(profile.logoUrl);
-      if (!image(watermark, m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, custom && uploadedLogo ? 0.07 : 1)) image(referenceAsset('reference-watermark.png'), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300);
-    }
+    drawWatermark();
     patientBand();
+    function drawWatermark() {
+      if (!options.watermark) return;
+      const uploadedLogo = !!resolveUploadAbsolute(profile.logoUrl);
+      // The pad's faded logo sits where the pad prints it.
+      const pad = () => image(referenceAsset('reference-watermark.png'), doc.page.width * 0.3056, doc.page.height * 0.3306, doc.page.width * 0.3889, doc.page.height * 0.3383);
+      if (uploadedLogo && image(resolveUploadAbsolute(profile.logoUrl), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, 0.07)) return;
+      pad();
+    }
   }
   function patientBand() {
     const patient = context.patient || {}, bill = context.bill || {}, report = context.report || {};
@@ -389,9 +408,12 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       space(signatureHeight);
       if (i + 2 >= signatures.length) y = Math.max(y, limit - signatureHeight);
       const top = y, col = width / 2;
-      signatures.slice(i, i + 2).forEach((signature, j) => {
-        const x = m + j * col;
-        image(signature.png, x, top, col - 12, imageHeight);
+      const row = signatures.slice(i, i + 2);
+      row.forEach((signature, n) => {
+        // A lone signature sits on the right, where the pad's pathologist signs.
+        const j = row.length === 1 ? 1 : n;
+        const x = m + j * col + (j ? 12 : 0);
+        image(signature.png, x, top, col - 12, imageHeight, 1, j ? 'right' : 'left');
         const label = [signature.name, signature.title, 'Authorised Signatory'].filter(Boolean).join('\n');
         lines(label, col - 12, false, 8).slice(0, 3).forEach((line, n) => text(line, x, top + imageHeight + 4 + n * 11, col - 12, { size: 8, align: j ? 'right' : 'left' }));
       });
@@ -903,14 +925,29 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
     if (options.footer) {
-      const footerTop = doc.page.height - m - footerSlot;
-      const customFooterDrawn = customFooter && image(customFooter, m, footerTop, width, footerSlot);
-      if (!customFooterDrawn && format.useReferenceBranding) image(REFERENCE_FOOTER, m, footerTop, width, footerSlot);
+      const signatureRow = (x, top, w) => {
+        // An uploaded signature image replaces only this row; the footer art stays.
+        const uploaded = profile.signatureStripUrl ? resolveUploadAbsolute(profile.signatureStripUrl) : null;
+        const box = [x + w * SIGNATURE_ROW.x, top, w * SIGNATURE_ROW.w, footerSlot * SIGNATURE_ROW.h];
+        if (!(uploaded && image(uploaded, ...box))) image(REFERENCE_SIGNATURES, ...box);
+      };
+      if (bleedFooter) {
+        image(REFERENCE_FOOTER, 0, doc.page.height - footerSlot, doc.page.width, footerSlot);
+        signatureRow(0, doc.page.height - footerSlot, doc.page.width);
+      } else {
+        const footerTop = doc.page.height - m - footerSlot;
+        const customFooterDrawn = customFooter && image(customFooter, m, footerTop, width, footerSlot);
+        if (!customFooterDrawn && format.useReferenceBranding) {
+          image(REFERENCE_FOOTER, m, footerTop, width, footerSlot);
+          signatureRow(m, footerTop, width);
+        }
+      }
     }
     let labelY = doc.page.height - m - (footerReserve ? footerReserve + 17 : 15);
     if (!options.letterhead && !plainBill) labelY = Math.min(labelY, limit - 7);
+    if (bleedFooter) labelY = limit - 7;
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
-    if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, labelY, width, { size: 8, align: 'right' });
+    if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, cornerPageNo ? doc.page.height - 22 : labelY, width, { size: 8, align: 'right' });
   }
   doc.end(); return done;
 }

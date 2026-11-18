@@ -88,7 +88,7 @@ test('asynchronous signature loading preserves the recorded signatory', async ()
     return value === 'pdf-signature-test-image' ? path.resolve(__dirname, '../src/assets/document-formats/reference-watermark.png') : original.call(this, value);
   };
   try {
-    const { bytes } = await render(report, { letterhead: '0', qr: '0' });
+    const { bytes } = await render(report, { letterhead: '0', qr: '0', signatures: '1' });
     const text = textOf(bytes);
     assert.ok(text.includes('RECORDED PATHOLOGIST') && text.includes('MD Pathology'));
     assert.ok(bytes.toString('latin1').includes('/Subtype /Image'));

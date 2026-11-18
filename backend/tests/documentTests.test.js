@@ -40,7 +40,7 @@ test('every Document test has a template', () => {
 
 test('report PDF prints a Document test as its own titled box, after the result table', async () => {
   const format = { ...REFERENCE_FORMAT, useReferenceBranding: false };
-  const profile = { labName: 'Doc Lab', documentFormats: [format], reportFormatId: 'reference', showLetterheadByDefault: false, showFooterByDefault: false, showWatermark: false, showBarcode: false, showQR: false, showSignatures: false };
+  const profile = { labName: 'Doc Lab', documentFormats: [format], reportFormatId: 'reference', showLetterheadByDefault: false, showFooterByDefault: false, showWatermark: false, showBarcode: false, showQR: false, printSignatures: false };
   const category = { name: 'SEROLOGY', createdAt: new Date('2024-01-01') };
   const testMap = {
     widal: { _id: 'widal', name: 'Widal (Tube Method)', sourceType: 'Document', category, reportSectionKey: 'test:widal', displayOrder: 1 },
@@ -61,7 +61,7 @@ test('report PDF prints a Document test as its own titled box, after the result 
 
 test('nested tests print sub-headings with parameters indented under them', async () => {
   const format = { ...REFERENCE_FORMAT, useReferenceBranding: false };
-  const profile = { labName: 'Doc Lab', documentFormats: [format], reportFormatId: 'reference', showLetterheadByDefault: false, showFooterByDefault: false, showWatermark: false, showBarcode: false, showQR: false, showSignatures: false };
+  const profile = { labName: 'Doc Lab', documentFormats: [format], reportFormatId: 'reference', showLetterheadByDefault: false, showFooterByDefault: false, showWatermark: false, showBarcode: false, showQR: false, printSignatures: false };
   const category = { name: 'CLINICAL PATHOLOGY', createdAt: new Date('2024-01-01') };
   const stool = { _id: 'stool', name: 'Stool Routine Examination', category, reportSectionKey: 'test:stool', parameters: [
     { code: 'C', name: 'Colour', subheading: 'MACROSCOPIC' }, { code: 'M', name: 'Mucus', subheading: 'MACROSCOPIC' }, { code: 'O', name: 'OVA', subheading: 'MICROSCOPIC' }] };

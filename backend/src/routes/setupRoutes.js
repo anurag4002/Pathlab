@@ -23,6 +23,7 @@ router.post('/lab-profile/document-preview', protect, authorize('Admin'), requir
 router.post('/lab-profile/logo', protect, authorize('Admin'), uploadLimiter, logoUpload.fields([{ name: 'logo', maxCount: 1 }, { name: 'file', maxCount: 1 }]), setupController.uploadLogoFile);
 router.post('/lab-profile/letterhead', protect, authorize('Admin'), uploadLimiter, imageUpload.single('file'), setupController.uploadLetterhead);
 router.post('/lab-profile/footer', protect, authorize('Admin'), uploadLimiter, imageUpload.single('file'), setupController.uploadFooter);
+router.post('/lab-profile/signature-strip', protect, authorize('Admin'), uploadLimiter, imageUpload.single('file'), setupController.uploadSignatureStrip);
 
 // Onboarding checklist — any staff can read, Admin writes.
 router.get('/onboarding', protect, setupController.getOnboarding);

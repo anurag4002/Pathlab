@@ -44,7 +44,7 @@ const profile = {
   showWatermark: false,
   showBarcode: false,
   showQR: false,
-  showSignatures: false
+  printSignatures: false
 };
 const patient = { name: 'Parity Patient', age: 40, gender: 'Male', registrationNumber: 'PARITY-001' };
 const printOptions = {

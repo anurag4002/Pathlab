@@ -355,13 +355,14 @@ test('header height is blank space on preprinted paper but leaves no gap under a
 });
 
 test('footer height is reserved on preprinted paper but a drawn footer only takes its own height', async () => {
-  const label = async (footerHeight, letterhead) => textTop(await reportPdf({
-    ...context,
+  const interpretation = ['Item\tMeaning', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}`)].join('\n');
+  const lowest = async (footerHeight, letterhead) => lowestTextTop(await reportPdf({
+    ...context, testMap: { Creatinine: { interpretation } },
     profile: { ...context.profile, documentFormats: [{ ...REFERENCE_FORMAT, footerHeight }] }
-  }, { letterhead, footer: letterhead, pageno: true, qr: false, barcode: false }), 'Page 1 of');
-  const drawnDefault = await label(REFERENCE_FORMAT.footerHeight, true);
-  assert.ok(Math.abs(await label(200, true) - drawnDefault) < 1);
-  assert.ok(await label(200, false) <= 841.89 - REFERENCE_FORMAT.pageMargin - 200);
+  }, { letterhead, footer: letterhead, pageno: false, qr: false, barcode: false }));
+  const drawnDefault = await lowest(REFERENCE_FORMAT.footerHeight, true);
+  assert.ok(Math.abs(await lowest(200, true) - drawnDefault) < 1);
+  assert.ok(await lowest(200, false) <= 841.89 - REFERENCE_FORMAT.pageMargin - 200);
 });
 
 test('printing on the lab pad never writes into its preprinted header or footer', async () => {
@@ -371,13 +372,31 @@ test('printing on the lab pad never writes into its preprinted header or footer'
   const profile = { ...context.profile, documentFormats: [small], letterheadTopMargin: 20 };
   assert.ok(textTop(await reportPdf({ ...context, profile }, options), 'Test Patient') >= 134, 'patient block below the pad header');
   const pageLabel = textTop(await reportPdf({ ...context, profile }, options), 'Page 1 of');
-  assert.ok(pageLabel + 10 <= 841.89 - 162, `page number above the pad footer, got ${pageLabel}`);
+  // Page number sits in the pad's empty bottom-right corner, under its notes.
+  assert.ok(pageLabel >= 841.89 - 26 && pageLabel <= 841.89 - 14, `page number in the bottom corner, got ${pageLabel}`);
   // Long reports break pages before the pad footer too.
   const interpretation = ['Item\tMeaning', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}`)].join('\n');
-  const long = await reportPdf({ ...context, profile, testMap: { Creatinine: { interpretation } } }, options);
+  const long = await reportPdf({ ...context, profile, testMap: { Creatinine: { interpretation } } }, { ...options, pageno: false });
   const lowest = lowestTextTop(long);
   assert.ok(lowest + 10 <= 841.89 - 162, `text stays above the pad footer, lowest line at ${lowest}`);
   assert.ok((long.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length > 1, 'long report spans pages');
+});
+
+test('the pad header and footer art run edge to edge and results stay clear of them', async () => {
+  const interpretation = ['Item\tMeaning', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}`)].join('\n');
+  const pdf = await reportPdf({ ...context, profile: { ...context.profile, documentFormats: [REFERENCE_FORMAT] }, testMap: { Creatinine: { interpretation } } },
+    { letterhead: true, footer: true, watermark: false, pageno: false, qr: false, barcode: false });
+  const source = pdf.toString('latin1');
+  // Image placements: "w 0 0 h x y cm". Header at the top-left corner, footer at the bottom-left, both full page width.
+  const placed = [];
+  for (const match of source.matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)) {
+    let content; try { content = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { continue; }
+    for (const cm of content.matchAll(/([\d.-]+) 0 0 ([\d.-]+) ([\d.-]+) ([\d.-]+) cm\s*\/I/g)) placed.push(cm.slice(1).map(Number));
+  }
+  // PDFKit draws top-down: an image's rows run from y + h (top) to y (bottom).
+  assert.ok(placed.some(([w, h, x, y]) => Math.abs(w - 595.28) < 1 && x === 0 && Math.abs(y + h) < 1), 'header art from the top edge, full width');
+  assert.ok(placed.some(([w, , x, y]) => Math.abs(w - 595.28) < 1 && x === 0 && Math.abs(y - 841.89) < 1), 'footer art down to the bottom edge, full width');
+  assert.ok(lowestTextTop(pdf) + 10 <= 841.89 - 160, 'results stay above the footer art');
 });
 
 test('long tabular interpretations continue across pages with all cells preserved', async () => {
@@ -413,7 +432,7 @@ test('reference assets survive missing temporary uploads after a deployment', as
   const profile = { labName: 'PURE PATH LAB', logoUrl: 'uploads/letterheads/missing-logo.png', letterheadUrl: 'uploads/letterheads/missing-header.png', footerUrl: 'uploads/letterheads/missing-footer.png' };
   const pdf = await reportPdf({ ...context, profile });
   const images = pdf.toString('latin1').match(/\/Subtype\s*\/Image\b/g) || [];
-  assert.equal(images.length, 3, 'bundled header, watermark and footer must render');
+  assert.equal(images.length, 4, 'bundled header, watermark, footer and its signature row must render');
   assert.match(textOf(pdf), /Test Patient/);
   assert.ok(!textOf(pdf).includes('Test Lab'));
 });
@@ -426,4 +445,30 @@ test('older reports without a range snapshot print only the matching patient ran
   assert.ok(text.includes('UP TO 10'));
   assert.ok(!text.includes('0.2 - 1.2'));
   assert.ok(!text.includes('age 12mo'));
+});
+
+test('sign-off signatures are off unless the lab turns them on', async () => {
+  const { resolveReportOptions } = require('../src/services/pdfService');
+  assert.equal(resolveReportOptions({}, {}).signatures, false, 'off by default');
+  assert.equal(resolveReportOptions({}, { showSignatures: true }).signatures, false, 'the old stored setting no longer turns them on');
+  assert.equal(resolveReportOptions({}, { printSignatures: true }).signatures, true, 'Setup toggle turns them on');
+});
+
+test('letterhead signature row is its own image and an upload replaces only it', async () => {
+  const fs = require('fs');
+  const pdfFor = async profile => (await reportPdf({ ...context, profile: { ...context.profile, documentFormats: [REFERENCE_FORMAT], ...profile } },
+    { letterhead: true, footer: true, watermark: false, qr: false, barcode: false })).toString('latin1');
+  const imagesIn = source => (source.match(/\/Subtype\s*\/Image\b/g) || []).length;
+  const bundled = await pdfFor({});
+  assert.equal(imagesIn(bundled), 3, 'header, footer and signature row');
+  // An uploaded signature image takes the row's place; the footer art still draws.
+  const pdfService = require('../src/services/pdfService');
+  const original = pdfService.resolveUploadAbsolute;
+  const upload = require('path').resolve(__dirname, '../src/assets/document-formats/reference-watermark.png');
+  pdfService.resolveUploadAbsolute = value => (value === 'uploads/letterheads/new-signs.png' ? upload : original(value));
+  try {
+    const replaced = await pdfFor({ signatureStripUrl: 'uploads/letterheads/new-signs.png' });
+    assert.equal(imagesIn(replaced), 3, 'header, footer and the uploaded signature row');
+    assert.ok(replaced.length !== bundled.length && fs.existsSync(upload));
+  } finally { pdfService.resolveUploadAbsolute = original; }
 });

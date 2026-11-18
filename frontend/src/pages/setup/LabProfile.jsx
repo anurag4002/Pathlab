@@ -5,6 +5,7 @@ import {
   uploadLogo,
   uploadLetterhead,
   uploadFooter,
+  uploadSignatureStrip,
   getSignatures
 } from '../../services/setupService';
 import {
@@ -70,7 +71,7 @@ const EDITABLE_FIELDS = [
   'showFlagColumn',
   'showInterpretation',
   'showEndOfReport',
-  'showSignatures',
+  'printSignatures',
   'showWatermark',
   'showPageNumber',
   'smsEnabled',
@@ -90,6 +91,10 @@ const NUMERIC_FIELDS = new Set(['letterheadTopMargin', 'caseStartNumber', 'regis
 
 // One toggle per block of the reference lab report format. Stored on the
 // LabProfile and honored by the server PDFs (?flag=0 overrides per download).
+// Print blocks that start switched off (the letterhead footer already has
+// printed signatures).
+const OFF_BY_DEFAULT = new Set(['printSignatures']);
+
 const PRINT_TOGGLES = [
   { key: 'showLetterheadByDefault', label: 'Letterhead header', helper: 'Top letterhead image on reports and bills.' },
   { key: 'showFooterByDefault', label: 'Footer strip', helper: 'Bottom marketing/sign-off band image.' },
@@ -101,7 +106,7 @@ const PRINT_TOGGLES = [
   { key: 'showFlagColumn', label: 'H/L flag column', helper: 'High/low flags with bold abnormal values.' },
   { key: 'showInterpretation', label: 'Interpretation box', helper: 'Test interpretation notes below the table.' },
   { key: 'showEndOfReport', label: 'End-of-report line', helper: '~~~ End of report ~~~ marker.' },
-  { key: 'showSignatures', label: 'Signatures', helper: 'Technician + doctor sign-off on the PDF.' },
+  { key: 'printSignatures', label: 'Signatures', helper: 'Signatures of whoever signed the report. Keep off when the letterhead footer already has the printed signatures.' },
   { key: 'showWatermark', label: 'Watermark logo', helper: 'Faded lab logo behind the results.' },
   { key: 'showPageNumber', label: 'Page numbers', helper: 'Page X of Y on every page.' }
 ];
@@ -166,7 +171,8 @@ const validateAssetFile = (file, kind) => {
   return '';
 };
 
-const assetKindLabel = (kind) => (kind === 'logo' ? 'logo' : kind === 'footer' ? 'footer strip' : 'letterhead');
+const ASSET_LABELS = { logo: 'logo', footer: 'footer strip', signatures: 'signature image', letterhead: 'letterhead' };
+const assetKindLabel = (kind) => ASSET_LABELS[kind] || 'letterhead';
 
 const ProfileAlert = ({ message, type = 'error', onRetry }) => (
   <div
@@ -203,7 +209,7 @@ const AssetPreview = ({ kind, url, broken, onError }) => {
   const label = assetKindLabel(kind);
 
   if (!src) {
-    return <div className="lab-profile-asset-empty">No {label} uploaded.</div>;
+    return <div className="lab-profile-asset-empty">{kind === 'signatures' ? 'Using the signatures from the letterhead pad.' : `No ${label} uploaded.`}</div>;
   }
 
   if (broken) {
@@ -218,7 +224,7 @@ const AssetPreview = ({ kind, url, broken, onError }) => {
   if (isImageAsset(src)) {
     return (
       <img
-        className={`lab-profile-asset-preview lab-profile-${label}-preview`}
+        className={`lab-profile-asset-preview lab-profile-${kind}-preview`}
         src={src}
         alt={`Current lab ${label}`}
         onError={() => onError(src)}
@@ -248,8 +254,10 @@ const AssetManager = ({
   onFileChange
 }) => {
   const isV2Asset = useUiVersion() === 'v2';
-  const inputLabel = kind === 'logo' ? 'Upload logo' : kind === 'footer' ? 'Upload footer strip' : 'Upload letterhead';
-  const description = isV2Asset
+  const inputLabel = kind === 'signatures' ? 'Upload new signatures' : `Upload ${assetKindLabel(kind)}`;
+  const description = kind === 'signatures'
+    ? 'The signature row on the letterhead footer (technician and doctor). It is kept separate from the footer, so a new image replaces only the signatures. Until one is uploaded, the signatures from the letterhead pad are used.'
+    : isV2Asset
     ? (kind === 'logo' ? 'Shown at the top of reports and bills.' : kind === 'footer' ? 'Band printed at the bottom of reports and bills.' : 'Full-width header image printed on reports and bills.')
     : kind === 'logo'
     ? 'Current logo asset returned by the lab profile API.'
@@ -264,7 +272,7 @@ const AssetManager = ({
         <p>{description}</p>
       </div>
       <AssetPreview kind={kind} url={url} broken={broken} onError={onError} />
-      {loading && <p className="lab-profile-upload-status" role="status">Uploading {kind}…</p>}
+      {loading && <p className="lab-profile-upload-status" role="status">Uploading {assetKindLabel(kind)}…</p>}
       {!disabled && (
         <FileUploader
           key={`${kind}-${version}`}
@@ -293,7 +301,7 @@ const isImageFile = (file) => file?.type?.startsWith('image/') || /\.(?:jpg|jpeg
 const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl, localFooterUrl, signatures }) => {
   const opt = (key) => {
     const v = form?.[key] ?? profile?.[key];
-    return v === undefined || v === null ? true : !!v;
+    return v === undefined || v === null ? !OFF_BY_DEFAULT.has(key) : !!v;
   };
   const letterheadOn = opt('showLetterheadByDefault');
   const footerOn = opt('showFooterByDefault');
@@ -315,7 +323,7 @@ const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl
   const footerLine = [labName, address, phone, email].filter(Boolean).join(' | ');
   const disclaimer = form?.disclaimer ?? profile?.disclaimer ?? '';
   const invoiceFooter = form?.invoiceFooter ?? profile?.invoiceFooter ?? '';
-  const previewSigs = opt('showSignatures') ? (signatures || []).filter((s) => s?.imageUrl).slice(0, 2) : [];
+  const previewSigs = opt('printSignatures') ? (signatures || []).filter((s) => s?.imageUrl).slice(0, 2) : [];
 
   return (
     <div className="lab-profile-preview-card" aria-label="Live letterhead preview">
@@ -392,7 +400,7 @@ const LetterheadLivePreview = ({ profile, form, localLetterheadUrl, localLogoUrl
         {opt('showEndOfReport') && (
           <div className="lab-profile-preview-endline">~~~ End of report ~~~</div>
         )}
-        {opt('showSignatures') && (previewSigs.length > 0 ? (
+        {opt('printSignatures') && (previewSigs.length > 0 ? (
           <div className="lab-profile-preview-signatures">
             {previewSigs.map((s) => (
               <div className="lab-profile-preview-signature" key={s._id || s.name}>
@@ -435,12 +443,14 @@ const LabProfile = () => {
   const [selectedLogo, setSelectedLogo] = useState(null);
   const [selectedLetterhead, setSelectedLetterhead] = useState(null);
   const [selectedFooter, setSelectedFooter] = useState(null);
+  const [selectedSignStrip, setSelectedSignStrip] = useState(null);
   const [uploading, setUploading] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [assetVersion, setAssetVersion] = useState(0);
   const [brokenLogo, setBrokenLogo] = useState('');
   const [brokenLetterhead, setBrokenLetterhead] = useState('');
   const [brokenFooter, setBrokenFooter] = useState('');
+  const [brokenSignStrip, setBrokenSignStrip] = useState('');
   const [signatures, setSignatures] = useState([]);
   const [localLetterheadUrl, setLocalLetterheadUrl] = useState('');
   const [localLogoUrl, setLocalLogoUrl] = useState('');
@@ -556,7 +566,7 @@ const LabProfile = () => {
 
   const profileHasValues = useMemo(() => {
     if (!profile) return false;
-    return [...EDITABLE_FIELDS, 'logoUrl', 'letterheadUrl', 'footerUrl'].some((field) => (
+    return [...EDITABLE_FIELDS, 'logoUrl', 'letterheadUrl', 'footerUrl', 'signatureStripUrl'].some((field) => (
       profile[field] !== undefined && profile[field] !== null && profile[field] !== ''
     ));
   }, [profile]);
@@ -619,6 +629,7 @@ const LabProfile = () => {
     setSelectedLogo(null);
     setSelectedLetterhead(null);
     setSelectedFooter(null);
+    setSelectedSignStrip(null);
     setAssetVersion((version) => version + 1);
   };
 
@@ -691,7 +702,7 @@ const LabProfile = () => {
     setUploadError(null);
 
     try {
-      const service = kind === 'logo' ? uploadLogo : kind === 'footer' ? uploadFooter : uploadLetterhead;
+      const service = { logo: uploadLogo, footer: uploadFooter, signatures: uploadSignatureStrip }[kind] || uploadLetterhead;
       const response = await service(file);
       if (!response?.success) {
         throw new Error(response?.message || `The ${kind} could not be uploaded.`);
@@ -704,6 +715,7 @@ const LabProfile = () => {
       if (kind === 'logo') setSelectedLogo(null);
       if (kind === 'letterhead') setSelectedLetterhead(null);
       if (kind === 'footer') setSelectedFooter(null);
+      if (kind === 'signatures') setSelectedSignStrip(null);
       setAssetVersion((version) => version + 1);
       toast.success(response.message || `Lab ${kind} uploaded.`);
       await loadProfile({ showLoading: false, preserveEditing: true });
@@ -724,6 +736,7 @@ const LabProfile = () => {
     if (kind === 'logo') setSelectedLogo(file);
     if (kind === 'letterhead') setSelectedLetterhead(file);
     if (kind === 'footer') setSelectedFooter(file);
+    if (kind === 'signatures') setSelectedSignStrip(file);
     uploadAsset(kind, file);
   };
 
@@ -992,7 +1005,7 @@ const LabProfile = () => {
                     key={toggle.key}
                     id={toggle.key}
                     label={toggle.label}
-                    checked={form[toggle.key] ?? profile?.[toggle.key] ?? true}
+                    checked={form[toggle.key] ?? profile?.[toggle.key] ?? !OFF_BY_DEFAULT.has(toggle.key)}
                     onChange={(value) => updateField(toggle.key, value)}
                     disabled={fieldDisabled}
                     helperText={toggle.helper}
@@ -1037,6 +1050,19 @@ const LabProfile = () => {
                   error={uploadError?.kind === 'footer' ? uploadError.message : ''}
                   broken={brokenFooter === assetSrc(profile.footerUrl) && !!assetSrc(profile.footerUrl)}
                   onError={setBrokenFooter}
+                  onFileChange={handleAssetChange}
+                />
+                <AssetManager
+                  kind="signatures"
+                  label="Letterhead signatures"
+                  url={profile.signatureStripUrl}
+                  file={selectedSignStrip}
+                  version={assetVersion}
+                  disabled={!isEditing || !canEdit || isBusy}
+                  loading={uploading === 'signatures'}
+                  error={uploadError?.kind === 'signatures' ? uploadError.message : ''}
+                  broken={brokenSignStrip === assetSrc(profile.signatureStripUrl) && !!assetSrc(profile.signatureStripUrl)}
+                  onError={setBrokenSignStrip}
                   onFileChange={handleAssetChange}
                 />
               </div>

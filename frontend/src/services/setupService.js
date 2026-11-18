@@ -19,6 +19,11 @@ export const uploadFooter = async (file) => {
   fd.append('file', file);
   return (await apiClient.post('/setup/lab-profile/footer', fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
 };
+export const uploadSignatureStrip = async (file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return (await apiClient.post('/setup/lab-profile/signature-strip', fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+};
 export const getOnboarding = async () => (await apiClient.get('/setup/onboarding')).data;
 export const setOnboardingStep = async (key, done = true) => (await apiClient.post('/setup/onboarding', { key, done })).data;
 export const getSignatures = async () => (await apiClient.get('/setup/signatures')).data;

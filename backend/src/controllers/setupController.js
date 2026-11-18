@@ -24,7 +24,7 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const allowed = ['labName', 'tagline', 'phone', 'address', 'email', 'logoUrl', 'letterheadUrl', 'letterheadTopMargin', 'showLetterheadByDefault', 'showFooterByDefault', 'footerUrl', 'showBarcode', 'showQR', 'showTatDates', 'showReferredBy', 'showDepartmentHeading', 'showFlagColumn', 'showInterpretation', 'showEndOfReport', 'showSignatures', 'showWatermark', 'showPageNumber', 'smsEnabled', 'whatsappEnabled', 'emailEnabled', 'smsSenderId', 'googleReviewLink', 'caseStartNumber', 'website', 'disclaimer', 'invoiceFooter', 'registrationPrefix', 'registrationNumber', 'dateFormat', 'barcodeFormat'];
+    const allowed = ['labName', 'tagline', 'phone', 'address', 'email', 'logoUrl', 'letterheadUrl', 'letterheadTopMargin', 'showLetterheadByDefault', 'showFooterByDefault', 'footerUrl', 'signatureStripUrl', 'showBarcode', 'showQR', 'showTatDates', 'showReferredBy', 'showDepartmentHeading', 'showFlagColumn', 'showInterpretation', 'showEndOfReport', 'printSignatures', 'showWatermark', 'showPageNumber', 'smsEnabled', 'whatsappEnabled', 'emailEnabled', 'smsSenderId', 'googleReviewLink', 'caseStartNumber', 'website', 'disclaimer', 'invoiceFooter', 'registrationPrefix', 'registrationNumber', 'dateFormat', 'barcodeFormat'];
     // Friendly-key mapping for forward-compat (form uses `name`, server uses `labName`).
     const aliases = { name: 'labName', centreName: 'labName', centerName: 'labName' };
     const body = { ...req.body };
@@ -91,6 +91,7 @@ const uploadAsset = (field) => async (req, res, next) => {
     const fileUrl = `uploads/letterheads/${req.file.filename}`;
     if (field === 'logo') profile.logoUrl = fileUrl;
     else if (field === 'footer') profile.footerUrl = fileUrl;
+    else if (field === 'signatures') profile.signatureStripUrl = fileUrl;
     else profile.letterheadUrl = fileUrl;
     await profile.save();
     await Activity.create({
@@ -317,6 +318,7 @@ module.exports = {
   uploadLogoFile,
   uploadLetterhead: uploadAsset('letterhead'),
   uploadFooter: uploadAsset('footer'),
+  uploadSignatureStrip: uploadAsset('signatures'),
   getOnboarding,
   setOnboardingStep,
   listSignatures,

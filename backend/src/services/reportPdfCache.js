@@ -38,7 +38,7 @@ function version() {
     const hash = crypto.createHash('sha256');
     for (const file of ['formattedPdfService.js', 'pdfService.js', 'interpretationLayout.js', 'richInterpretation.js', 'documentTemplateService.js', 'referenceRangeService.js', 'testDefinitions.js', 'code39Service.js',
       '../assets/document-formats/fonts/NotoSans-Regular.ttf', '../assets/document-formats/fonts/NotoSans-Bold.ttf', '../assets/document-formats/fonts/NotoSansMath-Regular.ttf',
-      '../assets/document-formats/pure-path-reference.json', '../assets/document-formats/reference-header.png', '../assets/document-formats/reference-footer.png', '../assets/document-formats/reference-watermark.png']) {
+      '../assets/document-formats/pure-path-reference.json', '../assets/document-formats/reference-header.png', '../assets/document-formats/reference-footer.png', '../assets/document-formats/reference-watermark.png', '../assets/document-formats/reference-signatures.png']) {
       hash.update(fs.readFileSync(path.resolve(__dirname, file)));
     }
     rendererVersion = hash.digest('hex');
@@ -47,7 +47,7 @@ function version() {
 }
 function reportPdfKey(context, options) {
   const profile = context.profile || {};
-  const assets = [profile.letterheadUrl, profile.footerUrl, profile.logoUrl].map(value => {
+  const assets = [profile.letterheadUrl, profile.footerUrl, profile.logoUrl, profile.signatureStripUrl].map(value => {
     const absolute = value && resolveUploadAbsolute(value);
     try { const info = fs.statSync(absolute); return [value, info.size, info.mtimeMs]; }
     catch { return [value || '', null]; }

@@ -12,6 +12,9 @@ const LabProfileSchema = new mongoose.Schema({
   letterheadTopMargin: { type: Number, default: 90 },
   // Footer strip image (bottom marketing/sign-off band on PDFs).
   footerUrl: { type: String, default: '' },
+  // Signature row printed on the letterhead footer. Kept apart from the footer
+  // art so a new signature replaces only this part. Empty = the pad's own.
+  signatureStripUrl: { type: String, default: '' },
   documentFormats: { type: [mongoose.Schema.Types.Mixed], default: () => [{ ...require('../services/documentTemplateService').REFERENCE_FORMAT }] },
   reportFormatId: { type: String, default: 'reference' },
   billFormatId: { type: String, default: 'reference' },
@@ -29,6 +32,10 @@ const LabProfileSchema = new mongoose.Schema({
   showFlagColumn: { type: Boolean, default: true },
   showInterpretation: { type: Boolean, default: true },
   showEndOfReport: { type: Boolean, default: true },
+  // Sign-off signatures drawn from each report's records. Off by default: the
+  // lab's pad footer already carries the printed signatures. (Replaces the old
+  // showSignatures, which stays only so stored profiles keep loading.)
+  printSignatures: { type: Boolean, default: false },
   showSignatures: { type: Boolean, default: true },
   showWatermark: { type: Boolean, default: true },
   showPageNumber: { type: Boolean, default: true },

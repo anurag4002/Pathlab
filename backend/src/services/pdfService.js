@@ -41,7 +41,7 @@ const REPORT_OPTION_DEFAULTS = {
   flags: true,
   interpretation: true,
   endline: true,
-  signatures: true,
+  signatures: false,
   watermark: true,
   pageno: true
 };
@@ -61,7 +61,7 @@ function resolveReportOptions(opt = {}, profile = {}) {
     flags: ['showFlagColumn'],
     interpretation: ['showInterpretation'],
     endline: ['showEndOfReport'],
-    signatures: ['showSignatures'],
+    signatures: ['printSignatures'],
     watermark: ['showWatermark'],
     pageno: ['showPageNumber']
   };
