@@ -1,0 +1,32 @@
+.pcp { position: relative; height: calc(100vh - 230px); min-height: 520px; overflow: auto; border: 1px solid var(--color-border); border-radius: 8px; background: #e4e4e7; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.pcp-progress { position: sticky; top: -12px; align-self: stretch; height: 3px; margin: -12px -12px 0; z-index: 3; background: var(--color-primary); animation: pcp-progress 1s ease-in-out infinite alternate; transform-origin: left; flex: none; }
+@keyframes pcp-progress { from { transform: scaleX(.15); } to { transform: scaleX(.85); } }
+.pcp-empty { margin: auto; color: #52525b; font-size: 14px; }
+.pcp-page { position: relative; flex: none; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.pcp-page > img { display: block; transition: opacity .15s; user-select: none; }
+.pcp.is-busy .pcp-page > img { opacity: .7; }
+.pcp-overlay { position: absolute; inset: 0; }
+.pcp-overlay.has-hover { cursor: pointer; }
+.pcp-zone { position: absolute; pointer-events: none; border-radius: 3px; }
+.pcp-zone.is-hover { outline: 2px solid var(--color-primary); background: rgba(37, 99, 235, .06); }
+.pcp-zone.is-open { outline: 2px solid var(--color-primary); }
+.pcp-zone.is-drop { outline: 2px dashed var(--color-primary); background: rgba(37, 99, 235, .14); display: grid; place-items: center; }
+.pcp-zone-label { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: var(--color-primary); color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px 4px 0 0; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.pcp-zone.is-inside .pcp-zone-label { transform: none; border-radius: 4px 0 4px 0; }
+.pcp-zone-drop { background: var(--color-primary); color: #fff; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+
+/* Draggable gap lines on the pad print. */
+.pcp-gap { position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d97706; cursor: ns-resize; touch-action: none; z-index: 2; }
+.pcp-gap::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 16px; }
+.pcp-gap:focus-visible, .pcp-gap.is-dragging { border-top-style: solid; outline: none; }
+.pcp-gap-label { position: absolute; left: 8px; transform: translateY(-50%); background: #d97706; color: #fff; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
+.pcp-gap-label em { font-style: normal; font-weight: 400; opacity: .85; margin-left: 4px; }
+.pcp-gap-hint { position: absolute; right: 8px; bottom: 10px; background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-size: 12px; padding: 4px 8px; border-radius: 6px; max-width: 60%; cursor: default; }
+
+.pcp-popover { position: absolute; z-index: 5; width: min(340px, calc(100% - 16px)); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, .16); }
+.pcp-popover-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--color-border); font-size: 14px; color: var(--color-text); }
+.pcp-popover-close { border: 0; background: none; padding: 4px; border-radius: 6px; color: var(--color-text-muted); cursor: pointer; display: grid; }
+.pcp-popover-close:hover { background: var(--color-surface-hover); }
+.pcp-popover-body { padding: 10px 12px 4px; max-height: 360px; overflow: auto; }
+html.ui-v2 .pcp-popover-head { color: #18181b; }
+@media (max-width: 1000px) { .pcp { height: 80vh; } }

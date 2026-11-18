@@ -3,6 +3,15 @@ import apiClient from './apiClient';
 // Lab profile / onboarding / signatures / browser allow-list  ->  /api/setup/*
 export const getLabProfile = async () => (await apiClient.get('/setup/lab-profile')).data;
 export const updateLabProfile = async (data) => (await apiClient.put('/setup/lab-profile', data)).data;
+// The letterhead pad's built-in art (header, footer, signatures, watermark) as an image blob.
+export const getReferenceArt = async (name) => (await apiClient.get(`/setup/lab-profile/reference-art/${name}`, { responseType: 'blob' })).data;
+// Report preview plus where each part landed on the page (X-Report-Layout).
+export const previewReportWithLayout = async (data) => {
+  const response = await apiClient.post('/setup/lab-profile/document-preview', data, { responseType: 'blob' });
+  let layout = null;
+  try { layout = JSON.parse(atob(response.headers?.['x-report-layout'] || '')); } catch { layout = null; }
+  return { blob: response.data, layout };
+};
 export const previewDocumentFormat = async (data) => (await apiClient.post('/setup/lab-profile/document-preview', data, { responseType: 'blob' })).data;
 export const uploadLogo = async (file) => {
   const fd = new FormData();

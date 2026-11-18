@@ -40,8 +40,10 @@ app.use(async (req, res, next) => {
 const uploadBase = process.env.VERCEL
   ? '/tmp/uploads'
   : path.resolve(__dirname, '../', UPLOAD_DIR);
-app.use('/uploads', express.static(uploadBase));
-app.use('/api/uploads', express.static(uploadBase));
+// Lab letterhead images missing from the (temporary) folder come back from the database.
+const { restoreOnRequest } = require('./utils/labAssetStore');
+app.use('/uploads', restoreOnRequest, express.static(uploadBase));
+app.use('/api/uploads', restoreOnRequest, express.static(uploadBase));
 
 // API Routes Import
 const authRoutes = require('./routes/authRoutes');

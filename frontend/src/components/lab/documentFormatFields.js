@@ -8,7 +8,7 @@ export const NUMERIC_FORMAT_FIELDS = [
 // Choice settings of a format: key, form label, [value, option text] pairs.
 export const SELECT_FORMAT_FIELDS = [
   ['fontFamily', 'Font', [['Helvetica', 'Helvetica'], ['Times-Roman', 'Times'], ['Courier', 'Courier']]],
-  ['tableStyle', 'Table appearance', [['outlined', 'Reference outline'], ['plain', 'Plain'], ['banded', 'Colored header and alternating rows']]],
+  ['tableStyle', 'Table appearance', [['outlined', 'Outlined: boxed, grey header row (reference)'], ['plain', 'Plain: no box or shading'], ['banded', 'Banded: colored header, shaded alternate rows']]],
   ['flagPlacement', 'Abnormal flag position', [['before-value', 'Before value (reference)'], ['last', 'Last column']]],
   ['patientLayout', 'Patient details', [['columns', 'Three columns (reference)'], ['stacked', 'Stacked']]]
 ];

@@ -40,7 +40,13 @@ const groupThousands = value => String(value ?? '').replace(/(^|[^\d.,])(\d{4,})
 // One renderer for staff downloads, public QR downloads, previews and printing.
 // Page furniture is reserved before flowing content; rows and long paragraphs
 // split safely and table headings repeat on continuation pages.
-function documentPdf(context, requestOptions = {}, kind = 'report') {
+// Lab images kept in the database are written back first if the (temporary)
+// upload folder lost them, so a restart never drops the letterhead.
+async function documentPdf(context, requestOptions = {}, kind = 'report') {
+  await require('../utils/labAssetStore').restoreProfileAssets(context?.profile);
+  return renderDocument(context, requestOptions, kind);
+}
+function renderDocument(context, requestOptions = {}, kind = 'report') {
   const { getPDFDocument, resolveReportOptions, resolveUploadAbsolute, resolveBillPaperOptions } = require('./pdfService');
   const profile = context.profile || {};
   const format = resolveFormat(profile, kind);
@@ -116,6 +122,15 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
   const imagePath = (url, fallback) => (url ? resolveUploadAbsolute(url) : null) || referenceAsset(fallback);
+  // Where each part landed on the page, for the Report template editor
+  // (requestOptions.layoutOut = []): { kind, page, x, y, w, h } in points.
+  const layoutZones = Array.isArray(requestOptions.layoutOut) ? requestOptions.layoutOut : null;
+  const pageIndex = () => doc.bufferedPageRange().count - 1;
+  function zone(kind, x, top, w, h, page = pageIndex()) {
+    if (layoutZones && w > 0 && h > 0) layoutZones.push({ kind, page, x: +x.toFixed(1), y: +top.toFixed(1), w: +w.toFixed(1), h: +h.toFixed(1) });
+    return true;
+  }
+  const pageContentTops = [];
   function image(source, x, top, w, h, opacity = 1, align = 'center') {
     if (!source) return false;
     try { doc.save(); doc.opacity(opacity); doc.image(source, x, top, { fit: [w, h], align, valign: 'center' }); doc.restore(); return true; }
@@ -216,6 +231,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     // start the patient block below it (no drawn lab branding).
     if (!options.letterhead) {
       y = preprintTop;
+      zone('headerSpace', 0, 0, doc.page.width, preprintTop);
       patientBand();
       return;
     }
@@ -228,7 +244,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     ].filter(Boolean);
     for (const [art, cap] of headerArts) {
       const h = safeHeight(art, doc.page.width, cap);
-      if (h && image(art, 0, 0, doc.page.width, h)) { y = Math.max(m, h + 6); drawWatermark(); patientBand(); return; }
+      if (h && image(art, 0, 0, doc.page.width, h)) { zone('header', 0, 0, doc.page.width, h); y = Math.max(m, h + 6); drawWatermark(); patientBand(); return; }
     }
     const headerImage = imagePath(profile.letterheadUrl, 'reference-header.png');
     const drawHeader = source => {
@@ -236,7 +252,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       return image(source, m, y, width, slot) && slot;
     };
     const headerSlot = headerImage && (drawHeader(headerImage) || drawHeader(referenceAsset('reference-header.png')));
-    if (headerSlot) y += headerSlot + 6;
+    if (headerSlot) { zone('header', m, y, width, headerSlot); y += headerSlot + 6; }
     else {
       const logo = imagePath(profile.logoUrl);
       const logoWidth = logo && image(logo, m, y, 48, 48) ? 58 : 0;
@@ -248,6 +264,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         for (const line of lines(value, w, false, 9)) { text(line, x, y, w, { size: 9 }); y += 12; }
       }
       y = Math.max(y, m + 54) + 8;
+      zone('header', m, m, width, y - m);
     }
     drawWatermark();
     patientBand();
@@ -255,8 +272,9 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       if (!options.watermark) return;
       const uploadedLogo = !!resolveUploadAbsolute(profile.logoUrl);
       // The pad's faded logo sits where the pad prints it.
-      const pad = () => image(referenceAsset('reference-watermark.png'), doc.page.width * 0.3056, doc.page.height * 0.3306, doc.page.width * 0.3889, doc.page.height * 0.3383);
-      if (uploadedLogo && image(resolveUploadAbsolute(profile.logoUrl), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, 0.07)) return;
+      const pad = () => image(referenceAsset('reference-watermark.png'), doc.page.width * 0.3056, doc.page.height * 0.3306, doc.page.width * 0.3889, doc.page.height * 0.3383)
+        && zone('watermark', doc.page.width * 0.3056, doc.page.height * 0.3306, doc.page.width * 0.3889, doc.page.height * 0.3383);
+      if (uploadedLogo && image(resolveUploadAbsolute(profile.logoUrl), m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300, 0.07)) { zone('watermark', m + width * 0.23, doc.page.height * 0.32, width * 0.54, 300); return; }
       pad();
     }
   }
@@ -286,6 +304,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     if (options.barcode && code) {
       const encoded = encode(String(code)); const unit = Math.min(1, middleWidth / encoded.width);
       doc.save().fillColor('#000000'); encoded.bars.forEach(b => doc.rect(mx + b.x * unit, midY, b.w * unit, 17).fill()); doc.restore();
+      zone('barcode', mx, midY, encoded.width * unit, 28);
       text(code, mx, midY + 19, middleWidth, { size: 8 }); midY += 32;
     }
     const dates = kind === 'bill' ? [`Bill No: ${bill.billNumber || '-'}`, `Date: ${date(bill.date)}`, patient.phone && `Phone: ${patient.phone}`].filter(Boolean)
@@ -296,11 +315,14 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
       const qrY = stacked ? leftY + 5 : start;
       text(kind === 'bill' ? 'Scan to view report' : 'Scan to download', qrX, qrY, qrWidth, { size: 6, align: 'center' });
       image(requestOptions.qrPng, qrX + 3, qrY + 10, qrWidth - 6, qrWidth - 6); bottom = Math.max(bottom, qrY + qrWidth + 6);
+      zone('qr', qrX, qrY, qrWidth, qrWidth + 6);
     }
     if (!stacked) {
       doc.strokeColor(format.accentColor).lineWidth(0.6).moveTo(middleX - 5, start).lineTo(middleX - 5, bottom).stroke();
       if (qrWidth) doc.moveTo(qrX - 5, start).lineTo(qrX - 5, bottom).stroke();
     }
+    if (kind !== 'bill' && options.tat && dates.length) zone('dates', mx, midY - dates.length * 11, stacked ? width - qrWidth - 10 : middleWidth, dates.length * 11);
+    zone('patient', m, start, width, bottom + 5 - start);
     rule(bottom + 5); y = bottom + 13;
   }
   // Every page repeats the (letterhead or preprinted band and) patient band,
@@ -311,6 +333,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     doc.addPage();
     header();
     contentTop = y;
+    pageContentTops[pageIndex()] = y;
   }
   function space(height) { if (y + height > limit) { newPage(); return true; } return false; }
   function paragraph(value, { bold = false, size = format.fontSize, align = 'left', shaded = false, leading = size + 4, gap = 5 } = {}) {
@@ -691,6 +714,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   }
   header();
   contentTop = y;
+  pageContentTops[pageIndex()] = y;
   if (kind === 'bill') {
     const bill = context.bill || {};
     heading(format.billTitle);
@@ -943,8 +967,10 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
         // An uploaded signature image replaces only this row; the footer art stays.
         const uploaded = profile.signatureStripUrl ? resolveUploadAbsolute(profile.signatureStripUrl) : null;
         const box = [x + w * SIGNATURE_ROW.x, top, w * SIGNATURE_ROW.w, footerSlot * SIGNATURE_ROW.h];
+        zone('signatures', ...box, i);
         if (!(uploaded && image(uploaded, ...box))) image(REFERENCE_SIGNATURES, ...box);
       };
+      zone('footer', bleedFooter ? 0 : m, doc.page.height - footerSlot - (bleedFooter ? 0 : m), bleedFooter ? doc.page.width : width, footerSlot, i);
       if (bleedCustomFooter) image(customFooter, 0, doc.page.height - footerSlot, doc.page.width, footerSlot);
       else if (bleedFooter) {
         image(REFERENCE_FOOTER, 0, doc.page.height - footerSlot, doc.page.width, footerSlot);
@@ -962,7 +988,13 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     if (!options.letterhead && !plainBill) labelY = Math.min(labelY, limit - 7);
     if (bleedFooter) labelY = limit - 7;
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
-    if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, cornerPageNo ? doc.page.height - 22 : labelY, width, { size: 8, align: 'right' });
+    if (pageContentTops[i] !== undefined && kind !== 'bill') zone('results', m, pageContentTops[i], width, limit - pageContentTops[i], i);
+    if (!options.footer && !options.letterhead && !plainBill) zone('footerSpace', 0, limit, doc.page.width, doc.page.height - limit, i);
+    if (options.pageno) {
+      const pageY = cornerPageNo ? doc.page.height - 22 : labelY;
+      text(`Page ${i + 1} of ${range.count}`, m, pageY, width, { size: 8, align: 'right' });
+      zone('pageNumber', m + width - 60, pageY - 2, 60, 12, i);
+    }
   }
   doc.end(); return done;
 }

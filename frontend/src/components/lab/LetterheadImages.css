@@ -1,0 +1,15 @@
+.lh-list { display: flex; flex-direction: column; gap: 6px; }
+.lh-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-areas: "thumb text" "thumb actions"; column-gap: 10px; row-gap: 4px; align-items: center; padding: 6px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); transition: border-color .12s, background .12s; }
+.lh-row.is-dragging { border: 1px dashed var(--color-primary); background: var(--color-primary-light); }
+.lh-row-thumb { grid-area: thumb; position: relative; height: 48px; border-radius: 6px; background: var(--color-background); border: 1px solid var(--color-border); display: grid; place-items: center; overflow: hidden; }
+.lh-row-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.lh-row-thumb span { font-size: 11px; color: var(--color-text-muted); }
+.lh-row-thumb .lh-row-missing { color: var(--color-warning); font-weight: 600; }
+.lh-row-drop { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255, 255, 255, .9); color: var(--color-primary); font-size: 11px; font-weight: 600; text-align: center; }
+.lh-row-text { grid-area: text; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.lh-row-title { font-size: 13px; font-weight: 600; color: var(--color-text); }
+.lh-row-badge { font-size: 12px; color: var(--color-text-muted); }
+.lh-row-badge.is-uploaded { color: var(--color-primary); }
+.lh-row-actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: 6px; }
+html.ui-v2 .lh-row-title { color: #18181b; }
+html.ui-v2 .lh-row-badge:not(.is-uploaded) { color: #71717a; }

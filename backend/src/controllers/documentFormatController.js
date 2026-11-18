@@ -22,6 +22,12 @@ exports.preview = async (req, res, next) => {
     }
     for (const key of Object.keys(profile).filter(key => key.startsWith('show'))) if (typeof body[key] === 'boolean') profile[key] = body[key];
     if (typeof body.printSignatures === 'boolean') profile.printSignatures = body.printSignatures;
+    // Unsaved "Header space" (blank top band on the pre-printed pad).
+    if (body.letterheadTopMargin !== undefined) {
+      const space = Number(body.letterheadTopMargin);
+      if (body.letterheadTopMargin === '' || !Number.isFinite(space) || space < 0 || space > 480) throw Object.assign(new Error('Header space must be between 0 and 480 pt.'), { statusCode: 400 });
+      profile.letterheadTopMargin = space;
+    }
     const now = new Date();
     const context = {
       preview: true, profile, patient: { name: 'Sample Patient', age: 32, gender: 'M', registrationNumber: nextNumber, phone: '0000000000' },
@@ -39,9 +45,17 @@ exports.preview = async (req, res, next) => {
     const qrPng = await qrBuffer('Format preview - sample data');
     // Report template page: preview on blank paper with the drawn letterhead,
     // or as it prints on the lab's pre-printed pad (letterhead: false).
-    const requestOptions = { qrPng };
+    // layoutOut: where each part landed, so the page can be edited on the PDF.
+    const requestOptions = { qrPng, layoutOut: [] };
     if (typeof body.letterhead === 'boolean') requestOptions.letterhead = body.letterhead;
-    const pdf = await documentPdf(context, requestOptions, body.kind === 'bill' ? 'bill' : 'report');
+    const kind = body.kind === 'bill' ? 'bill' : 'report';
+    const pdf = await documentPdf(context, requestOptions, kind);
+    // Zones are in PDF points from the page's top-left (A4 for reports; the
+    // client reads each page's own size from the PDF for bills).
+    const round = value => Math.round(value * 100) / 100;
+    const zones = requestOptions.layoutOut.map(z => ({ kind: z.kind, page: z.page, x: round(z.x), y: round(z.y), w: round(z.w), h: round(z.h) }));
+    res.setHeader('X-Report-Layout', Buffer.from(JSON.stringify({ ...(kind === 'report' ? { pageWidth: 595.28, pageHeight: 841.89 } : {}), zones })).toString('base64'));
+    res.setHeader('Access-Control-Expose-Headers', 'X-Report-Layout');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Disposition', 'inline; filename="Format-preview.pdf"');

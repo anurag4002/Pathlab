@@ -89,6 +89,8 @@ const uploadAsset = (field) => async (req, res, next) => {
     let profile = await LabProfile.findOne();
     if (!profile) profile = new LabProfile({});
     const fileUrl = `uploads/letterheads/${req.file.filename}`;
+    // Keep a durable copy: the live server's upload folder is temporary.
+    await require('../utils/labAssetStore').saveLabAsset(fileUrl, req.file.mimetype);
     if (field === 'logo') profile.logoUrl = fileUrl;
     else if (field === 'footer') profile.footerUrl = fileUrl;
     else if (field === 'signatures') profile.signatureStripUrl = fileUrl;
