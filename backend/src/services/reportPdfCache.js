@@ -38,7 +38,7 @@ function version() {
     const hash = crypto.createHash('sha256');
     for (const file of ['formattedPdfService.js', 'pdfService.js', 'interpretationLayout.js', 'richInterpretation.js', 'documentTemplateService.js', 'referenceRangeService.js', 'testDefinitions.js', 'code39Service.js',
       '../assets/document-formats/fonts/NotoSans-Regular.ttf', '../assets/document-formats/fonts/NotoSans-Bold.ttf', '../assets/document-formats/fonts/NotoSansMath-Regular.ttf',
-      '../assets/document-formats/pure-path-reference.json', '../assets/document-formats/reference-header.jpg', '../assets/document-formats/reference-footer.jpg', '../assets/document-formats/reference-watermark.jpg', '../assets/document-formats/reference-corner.jpg']) {
+      '../assets/document-formats/pure-path-reference.json', '../assets/document-formats/reference-header.jpg', '../assets/document-formats/reference-footer.png', '../assets/document-formats/reference-watermark.jpg']) {
       hash.update(fs.readFileSync(path.resolve(__dirname, file)));
     }
     rendererVersion = hash.digest('hex');

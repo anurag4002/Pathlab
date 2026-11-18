@@ -1,5 +1,6 @@
-The reference header, watermark, marketing footer and corner are extracted
-from the lab report supplied for this project. They contain no patient results,
+The reference header and watermark are extracted from the lab report supplied
+for this project; the footer (24/7 badge and notes) from the lab's letterhead
+pad, without its preprinted signature labels. They contain no patient results,
 registration barcode, QR code or signature artwork. Signatures are rendered
 only from the corresponding report's stored sign-off records.
 

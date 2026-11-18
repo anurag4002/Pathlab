@@ -5,6 +5,12 @@ const { resolveReferenceRange } = require('./referenceRangeService');
 const { expandTests } = require('./testDefinitions');
 const { reportNoteBlocks, documentBlocks } = require('./interpretationLayout');
 const assets = path.join(__dirname, '../assets/document-formats');
+const REFERENCE_FOOTER = path.join(assets, 'reference-footer.png');
+// The lab's printed letterhead pad (A4): its header art ends about 124 pt from
+// the top and its footer (signature labels, 24/7 badge, notes) starts about
+// 162 pt from the bottom. Without a drawn letterhead, content stays clear of both.
+const PREPRINT_HEADER_CLEAR = 134;
+const PREPRINT_FOOTER_CLEAR = 172;
 const money = n => `Rs. ${Number(n || 0).toFixed(2)}`;
 const date = (value, dateOnly = false) => {
   if (!value || Number.isNaN(new Date(value).getTime())) return '-';
@@ -59,7 +65,7 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
   const preprintTop = (() => {
     if (options.letterhead || plainBill) return m;
     const configured = Number(profile.letterheadTopMargin);
-    return Math.max(m, Number.isFinite(configured) ? configured : 90, m + format.headerHeight);
+    return Math.max(m, Number.isFinite(configured) ? configured : 90, m + format.headerHeight, PREPRINT_HEADER_CLEAR);
   })();
   // Height a header/footer image occupies when drawn full width, capped by the
   // configured band. The band never shrinks below the reference size (so the
@@ -71,14 +77,22 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     try { const img = source && doc.openImage(source); if (img && img.width > 0) natural = w * img.height / img.width; } catch (_) { /* unreadable: keep the band */ }
     return Math.min(band, Math.max(natural, referenceBand));
   }
+  // The bundled footer artwork is drawn at its own height across the page.
+  function naturalHeight(source, w) {
+    const img = doc.openImage(source);
+    return w * img.height / img.width;
+  }
   const customFooter = options.footer && profile.footerUrl ? resolveUploadAbsolute(profile.footerUrl) : null;
   const footerSlot = !options.footer ? 0 : customFooter
     ? artSlot(customFooter, width, format.footerHeight, REFERENCE_FORMAT.footerHeight)
-    : artSlot(path.join(assets, 'reference-footer.jpg'), width * 0.778, format.footerHeight, REFERENCE_FORMAT.footerHeight);
+    : naturalHeight(REFERENCE_FOOTER, width);
   // Preprinted footers need their configured band; a drawn footer needs only its
   // own height; digital letterhead without a footer may dip slightly.
   const footerReserve = plainBill ? 0 : !options.letterhead ? Math.max(format.footerHeight, footerSlot) : footerSlot;
   let limit = doc.page.height - (footerReserve ? footerReserve + 10 : 30) - m;
+  // The lab's printed pad: never write into its preprinted footer, whatever
+  // footer height the format has.
+  if (!options.letterhead && !plainBill) limit = Math.min(limit, doc.page.height - PREPRINT_FOOTER_CLEAR);
   const pageBottom = options.letterhead ? doc.page.height - m - 12 : limit;
   let y = m;
   const referenceAsset = fallback => format.useReferenceBranding && fallback ? path.join(assets, fallback) : null;
@@ -891,12 +905,10 @@ function documentPdf(context, requestOptions = {}, kind = 'report') {
     if (options.footer) {
       const footerTop = doc.page.height - m - footerSlot;
       const customFooterDrawn = customFooter && image(customFooter, m, footerTop, width, footerSlot);
-      if (!customFooterDrawn && format.useReferenceBranding) {
-        image(path.join(assets, 'reference-footer.jpg'), m + width * 0.222, footerTop, width * 0.778, footerSlot);
-        image(path.join(assets, 'reference-corner.jpg'), m, footerTop + footerSlot * 0.2, width * 0.222, footerSlot * 0.8);
-      }
+      if (!customFooterDrawn && format.useReferenceBranding) image(REFERENCE_FOOTER, m, footerTop, width, footerSlot);
     }
-    const labelY = doc.page.height - m - (footerReserve ? footerReserve + 17 : 15);
+    let labelY = doc.page.height - m - (footerReserve ? footerReserve + 17 : 15);
+    if (!options.letterhead && !plainBill) labelY = Math.min(labelY, limit - 7);
     if (context.preview) text('FORMAT PREVIEW - SAMPLE DATA', m, labelY, width, { size: 8, align: 'center' });
     if (options.pageno) text(`Page ${i + 1} of ${range.count}`, m, labelY, width, { size: 8, align: 'right' });
   }

@@ -315,6 +315,16 @@ test('without letterhead reserves letterheadTopMargin for preprinted stationery'
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+// Lowest text baseline on any page, measured from the page's upper edge.
+function lowestTextTop(pdf) {
+  let lowest = 0;
+  for (const match of pdf.toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\nendstream/g)) {
+    let content; try { content = zlib.inflateSync(Buffer.from(match[1], 'latin1')).toString('latin1'); } catch { continue; }
+    for (const tm of content.matchAll(/([\d.-]+) ([\d.-]+) Tm/g)) lowest = Math.max(lowest, 841.89 - Number(tm[2]));
+  }
+  return lowest;
+}
+
 // Top (from the page's upper edge) of the first text drawn that contains `label`.
 function textTop(pdf, label) {
   const source = pdf.toString('latin1');
@@ -354,6 +364,22 @@ test('footer height is reserved on preprinted paper but a drawn footer only take
   assert.ok(await label(200, false) <= 841.89 - REFERENCE_FORMAT.pageMargin - 200);
 });
 
+test('printing on the lab pad never writes into its preprinted header or footer', async () => {
+  // Smallest header/footer the format allows: the pad's own art still decides.
+  const small = { ...REFERENCE_FORMAT, headerHeight: 60, footerHeight: 30 };
+  const options = { letterhead: false, pageno: true, qr: false, barcode: false };
+  const profile = { ...context.profile, documentFormats: [small], letterheadTopMargin: 20 };
+  assert.ok(textTop(await reportPdf({ ...context, profile }, options), 'Test Patient') >= 134, 'patient block below the pad header');
+  const pageLabel = textTop(await reportPdf({ ...context, profile }, options), 'Page 1 of');
+  assert.ok(pageLabel + 10 <= 841.89 - 162, `page number above the pad footer, got ${pageLabel}`);
+  // Long reports break pages before the pad footer too.
+  const interpretation = ['Item\tMeaning', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}`)].join('\n');
+  const long = await reportPdf({ ...context, profile, testMap: { Creatinine: { interpretation } } }, options);
+  const lowest = lowestTextTop(long);
+  assert.ok(lowest + 10 <= 841.89 - 162, `text stays above the pad footer, lowest line at ${lowest}`);
+  assert.ok((long.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length > 1, 'long report spans pages');
+});
+
 test('long tabular interpretations continue across pages with all cells preserved', async () => {
   const interpretation = ['Item\tMeaning\tComment', ...Array.from({ length: 180 }, (_, i) => `Item${i + 1}\tMeaning${i + 1}\tComment${i + 1}`)].join('\n');
   const pdf = await reportPdf({ ...context, testMap: { Creatinine: { interpretation } } });
@@ -387,7 +413,7 @@ test('reference assets survive missing temporary uploads after a deployment', as
   const profile = { labName: 'PURE PATH LAB', logoUrl: 'uploads/letterheads/missing-logo.png', letterheadUrl: 'uploads/letterheads/missing-header.png', footerUrl: 'uploads/letterheads/missing-footer.png' };
   const pdf = await reportPdf({ ...context, profile });
   const images = pdf.toString('latin1').match(/\/Subtype\s*\/Image\b/g) || [];
-  assert.equal(images.length, 4, 'bundled header, watermark, footer and corner must render');
+  assert.equal(images.length, 3, 'bundled header, watermark and footer must render');
   assert.match(textOf(pdf), /Test Patient/);
   assert.ok(!textOf(pdf).includes('Test Lab'));
 });
