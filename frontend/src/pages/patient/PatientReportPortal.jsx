@@ -474,7 +474,7 @@ const PatientReportPortal = () => {
     setDownloadingId(report.id); setPdfNotice(''); setDownloadError('');
     try {
       const fileName = `${report.type}_Report_${report.registrationNumber}.pdf`;
-      await downloadPatientReport(report.id, fileName);
+      await downloadPatientReport(report.id, fileName, report.files);
       setPdfNotice(`Report PDF download started for ${report.registrationNumber || 'report'}.`);
     } catch {
       setPdfNotice('');

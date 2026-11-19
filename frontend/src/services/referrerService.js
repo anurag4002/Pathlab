@@ -18,7 +18,17 @@ const reportFilename = (row, report) => (report.kind === 'lab'
   : `${report.label.replace(/\s+/g, '_')}_${row.billNumber || report._id}.pdf`);
 
 export const downloadReferrerBill = (bill) => downloadBlob(`/referrer/bills/${bill._id}/pdf`, `Bill_${bill.billNumber}.pdf`);
-export const downloadReferrerReport = (row, report) => downloadBlob(reportPath(report), reportFilename(row, report));
+// An outsourced report may hold several outside-lab files: download each.
+export const downloadReferrerReport = async (row, report) => {
+  const files = report.kind === 'lab' && Array.isArray(report.files) && report.files.length > 1 ? report.files : null;
+  if (!files) return downloadBlob(reportPath(report), reportFilename(row, report));
+  for (let i = 0; i < files.length; i += 1) {
+    const id = files[i]?._id && files[i]._id !== 'legacy' ? `?file=${encodeURIComponent(files[i]._id)}` : '';
+    const ext = (String(files[i]?.name || '').match(/\.(pdf|png|jpe?g)$/i) || ['.pdf'])[0];
+    await downloadBlob(`${reportPath(report)}${id}`, reportFilename(row, report).replace(/\.pdf$/, `_${i + 1}${ext}`));
+  }
+  return undefined;
+};
 
 /** The signed report as a PDF Blob, to show on screen. */
 export const fetchReferrerReport = async (report) => {

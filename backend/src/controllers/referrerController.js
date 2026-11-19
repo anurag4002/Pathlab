@@ -129,7 +129,7 @@ const listCases = async (req, res, next) => {
       Bill.find(query)
         .select('billNumber date department patient items referringDoctor totalAmount paidAmount dueAmount discount paymentStatus')
         .populate('patient', PATIENT_FIELDS)
-        .populate('items', 'name')
+        .populate('items', 'name itemType itemId reportDepartment')
         .populate('referringDoctor', 'name')
         .sort({ date: -1, _id: -1 })
         .skip((page - 1) * limit)
@@ -139,10 +139,11 @@ const listCases = async (req, res, next) => {
     ]);
     const billIds = bills.map((b) => b._id);
     const [reports, ...scanLists] = await Promise.all([
-      Report.find({ bill: { $in: billIds } }).select('bill status entryMode reportDate').sort({ createdAt: 1 }).lean(),
+      Report.find({ bill: { $in: billIds } }).select('bill status entryMode reportDate fileUrl files').sort({ createdAt: 1 }).lean(),
       ...Object.keys(SCANS).map((kind) => SCANS[kind].Model.find({ bill: { $in: billIds } }).select(SCAN_FIELDS[kind]).lean())
     ]);
 
+    const { reportTestNames } = require('../utils/billItemModality');
     const rows = bills.map((bill) => {
       const own = reports.filter((r) => String(r.bill) === String(bill._id));
       const labReports = own.map((r) => ({
@@ -150,7 +151,10 @@ const listCases = async (req, res, next) => {
         _id: r._id,
         label: own.length > 1 && r.entryMode === 'outsource' ? 'Outside lab report' : 'Lab report',
         ready: isFinalReport(r),
-        reportDate: isFinalReport(r) ? r.reportDate : null
+        reportDate: isFinalReport(r) ? r.reportDate : null,
+        // Only this report's own tests (mixed bills: in-house vs outsource).
+        tests: reportTestNames(r, bill.items),
+        files: isFinalReport(r) ? require('../utils/reportFiles').publicFileList(r) : []
       }));
       const scans = Object.keys(SCANS).flatMap((kind, i) => scanLists[i]
         .filter((s) => String(s.bill) === String(bill._id) && s.serviceType !== 'without-report' && scanIsMine(req, s, true))
@@ -238,7 +242,7 @@ const shareBill = async (req, res, next) => {
 // The report must belong to one of their bills and be signed off.
 const findOwnFinalReport = async (req, res) => {
   if (!OBJECT_ID.test(String(req.params.id || ''))) { errorResponse(res, NOT_FOUND, 404); return null; }
-  const report = await Report.findById(req.params.id).select('bill status fileUrl registrationNumber qrToken updatedAt');
+  const report = await Report.findById(req.params.id).select('bill status fileUrl files registrationNumber qrToken updatedAt');
   if (!report || !(await findOwnBill(req, report.bill))) { errorResponse(res, NOT_FOUND, 404); return null; }
   if (!isFinalReport(report)) { errorResponse(res, PROCESSING, 403); return null; }
   return report;
@@ -250,8 +254,9 @@ const reportPdf = async (req, res, next) => {
     const report = await findOwnFinalReport(req, res);
     if (!report) return undefined;
     // Same as the public report link: an uploaded report file is sent as is.
-    if (report.fileUrl) {
-      const abs = await require('../services/storageService').ensureFilePath(report.fileUrl);
+    const file = require('../utils/reportFiles').findReportFile(report, req.query?.file);
+    if (file) {
+      const abs = await require('../services/storageService').ensureFilePath(file.url);
       if (abs && fs.existsSync(abs)) return res.download(abs, `Report_${report.registrationNumber}${require('path').extname(abs) || '.pdf'}`);
     }
     return require('./reportController').sendReportPdf(req, res, next, { branchCheck: false });

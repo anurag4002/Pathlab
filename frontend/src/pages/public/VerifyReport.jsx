@@ -45,9 +45,25 @@ const VerifyReportPage = () => {
         <div><strong>Status:</strong> {data.status}</div>
         {!!data.resultCount && <div><strong>Results:</strong> {data.resultCount} parameters</div>}
       </div>
-      <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, `Report_${data.registrationNumber}.pdf`)} icon={<FileDown size={16} />}>
-        Download PDF
-      </Button>
+      {Array.isArray(data.files) && data.files.length > 1 ? (
+        // An outsourced report sent as several files (one per test or group).
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {data.files.map((file, i) => (
+            <Button
+              key={file._id}
+              variant={i === 0 ? 'primary' : 'secondary'}
+              onClick={() => downloadBlob(`/public/r/${token}/download?file=${encodeURIComponent(file._id)}`, `Report_${data.registrationNumber}_${i + 1}${(String(file.name || '').match(/\.(pdf|png|jpe?g)$/i) || ['.pdf'])[0]}`)}
+              icon={<FileDown size={16} />}
+            >
+              {file.tests?.length ? file.tests.join(', ') : `File ${i + 1}`}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, `Report_${data.registrationNumber}.pdf`)} icon={<FileDown size={16} />}>
+          Download PDF
+        </Button>
+      )}
     </div>
   );
 };

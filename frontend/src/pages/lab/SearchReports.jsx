@@ -12,6 +12,7 @@ import './labV2.css';
 
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
+import { reportTestNames } from '../../utils/reportTests';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
 import { Download, FileDown } from 'lucide-react';
@@ -164,8 +165,8 @@ const SearchReports = () => {
           // Report screen: age · sex stay next to the name.
           const p = report.patient || {};
           const reported = ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status);
-          const billed = (report.bill?.items || []).filter((item) => item && !item.reportDepartment).map((item) => String(item.name || '').replace(/ \(bundle\)$/, ''));
-          const names = report.test ? [report.test.name] : [...new Set(billed)];
+          // Only this report's own tests (in-house vs outsource shell).
+          const names = report.test ? [report.test.name] : reportTestNames(report);
           const menu = [
             { label: 'Download PDF', onClick: () => downloadReportPdf(report._id) },
             report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`) },
@@ -203,7 +204,11 @@ const SearchReports = () => {
             <td>{formatDate(report.reportDate || report.createdAt)}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
             <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
-            <td>{report.test ? `${report.test.name} (${report.test.code})` : (report.results?.length ? `${report.results.length} params` : 'General Findings')}</td>
+            <td>{report.test ? `${report.test.name} (${report.test.code})` : (() => {
+              const names = reportTestNames(report);
+              if (names.length) return <span title={names.join(', ')}>{names[0]}{names.length > 1 ? ` +${names.length - 1} more` : ''}</span>;
+              return report.results?.length ? `${report.results.length} params` : 'General Findings';
+            })()}</td>
             <td>{report.cc || 'Main'}</td>
             <td>{report.status}</td>
             <td>

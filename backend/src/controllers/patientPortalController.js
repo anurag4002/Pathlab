@@ -128,13 +128,16 @@ const getPatientReports = async (req, res, next) => {
     // ...using what was billed ("Complete Blood Count (CBC), Serum Creatinine").
     const BillItem = require('../models/BillItem');
     const billIds = [...new Set(activeLabReports.map(r => r.bill?._id).filter(Boolean).map(String))];
-    const billItems = billIds.length ? await BillItem.find({ billId: { $in: billIds } }).select('billId name reportDepartment').lean() : [];
+    const billItems = billIds.length ? await BillItem.find({ billId: { $in: billIds } }).select('billId name itemType itemId reportDepartment').sort({ _id: 1 }).lean() : [];
+    const { reportTestNames } = require('../utils/billItemModality');
     const summary = names => {
       const unique = [...new Set(names.map(name => String(name || '').trim()).filter(Boolean))];
       return unique.length > 3 ? `${unique.slice(0, 3).join(', ')} +${unique.length - 3} more` : unique.join(', ');
     };
-    const billedNames = new Map(billIds.map(id => [id, summary(billItems.filter(item => String(item.billId) === id && !item.reportDepartment).map(item => item.name))]));
-    const resultTestNames = (r) => billedNames.get(String(r.bill?._id || '')) || summary((r.results || []).map(x => String(x?.testName || '').split(':')[0]));
+    const itemsByBill = new Map(billIds.map(id => [id, billItems.filter(item => String(item.billId) === id)]));
+    // Only this report's own tests (in-house vs outsource shell of a mixed bill).
+    const resultTestNames = (r) => summary(reportTestNames(r, itemsByBill.get(String(r.bill?._id || '')) || []))
+      || summary((r.results || []).map(x => String(x?.testName || '').split(':')[0]));
 
     // 2. Fetch USG Reports
     const usgReports = await USGCase.find({ patient: { $in: patientIds } })
@@ -186,6 +189,8 @@ const getPatientReports = async (req, res, next) => {
           entryMode: mode,
           downloadable: isDownloadable(rawStatus, !!r.fileUrl),
           hasFile: !!r.fileUrl,
+          // Several outside-lab files: each downloads with ?file=<id>.
+          files: require('../utils/reportFiles').publicFileList(r),
           resultValue: r.resultValue,
           unit: r.unit || (r.test ? r.test.unit : ''),
           referenceRange: r.referenceRange || (r.test ? r.test.referenceRange : ''),
@@ -333,10 +338,11 @@ const downloadPatientReport = async (req, res, next) => {
     // Laboratory report: prefer uploaded file, else render structured PDF.
     const labReport = await Report.findById(id);
     if (labReport && patientIds.includes(String(labReport.patient))) {
-      if (labReport.fileUrl) {
-        const absolutePath = await storageService.ensureFilePath(labReport.fileUrl);
+      const file = require('../utils/reportFiles').findReportFile(labReport, req.query?.file);
+      if (file) {
+        const absolutePath = await storageService.ensureFilePath(file.url);
         if (absolutePath) {
-          return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}.pdf`);
+          return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}${path.extname(file.url) || '.pdf'}`);
         }
       }
 

@@ -36,7 +36,13 @@ function DownloadButton({ label, run }) {
 function ReportLine({ row, report, labName, onView }) {
   return (
     <li className="rf-report">
-      <span className="rf-report-name"><FileText size={15} aria-hidden="true" />{report.label}</span>
+      <span className="rf-report-name" title={report.tests?.length ? report.tests.join(', ') : undefined}>
+        <FileText size={15} aria-hidden="true" />{report.label}
+        {/* Only this report's own tests (mixed bills: in-house vs outside lab). */}
+        {row.reports?.filter((r) => r.kind === 'lab').length > 1 && report.tests?.length > 0 && (
+          <small style={{ marginLeft: 6, opacity: 0.8 }}>{report.tests.length > 2 ? `${report.tests.slice(0, 2).join(', ')} +${report.tests.length - 2} more` : report.tests.join(', ')}</small>
+        )}
+      </span>
       {report.ready ? (
         <>
           <span className="rf-chip is-ready">Ready</span>

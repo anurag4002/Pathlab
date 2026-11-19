@@ -8,6 +8,7 @@ import {
   getSummary
 } from '../../../services/dashboardService';
 import { getPendingLabCases, getReports } from '../../../services/reportService';
+import { reportTestNames } from '../../../utils/reportTests';
 import { getOnboarding } from '../../../services/setupService';
 import useAuth from '../../../hooks/useAuth';
 import {
@@ -302,7 +303,10 @@ const PendingWorkCard = ({ refreshKey, onRefresh, canVerify }) => {
 };
 
 const getReportTestNames = (report) => {
-  const names = (Array.isArray(report?.results) ? report.results : [])
+  // This report's own billed tests (mixed bill: in-house vs outsource);
+  // fall back to the result rows.
+  const billed = report?.test ? [] : reportTestNames(report);
+  const names = billed.length ? billed : (Array.isArray(report?.results) ? report.results : [])
     .map((result) => result?.testName)
     .filter(Boolean);
   // A big panel report has hundreds of rows; show a short, readable summary.

@@ -52,6 +52,8 @@ import InlineTestInterpretation from '../../components/lab/InlineTestInterpretat
 import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { hasInterpretation } from '../../utils/interpretationContent';
 import { patientName } from '../../utils/patientName';
+import { reportTestNames, uploadTestNames, isInhouseItem, isOutsourceItem, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
+import OutsourceTestsField from '../../components/lab/OutsourceTestsField';
 
 const isOutsourceBill = (bill) => (
   bill?.caseType === 'OutsourceLabCase'
@@ -438,7 +440,9 @@ const ResultEntry = () => {
         /* fall back to patient+bill upload */
       }
     }
-    setUploadTarget({ bill, patient, reportId });
+    // Upload is outsource work: name the report's outsourced tests only.
+    const uploadReportRow = row?.report?.entryMode === 'inhouse' ? { entryMode: 'outsource' } : row?.report;
+    setUploadTarget({ bill, patient, reportId, report: uploadReportRow });
     setUploadPickBillId(String(bill._id));
     setUploadFile(null);
     setUploadError(null);
@@ -452,6 +456,19 @@ const ResultEntry = () => {
     setUploadError(null);
     setUploadOpen(true);
   };
+
+  // The outsourced tests this upload can be tagged with, and their coverage.
+  const uploadInfo = useMemo(() => {
+    if (uploadTarget) return outsourceUploadInfo(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items);
+    const row = cases.find((c) => String(c?.bill?._id) === String(uploadPickBillId) && c?.report?.entryMode !== 'inhouse');
+    return row ? outsourceUploadInfo(row.report, row.bill?.items) : { tests: [], coverage: [] };
+  }, [uploadTarget, uploadPickBillId, cases]);
+  const [uploadTests, setUploadTests] = useState([]);
+  // Re-tick only when the tests or their coverage change (not on every list refresh).
+  const uploadInfoKey = JSON.stringify(uploadInfo);
+  useEffect(() => {
+    setUploadTests(defaultUploadTicks(JSON.parse(uploadInfoKey)));
+  }, [uploadInfoKey]);
 
   const handleUploadSubmit = async () => {
     let patientId = uploadTarget?.patient?._id;
@@ -469,11 +486,16 @@ const ResultEntry = () => {
       setUploadError('Please select a PDF or image report file.');
       return;
     }
+    if (uploadInfo.tests.length && !uploadTests.length) {
+      setUploadError('Tick the tests this file contains.');
+      return;
+    }
     setUploadLoading(true);
     setUploadError(null);
     try {
       const payload = new FormData();
       payload.append('file', uploadFile);
+      if (uploadInfo.tests.length) payload.append('tests', JSON.stringify(uploadTests));
       let res;
       if (uploadTarget?.reportId) {
         res = await attachReportFile(uploadTarget.reportId, payload);
@@ -822,20 +844,22 @@ const ResultEntry = () => {
   // data-entry action (prevents "Enter/Submit persisting after submission").
 
   const itemsLabelForRow = (row) => {
-    let items = row?.bill?.items;
+    const items = row?.bill?.items;
     if (!Array.isArray(items) || !items.length) return '—';
     const mode = row?.report?.entryMode;
-    if (mode === 'inhouse') {
-      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
-    } else if (mode === 'outsource') {
-      items = items.filter((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
-    }
-    if (!items.length) {
+    // Only this report's own tests (mixed bill: in-house vs outsource).
+    const names = reportTestNames(row?.report, items);
+    if (!names.length) {
       return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';
     }
-    const names = items.map((i) => i?.name || 'Item').filter(Boolean);
     const label = names.join(', ');
     return label.length > 48 ? `${label.slice(0, 48)}…` : label;
+  };
+
+  // Outsource report: "1 of 2 uploaded" (per-test detail on hover).
+  const coverageLine = (report) => {
+    const cover = coverageSummary(report);
+    return cover ? <span className="cell-sub" title={cover.title} style={{ display: 'block' }}>{cover.text}</span> : null;
   };
 
   const renderCaseRow = (row) => {
@@ -846,8 +870,8 @@ const ResultEntry = () => {
     const final = isReportFinal(row?.report?.status);
     const mode = row?.report?.entryMode;
     const items = Array.isArray(row?.bill?.items) ? row.bill.items : [];
-    const hasInhouse = items.some((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
-    const hasOutsource = items.some((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+    const hasInhouse = items.some(isInhouseItem);
+    const hasOutsource = items.some(isOutsourceItem);
     // Legacy single "all" row on a mixed bill — offer both actions.
     const showBoth = (!mode || mode === 'all') && hasInhouse && hasOutsource && !final;
     const outsource = !showBoth && isOutsourceWork(row?.report, row?.bill);
@@ -877,9 +901,14 @@ const ResultEntry = () => {
             <td style={{ maxWidth: 260 }}>{(() => {
               const label = String(itemsLabelForRow(row));
               const parts = label.split(', ');
-              return parts.length > 1
-                ? <span title={label}>{parts[0]} <span className="cell-sub" style={{ display: 'inline' }}>+{parts.length - 1} more</span></span>
-                : label;
+              return (
+                <>
+                  {parts.length > 1
+                    ? <span title={label}>{parts[0]} <span className="cell-sub" style={{ display: 'inline' }}>+{parts.length - 1} more</span></span>
+                    : label}
+                  {coverageLine(row?.report)}
+                </>
+              );
             })()}</td>
           </>
         ) : (
@@ -897,7 +926,7 @@ const ResultEntry = () => {
               ) : null}
             </td>
             <td>{demographics || '—'}</td>
-            <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}</td>
+            <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}{coverageLine(row?.report)}</td>
           </>
         )}
         <td>
@@ -1569,8 +1598,8 @@ const ResultEntry = () => {
                 <dt>Invoice</dt>
                 <dd>
                   {uploadTarget.bill?.billNumber || '—'}
-                  {uploadTarget.bill?.items?.length
-                    ? ` · ${uploadTarget.bill.items.map((i) => i.name).filter(Boolean).join(', ')}`
+                  {uploadTestNames(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items).length
+                    ? ` · ${uploadTestNames(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items).join(', ')}`
                     : ''}
                 </dd>
               </div>
@@ -1585,8 +1614,8 @@ const ResultEntry = () => {
               options={outsourcePending.map((c) => ({
                 value: String(c.bill._id),
                 label: `${c.bill.billNumber} · ${c.bill.patient?.name || 'Patient'}${
-                  c.bill.items?.length
-                    ? ` · ${c.bill.items.map((i) => i.name).filter(Boolean).slice(0, 2).join(', ')}`
+                  uploadTestNames(c.report, c.bill.items).length
+                    ? ` · ${uploadTestNames(c.report, c.bill.items).slice(0, 2).join(', ')}`
                     : ''
                 }`
               }))}
@@ -1596,6 +1625,7 @@ const ResultEntry = () => {
           <p className="re-sub" style={{ margin: 0 }}>
             Upload the external lab PDF or scan/image. No numeric result entry is required for outsource.
           </p>
+          <OutsourceTestsField info={uploadInfo} selected={uploadTests} onChange={(next) => { setUploadTests(next); setUploadError(null); }} />
           <FileUploader
             onChange={(file) => { setUploadFile(file); setUploadError(null); }}
             value={uploadFile}

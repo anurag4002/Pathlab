@@ -18,6 +18,7 @@ const { getResultOptions } = require('../services/resultOptionsService');
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
+const { parseTestTags, findReportFile, describeReportFiles } = require('../utils/reportFiles');
 
 const assertReportAccess = async (req, id) => {
   const doc = await Report.findById(id).select('branch');
@@ -28,6 +29,14 @@ const assertReportAccess = async (req, id) => {
   }
   assertBranchAccess(req, doc.branch);
   return doc;
+};
+
+// Upload responses carry the file list and per-test coverage too.
+const withFileInfo = async (report) => {
+  const plain = typeof report?.toObject === 'function' ? report.toObject() : { ...report };
+  const items = plain.bill ? await BillItem.find({ billId: plain.bill._id || plain.bill }).select('name itemType itemId reportDepartment').sort({ _id: 1 }).lean() : [];
+  const { reportTestNames } = require('../utils/billItemModality');
+  return { ...plain, testNames: reportTestNames(plain, items), ...describeReportFiles(plain, items) };
 };
 
 const getReports = async (req, res, next) => {
@@ -78,7 +87,8 @@ const uploadReport = async (req, res, next) => {
     const report = await reportService.createReport(
       { patient, bill, test, branch: resolveBranchForCreate(req, req.body) },
       req.file,
-      req.user
+      req.user,
+      { tests: parseTestTags(req.body.tests) }
     );
 
     // Log Activity
@@ -89,7 +99,7 @@ const uploadReport = async (req, res, next) => {
       description: `Uploaded laboratory findings report for patient registration ${report.registrationNumber}.`
     });
 
-    return successResponse(res, 'Report uploaded successfully', report, 201);
+    return successResponse(res, 'Report uploaded successfully', await withFileInfo(report), 201);
   } catch (error) {
     next(error);
   }
@@ -103,14 +113,14 @@ const attachReportFile = async (req, res, next) => {
       return errorResponse(res, 'Please upload a file', 400);
     }
     await assertReportAccess(req, req.params.id);
-    const report = await reportService.attachReportFile(req.params.id, req.file, req.user);
+    const report = await reportService.attachReportFile(req.params.id, req.file, req.user, { tests: parseTestTags(req.body?.tests) });
     await Activity.create({
       user: req.user._id,
       action: 'Upload Report',
       module: 'Lab',
       description: `Attached findings file to report ${report.registrationNumber}.`
     });
-    return successResponse(res, 'Report file uploaded successfully', report);
+    return successResponse(res, 'Report file uploaded successfully', await withFileInfo(report));
   } catch (error) {
     next(error);
   }
@@ -121,16 +131,18 @@ const downloadReport = async (req, res, next) => {
     const { id } = req.params;
     await assertReportAccess(req, id);
     const report = await Report.findById(id);
-    if (!report || !report.fileUrl) {
+    // ?file=<id> picks one of several uploaded files; default is the newest.
+    const file = report ? findReportFile(report, req.query?.file) : null;
+    if (!file) {
       return errorResponse(res, 'Report file not found', 404);
     }
 
-    const filepath = await storageService.ensureFilePath(report.fileUrl);
+    const filepath = await storageService.ensureFilePath(file.url);
     if (!filepath) {
       return errorResponse(res, 'Physical report file missing on server', 404);
     }
 
-    const filename = `Report_${report.registrationNumber}_${id}${path.extname(report.fileUrl)}`;
+    const filename = `Report_${report.registrationNumber}_${id}${path.extname(file.url)}`;
     return res.download(filepath, filename);
   } catch (error) {
     next(error);
@@ -523,7 +535,7 @@ async function getPendingLabCases(req, res, next) {
           localField: '_id',
           foreignField: 'billId',
           as: 'itemDocs',
-          pipeline: [{ $project: { name: 1, itemType: 1, price: 1, itemId: 1, reportDepartment: 1 } }]
+          pipeline: [{ $sort: { _id: 1 } }, { $project: { name: 1, itemType: 1, price: 1, itemId: 1, reportDepartment: 1 } }]
         }
       },
       // Imaging-only bills belong to their own queues. Exclude them before
@@ -556,7 +568,9 @@ async function getPendingLabCases(req, res, next) {
                 status: '$$r.status',
                 registrationNumber: '$$r.registrationNumber',
                 entryMode: { $ifNull: ['$$r.entryMode', 'all'] },
-                hasFile: { $gt: [{ $strLenCP: { $ifNull: ['$$r.fileUrl', ''] } }, 0] }
+                hasFile: { $gt: [{ $strLenCP: { $ifNull: ['$$r.fileUrl', ''] } }, 0] },
+                fileUrl: '$$r.fileUrl',
+                files: { $map: { input: { $ifNull: ['$$r.files', []] }, as: 'f', in: { _id: '$$f._id', url: '$$f.url', originalName: '$$f.originalName', mimeType: '$$f.mimeType', tests: '$$f.tests', uploadedAt: '$$f.uploadedAt' } } }
               }
             }
           }
@@ -635,7 +649,7 @@ async function getPendingLabCases(req, res, next) {
 
     const facet = rows[0] || { data: [], meta: [] };
     const total = facet.meta[0]?.total || 0;
-    const { reportModesForItems } = require('../utils/billItemModality');
+    const { reportModesForItems, reportTestNames } = require('../utils/billItemModality');
 
     // One worklist row per open report shell (mixed bills → separate inhouse / outsource actions).
     const data = [];
@@ -659,7 +673,7 @@ async function getPendingLabCases(req, res, next) {
           || (report.entryMode === 'all' && expectedModes.length === 1)
           || (mode === 'outsource' && report.hasFile));
         for (const missingMode of expectedModes.filter(mode => !covered(mode))) {
-          data.push({ bill: baseBill, report: { status: 'Pending', entryMode: missingMode } });
+          data.push({ bill: baseBill, report: { status: 'Pending', entryMode: missingMode, testNames: reportTestNames(missingMode, baseBill.items) } });
         }
         for (const r of openReports) {
           data.push({
@@ -669,7 +683,9 @@ async function getPendingLabCases(req, res, next) {
               status: r.status || 'Registered',
               registrationNumber: r.registrationNumber,
               entryMode: r.entryMode || 'all',
-              hasFile: !!r.hasFile
+              hasFile: !!r.hasFile,
+              testNames: reportTestNames(r.entryMode || 'all', baseBill.items),
+              ...describeReportFiles({ entryMode: r.entryMode || 'all', fileUrl: r.fileUrl, files: r.files }, baseBill.items)
             }
           });
         }
@@ -678,7 +694,7 @@ async function getPendingLabCases(req, res, next) {
         for (const mode of modes) {
           data.push({
             bill: baseBill,
-            report: { status: 'Pending', entryMode: mode }
+            report: { status: 'Pending', entryMode: mode, testNames: reportTestNames(mode, baseBill.items) }
           });
         }
       }

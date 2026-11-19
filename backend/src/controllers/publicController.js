@@ -1,3 +1,5 @@
+const path = require('path');
+const { publicFileList, findReportFile } = require('../utils/reportFiles');
 const Report = require('../models/Report');
 const Bill = require('../models/Bill');
 const LabProfile = require('../models/LabProfile');
@@ -34,7 +36,9 @@ const verifyReport = async (req, res, next) => {
       resultCount: (report.results || []).length,
       hasFile: !!report.fileUrl,
       // Relative to the API base (/api) — the Verify page prefixes apiClient base.
-      downloadPath: `/public/r/${report.qrToken}/download`
+      downloadPath: `/public/r/${report.qrToken}/download`,
+      // Several outside-lab files: each one can be downloaded (?file=<id>).
+      files: publicFileList(report).map(file => ({ ...file, downloadPath: `/public/r/${report.qrToken}/download?file=${encodeURIComponent(file._id)}` }))
     });
   } catch (error) {
     next(error);
@@ -46,9 +50,10 @@ const downloadPublicReport = async (req, res, next) => {
     const report = await findReportByToken(req.params.token);
     if (!report) return errorResponse(res, 'Invalid or expired verification link', 404);
     // Prefer the uploaded file; otherwise render the server PDF.
-    if (report.fileUrl) {
-      const abs = await storageService.ensureFilePath(report.fileUrl);
-      if (abs) return res.download(abs, `Report_${report.registrationNumber}.pdf`);
+    const file = findReportFile(report, req.query?.file);
+    if (file) {
+      const abs = await storageService.ensureFilePath(file.url);
+      if (abs) return res.download(abs, `Report_${report.registrationNumber}${path.extname(file.url) || '.pdf'}`);
     }
     const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
     const testMap = await require('../services/reportPrintSections').loadReportPrintTests(full);
