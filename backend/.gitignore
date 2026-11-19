@@ -9,6 +9,3 @@ dist
 tests/fixtures/labsmart/reports/pathlab-recreates/
 tests/fixtures/labsmart/reports/pathlab-renders/
 tests/fixtures/labsmart/reports/visual-diffs/
-
-# Backups written by scripts/deleteDummyReports.js (contain patient data).
-backups/
