@@ -522,6 +522,7 @@ module.exports = {
   signReport,
   updateTat,
   ensureQrToken,
+  allowResultChange,
   FINAL_STATUSES,
   SIGNED_OFF_STATUSES,
   verifyReport,

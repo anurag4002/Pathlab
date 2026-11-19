@@ -5,10 +5,12 @@ const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function patientName(patient) {
   const name = String(patient?.name || '').trim();
-  const title = String(patient?.title || '').trim().replace(/\.$/, '');
-  if (!title) return name;
+  // Shown as saved ("Mr." stays "Mr."); matched with or without its dot.
+  const title = String(patient?.title || '').trim();
+  const bare = title.replace(/\.$/, '');
+  if (!bare) return name;
   if (!name) return '';
-  return new RegExp(`^${escape(title)}\\.?(\\s|$)`, 'i').test(name) ? name : `${title} ${name}`;
+  return new RegExp(`^${escape(bare)}\\.?(\\s|$)`, 'i').test(name) ? name : `${title} ${name}`;
 }
 
 module.exports = { patientName };

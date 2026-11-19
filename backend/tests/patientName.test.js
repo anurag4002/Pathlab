@@ -14,6 +14,7 @@ test('title is shown once even when the name already starts with it', () => {
   assert.equal(patientName({ title: 'Mr', name: 'Shivam' }), 'Mr Shivam');
   assert.equal(patientName({ title: 'Mr', name: 'Mrinal' }), 'Mr Mrinal', 'a name starting with the letters is not a title');
   assert.equal(patientName({ title: 'Dr.', name: 'Dr Abha' }), 'Dr Abha');
+  assert.equal(patientName({ title: 'Mr.', name: 'Shivam' }), 'Mr. Shivam', 'title printed as saved');
   assert.equal(patientName({ name: 'Shivam' }), 'Shivam');
   assert.equal(patientName({ title: 'Mr' }), '');
   assert.equal(patientName(null), '');

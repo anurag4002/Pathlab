@@ -81,6 +81,12 @@ export const getReportForEntry = async (id) => {
   return response.data;
 };
 
+// Take a test that is no longer on the bill off this report.
+export const removeStaleReportTest = async (id, testId) => {
+  const response = await apiClient.delete(`/reports/${id}/results/stale/${testId}`);
+  return response.data;
+};
+
 // Per-section print options / ordering chosen on result entry.
 export const updateReportPrintSettings = async (id, settings) => {
   const response = await apiClient.put(`/reports/${id}/print-settings`, settings);

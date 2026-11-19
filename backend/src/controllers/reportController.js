@@ -218,6 +218,7 @@ module.exports = {
   reportQr,
   getPendingLabCases,
   getReportForEntry,
+  removeStaleTest,
   previewResults,
   saveResultsDraft,
   submitResults,
@@ -747,6 +748,14 @@ async function getReportForEntry(req, res, next) {
       }
     }
 
+    // Follow the bill: value-less rows of tests no longer billed for this
+    // report are dropped from an open report; ones with an entered value are
+    // kept and flagged below (see reportBillSync for the full rule).
+    const catalog = await Test.find().populate('category', 'name createdAt').lean();
+    const reportBillSync = require('../services/reportBillSync');
+    const { scope: billScope } = await reportBillSync.syncReportWithBill(report, { catalog });
+    const staleTests = reportBillSync.flaggedStaleTests(report, billScope);
+
     // Also surface tests already saved on the report (edit path)
     for (const r of (report.results || [])) {
       const tid = r.test?._id || r.test;
@@ -779,7 +788,6 @@ async function getReportForEntry(req, res, next) {
 
     // Get full test details
     const testIds = [...new Set(allTests.map(t => t.itemId).filter(Boolean))];
-    const catalog = await Test.find().populate('category', 'name createdAt').lean();
     const tests = includeFormulaDependencies(catalog.filter((t) => testIds.some((id) => String(id) === String(t._id))), catalog);
     for (const test of tests) {
       if (!allTests.some((t) => String(t.itemId) === String(test._id))) {
@@ -859,7 +867,10 @@ async function getReportForEntry(req, res, next) {
         existingValue: row?.value || '',
         existingUnit: row?.unit || '',
         existingFlag: row?.flag || '',
-        existingRemark: row?.remark || ''
+        existingRemark: row?.remark || '',
+        // Saved on this report but no longer on its share of the bill.
+        notOnBill: !!(t.itemId && staleTests.has(String(t.itemId))),
+        notOnBillNote: t.itemId ? staleTests.get(String(t.itemId)) || '' : ''
       };
       });
     });
@@ -950,6 +961,24 @@ async function submitResults(req, res, next) {
     });
     await logEditAfterSubmit(req, report);
     return successResponse(res, 'Results submitted successfully', report);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// DELETE /reports/:id/results/stale/:testId - take a test that is no longer
+// on the bill off this report (its entered values included). Submitted
+// reports follow the usual rule: admin only, and signed ones must be signed again.
+async function removeStaleTest(req, res, next) {
+  try {
+    await assertReportAccess(req, req.params.id);
+    const report = await require('../services/reportBillSync').removeStaleTest(req.params.id, req.params.testId, req.user);
+    await Activity.create({
+      user: req.user._id, action: 'Remove Test From Report', module: 'Lab',
+      description: `Removed ${report.$locals.removedName} from report ${report.registrationNumber} (no longer on the bill).`
+    });
+    await logEditAfterSubmit(req, report);
+    return successResponse(res, `${report.$locals.removedName} removed from this report`, { _id: report._id, status: report.status });
   } catch (error) {
     next(error);
   }

@@ -25,7 +25,8 @@ import {
   uploadReport,
   attachReportFile,
   signReport,
-  updateReportPrintSettings
+  updateReportPrintSettings,
+  removeStaleReportTest
 } from '../../services/reportService';
 import { getSignatures } from '../../services/setupService';
 import { downloadReportPdf } from '../../services/publicService';
@@ -50,6 +51,7 @@ import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
 import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { hasInterpretation } from '../../utils/interpretationContent';
+import { patientName } from '../../utils/patientName';
 
 const isOutsourceBill = (bill) => (
   bill?.caseType === 'OutsourceLabCase'
@@ -244,7 +246,8 @@ const ResultEntry = () => {
   const [savedAt, setSavedAt] = useState(0);
 
   // Action state
-  const [busy, setBusy] = useState(null); // null | 'draft' | 'submit'
+  const [busy, setBusy] = useState(null); // null | 'draft' | 'submit' | 'remove'
+  const [staleRemove, setStaleRemove] = useState(null); // { testId, name } awaiting confirm
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
   const [openInterpretations, setOpenInterpretations] = useState({});
   const navigate = useNavigate();
@@ -560,6 +563,26 @@ const ResultEntry = () => {
     }
   };
 
+  // Take a test that was removed from the bill (or moved to outsource) off this report.
+  const handleRemoveStale = async () => {
+    const target = staleRemove;
+    if (!target?.testId || !entry?.report?._id || busy || inFlightRef.current) return;
+    inFlightRef.current = true;
+    setBusy('remove');
+    try {
+      const res = await removeStaleReportTest(entry.report._id, target.testId);
+      const fresh = await getReportForEntry(entry.report._id);
+      applyEntry(fresh.data);
+      setFeedback({ type: 'success', text: res?.message || `${target.name} removed from this report.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: getApiErrorMessage(err, 'Could not remove this test. Please try again.') });
+    } finally {
+      setStaleRemove(null);
+      setBusy(null);
+      inFlightRef.current = false;
+    }
+  };
+
   const handleValueChange = (testId, next) => {
     setValues((prev) => ({ ...prev, [testId]: next }));
     setDirty(true);
@@ -845,7 +868,7 @@ const ResultEntry = () => {
             {/* Clinical screen: age · sex stay prominent next to the name. */}
             <td>
               <IdentityCell
-                name={[patient?.title, patient?.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                name={patientName(patient) || 'Walk-in patient'}
                 clinical={{ age: patient?.age, ageUnit: patient?.ageUnit, gender: patient?.gender }}
                 meta={[row?.bill?.billNumber && `Bill ${row.bill.billNumber}`, patient?.registrationNumber && patient.registrationNumber !== row?.bill?.billNumber && `Reg ${patient.registrationNumber}`]}
               />
@@ -957,6 +980,18 @@ const ResultEntry = () => {
             )}{(testEntry.parentName && testEntry.parameterCode ? String(testEntry.testName || '').replace(`${testEntry.parentName}: `, '') : testEntry.testName) || 'Test'}
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
           </div>
+          {testEntry.notOnBill && (
+            <div className="re-stale-note" role="status">
+              <AlertTriangle size={13} aria-hidden="true" />
+              <span>{isDerived ? 'Calculated from a test that is not on the bill any more.' : testEntry.notOnBillNote || 'Not on the bill any more. Remove from this report?'}</span>
+              {!isDerived && (!isReportFinal(entry?.report?.status) || canSign) && (
+                <button type="button" className="re-stale-remove" disabled={busy !== null}
+                  onClick={() => setStaleRemove({ testId: testEntry.testId, name: testEntry.parentName || testEntry.testName })}>
+                  Remove
+                </button>
+              )}
+            </div>
+          )}
           {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && (
             <button type="button" className="ls-pill" aria-expanded={!!openInterpretations[key]}
               onClick={() => setOpenInterpretations(prev => ({ ...prev, [key]: !prev[key] }))}>
@@ -1232,7 +1267,7 @@ const ResultEntry = () => {
                   <div className="re-v2-head">
                     <div className="re-v2-who">
                       <h1 className="re-v2-name">
-                        {[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        {patientName(p) || 'Walk-in patient'}
                         {(age || sex) && <span className="re-v2-clinical identity-clinical">{[age, sex].filter(Boolean).join(' \u00b7 ')}</span>}
                       </h1>
                       <div className="re-v2-meta">
@@ -1268,7 +1303,7 @@ const ResultEntry = () => {
               <section className="ls-sheet" aria-label="Lab report entry" onKeyDown={onSheetKeyDown} onFocus={onSheetFocus}>
                 <div className="ls-patient-box">
                   <dl className="ls-patient">
-                    <dt>Patient Name:</dt><dd>{[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ') || '—'}</dd>
+                    <dt>Patient Name:</dt><dd>{patientName(entry.patient) || '—'}</dd>
                     <dt>Age / Sex:</dt><dd>{entry.patient?.age != null && entry.patient.age !== '' ? `${entry.patient.age} ${({ years: 'YRS', months: 'MONTHS', days: 'DAYS' })[entry.patient.ageUnit || 'years'] || entry.patient.ageUnit}` : '—'}{entry.patient?.gender ? ` / ${String(entry.patient.gender).charAt(0).toUpperCase()}` : ''}</dd>
                     <dt>Referred By:</dt><dd>{referrerName || 'Self'}</dd>
                     <dt>Reg. no.</dt><dd>{entry.report?.registrationNumber || '—'}</dd>
@@ -1460,7 +1495,7 @@ const ResultEntry = () => {
                         <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
                           PDF
                         </Button>
-                        <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ')} size="md" label="Send on WhatsApp" />
+                        <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={patientName(entry.patient)} size="md" label="Send on WhatsApp" />
                         {nextCase && (
                           <Button variant="secondary" onClick={() => openCase(nextCase)} disabled={busy !== null}>
                             Next case: {nextCase.bill?.patient?.name || nextCase.bill?.billNumber || 'pending'}
@@ -1483,6 +1518,18 @@ const ResultEntry = () => {
           ) : null}
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={!!staleRemove}
+        onClose={() => busy === null && setStaleRemove(null)}
+        onConfirm={() => handleRemoveStale()}
+        title={`Remove ${staleRemove?.name || 'this test'} from this report?`}
+        message={`It is no longer on this part of the bill. Its entered values${isReportFinal(entry?.report?.status) ? ' will be removed and the report must be signed again' : ' will be removed'}.${dirty ? ' Unsaved changes on this case will be discarded.' : ''}`}
+        confirmText="Remove test"
+        loading={busy === 'remove'}
+        cancelText="Keep it"
+        confirmVariant="danger"
+      />
 
       <ConfirmDialog
         isOpen={discardOpen}

@@ -17,6 +17,7 @@ router.put('/:id/results', requirePermission('reports'), reportController.saveRe
 router.post('/:id/results/preview', requirePermission('reports'), reportController.previewResults);
 router.put('/:id/results/draft', requirePermission('reports'), reportController.saveResultsDraft);
 router.put('/:id/results/submit', requirePermission('reports'), reportController.submitResults);
+router.delete('/:id/results/stale/:testId', requirePermission('reports'), reportController.removeStaleTest);
 router.post('/:id/sign', requirePermission('reports'), reportController.signReport);
 router.post('/:id/verify', requirePermission('reports'), reportController.verifyReport);
 router.post('/:id/reject', requirePermission('reports'), reportController.rejectReport);
