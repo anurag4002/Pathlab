@@ -110,3 +110,8 @@ html.ui-v2 .rf-nav-link.is-active { color: var(--color-text); border-bottom-colo
 .rf-viewer-hint { text-align: center; }
 .rf-viewer-modal .modal-footer { flex-wrap: wrap; }
 @media (max-width: 640px) { .rf-viewer-frame { height: 70vh; } }
+
+/* One tab per outside-lab file of an outsourced report. */
+.rf-file-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem; }
+.rf-file-tab { border: 1px solid #d4d4d8; background: #fff; color: #3f3f46; border-radius: 999px; padding: 0.3rem 0.8rem; font-size: 0.85rem; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rf-file-tab.is-active { background: #2563eb; border-color: #2563eb; color: #fff; }

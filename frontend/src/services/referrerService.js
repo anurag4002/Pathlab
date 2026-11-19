@@ -31,8 +31,9 @@ export const downloadReferrerReport = async (row, report) => {
 };
 
 /** The signed report as a PDF Blob, to show on screen. */
-export const fetchReferrerReport = async (report) => {
-  const response = await apiClient.get(reportPath(report), { responseType: 'blob' });
+export const fetchReferrerReport = async (report, fileId) => {
+  const query = fileId && fileId !== 'legacy' ? `?file=${encodeURIComponent(fileId)}` : '';
+  const response = await apiClient.get(`${reportPath(report)}${query}`, { responseType: 'blob' });
   const type = response.headers?.['content-type'] || response.data?.type || '';
   if (/application\/json|text\/html/i.test(type)) throw new Error('The report could not be opened.');
   return response.data instanceof Blob && /pdf/i.test(response.data.type)
