@@ -53,7 +53,8 @@ import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { hasInterpretation } from '../../utils/interpretationContent';
 import { patientName } from '../../utils/patientName';
 import { reportTestNames, uploadTestNames, isInhouseItem, isOutsourceItem, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
-import OutsourceTestsField from '../../components/lab/OutsourceTestsField';
+import OutsourceTestsField, { PublishNowCheckbox } from '../../components/lab/OutsourceTestsField';
+import ReportFilesPublish from '../../components/lab/ReportFilesPublish';
 import TestNames from '../../components/common/TestNames';
 
 const isOutsourceBill = (bill) => (
@@ -444,6 +445,7 @@ const ResultEntry = () => {
     // Upload is outsource work: name the report's outsourced tests only.
     const uploadReportRow = row?.report?.entryMode === 'inhouse' ? { entryMode: 'outsource' } : row?.report;
     setUploadTarget({ bill, patient, reportId, report: uploadReportRow });
+    setUploadPublish(true);
     setUploadPickBillId(String(bill._id));
     setUploadFile(null);
     setUploadError(null);
@@ -452,6 +454,7 @@ const ResultEntry = () => {
 
   const openUploadPicker = () => {
     setUploadTarget(null);
+    setUploadPublish(true);
     setUploadPickBillId('');
     setUploadFile(null);
     setUploadError(null);
@@ -465,6 +468,8 @@ const ResultEntry = () => {
     return row ? outsourceUploadInfo(row.report, row.bill?.items) : { tests: [], coverage: [] };
   }, [uploadTarget, uploadPickBillId, cases]);
   const [uploadTests, setUploadTests] = useState([]);
+  // "Publish to the patient now" for the file being uploaded (default on).
+  const [uploadPublish, setUploadPublish] = useState(true);
   // Re-tick only when the tests or their coverage change (not on every list refresh).
   const uploadInfoKey = JSON.stringify(uploadInfo);
   useEffect(() => {
@@ -497,6 +502,7 @@ const ResultEntry = () => {
       const payload = new FormData();
       payload.append('file', uploadFile);
       if (uploadInfo.tests.length) payload.append('tests', JSON.stringify(uploadTests));
+      payload.append('publish', uploadPublish ? 'true' : 'false');
       let res;
       if (uploadTarget?.reportId) {
         res = await attachReportFile(uploadTarget.reportId, payload);
@@ -1625,12 +1631,22 @@ const ResultEntry = () => {
             Upload the external lab PDF or scan/image. No numeric result entry is required for outsource.
           </p>
           <OutsourceTestsField info={uploadInfo} selected={uploadTests} onChange={(next) => { setUploadTests(next); setUploadError(null); }} />
+          {uploadTarget?.reportId && Array.isArray(uploadTarget.report?.files) && uploadTarget.report.files.length > 0 && (
+            <ReportFilesPublish
+              report={{ _id: uploadTarget.reportId, files: uploadTarget.report.files }}
+              onChanged={(updated) => {
+                setUploadTarget((t) => (t ? { ...t, report: { ...t.report, files: updated.files, fileCoverage: updated.fileCoverage } } : t));
+                refreshList();
+              }}
+            />
+          )}
           <FileUploader
             onChange={(file) => { setUploadFile(file); setUploadError(null); }}
             value={uploadFile}
             label="Select PDF Report or Scan / Image file"
             accept=".pdf,.jpg,.jpeg,.png"
           />
+          <PublishNowCheckbox checked={uploadPublish} onChange={setUploadPublish} id="re-publish-now" />
         </div>
       </Modal>
     </div>

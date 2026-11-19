@@ -18,7 +18,7 @@ const { getResultOptions } = require('../services/resultOptionsService');
 const { getBranchFilter, resolveBranchForCreate, assertBranchAccess } = require('../middleware/branchMiddleware');
 const { persistRequestFiles } = require('../middleware/uploadMiddleware');
 const { escapeRegex } = require('../utils/escapeRegex');
-const { parseTestTags, findReportFile, describeReportFiles } = require('../utils/reportFiles');
+const { parseTestTags, parsePublishFlag, setFilePublished, findReportFile, describeReportFiles } = require('../utils/reportFiles');
 
 const assertReportAccess = async (req, id) => {
   const doc = await Report.findById(id).select('branch');
@@ -88,7 +88,7 @@ const uploadReport = async (req, res, next) => {
       { patient, bill, test, branch: resolveBranchForCreate(req, req.body) },
       req.file,
       req.user,
-      { tests: parseTestTags(req.body.tests) }
+      { tests: parseTestTags(req.body.tests), publish: parsePublishFlag(req.body.publish) }
     );
 
     // Log Activity
@@ -113,7 +113,7 @@ const attachReportFile = async (req, res, next) => {
       return errorResponse(res, 'Please upload a file', 400);
     }
     await assertReportAccess(req, req.params.id);
-    const report = await reportService.attachReportFile(req.params.id, req.file, req.user, { tests: parseTestTags(req.body?.tests) });
+    const report = await reportService.attachReportFile(req.params.id, req.file, req.user, { tests: parseTestTags(req.body?.tests), publish: parsePublishFlag(req.body?.publish) });
     await Activity.create({
       user: req.user._id,
       action: 'Upload Report',
@@ -121,6 +121,29 @@ const attachReportFile = async (req, res, next) => {
       description: `Attached findings file to report ${report.registrationNumber}.`
     });
     return successResponse(res, 'Report file uploaded successfully', await withFileInfo(report));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** POST /reports/:id/files/:fileId/publish { published: true|false } — show one outside-lab file to the patient. */
+const publishReportFile = async (req, res, next) => {
+  try {
+    await assertReportAccess(req, req.params.id);
+    const report = await Report.findById(req.params.id);
+    if (!report) return errorResponse(res, 'Report not found', 404);
+    const published = parsePublishFlag(req.body?.published);
+    const file = setFilePublished(report, req.params.fileId, published, req.user?._id || null);
+    if (!file) return errorResponse(res, 'Report file not found', 404);
+    await report.save();
+    const tests = (file.tests || []).join(', ');
+    await Activity.create({
+      user: req.user._id,
+      action: published ? 'Publish Report File' : 'Unpublish Report File',
+      module: 'Lab',
+      description: `${published ? 'Published' : 'Unpublished'} outside-lab file${tests ? ` (${tests})` : ''} on report ${report.registrationNumber} ${published ? 'to' : 'from'} the patient.`
+    });
+    return successResponse(res, published ? 'File published to the patient' : 'File hidden from the patient', await withFileInfo(report));
   } catch (error) {
     next(error);
   }
@@ -217,6 +240,7 @@ module.exports = {
   getReports,
   uploadReport,
   attachReportFile,
+  publishReportFile,
   downloadReport,
   deleteReport,
   createResultReport,
@@ -570,7 +594,7 @@ async function getPendingLabCases(req, res, next) {
                 entryMode: { $ifNull: ['$$r.entryMode', 'all'] },
                 hasFile: { $gt: [{ $strLenCP: { $ifNull: ['$$r.fileUrl', ''] } }, 0] },
                 fileUrl: '$$r.fileUrl',
-                files: { $map: { input: { $ifNull: ['$$r.files', []] }, as: 'f', in: { _id: '$$f._id', url: '$$f.url', originalName: '$$f.originalName', mimeType: '$$f.mimeType', tests: '$$f.tests', uploadedAt: '$$f.uploadedAt' } } }
+                files: { $map: { input: { $ifNull: ['$$r.files', []] }, as: 'f', in: { _id: '$$f._id', url: '$$f.url', originalName: '$$f.originalName', mimeType: '$$f.mimeType', tests: '$$f.tests', uploadedAt: '$$f.uploadedAt', published: '$$f.published' } } }
               }
             }
           }

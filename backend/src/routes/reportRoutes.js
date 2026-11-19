@@ -33,6 +33,7 @@ router.get('/:id/qr', reportController.reportQr);
 router.get('/:id/download', reportController.downloadReport);
 router.post('/upload', uploadLimiter, upload.single('file'), reportController.uploadReport);
 router.post('/:id/file', uploadLimiter, requirePermission('reports'), upload.single('file'), reportController.attachReportFile);
+router.post('/:id/files/:fileId/publish', requirePermission('reports'), reportController.publishReportFile);
 router.delete('/:id', authorize('Admin'), reportController.deleteReport);
 
 module.exports = router;

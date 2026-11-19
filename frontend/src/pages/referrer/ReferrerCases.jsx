@@ -46,7 +46,9 @@ function ReportLine({ row, report, labName, onView }) {
       </span>
       {report.ready ? (
         <>
-          <span className="rf-chip is-ready">Ready</span>
+          <span className="rf-chip is-ready">{report.partial ? 'Partly ready' : 'Ready'}</span>
+          {/* Outside-lab report: the published tests are open, the rest still out. */}
+          {report.partial && report.readySummary && <small className="rf-meta" style={{ flexBasis: '100%' }}>{report.readySummary}</small>}
           <span className="rf-report-actions">
             <Button variant="primary" size="sm" icon={<Eye size={14} />} onClick={() => onView({ row, report })}>View report</Button>
             <DownloadButton label="Report PDF" run={() => downloadReferrerReport(row, report)} />

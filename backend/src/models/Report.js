@@ -73,7 +73,12 @@ const ReportSchema = new mongoose.Schema({
     mimeType: { type: String, default: '' },
     tests: { type: [String], default: [] },
     uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // Shown to the patient / referrer / public link on its own, before the
+    // other outsourced tests are back. No value (older files) = published.
+    published: { type: Boolean },
+    publishedAt: { type: Date, default: null },
+    publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
   }],
   // Result-entry (Labsmart parity): structured values instead of upload-only.
   results: [{

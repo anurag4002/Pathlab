@@ -40,6 +40,12 @@ export const attachReportFile = async (id, formData) => {
   return response.data;
 };
 
+/** Publish / unpublish one outside-lab file to the patient. */
+export const publishReportFile = async (reportId, fileId, published) => {
+  const response = await apiClient.post(`/reports/${reportId}/files/${fileId}/publish`, { published: !!published });
+  return response.data;
+};
+
 export const deleteReport = async (id) => {
   const response = await apiClient.delete(`/reports/${id}`);
   return response.data;

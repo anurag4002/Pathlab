@@ -163,7 +163,7 @@ const createReport = async (reportData, file, user, options = {}) => {
     status: 'Registered'
   });
   const names = outsourceTestNames(report, await billLines(bill));
-  addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id }, names);
+  addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id, publish: options.publish }, names);
 
   return await report.save();
 };
@@ -177,7 +177,7 @@ const attachReportFile = async (reportId, file, user, options = {}) => {
   if (!file?.filename) throw Object.assign(new Error('Please upload a file'), { statusCode: 400 });
 
   const names = outsourceTestNames(report, await billLines(report.bill));
-  const { removedUrls } = addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id }, names);
+  const { removedUrls } = addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id, publish: options.publish }, names);
   await report.save();
   for (const url of removedUrls) {
     try {

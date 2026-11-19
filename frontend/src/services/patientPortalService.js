@@ -37,7 +37,7 @@ export const getPatientReports = async () => {
 // test, or one for several); each is downloaded.
 export const downloadPatientReport = async (reportId, filename = 'report.pdf', files = []) => {
   const token = sessionStorage.getItem('ppl_patient_token');
-  const list = Array.isArray(files) && files.length > 1 ? files : [null];
+  const list = Array.isArray(files) && files.length ? files : [null];
   for (let i = 0; i < list.length; i += 1) {
     const fileId = list[i]?._id && list[i]._id !== 'legacy' ? list[i]._id : null;
     const response = await apiClient.get(`/patient/reports/${reportId}/download`, {

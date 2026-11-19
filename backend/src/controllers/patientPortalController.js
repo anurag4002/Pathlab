@@ -174,6 +174,10 @@ const getPatientReports = async (req, res, next) => {
       ...activeLabReports.map(r => {
         const rawStatus = r.status || 'Registered';
         const mode = r.entryMode || 'all';
+        const fileView = {
+          ...require('../utils/reportFiles').patientFileView(r, itemsByBill.get(String(r.bill?._id || '')) || []),
+          hasAnyFile: require('../utils/reportFiles').reportFileList(r).length > 0
+        };
         const fallbackName = mode === 'outsource'
           ? 'Outsourced Laboratory Report'
           : mode === 'inhouse'
@@ -193,10 +197,16 @@ const getPatientReports = async (req, res, next) => {
           status: portalDisplayStatus(rawStatus),
           statusRaw: rawStatus,
           entryMode: mode,
-          downloadable: isDownloadable(rawStatus, !!r.fileUrl),
-          hasFile: !!r.fileUrl,
-          // Several outside-lab files: each downloads with ?file=<id>.
-          files: require('../utils/reportFiles').publicFileList(r),
+          // A report with outside-lab files is downloadable once any file is
+          // published, even while other outsourced tests are still out.
+          downloadable: fileView.files.length ? true : (fileView.hasAnyFile ? false : isDownloadable(rawStatus, !!r.fileUrl)),
+          hasFile: fileView.files.length > 0,
+          // Published outside-lab files only; each downloads with ?file=<id>.
+          files: fileView.files,
+          partial: fileView.partial,
+          readyTests: fileView.readyTests,
+          waitingTests: fileView.waitingTests,
+          readySummary: fileView.summary,
           resultValue: r.resultValue,
           unit: r.unit || (r.test ? r.test.unit : ''),
           referenceRange: r.referenceRange || (r.test ? r.test.referenceRange : ''),
@@ -280,7 +290,8 @@ const getPatientReportById = async (req, res, next) => {
         referenceRange: labReport.referenceRange || (labReport.test ? labReport.test.referenceRange : ''),
         interpretation: labReport.interpretation || (labReport.test ? labReport.test.interpretation : ''),
         notes: labReport.notes,
-        hasFile: !!labReport.fileUrl
+        hasFile: require('../utils/reportFiles').patientCanDownload(labReport) && !!labReport.fileUrl,
+        files: require('../utils/reportFiles').publicFileList(labReport, { publishedOnly: true })
       });
     }
 
@@ -344,13 +355,22 @@ const downloadPatientReport = async (req, res, next) => {
     // Laboratory report: prefer uploaded file, else render structured PDF.
     const labReport = await Report.findById(id);
     if (labReport && patientIds.includes(String(labReport.patient))) {
-      const file = require('../utils/reportFiles').findReportFile(labReport, req.query?.file);
+      // Only files the lab has published (one outsourced test can be shared
+      // before the others are back); unpublished files are never sent here.
+      const { file, blocked, missing } = require('../utils/reportFiles').findPatientFile(labReport, req.query?.file);
+      if (blocked) return errorResponse(res, 'This part of the report is not ready yet', 403);
+      if (missing) return errorResponse(res, 'Report file not found', 404);
       if (file) {
         const absolutePath = await storageService.ensureFilePath(file.url);
         if (absolutePath) {
           return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}${path.extname(file.url) || '.pdf'}`);
         }
       }
+
+      // A partly published outside-lab report is never rendered as a whole,
+      // and an in-house report is only sent once it is finished.
+      if (file && !['Signed', 'Verified', 'Completed'].includes(labReport.status)) return errorResponse(res, 'Report file not found', 404);
+      if (!['Signed', 'Verified', 'Completed'].includes(labReport.status)) return errorResponse(res, 'This report is not ready yet', 403);
 
       const full = await Report.findById(id)
         .populate('patient')

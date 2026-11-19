@@ -17,8 +17,10 @@ import {
   createResultReport,
   signReport,
   verifyReport,
-  resendReport
+  resendReport,
+  publishReportFile
 } from '../../services/reportService';
+import ReportFilesPublish from '../../components/lab/ReportFilesPublish';
 import { getPatients } from '../../services/patientService';
 import { getBills } from '../../services/billService';
 import { getSignatures, getLabProfile } from '../../services/setupService';
@@ -37,7 +39,7 @@ import downloadFile from '../../utils/downloadFile';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
 import { reportTestNames, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
-import OutsourceTestsField from '../../components/lab/OutsourceTestsField';
+import OutsourceTestsField, { PublishNowCheckbox } from '../../components/lab/OutsourceTestsField';
 import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Tag, RefreshCw } from 'lucide-react';
 import {
   DataTable,
@@ -176,6 +178,8 @@ const TodaysReports = () => {
   const [entryUploadFile, setEntryUploadFile] = useState(null);
   // Which outsourced tests the file being uploaded contains.
   const [entryUploadTests, setEntryUploadTests] = useState([]);
+  // "Publish to the patient now" for the file being uploaded (default on).
+  const [entryUploadPublish, setEntryUploadPublish] = useState(true);
   const [entryUploadError, setEntryUploadError] = useState(null);
   // Full getReportForEntry payload for the shared auto-calc entry grid
   // (same UI as lab/result-entry: live formulas, flags, ranges, options).
@@ -460,6 +464,7 @@ const TodaysReports = () => {
     setFormData({ patient: '', bill: '', test: '', file: null });
     setUploadPatient(null);
     setFormErrors({});
+    setGeneralUploadPublish(true);
     setUploadOpen(true);
   };
 
@@ -483,6 +488,7 @@ const TodaysReports = () => {
       : { tests: [], coverage: [] };
   }, [formData.bill, reports, pendingCases, bills]);
   const [generalUploadTests, setGeneralUploadTests] = useState([]);
+  const [generalUploadPublish, setGeneralUploadPublish] = useState(true);
   // Re-tick only when the tests or their coverage change (not on every list refresh).
   const generalUploadInfoKey = JSON.stringify(generalUploadInfo);
   useEffect(() => {
@@ -510,6 +516,7 @@ const TodaysReports = () => {
       if (formData.test) payload.append('test', formData.test);
       payload.append('file', formData.file);
       if (generalUploadInfo.tests.length) payload.append('tests', JSON.stringify(generalUploadTests));
+      payload.append('publish', generalUploadPublish ? 'true' : 'false');
       const res = await uploadReport(payload);
       if (res.success) {
         setUploadOpen(false);
@@ -697,6 +704,7 @@ const TodaysReports = () => {
 
     setActiveReport(nextReport);
     setEntryUploadTests(defaultUploadTicks(outsourceUploadInfo(nextReport)));
+    setEntryUploadPublish(true);
     loadVerifyUrl(nextReport._id);
 
     if (outsource) {
@@ -765,6 +773,7 @@ const TodaysReports = () => {
       const payload = new FormData();
       payload.append('file', entryUploadFile);
       if (uploadInfo.tests.length) payload.append('tests', JSON.stringify(entryUploadTests));
+      payload.append('publish', entryUploadPublish ? 'true' : 'false');
       const res = await attachReportFile(activeReport._id, payload);
       if (res?.success) {
         setEntryOpen(false);
@@ -953,7 +962,25 @@ const TodaysReports = () => {
     const patient = report.patient || {};
     // An uploaded report is one finished file: Download / Print / Replace it.
     const uploaded = !!report.fileUrl;
+    // Per outside-lab file: show it to the patient now, or hide it again.
+    const fileToggles = (Array.isArray(report.files) ? report.files : []).map((file, i) => {
+      const published = file.published !== false;
+      const what = file.tests?.length ? file.tests.join(', ') : (report.files.length > 1 ? `file ${i + 1}` : 'report');
+      return {
+        label: `${published ? 'Unpublish' : 'Publish'} ${what}`,
+        ariaLabel: `${published ? 'Hide' : 'Show'} ${what} ${published ? 'from' : 'to'} the patient`,
+        onClick: async () => {
+          try {
+            const res = await publishReportFile(report._id, file._id, !published);
+            if (res?.success) { notify(!published ? 'Published to the patient.' : 'Hidden from the patient.'); fetchReports(); }
+          } catch (err) {
+            notify(err.response?.data?.message || 'Could not change what the patient sees.');
+          }
+        }
+      };
+    });
     const menu = (uploaded ? [
+      ...fileToggles,
       { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
       { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
     ] : [
@@ -1388,6 +1415,7 @@ const TodaysReports = () => {
             />
             {formErrors.file && <p className="form-error">{formErrors.file}</p>}
           </div>
+          <PublishNowCheckbox checked={generalUploadPublish} onChange={setGeneralUploadPublish} />
         </form>
       </Modal>
 
@@ -1479,6 +1507,10 @@ const TodaysReports = () => {
                     : 'Some tests are uploaded. Upload the next file for the tests still waiting.'}
                 </p>
                 <UploadedReportActions report={activeReport} showReplace={false} />
+                <ReportFilesPublish
+                  report={activeReport}
+                  onChanged={(updated) => { setActiveReport((prev) => (prev ? { ...prev, files: updated.files, fileCoverage: updated.fileCoverage } : prev)); fetchReports(); }}
+                />
               </>
             ) : null}
             <FileUploader
@@ -1487,6 +1519,7 @@ const TodaysReports = () => {
               label="Select PDF Report or Scan / Image file"
               accept=".pdf,.jpg,.jpeg,.png"
             />
+            <PublishNowCheckbox checked={entryUploadPublish} onChange={setEntryUploadPublish} />
           </div>
         ) : (
           <>

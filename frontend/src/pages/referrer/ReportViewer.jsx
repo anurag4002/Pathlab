@@ -45,6 +45,7 @@ export default function ReportViewer({ target, onClose }) {
             ))}
           </div>
         )}
+        {target?.report?.partial && target.report.readySummary && <p className="rf-meta" role="status">{target.report.readySummary}</p>}
         {error && <div className="rf-error" role="alert">{error}</div>}
         {!error && !url && <p className="rf-meta">Opening the report…</p>}
         {url && <iframe title="Report" src={url} className="rf-viewer-frame" />}

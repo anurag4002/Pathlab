@@ -8,6 +8,12 @@
 const { reportTestNames, cleanTestName } = require('./billItemModality');
 
 const OPEN_STATUSES = ['Pending', 'Registered', 'Collected', 'Received', 'Draft'];
+
+// Publishing: each file can be shown to the patient (portal, referrer, public
+// QR link) on its own, before the other outsourced tests are back. A file
+// stored before publishing existed (no `published` field), and the pre-tagging
+// fileUrl upload, count as published - nothing that was visible disappears.
+const isFilePublished = file => !!file && file.published !== false;
 const key = name => cleanTestName(name).toLowerCase();
 
 /**
@@ -49,20 +55,25 @@ const fileCoverage = (report, names = []) => {
       name,
       covered: !!file,
       fileId: file ? String(file._id) : null,
-      fileName: file ? (file.originalName || String(file.url || '').split('/').pop()) : null
+      fileName: file ? (file.originalName || String(file.url || '').split('/').pop()) : null,
+      published: file ? isFilePublished(file) : false
     };
   });
 };
 
 /** A short, client-safe view of the files ({ _id, name, mimeType, tests, uploadedAt }). */
-const publicFileList = (report) => reportFileList(report).map(file => ({
-  _id: String(file._id),
-  name: file.originalName || String(file.url || '').split('/').pop(),
-  mimeType: file.mimeType || '',
-  tests: Array.isArray(file.tests) ? [...file.tests] : [],
-  uploadedAt: file.uploadedAt || null,
-  legacy: !!file.legacy
-}));
+const publicFileList = (report, { publishedOnly = false } = {}) => reportFileList(report)
+  .filter(file => !publishedOnly || isFilePublished(file))
+  .map(file => ({
+    _id: String(file._id),
+    name: file.originalName || String(file.url || '').split('/').pop(),
+    mimeType: file.mimeType || '',
+    tests: Array.isArray(file.tests) ? [...file.tests] : [],
+    uploadedAt: file.uploadedAt || null,
+    legacy: !!file.legacy,
+    published: isFilePublished(file),
+    publishedAt: file.publishedAt || null
+  }));
 
 /** Parse the `tests` tags sent with an upload (JSON array, comma list or repeated fields). */
 const parseTestTags = (raw) => {
@@ -91,7 +102,7 @@ const badRequest = message => Object.assign(new Error(message), { statusCode: 40
  *   file; until then an open report shows as Draft. Nothing is signed here.
  * Mutates `report` (a mongoose doc); returns { removedUrls, coverage }.
  */
-const addReportFile = (report, { url, originalName = '', mimeType = '', tags, userId = null }, names = []) => {
+const addReportFile = (report, { url, originalName = '', mimeType = '', tags, userId = null, publish = true }, names = []) => {
   if (!url) throw badRequest('Please upload a file');
   let fileTests = [];
   if (names.length) {
@@ -122,7 +133,13 @@ const addReportFile = (report, { url, originalName = '', mimeType = '', tags, us
     file.tests = remaining;
     kept.push(file);
   }
-  kept.push({ url, originalName, mimeType, tests: fileTests, uploadedAt: new Date(), uploadedBy: userId });
+  const now = new Date();
+  kept.push({
+    url, originalName, mimeType, tests: fileTests, uploadedAt: now, uploadedBy: userId,
+    published: publish !== false,
+    publishedAt: publish !== false ? now : null,
+    publishedBy: publish !== false ? userId : null
+  });
   report.files = kept;
   report.fileUrl = url;
   if (userId) report.uploadedBy = userId;
@@ -149,6 +166,80 @@ const findReportFile = (report, fileId) => {
   return files.find(file => String(file._id) === String(fileId)) || null;
 };
 
+/** Parse the "Publish to the patient now" flag of an upload (default: publish). */
+const parsePublishFlag = (raw) => {
+  if (raw === undefined || raw === null || raw === '') return true;
+  return !['false', '0', 'no', 'off'].includes(String(raw).trim().toLowerCase());
+};
+
+/**
+ * Publish / unpublish one stored file. A pre-tagging upload (fileUrl only,
+ * id 'legacy') is first brought into report.files. Mutates the doc; returns
+ * the file or null when not found.
+ */
+const setFilePublished = (report, fileId, published, userId = null) => {
+  if ((!report.files || !report.files.length) && report.fileUrl) {
+    report.files = [{ url: report.fileUrl, tests: [], uploadedAt: report.reportDate || new Date() }];
+    if (String(fileId) === 'legacy') fileId = String(report.files[0]._id);
+  }
+  const file = (report.files || []).find(f => String(f._id) === String(fileId));
+  if (!file) return null;
+  file.published = !!published;
+  file.publishedAt = published ? new Date() : null;
+  file.publishedBy = published ? userId : null;
+  if (typeof report.markModified === 'function') report.markModified('files');
+  return file;
+};
+
+const FINAL_STATUSES = ['Signed', 'Verified', 'Completed'];
+
+/**
+ * The file a patient / referrer / public link may download.
+ * Returns { file } (may be null when the report has no files at all) or
+ * { blocked: true } when the asked-for file (or every file) is not published.
+ * Unknown file ids give { missing: true }.
+ */
+const findPatientFile = (report, fileId) => {
+  const files = reportFileList(report);
+  if (!files.length) return { file: null };
+  if (fileId !== undefined && fileId !== null && fileId !== '') {
+    const file = files.find(f => String(f._id) === String(fileId));
+    if (!file) return { missing: true };
+    return isFilePublished(file) ? { file } : { blocked: true };
+  }
+  const published = files.filter(isFilePublished);
+  return published.length ? { file: published[published.length - 1] } : { blocked: true };
+};
+
+/**
+ * What a patient-facing page may show for an outsource report:
+ * { files: published files, readyTests, waitingTests, partial, summary }.
+ * summary e.g. "1 of 2 ready — Vitamin D still with the outside lab".
+ */
+const patientFileView = (report, items = []) => {
+  const files = publicFileList(report, { publishedOnly: true });
+  const all = reportFileList(report);
+  if (!all.length) return { files: [], readyTests: [], waitingTests: [], partial: false, summary: '' };
+  const names = outsourceTestNames(report, items);
+  const published = all.filter(isFilePublished);
+  const readyTests = names.filter(name => published.some(file => fileCovers(file, name)));
+  const waitingTests = names.filter(name => !readyTests.includes(name));
+  const partial = files.length > 0 && waitingTests.length > 0;
+  const summary = names.length && files.length
+    ? (waitingTests.length
+      ? `${readyTests.length} of ${names.length} ready — ${waitingTests.join(', ')} still with the outside lab`
+      : `${names.length > 1 ? 'All tests' : 'Report'} ready`)
+    : '';
+  return { files, readyTests, waitingTests, partial, summary };
+};
+
+/** True when a patient may download something: a final report, or published files. */
+const patientCanDownload = (report) => {
+  const files = reportFileList(report);
+  if (files.length) return files.some(isFilePublished);
+  return FINAL_STATUSES.includes(String(report?.status || ''));
+};
+
 /**
  * Client view of a report's uploads: { files, outsourceTests, fileCoverage }.
  * Coverage is listed for outsource reports and any report holding a file.
@@ -165,6 +256,12 @@ const describeReportFiles = (report, items = []) => {
 };
 
 module.exports = {
+  isFilePublished,
+  setFilePublished,
+  parsePublishFlag,
+  findPatientFile,
+  patientFileView,
+  patientCanDownload,
   describeReportFiles,
   outsourceTestNames,
   reportFileList,

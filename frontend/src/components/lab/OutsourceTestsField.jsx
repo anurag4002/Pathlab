@@ -45,3 +45,17 @@ export default function OutsourceTestsField({ info, selected = [], onChange, tit
     </fieldset>
   );
 }
+
+// Upload dialogs: share this file with the patient right away (default), even
+// while other outsourced tests are still with the outside lab.
+export function PublishNowCheckbox({ checked, onChange, id = 'publish-now' }) {
+  return (
+    <label htmlFor={id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
+      <input id={id} type="checkbox" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <strong>Publish to the patient now</strong>
+        <span className="cell-sub" style={{ display: 'block' }}>The patient, doctor and report link can see this file straight away. Untick to keep it in the lab for now.</span>
+      </span>
+    </label>
+  );
+}
