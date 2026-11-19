@@ -1,4 +1,19 @@
-const rateLimit = require('express-rate-limit');
+const { rateLimit: createLimiter, ipKeyGenerator } = require('express-rate-limit');
+
+// Vercel sits in front of the app, so req.ip is Vercel's proxy, not the
+// visitor: every lab computer, phone and patient shared one counter and hit
+// "Too many requests" together, so pages came up empty at random. Vercel
+// sets x-real-ip / x-forwarded-for to the real client address itself
+// (overwriting what the browser sends), so count per that address instead.
+const clientIp = (req) => {
+  const forwarded = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || req.ip || req.socket?.remoteAddress || '';
+};
+const keyGenerator = (req) => ipKeyGenerator(clientIp(req));
+// The client address is read above, so the library's proxy-header checks
+// (which throw ERR_ERL_FORWARDED_HEADER on Vercel) do not apply.
+const validate = { forwardedHeader: false, xForwardedForHeader: false, trustProxy: false };
+const rateLimit = (options) => createLimiter({ keyGenerator, validate, ...options });
 
 // Tiered rate limiting (every route is covered by at least one tier).
 // Tuned for clinics behind a single shared public IP, where every page
