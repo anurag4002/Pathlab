@@ -2,6 +2,25 @@ import axios from 'axios';
 import { API_BASE_URL } from '../constants/appConstants';
 import { invalidateReportPdfs } from '../utils/reportPdfCache';
 
+// "Too many requests" (HTTP 429): the server is limiting how often this
+// device can call it. A popup (RateLimitDialog, mounted in App) explains it
+// with a countdown instead of leaving pages empty.
+export const RATE_LIMIT_EVENT = 'ppl:rate-limit';
+const waitSeconds = (headers = {}) => Number(headers['retry-after'] || headers['ratelimit-reset']);
+const waitText = (headers = {}) => {
+  const seconds = waitSeconds(headers);
+  if (!Number.isFinite(seconds) || seconds <= 0) return 'a few minutes';
+  if (seconds < 60) return `${Math.ceil(seconds)} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? 'about a minute' : `about ${minutes} minutes`;
+};
+export const rateLimitMessage = (error) => {
+  const serverText = String(error?.response?.data?.message || '');
+  // Login / OTP limits already say what was limited; the general one does not.
+  const what = /otp|login|verification|attempt/i.test(serverText) ? serverText.replace(/,? ?please try again.*$/i, '.') : 'Too many requests from this device right now.';
+  return `${what} Please wait ${waitText(error?.response?.headers)} and try again.`;
+};
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 20000,
@@ -60,6 +79,15 @@ apiClient.interceptors.response.use(
         error.response.data = details;
         if (details.message) error.message = details.message;
       } catch { /* Preserve the original error if the payload isn't JSON. */ }
+    }
+    if (error.response?.status === 429) {
+      const message = rateLimitMessage(error);
+      error.message = message;
+      error.response.data = { ...(typeof error.response.data === 'object' && error.response.data ? error.response.data : {}), success: false, message };
+      const seconds = waitSeconds(error.response.headers);
+      const retryAt = Date.now() + (Number.isFinite(seconds) && seconds > 0 ? seconds : 60) * 1000;
+      window.dispatchEvent(new CustomEvent(RATE_LIMIT_EVENT, { detail: { message, retryAt } }));
+      return Promise.reject(error);
     }
     if (error.response && error.response.status === 401) {
       // Patient authentication has its own session and login screen.
