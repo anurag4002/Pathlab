@@ -114,10 +114,25 @@ const createReport = async (reportData, file, user) => {
     throw new Error('Bill invoice not found');
   }
 
+  // An uploaded file is the outsourced report for this bill: fill the bill's
+  // waiting outsource slot rather than adding a second record beside it
+  // (that left the case showing "Upload report" after the upload).
+  const shell = await Report.findOne({
+    bill,
+    entryMode: 'outsource',
+    $or: [{ fileUrl: '' }, { fileUrl: { $exists: false } }, { fileUrl: null }],
+    status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received'] }
+  }).sort({ createdAt: 1 });
+  if (shell) {
+    if (test && !shell.test) shell.test = test;
+    return attachReportFile(shell._id, file, user);
+  }
+
   // File path relative to client server base
   const fileUrl = `uploads/reports/${file.filename}`;
 
   const report = new Report({
+    entryMode: 'outsource',
     patient,
     registrationNumber: billRecord.billNumber || patientRecord.registrationNumber,
     bill,

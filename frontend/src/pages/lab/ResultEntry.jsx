@@ -48,6 +48,7 @@ import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
 import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
+import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { hasInterpretation } from '../../utils/interpretationContent';
 
 const isOutsourceBill = (bill) => (
@@ -420,7 +421,9 @@ const ResultEntry = () => {
     }
     let reportId = row?.report?._id || null;
     // Ensure an outsource shell exists before upload (mixed / legacy bills).
-    if (!reportId || row?.report?.entryMode === 'inhouse' || row?.report?.entryMode === 'all') {
+    // Replacing an uploaded file keeps the same report.
+    const replacing = !!(row?.report?.fileUrl || row?.report?.hasFile);
+    if (!replacing && (!reportId || row?.report?.entryMode === 'inhouse' || row?.report?.entryMode === 'all')) {
       try {
         const created = await createResultReport({
           patient: patient._id,
@@ -878,7 +881,10 @@ const ResultEntry = () => {
           <StatusBadge status={row?.report?.status} />
         </td>
         <td>
-          {final && !outsource ? (
+          {row?.report?._id && (row.report.fileUrl || row.report.hasFile) ? (
+            // A report is already uploaded: no second "Upload report" here.
+            <UploadedReportActions report={row.report} onReplace={() => openUploadForCase(row)} />
+          ) : final && !outsource ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <Button size="sm" variant="secondary" icon={<FileEdit size={16} />} onClick={() => openCase(row)}>
                 View results
@@ -891,7 +897,8 @@ const ResultEntry = () => {
               )}
             </div>
           ) : final ? (
-            <span className="re-sub">Submitted — no action</span>
+            // Uploaded (outsourced) report: the file is the report.
+            <UploadedReportActions report={row.report} onReplace={() => openUploadForCase(row)} />
           ) : showBoth ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <Button

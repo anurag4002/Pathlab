@@ -554,7 +554,8 @@ async function getPendingLabCases(req, res, next) {
                 _id: '$$r._id',
                 status: '$$r.status',
                 registrationNumber: '$$r.registrationNumber',
-                entryMode: { $ifNull: ['$$r.entryMode', 'all'] }
+                entryMode: { $ifNull: ['$$r.entryMode', 'all'] },
+                hasFile: { $gt: [{ $strLenCP: { $ifNull: ['$$r.fileUrl', ''] } }, 0] }
               }
             }
           }
@@ -651,7 +652,12 @@ async function getPendingLabCases(req, res, next) {
       const expectedModes = reportModesForItems(baseBill.items, baseBill);
       if (!expectedModes.length) continue;
       if (openReports.length) {
-        for (const missingMode of expectedModes.filter(mode => !(bill.reportDocs || []).some(report => report.entryMode === mode || (report.entryMode === 'all' && expectedModes.length === 1)))) {
+        // A mode is covered by its own report, by a single legacy "all"
+        // report, or (outsource) by any report that already has an uploaded file.
+        const covered = mode => (bill.reportDocs || []).some(report => report.entryMode === mode
+          || (report.entryMode === 'all' && expectedModes.length === 1)
+          || (mode === 'outsource' && report.hasFile));
+        for (const missingMode of expectedModes.filter(mode => !covered(mode))) {
           data.push({ bill: baseBill, report: { status: 'Pending', entryMode: missingMode } });
         }
         for (const r of openReports) {
@@ -661,7 +667,8 @@ async function getPendingLabCases(req, res, next) {
               _id: r._id,
               status: r.status || 'Registered',
               registrationNumber: r.registrationNumber,
-              entryMode: r.entryMode || 'all'
+              entryMode: r.entryMode || 'all',
+              hasFile: !!r.hasFile
             }
           });
         }
