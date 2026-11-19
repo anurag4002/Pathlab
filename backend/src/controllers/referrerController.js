@@ -251,7 +251,7 @@ const reportPdf = async (req, res, next) => {
     if (!report) return undefined;
     // Same as the public report link: an uploaded report file is sent as is.
     if (report.fileUrl) {
-      const abs = require('../services/storageService').getFilePath(report.fileUrl);
+      const abs = await require('../services/storageService').ensureFilePath(report.fileUrl);
       if (abs && fs.existsSync(abs)) return res.download(abs, `Report_${report.registrationNumber}${require('path').extname(abs) || '.pdf'}`);
     }
     return require('./reportController').sendReportPdf(req, res, next, { branchCheck: false });

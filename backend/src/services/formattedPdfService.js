@@ -43,7 +43,8 @@ const groupThousands = value => String(value ?? '').replace(/(^|[^\d.,])(\d{4,})
 // Lab images kept in the database are written back first if the (temporary)
 // upload folder lost them, so a restart never drops the letterhead.
 async function documentPdf(context, requestOptions = {}, kind = 'report') {
-  await require('../utils/labAssetStore').restoreProfileAssets(context?.profile);
+  const store = require('../utils/labAssetStore');
+  await Promise.all([store.restoreProfileAssets(context?.profile), store.restoreUploads(context?.images)]);
   return renderDocument(context, requestOptions, kind);
 }
 function renderDocument(context, requestOptions = {}, kind = 'report') {

@@ -47,7 +47,7 @@ const downloadPublicReport = async (req, res, next) => {
     if (!report) return errorResponse(res, 'Invalid or expired verification link', 404);
     // Prefer the uploaded file; otherwise render the server PDF.
     if (report.fileUrl) {
-      const abs = storageService.getFilePath(report.fileUrl);
+      const abs = await storageService.ensureFilePath(report.fileUrl);
       if (abs) return res.download(abs, `Report_${report.registrationNumber}.pdf`);
     }
     const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
@@ -58,6 +58,8 @@ const downloadPublicReport = async (req, res, next) => {
     const sigDocs = sigIds.length ? await Signature.find({ _id: { $in: sigIds } }) : [];
     const sigById = {};
     sigDocs.forEach((s) => { sigById[String(s._id)] = s; });
+    // Signature images live in a temporary folder on the live server; bring back missing ones.
+    await require('../utils/labAssetStore').restoreUploads(sigDocs.map((s) => s.imageUrl));
     const fs = require('fs');
     const signaturePngs = (full.signatures || []).map((s) => {
       const d = sigById[String(s.signature)];

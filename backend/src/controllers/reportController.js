@@ -65,7 +65,7 @@ const uploadReport = async (req, res, next) => {
     // memoryStorage (multer 2.x): persist the validated buffer to disk
     // (/tmp/uploads on Vercel, backend/<UPLOAD_DIR> locally) so that
     // `req.file.filename` + storageService keep working unchanged.
-    persistRequestFiles(req, 'reports');
+    await persistRequestFiles(req, 'reports');
     if (!req.file) {
       return errorResponse(res, 'Please upload a file', 400);
     }
@@ -98,7 +98,7 @@ const uploadReport = async (req, res, next) => {
 /** POST /reports/:id/file — attach PDF/image to an existing (e.g. outsource) report */
 const attachReportFile = async (req, res, next) => {
   try {
-    persistRequestFiles(req, 'reports');
+    await persistRequestFiles(req, 'reports');
     if (!req.file) {
       return errorResponse(res, 'Please upload a file', 400);
     }
@@ -125,7 +125,7 @@ const downloadReport = async (req, res, next) => {
       return errorResponse(res, 'Report file not found', 404);
     }
 
-    const filepath = storageService.getFilePath(report.fileUrl);
+    const filepath = await storageService.ensureFilePath(report.fileUrl);
     if (!filepath) {
       return errorResponse(res, 'Physical report file missing on server', 404);
     }
@@ -389,7 +389,7 @@ async function loadReportPdfContext(id, req, options = {}) {
   const signaturePngs = (await Promise.all((report.signatures || []).map(async (s) => {
     const d = sigById[String(s.signature)];
     if (!d || !d.imageUrl) return null;
-    const abs = storageService.getFilePath(d.imageUrl);
+    const abs = await storageService.ensureFilePath(d.imageUrl);
     if (!abs) return null;
     try {
       return { png: await require('fs').promises.readFile(abs), name: d.name, title: d.title };

@@ -55,7 +55,7 @@ const createXrayCase = async (req, res, next) => {
 
     let fileUrl = '';
     if (req.file && !isPdfUpload(req.file)) {
-      persistRequestFiles(req, 'xray');
+      await persistRequestFiles(req, 'xray');
       fileUrl = `uploads/xray/${req.file.filename}`;
     }
 
@@ -107,7 +107,7 @@ const updateXrayCase = async (req, res, next) => {
       const storageService = require('../services/storageService');
       // Persist the new buffer first, then remove the replaced file so a
       // failed write never orphans the old record without a file.
-      persistRequestFiles(req, 'xray');
+      await persistRequestFiles(req, 'xray');
       const oldUrl = xrayCase.fileUrl;
       xrayCase.fileUrl = `uploads/xray/${req.file.filename}`;
       if (oldUrl && oldUrl !== xrayCase.fileUrl) {
