@@ -289,8 +289,9 @@ function renderDocument(context, requestOptions = {}, kind = 'report') {
     const ageUnit = AGE_UNITS[String(patient.ageUnit || 'years').toLowerCase()] || String(patient.ageUnit).toUpperCase();
     const sex = { male: 'M', female: 'F', other: 'O' }[String(patient.gender || '').toLowerCase()] || patient.gender;
     const demo = [patient.age != null && patient.age !== '' ? `${patient.age} ${ageUnit}` : '', sex].filter(Boolean).join(' / ');
-    const title = String(patient.title || '').trim();
-    const patientName = patient.name ? (title && !patient.name.toLowerCase().startsWith(title.toLowerCase()) ? `${title} ${patient.name}` : patient.name) : '';
+    // Title once: a name saved as "Mr Shivam" is not printed "Mr Mr Shivam",
+    // and "Mrinal" still gets its "Mr".
+    const patientName = require('../utils/patientName').patientName(patient);
     // Reports without a referring doctor print "Self", as the reference sheet does.
     const referred = context.referredName || context.doctor?.name || bill.referringDoctor?.name || (kind === 'bill' ? '' : 'Self');
     const identity = [patientName || 'Walk-in Patient', `Age / Sex : ${demo || '-'}`, ...(options.referred && referred ? [`Referred by : ${referred}`] : []), `Reg. no. : ${(kind === 'bill' ? bill.billNumber : report.registrationNumber) || patient.registrationNumber || '-'}`];

@@ -7,6 +7,7 @@ import '../Billing.css';
 import { useUiVersion } from '../../../utils/uiVersion';
 import { sexForTitle, titleSexMismatch } from '../../../utils/titleSex';
 import capitalizeName from '../../../utils/capitalizeName';
+import { patientName } from '../../../utils/patientName';
 
 const PatientDetailsSection = ({
   isExistingPatient,
@@ -366,7 +367,7 @@ const PatientDetailsSection = ({
               const p = selectedPatient || patients.find((x) => x._id === selectedPatientId) || {};
               return (
                 <div className="bill-profile-head">
-                  <strong>{[p.title, p.name].filter(Boolean).join(' ') || 'Patient'}</strong>
+                  <strong>{patientName(p) || 'Patient'}</strong>
                   <span>{[p.age != null && p.age !== '' && `${p.age} ${(p.ageUnit || 'Years').charAt(0)}`, p.gender, p.phone && `+91 ${p.phone}`, p.registrationNumber].filter(Boolean).join(' \u00b7 ')}</span>
                 </div>
               );

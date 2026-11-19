@@ -13,11 +13,14 @@ import './labV2.css';
 
 import downloadFile from '../../utils/downloadFile';
 import formatDate from '../../utils/formatDate';
+import { reportTestNames } from '../../utils/reportTests';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
 import { Download, FileDown } from 'lucide-react';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
+import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const STATUS_OPTIONS = [
   { value: 'Registered', label: 'New / Registered' },
@@ -164,8 +167,8 @@ const SearchReports = () => {
           // Report screen: age · sex stay next to the name.
           const p = report.patient || {};
           const reported = ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status);
-          const billed = (report.bill?.items || []).filter((item) => item && !item.reportDepartment).map((item) => String(item.name || '').replace(/ \(bundle\)$/, ''));
-          const names = report.test ? [report.test.name] : [...new Set(billed)];
+          // Only this report's own tests (in-house vs outsource shell).
+          const names = report.test ? [report.test.name] : reportTestNames(report);
           const menu = [
             { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, undefined, reportFileNameFor(report)) },
             report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, reportFileNameFor(report, report.fileUrl)) },
@@ -174,14 +177,14 @@ const SearchReports = () => {
             <tr key={report._id}>
               <td>
                 <IdentityCell
-                  name={[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                  name={patientName(p) || 'Walk-in patient'}
                   clinical={{ age: p.age, ageUnit: p.ageUnit, gender: p.gender }}
                   meta={[report.registrationNumber && `Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
                 />
               </td>
               <td style={{ maxWidth: 260 }}>
                 {names.length
-                  ? <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>
+                  ? <TestNames names={names} />
                   : report.results?.length ? `${report.results.length} values` : <span className="cell-empty">General findings</span>}
               </td>
               <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
@@ -203,7 +206,11 @@ const SearchReports = () => {
             <td>{formatDate(report.reportDate || report.createdAt)}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
             <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
-            <td>{report.test ? `${report.test.name} (${report.test.code})` : (report.results?.length ? `${report.results.length} params` : 'General Findings')}</td>
+            <td>{report.test ? `${report.test.name} (${report.test.code})` : (() => {
+              const names = reportTestNames(report);
+              if (names.length) return <TestNames names={names} />;
+              return report.results?.length ? `${report.results.length} params` : 'General Findings';
+            })()}</td>
             <td>{report.cc || 'Main'}</td>
             <td>{report.status}</td>
             <td>

@@ -80,7 +80,7 @@ const getReports = async (filters = {}) => {
     Report.find(query)
       .populate('patient', 'name registrationNumber phone age ageUnit gender title')
       // Billed line names let lists say what a report covers ("CBC +1 more").
-      .populate({ path: 'bill', select: 'billNumber totalAmount paidAmount dueAmount department caseType items', populate: { path: 'items', select: 'name itemType reportDepartment' } })
+      .populate({ path: 'bill', select: 'billNumber totalAmount paidAmount dueAmount department caseType items', populate: { path: 'items', select: 'name itemType itemId reportDepartment' } })
       .populate('test', 'name code')
       .populate('uploadedBy', 'name')
       .sort({ createdAt: -1 })
@@ -89,6 +89,16 @@ const getReports = async (filters = {}) => {
       .lean(),
     Report.countDocuments(query)
   ]);
+
+  // Each report names only its own tests (a mixed bill's in-house report
+  // lists the catalog lines, its outsource report the typed ones).
+  const { reportTestNames } = require('../utils/billItemModality');
+  const { describeReportFiles } = require('../utils/reportFiles');
+  for (const report of reports) {
+    report.testNames = reportTestNames(report, report.bill?.items);
+    // Outsource uploads: which file covers which test ("Uploaded" / "Waiting").
+    Object.assign(report, describeReportFiles(report, report.bill?.items));
+  }
 
   return {
     reports,
@@ -101,7 +111,18 @@ const getReports = async (filters = {}) => {
   };
 };
 
-const createReport = async (reportData, file, user) => {
+const BillItem = require('../models/BillItem');
+const { outsourceTestNames, addReportFile } = require('../utils/reportFiles');
+
+const fileMeta = (file) => ({
+  url: `uploads/reports/${file.filename}`,
+  originalName: String(file.originalname || '').slice(0, 200),
+  mimeType: String(file.mimetype || '')
+});
+
+const billLines = async (billId) => (billId ? BillItem.find({ billId }).select('name itemType itemId reportDepartment').sort({ _id: 1 }).lean() : []);
+
+const createReport = async (reportData, file, user, options = {}) => {
   const { patient, bill, test, branch } = reportData;
 
   const patientRecord = await Patient.findById(patient);
@@ -117,19 +138,18 @@ const createReport = async (reportData, file, user) => {
   // An uploaded file is the outsourced report for this bill: fill the bill's
   // waiting outsource slot rather than adding a second record beside it
   // (that left the case showing "Upload report" after the upload).
+  // A partly uploaded outsource report (some tests still waiting) takes the
+  // next file too, and an uploaded one (not yet signed off) takes a
+  // re-upload: the ticked tests' older file is replaced.
   const shell = await Report.findOne({
     bill,
     entryMode: 'outsource',
-    $or: [{ fileUrl: '' }, { fileUrl: { $exists: false } }, { fileUrl: null }],
-    status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received'] }
+    status: { $in: ['Pending', 'Registered', 'Draft', 'Collected', 'Received', 'Completed'] }
   }).sort({ createdAt: 1 });
   if (shell) {
     if (test && !shell.test) shell.test = test;
-    return attachReportFile(shell._id, file, user);
+    return attachReportFile(shell._id, file, user, options);
   }
-
-  // File path relative to client server base
-  const fileUrl = `uploads/reports/${file.filename}`;
 
   const report = new Report({
     entryMode: 'outsource',
@@ -138,35 +158,34 @@ const createReport = async (reportData, file, user) => {
     bill,
     branch: branch || billRecord.branch || patientRecord.branch || (user && (user.branch && (user.branch._id || user.branch))) || null,
     test: test || null,
-    fileUrl,
+    fileUrl: '',
     uploadedBy: user._id,
-    status: 'Completed'
+    status: 'Registered'
   });
+  const names = outsourceTestNames(report, await billLines(bill));
+  addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id, publish: options.publish }, names);
 
   return await report.save();
 };
 
 /** Attach / replace PDF-image file on an existing report (outsource shells). */
-const attachReportFile = async (reportId, file, user) => {
+// `options.tests`: the billed test names this file contains (null = all).
+// A file whose tests are all re-uploaded is replaced (and deleted).
+const attachReportFile = async (reportId, file, user, options = {}) => {
   const report = await Report.findById(reportId);
   if (!report) throw Object.assign(new Error('Report not found'), { statusCode: 404 });
   if (!file?.filename) throw Object.assign(new Error('Please upload a file'), { statusCode: 400 });
 
-  if (report.fileUrl) {
+  const names = outsourceTestNames(report, await billLines(report.bill));
+  const { removedUrls } = addReportFile(report, { ...fileMeta(file), tags: options.tests, userId: user._id, publish: options.publish }, names);
+  await report.save();
+  for (const url of removedUrls) {
     try {
-      await storageService.deleteFile(report.fileUrl);
+      await storageService.deleteFile(url);
     } catch {
       /* old file missing — continue */
     }
   }
-
-  report.fileUrl = `uploads/reports/${file.filename}`;
-  report.uploadedBy = user._id;
-  report.status = 'Completed';
-  report.reportDate = new Date();
-  report.tat = report.tat || {};
-  if (!report.tat.reported) report.tat.reported = new Date();
-  await report.save();
   return report;
 };
 
@@ -176,9 +195,14 @@ const deleteReport = async (id) => {
     throw new Error('Report not found');
   }
 
-  // Delete physical file (resolved via storage root, subfolder-preserving)
-  if (report.fileUrl) {
-    await storageService.deleteFile(report.fileUrl);
+  // Delete physical files (resolved via storage root, subfolder-preserving)
+  const urls = new Set([report.fileUrl, ...(report.files || []).map(file => file.url)].filter(Boolean));
+  for (const url of urls) {
+    try {
+      await storageService.deleteFile(url);
+    } catch {
+      /* already gone */
+    }
   }
 
   return await Report.findByIdAndDelete(id);
@@ -522,6 +546,7 @@ module.exports = {
   signReport,
   updateTat,
   ensureQrToken,
+  allowResultChange,
   FINAL_STATUSES,
   SIGNED_OFF_STATUSES,
   verifyReport,

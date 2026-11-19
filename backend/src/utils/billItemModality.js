@@ -39,8 +39,32 @@ const reportModesForItems = (items = [], bill = {}) => {
   return modes;
 };
 
+/**
+ * The bill lines a report covers: an 'inhouse' shell holds the catalog lines,
+ * an 'outsource' shell the custom/typed ones; a legacy/'all' report holds
+ * every lab line. Imaging (USG / X-ray) lines never belong to a lab report.
+ * Accepts the report (or its entryMode string).
+ */
+const reportItems = (report, items = []) => {
+  const mode = (typeof report === 'string' ? report : report?.entryMode) || 'all';
+  const list = (Array.isArray(items) ? items : []).filter(item => item && typeof item === 'object' && !imagingDepartment(item));
+  if (mode === 'inhouse') return list.filter(isInhouseItem);
+  if (mode === 'outsource') return list.filter(isOutsourceItem);
+  return list;
+};
+
+const cleanTestName = name => String(name || '').replace(/\s*\(bundle\)\s*$/i, '').trim();
+
+/** Unique display names of the tests a report covers ("(bundle)" stripped). */
+const reportTestNames = (report, items = []) => [
+  ...new Set(reportItems(report, items).map(item => cleanTestName(item.name)).filter(Boolean))
+];
+
 module.exports = {
   isInhouseItem,
   isOutsourceItem,
-  reportModesForItems
+  reportModesForItems,
+  reportItems,
+  reportTestNames,
+  cleanTestName
 };

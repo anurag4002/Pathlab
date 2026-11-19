@@ -57,11 +57,29 @@ const ReportSchema = new mongoose.Schema({
     default: 'Main',
     index: true
   },
+  // Most recent uploaded file (kept for older callers / `!!fileUrl` checks).
   fileUrl: {
     type: String,
     required: false,
     default: ''
   },
+  // Outsource uploads: one outside-lab file may cover several of the report's
+  // outsourced tests, or each test may come in its own file. `tests` holds the
+  // billed test names the file covers. A report with only `fileUrl` (uploaded
+  // before tagging existed) counts as one untagged file covering every test.
+  files: [{
+    url: { type: String, required: true },
+    originalName: { type: String, default: '' },
+    mimeType: { type: String, default: '' },
+    tests: { type: [String], default: [] },
+    uploadedAt: { type: Date, default: Date.now },
+    uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // Shown to the patient / referrer / public link on its own, before the
+    // other outsourced tests are back. No value (older files) = published.
+    published: { type: Boolean },
+    publishedAt: { type: Date, default: null },
+    publishedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  }],
   // Result-entry (Labsmart parity): structured values instead of upload-only.
   results: [{
     test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', default: null },

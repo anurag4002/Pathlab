@@ -9,12 +9,14 @@ import {
   getReferrerCases, shareReferrerBill, shareReferrerReport, downloadReferrerBill, downloadReferrerReport
 } from '../../services/referrerService';
 import ReportViewer from './ReportViewer';
+import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const day = (value) => {
   const d = value ? new Date(value) : null;
   return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 };
-const fullName = (p) => [p?.title, p?.name].filter(Boolean).join(' ') || 'Patient';
+const fullName = (p) => patientName(p) || 'Patient';
 const ageSex = (p) => {
   if (!p) return '';
   const unit = p.ageUnit && p.ageUnit !== 'years' ? ` ${p.ageUnit}` : ' yrs';
@@ -35,10 +37,18 @@ function DownloadButton({ label, run }) {
 function ReportLine({ row, report, labName, onView }) {
   return (
     <li className="rf-report">
-      <span className="rf-report-name"><FileText size={15} aria-hidden="true" />{report.label}</span>
+      <span className="rf-report-name" title={report.tests?.length ? report.tests.join(', ') : undefined}>
+        <FileText size={15} aria-hidden="true" />{report.label}
+        {/* Only this report's own tests (mixed bills: in-house vs outside lab). */}
+        {row.reports?.filter((r) => r.kind === 'lab').length > 1 && report.tests?.length > 0 && (
+          <small style={{ marginLeft: 6, opacity: 0.8 }}><TestNames names={report.tests} visible={2} /></small>
+        )}
+      </span>
       {report.ready ? (
         <>
-          <span className="rf-chip is-ready">Ready</span>
+          <span className="rf-chip is-ready">{report.partial ? 'Partly ready' : 'Ready'}</span>
+          {/* Outside-lab report: the published tests are open, the rest still out. */}
+          {report.partial && report.readySummary && <small className="rf-meta" style={{ flexBasis: '100%' }}>{report.readySummary}</small>}
           <span className="rf-report-actions">
             <Button variant="primary" size="sm" icon={<Eye size={14} />} onClick={() => onView({ row, report })}>View report</Button>
             <DownloadButton label="Report PDF" run={() => downloadReferrerReport(row, report)} />

@@ -17,6 +17,7 @@ router.put('/:id/results', requirePermission('reports'), reportController.saveRe
 router.post('/:id/results/preview', requirePermission('reports'), reportController.previewResults);
 router.put('/:id/results/draft', requirePermission('reports'), reportController.saveResultsDraft);
 router.put('/:id/results/submit', requirePermission('reports'), reportController.submitResults);
+router.delete('/:id/results/stale/:testId', requirePermission('reports'), reportController.removeStaleTest);
 router.post('/:id/sign', requirePermission('reports'), reportController.signReport);
 router.post('/:id/verify', requirePermission('reports'), reportController.verifyReport);
 router.post('/:id/reject', requirePermission('reports'), reportController.rejectReport);
@@ -32,6 +33,7 @@ router.get('/:id/qr', reportController.reportQr);
 router.get('/:id/download', reportController.downloadReport);
 router.post('/upload', uploadLimiter, upload.single('file'), reportController.uploadReport);
 router.post('/:id/file', uploadLimiter, requirePermission('reports'), upload.single('file'), reportController.attachReportFile);
+router.post('/:id/files/:fileId/publish', requirePermission('reports'), reportController.publishReportFile);
 router.delete('/:id', authorize('Admin'), reportController.deleteReport);
 
 module.exports = router;

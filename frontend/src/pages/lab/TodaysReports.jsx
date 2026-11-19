@@ -18,11 +18,12 @@ import {
   createResultReport,
   signReport,
   verifyReport,
-  resendReport
+  resendReport,
+  publishReportFile
 } from '../../services/reportService';
+import ReportFilesPublish from '../../components/lab/ReportFilesPublish';
 import { getPatients } from '../../services/patientService';
 import { getBills } from '../../services/billService';
-import { getTests } from '../../services/testService';
 import { getSignatures, getLabProfile } from '../../services/setupService';
 import { sendMessage, getTemplates, getCredits } from '../../services/notifyService';
 import {
@@ -38,6 +39,8 @@ import { downloadReportPdf, fetchReportQr } from '../../services/publicService';
 import downloadFile from '../../utils/downloadFile';
 import formatCurrency from '../../utils/formatCurrency';
 import formatDate from '../../utils/formatDate';
+import { reportTestNames, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
+import OutsourceTestsField, { PublishNowCheckbox } from '../../components/lab/OutsourceTestsField';
 import { Plus, Download, Trash2, FileEdit, FileDown, QrCode, Send, PenLine, Eye, Tag, RefreshCw } from 'lucide-react';
 import {
   DataTable,
@@ -66,6 +69,8 @@ import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
 import { notify } from '../../components/common/Toast/toast';
+import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -121,6 +126,7 @@ const matchesSearch = (report, q) => {
     report?.bill?.billNumber,
     report?.test?.name,
     report?.test?.code,
+    ...reportTestNames(report),
     report?.status
   ].filter(Boolean).join(' ').toLowerCase();
   return hay.includes(query);
@@ -153,7 +159,6 @@ const TodaysReports = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [patients, setPatients] = useState([]);
   const [bills, setBills] = useState([]);
-  const [tests, setTests] = useState([]);
   const [signatures, setSignatures] = useState([]);
   const [formData, setFormData] = useState({ patient: '', bill: '', test: '', file: null });
   const [formErrors, setFormErrors] = useState({});
@@ -172,6 +177,10 @@ const TodaysReports = () => {
   // 'values' = numeric grid; 'upload' = outsource PDF/image (no Enter value fields)
   const [entryMode, setEntryMode] = useState('values');
   const [entryUploadFile, setEntryUploadFile] = useState(null);
+  // Which outsourced tests the file being uploaded contains.
+  const [entryUploadTests, setEntryUploadTests] = useState([]);
+  // "Publish to the patient now" for the file being uploaded (default on).
+  const [entryUploadPublish, setEntryUploadPublish] = useState(true);
   const [entryUploadError, setEntryUploadError] = useState(null);
   // Full getReportForEntry payload for the shared auto-calc entry grid
   // (same UI as lab/result-entry: live formulas, flags, ranges, options).
@@ -266,10 +275,9 @@ const TodaysReports = () => {
 
   const loadUploadOptions = async () => {
     try {
-      const [patRes, billRes, testRes, sigRes] = await Promise.all([
+      const [patRes, billRes, sigRes] = await Promise.all([
         getPatients({ limit: 100 }),
         getBills({ limit: 100 }),
-        getTests({ status: 'Active' }),
         getSignatures().catch(() => null)
       ]);
       if (patRes.success) setPatients(patRes.data.patients);
@@ -283,7 +291,6 @@ const TodaysReports = () => {
           return extras.length ? [...extras, ...incoming] : incoming;
         });
       }
-      if (testRes.success) setTests(testRes.data);
       if (sigRes?.success) setSignatures(sigRes.data);
     } catch (err) {
       console.error('Failed to load selection options', err);
@@ -458,6 +465,7 @@ const TodaysReports = () => {
     setFormData({ patient: '', bill: '', test: '', file: null });
     setUploadPatient(null);
     setFormErrors({});
+    setGeneralUploadPublish(true);
     setUploadOpen(true);
   };
 
@@ -465,11 +473,35 @@ const TodaysReports = () => {
     setFormData(prev => ({ ...prev, file }));
   };
 
+  // General "Upload report": the picked bill's outsourced tests, and which of
+  // them already have a file (from its outsource report, when listed).
+  const generalUploadInfo = useMemo(() => {
+    const billId = String(formData.bill || '');
+    if (!billId) return { tests: [], coverage: [] };
+    const sameBill = (b) => String(b?._id || b || '') === billId;
+    const fromReports = reports.find((r) => sameBill(r.bill) && r.entryMode === 'outsource' && !['Signed', 'Verified'].includes(r.status));
+    if (fromReports) return outsourceUploadInfo(fromReports);
+    const fromPending = pendingCases.find((c) => sameBill(c?.bill) && c?.report?.entryMode !== 'inhouse');
+    if (fromPending) return outsourceUploadInfo({ ...fromPending.report, entryMode: 'outsource' }, fromPending.bill?.items);
+    const bill = bills.find(sameBill);
+    return Array.isArray(bill?.items) && bill.items.some((i) => i && typeof i === 'object')
+      ? outsourceUploadInfo({ entryMode: 'outsource' }, bill.items)
+      : { tests: [], coverage: [] };
+  }, [formData.bill, reports, pendingCases, bills]);
+  const [generalUploadTests, setGeneralUploadTests] = useState([]);
+  const [generalUploadPublish, setGeneralUploadPublish] = useState(true);
+  // Re-tick only when the tests or their coverage change (not on every list refresh).
+  const generalUploadInfoKey = JSON.stringify(generalUploadInfo);
+  useEffect(() => {
+    setGeneralUploadTests(defaultUploadTicks(JSON.parse(generalUploadInfoKey)));
+  }, [generalUploadInfoKey]);
+
   const validate = () => {
     const errs = {};
     if (!formData.patient) errs.patient = 'Please select a patient';
     if (!formData.bill) errs.bill = 'Please select an invoice';
     if (!formData.file) errs.file = 'Please upload a PDF/Image report file';
+    if (generalUploadInfo.tests.length && !generalUploadTests.length) errs.tests = 'Tick the tests this file contains';
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -484,6 +516,8 @@ const TodaysReports = () => {
       payload.append('bill', formData.bill);
       if (formData.test) payload.append('test', formData.test);
       payload.append('file', formData.file);
+      if (generalUploadInfo.tests.length) payload.append('tests', JSON.stringify(generalUploadTests));
+      payload.append('publish', generalUploadPublish ? 'true' : 'false');
       const res = await uploadReport(payload);
       if (res.success) {
         setUploadOpen(false);
@@ -670,6 +704,8 @@ const TodaysReports = () => {
       ));
 
     setActiveReport(nextReport);
+    setEntryUploadTests(defaultUploadTicks(outsourceUploadInfo(nextReport)));
+    setEntryUploadPublish(true);
     loadVerifyUrl(nextReport._id);
 
     if (outsource) {
@@ -727,11 +763,18 @@ const TodaysReports = () => {
       setEntryUploadError('Please select a PDF or image report file.');
       return;
     }
+    const uploadInfo = outsourceUploadInfo(activeReport);
+    if (uploadInfo.tests.length && !entryUploadTests.length) {
+      setEntryUploadError('Tick the tests this file contains.');
+      return;
+    }
     setEntryLoading(true);
     setEntryUploadError(null);
     try {
       const payload = new FormData();
       payload.append('file', entryUploadFile);
+      if (uploadInfo.tests.length) payload.append('tests', JSON.stringify(entryUploadTests));
+      payload.append('publish', entryUploadPublish ? 'true' : 'false');
       const res = await attachReportFile(activeReport._id, payload);
       if (res?.success) {
         setEntryOpen(false);
@@ -900,19 +943,14 @@ const TodaysReports = () => {
   const billOptions = (patientId) => bills.filter(b => !patientId || b.patient?._id === patientId || b.patient === patientId).map(b => ({ value: b._id, label: `${b.billNumber} (${formatCurrency(b.totalAmount)})` }));
 
   const pendingItemsLabel = (pendingCase) => {
-    let items = pendingCase?.bill?.items;
+    const items = pendingCase?.bill?.items;
     if (!Array.isArray(items) || !items.length) return '—';
-    items = items.filter(item => !['USG', 'XRAY'].includes(item.reportDepartment) && !/\bUSG\b|ultrasound|ultrasonogra|sonography|\bx[\s-]?ray\b|radiograph/i.test(item.name || ''));
     const mode = pendingCase?.report?.entryMode;
-    if (mode === 'inhouse') {
-      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId && !/\bECG\b|\bEKG\b|electrocardiogram/i.test(i?.name || ''));
-    } else if (mode === 'outsource') {
-      items = items.filter((i) => i?.itemType === 'Custom' || /\bECG\b|\bEKG\b|electrocardiogram/i.test(i?.name || '') || (!i?.itemId && i?.name));
-    }
-    if (!items.length) {
+    // Only this report's own tests (mixed bill: in-house vs outsource).
+    const names = reportTestNames(pendingCase?.report, items);
+    if (!names.length) {
       return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';
     }
-    const names = items.map((i) => (typeof i === 'object' ? i.name || i.testName || 'Item' : 'Item'));
     const label = names.join(', ');
     return label.length > 60 ? `${label.slice(0, 60)}…` : label;
   };
@@ -925,7 +963,25 @@ const TodaysReports = () => {
     const patient = report.patient || {};
     // An uploaded report is one finished file: Download / Print / Replace it.
     const uploaded = !!report.fileUrl;
+    // Per outside-lab file: show it to the patient now, or hide it again.
+    const fileToggles = (Array.isArray(report.files) ? report.files : []).map((file, i) => {
+      const published = file.published !== false;
+      const what = file.tests?.length ? file.tests.join(', ') : (report.files.length > 1 ? `file ${i + 1}` : 'report');
+      return {
+        label: `${published ? 'Unpublish' : 'Publish'} ${what}`,
+        ariaLabel: `${published ? 'Hide' : 'Show'} ${what} ${published ? 'from' : 'to'} the patient`,
+        onClick: async () => {
+          try {
+            const res = await publishReportFile(report._id, file._id, !published);
+            if (res?.success) { notify(!published ? 'Published to the patient.' : 'Hidden from the patient.'); fetchReports(); }
+          } catch (err) {
+            notify(err.response?.data?.message || 'Could not change what the patient sees.');
+          }
+        }
+      };
+    });
     const menu = (uploaded ? [
+      ...fileToggles,
       { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
       { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
     ] : [
@@ -940,17 +996,25 @@ const TodaysReports = () => {
       <tr key={report._id}>
         <td>
           <IdentityCell
-            name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+            name={patientName(patient) || 'Walk-in patient'}
             clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
             meta={[`Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
           />
         </td>
         <td>{(() => {
           // Multi-test reports: name what was ordered ("CBC +1 more").
-          const billed = (report.bill?.items || []).filter((item) => item && !item.reportDepartment).map((item) => String(item.name || '').replace(/ \(bundle\)$/, ''));
-          const names = report.test ? [report.test.name] : billed.length ? [...new Set(billed)] : [...new Set((report.results || []).map((r) => String(r?.testName || '').split(':')[0].trim()).filter(Boolean))];
+          // Only this report's own tests (in-house vs outsource shell).
+          const billed = reportTestNames(report);
+          const names = report.test ? [report.test.name] : billed.length ? billed : [...new Set((report.results || []).map((r) => String(r?.testName || '').split(':')[0].trim()).filter(Boolean))];
           if (!names.length) return <span className="cell-empty">General findings</span>;
-          return <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>;
+          // Outsource report: which tests have their file yet.
+          const cover = coverageSummary(report);
+          return (
+            <>
+              <TestNames names={names} />
+              {cover && <span className="cell-sub" title={cover.title} style={{ display: 'block', color: cover.done === cover.total ? 'var(--color-success, #166534)' : undefined }}>{cover.text}</span>}
+            </>
+          );
         })()}</td>
         <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate)}>{formatDate(report.reportDate).split(',')[0]}</td>
         <td><span className="tat-wrap tat-one-line"><TatCountdown report={report} settings={tatSettings} /></span></td>
@@ -977,7 +1041,7 @@ const TodaysReports = () => {
                 {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
               </Button>
             )}
-            {isReported && <WhatsAppShare kind="report" id={report._id} phone={patient.phone} name={[patient.title, patient.name].filter(Boolean).join(' ')} iconOnly />}
+            {isReported && <WhatsAppShare kind="report" id={report._id} phone={patient.phone} name={patientName(patient)} iconOnly />}
             <RowMenu label={`More actions for report ${report.registrationNumber}`} items={menu} />
           </div>
         </td>
@@ -1114,7 +1178,7 @@ const TodaysReports = () => {
                   <tr key={rowKey}>
                     <td>
                       <IdentityCell
-                        name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        name={patientName(patient) || 'Walk-in patient'}
                         clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
                         meta={[patient.registrationNumber && `Reg ${patient.registrationNumber}`, bill.billNumber && `Bill ${bill.billNumber}`]}
                       />
@@ -1196,7 +1260,17 @@ const TodaysReports = () => {
             <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{report.registrationNumber}</td>
             <td style={{ fontWeight: '600' }}>{report.patient?.name || 'Walk-in Patient'}</td>
             <td style={{ whiteSpace: 'nowrap' }}>{report.bill?.billNumber || 'N/A'}</td>
-            <td>{report.test ? `${report.test.name} (${report.test.code})` : 'General Findings'}</td>
+            <td>{report.test ? `${report.test.name} (${report.test.code})` : (() => {
+              const names = reportTestNames(report);
+              if (!names.length) return 'General Findings';
+              const cover = coverageSummary(report);
+              return (
+                <>
+                  <TestNames names={names} />
+                  {cover && <small title={cover.title} style={{ display: 'block' }}>{cover.text}</small>}
+                </>
+              );
+            })()}</td>
             <td style={{ whiteSpace: 'nowrap' }} title={formatDate(report.reportDate)}>{formatDate(report.reportDate).split(',')[0]}</td>
               <td style={{ maxWidth: 190 }}><span className="tat-wrap"><TatCountdown report={report} settings={tatSettings} /></span></td>
               <td>
@@ -1322,23 +1396,17 @@ const TodaysReports = () => {
           />
           {(() => {
             const selectedBill = bills.find((b) => String(b._id) === String(formData.bill));
-            if (isOutsourceBill(selectedBill)) {
-              return (
-                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
-                  Outsource bill — upload the external lab PDF or image below. No in-lab result entry is required.
-                </p>
-              );
-            }
+            // Which tests the file covers is ticked below ("This report
+            // contains"), from the bill's own outsource tests.
+            if (!isOutsourceBill(selectedBill)) return null;
             return (
-              <Select
-                label="Specific Test (Optional)"
-                value={formData.test}
-                onChange={(e) => setFormData(prev => ({ ...prev, test: e.target.value }))}
-                options={tests.map(t => ({ value: t._id, label: `${t.name} (${t.code})` }))}
-                placeholder="Link to generic invoice total"
-              />
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
+                Outsource bill — upload the external lab PDF or image below. No in-lab result entry is required.
+              </p>
             );
           })()}
+          <OutsourceTestsField info={generalUploadInfo} selected={generalUploadTests} onChange={setGeneralUploadTests} />
+          {formErrors.tests && <p className="form-error">{formErrors.tests}</p>}
           <div style={{ marginTop: '0.5rem' }}>
             <FileUploader
               onChange={handleFileChange}
@@ -1348,6 +1416,7 @@ const TodaysReports = () => {
             />
             {formErrors.file && <p className="form-error">{formErrors.file}</p>}
           </div>
+          <PublishNowCheckbox checked={generalUploadPublish} onChange={setGeneralUploadPublish} />
         </form>
       </Modal>
 
@@ -1426,18 +1495,23 @@ const TodaysReports = () => {
             <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-muted)' }}>
               Outsource case — upload the external lab PDF or scan/image. No numeric values are required.
             </p>
-            {(activeReport?.bill?.items || []).length > 0 && (
-              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>
-                <strong>Tests:</strong>{' '}
-                {(activeReport.bill.items || []).map((i) => i.name).filter(Boolean).join(', ') || '—'}
-              </p>
-            )}
+            <OutsourceTestsField
+              info={outsourceUploadInfo(activeReport)}
+              selected={entryUploadTests}
+              onChange={(next) => { setEntryUploadTests(next); setEntryUploadError(null); }}
+            />
             {activeReport?.fileUrl ? (
               <>
                 <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-success, #166534)' }}>
-                  A report is already uploaded. Choose a new file below only if you want to replace it.
+                  {outsourceUploadInfo(activeReport).coverage.every((row) => row.covered)
+                    ? 'Every test has a report. Upload a file only to replace the ticked tests.'
+                    : 'Some tests are uploaded. Upload the next file for the tests still waiting.'}
                 </p>
                 <UploadedReportActions report={activeReport} showReplace={false} />
+                <ReportFilesPublish
+                  report={activeReport}
+                  onChanged={(updated) => { setActiveReport((prev) => (prev ? { ...prev, files: updated.files, fileCoverage: updated.fileCoverage } : prev)); fetchReports(); }}
+                />
               </>
             ) : null}
             <FileUploader
@@ -1446,6 +1520,7 @@ const TodaysReports = () => {
               label="Select PDF Report or Scan / Image file"
               accept=".pdf,.jpg,.jpeg,.png"
             />
+            <PublishNowCheckbox checked={entryUploadPublish} onChange={setEntryUploadPublish} />
           </div>
         ) : (
           <>

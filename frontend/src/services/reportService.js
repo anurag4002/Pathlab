@@ -40,6 +40,12 @@ export const attachReportFile = async (id, formData) => {
   return response.data;
 };
 
+/** Publish / unpublish one outside-lab file to the patient. */
+export const publishReportFile = async (reportId, fileId, published) => {
+  const response = await apiClient.post(`/reports/${reportId}/files/${fileId}/publish`, { published: !!published });
+  return response.data;
+};
+
 export const deleteReport = async (id) => {
   const response = await apiClient.delete(`/reports/${id}`);
   return response.data;
@@ -78,6 +84,12 @@ export const getPendingLabCases = async (params = {}) => {
 
 export const getReportForEntry = async (id) => {
   const response = await apiClient.get(`/reports/${id}/entry`);
+  return response.data;
+};
+
+// Take a test that is no longer on the bill off this report.
+export const removeStaleReportTest = async (id, testId) => {
+  const response = await apiClient.delete(`/reports/${id}/results/stale/${testId}`);
   return response.data;
 };
 

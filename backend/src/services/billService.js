@@ -592,9 +592,15 @@ const updateBill = async (billId, updates = {}, user = null) => {
     const oldItems = bill.items || [];
     const keptId = new Set(nextItems.filter((it) => it.itemId).map((it) => String(it.itemId)));
     const keptName = new Set(nextItems.map((it) => String(it.name || '').trim().toLowerCase()).filter(Boolean));
+    // Re-billed as an outsource line ("HbA1c" for "HbA1c (Glycated
+    // Hemoglobin)") is a move, not a removal: in-house values stay on the
+    // report, flagged for the lab to remove (see reportBillSync).
+    const { namesMatch } = require('./reportBillSync');
+    const outsourceNames = nextItems.filter((it) => it.itemType === 'Custom').map((it) => it.name);
     const removed = oldItems.filter((it) => {
       if (it.itemId && keptId.has(String(it.itemId))) return false;
       if (keptName.has(String(it.name || '').trim().toLowerCase())) return false;
+      if (it.itemType !== 'Custom' && outsourceNames.some((name) => namesMatch(it.name, name))) return false;
       return true;
     });
     if (removed.length) {
@@ -603,6 +609,8 @@ const updateBill = async (billId, updates = {}, user = null) => {
       for (const it of removed) {
         const hit = reports.some((r) => {
           if ((r.results || []).some((res) => {
+            // Value-less rows are not lab work; the bill sync drops them.
+            if (String(res.value ?? '').trim() === '') return false;
             const rid = res.test?._id || res.test;
             if (rid && it.itemId && String(rid) === String(it.itemId)) return true;
             if (!rid && res.testName && String(res.testName).trim().toLowerCase() === String(it.name || '').trim().toLowerCase()) return true;
@@ -718,6 +726,9 @@ const updateBill = async (billId, updates = {}, user = null) => {
       const { reportModesForItems } = require('../utils/billItemModality');
       const modes = reportModesForItems(savedItems, bill);
       await reportService.ensureReportsForBill(bill, savedItems, (user && user._id) || bill.createdBy);
+      // Tests taken off (or moved to outsource): drop their value-less rows
+      // from open reports before pruning shells that are now empty.
+      await require('./reportBillSync').syncBillReports(bill._id);
       const Report = require('../models/Report');
       await Report.deleteMany({
         bill: bill._id,

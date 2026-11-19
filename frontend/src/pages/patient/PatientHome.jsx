@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, CalendarPlus, CheckCircle2, ChevronRight, Clock, Download, Eye, LogOut, RefreshCw, Search, UserRound } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
 import formatCurrency from '../../utils/formatCurrency';
+import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 // Signed-in patient page: who you are, your reports, your bookings - one
 // simple column, made for a phone first.
@@ -24,7 +26,10 @@ export default function PatientHome({
     const names = [...new Set(reports.map((r) => r.patientName).filter(Boolean))];
     return names.map((name) => ({ name }));
   }, [profiles, reports]);
-  const first = people[0]?.name ? String(people[0].name).split(' ')[0] : '';
+  // First name only: a name saved as "Mr. Vinay" greets "Hello, Vinay", not "Hello, Mr.".
+  const first = people[0]?.name
+    ? (String(people[0].name).trim().replace(/^(mr|mrs|ms|miss|master|baby|dr|smt|shri|sri|kumari|km|b\/o)\.?\s+/i, '').split(/\s+/)[0] || '')
+    : '';
   const ready = reports.filter((r) => r.downloadable !== false);
   const q = search.trim().toLowerCase();
   const shown = q ? reports.filter((r) => `${r.testName} ${r.patientName} ${r.registrationNumber}`.toLowerCase().includes(q)) : reports;
@@ -46,7 +51,7 @@ export default function PatientHome({
               <li key={p._id || p.name}>
                 <span className="ph-avatar" aria-hidden="true"><UserRound size={18} /></span>
                 <span className="ph-person">
-                  <b>{[p.title, p.name].filter(Boolean).join(' ')}</b>
+                  <b>{patientName(p)}</b>
                   <small>{[ageSex(p), p.registrationNumber && `Reg ${p.registrationNumber}`].filter(Boolean).join(' · ') || 'Patient'}</small>
                 </span>
               </li>
@@ -80,22 +85,39 @@ export default function PatientHome({
           <ul className="ph-reports" role="list">
             {shown.map((r) => {
               const isReady = r.downloadable !== false;
+              // Outside-lab report: some tests' files are published, others still out.
+              const partial = isReady && r.partial;
+              const fileList = Array.isArray(r.files) ? r.files : [];
               return (
                 <li key={r.id} className={`ph-card ph-report ${isReady ? 'is-ready' : 'is-pending'}`}>
                   <div className="ph-report-top">
                     <span className={`ph-status ${isReady ? 'is-ready' : 'is-pending'}`}>
                       {isReady ? <CheckCircle2 size={14} aria-hidden="true" /> : <Clock size={14} aria-hidden="true" />}
-                      {isReady ? 'Ready' : 'Being prepared'}
+                      {partial ? 'Partly ready' : isReady ? 'Ready' : 'Being prepared'}
                     </span>
                     <span className="ph-date">{formatDate(r.date).split(',')[0]}</span>
                   </div>
-                  <h3>{r.testName}</h3>
+                  <h3>{r.testNames?.length > 1 ? <TestNames names={r.testNames} visible={3} /> : r.testName}</h3>
                   <p className="ph-report-who">{r.patientName}{r.registrationNumber ? ` · Reg ${r.registrationNumber}` : ''}{r.type && r.type !== 'Lab' ? ` · ${r.type}` : ''}</p>
+                  {partial && r.readySummary && <p className="ph-wait">{r.readySummary}</p>}
+                  {isReady && (partial || fileList.length > 1) && (
+                    <ul className="ph-files" style={{ listStyle: 'none', margin: '8px 0', padding: 0, display: 'grid', gap: 6 }}>
+                      {fileList.map((file, i) => (
+                        <li key={file._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                          <span>{file.tests?.length ? file.tests.join(', ') : `File ${i + 1}`}</span>
+                          <button type="button" className="pps-btn pps-btn-light" disabled={downloadingId !== null}
+                            aria-label={`Download ${file.tests?.length ? file.tests.join(', ') : `file ${i + 1}`} for ${r.patientName}`} onClick={() => onDownload(r, file)}>
+                            <Download size={17} aria-hidden="true" />Download
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {isReady ? (
                     <div className="ph-actions">
                       <button type="button" className="pps-btn pps-btn-blue" data-testid="report-pdf-download" disabled={downloadingId !== null}
                         aria-label={`Download ${r.testName} PDF for ${r.patientName}`} onClick={() => onDownload(r)}>
-                        <Download size={17} aria-hidden="true" />{downloadingId === r.id ? 'Downloading...' : 'Download PDF'}
+                        <Download size={17} aria-hidden="true" />{downloadingId === r.id ? 'Downloading...' : partial ? 'Download ready files' : 'Download PDF'}
                       </button>
                       <button type="button" className="pps-btn pps-btn-light" aria-label={`View ${r.testName} for ${r.patientName}`} onClick={() => onView(r)}><Eye size={17} aria-hidden="true" /> Details</button>
                     </div>

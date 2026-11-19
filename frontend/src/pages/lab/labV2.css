@@ -45,3 +45,8 @@ html.ui-v2 .ls-table .re-range { color: #52525b; font-variant-numeric: tabular-n
 html.ui-v2 .ls-title-row { justify-content: flex-start; gap: 0.75rem; }
 html.ui-v2 .ls-dept { margin-top: 0.5rem; }
 html.ui-v2 .ls-check-top { font-size: 0.8rem; color: #71717a; }
+
+/* "Print ready" stays in view; the rest of the print options fold away. */
+html.ui-v2 .re-v2-print-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: 0.1rem 0 0.4rem; }
+html.ui-v2 .re-v2-print-row .re-v2-print { margin: 0; }
+html.ui-v2 .re-v2-print-row .ls-print-ready { font-size: 0.8rem; color: #3f3f46; }

@@ -471,11 +471,12 @@ const PatientReportPortal = () => {
     }
   };
 
-  const handleDownload = async (report) => {
+  // `file`: one published outside-lab file; otherwise every published file.
+  const handleDownload = async (report, file) => {
     setDownloadingId(report.id); setPdfNotice(''); setDownloadError('');
     try {
       const fileName = reportFileName(report.registrationNumber, report.patientName);
-      await downloadPatientReport(report.id, fileName);
+      await downloadPatientReport(report.id, fileName, file ? [file] : report.files);
       setPdfNotice(`Report PDF download started for ${report.registrationNumber || 'report'}.`);
     } catch {
       setPdfNotice('');
@@ -956,7 +957,7 @@ const PatientReportPortal = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td><strong>{selectedReport.testName}</strong></td>
+                        <td><strong>{selectedReport.testNames?.length ? selectedReport.testNames.join(', ') : selectedReport.testName}</strong></td>
                         <td className="highlight-value">
                           {selectedReport.resultValue} {selectedReport.unit}
                         </td>
@@ -1015,6 +1016,9 @@ const PatientReportPortal = () => {
                   </div>
                 )}
 
+                {selectedReport.partial && selectedReport.readySummary && (
+                  <p className="patient-report-pending-note" role="status">{selectedReport.readySummary}</p>
+                )}
                 {selectedReport.downloadable !== false ? (
                   <button
                     type="button"

@@ -12,6 +12,7 @@ import { FolderOpen, Edit2, Trash2, UserPlus, FilePlus } from 'lucide-react';
 import { notify } from '../../../components/common/Toast/toast';
 import formatDate from '../../../utils/formatDate';
 import birthYearError from '../../../utils/birthYear';
+import { patientName } from '../../../utils/patientName';
 import '../../../pages/cases/v2/casesV2.css';
 
 const validatePatient = (formData) => {
@@ -279,7 +280,7 @@ const PatientsPage = () => {
           <tr key={patient._id}>
             <td>
               <IdentityCell
-                name={[patient.title, patient.name].filter(Boolean).join(' ')}
+                name={patientName(patient)}
                 onClick={() => navigate(`/cases/patients/${patient._id}`)}
                 title="Open patient details"
                 clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}

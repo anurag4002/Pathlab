@@ -33,23 +33,33 @@ export const getPatientReports = async () => {
   return response.data;
 };
 
-export const downloadPatientReport = async (reportId, filename = 'report.pdf') => {
+// `files`: an outsourced report may hold several outside-lab files (one per
+// test, or one for several); each is downloaded.
+export const downloadPatientReport = async (reportId, filename = 'report.pdf', files = []) => {
   const token = sessionStorage.getItem('ppl_patient_token');
-  const response = await apiClient.get(`/patient/reports/${reportId}/download`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    responseType: 'blob'
-  });
+  const list = Array.isArray(files) && files.length ? files : [null];
+  for (let i = 0; i < list.length; i += 1) {
+    const fileId = list[i]?._id && list[i]._id !== 'legacy' ? list[i]._id : null;
+    const response = await apiClient.get(`/patient/reports/${reportId}/download`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      params: fileId ? { file: fileId } : undefined,
+      responseType: 'blob'
+    });
+    const type = response.headers?.['content-type'] || '';
+    const ext = /png/i.test(type) ? '.png' : /jpe?g/i.test(type) ? '.jpg' : '.pdf';
+    const name = list.length > 1 ? filename.replace(/\.pdf$/i, '') + `_${i + 1}${ext}` : filename;
 
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
+    const url = window.URL.createObjectURL(new Blob([response.data], type ? { type } : undefined));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', name);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
 };
 
 export const patientLogout = () => {

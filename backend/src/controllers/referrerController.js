@@ -52,6 +52,13 @@ const findOwnBill = async (req, id, select = '_id referringDoctor isVoided') => 
 };
 
 const isFinalReport = (report) => SIGNED_OFF_STATUSES.includes(report.status);
+const { patientFileView, findPatientFile, reportFileList, isFilePublished } = require('../utils/reportFiles');
+// A report with outside-lab files is open once any file is published (and
+// then only published files are served); others when signed off.
+const isReportOpenToReferrer = (report) => {
+  const files = reportFileList(report);
+  return files.length ? files.some(isFilePublished) : isFinalReport(report);
+};
 
 const SCANS = {
   usg: { Model: USGCase, department: 'USG', label: 'USG report' },
@@ -130,7 +137,7 @@ const listCases = async (req, res, next) => {
       Bill.find(query)
         .select('billNumber date department patient items referringDoctor totalAmount paidAmount dueAmount discount paymentStatus')
         .populate('patient', PATIENT_FIELDS)
-        .populate('items', 'name')
+        .populate('items', 'name itemType itemId reportDepartment')
         .populate('referringDoctor', 'name')
         .sort({ date: -1, _id: -1 })
         .skip((page - 1) * limit)
@@ -140,18 +147,28 @@ const listCases = async (req, res, next) => {
     ]);
     const billIds = bills.map((b) => b._id);
     const [reports, ...scanLists] = await Promise.all([
-      Report.find({ bill: { $in: billIds } }).select('bill status entryMode reportDate').sort({ createdAt: 1 }).lean(),
+      Report.find({ bill: { $in: billIds } }).select('bill status entryMode reportDate fileUrl files').sort({ createdAt: 1 }).lean(),
       ...Object.keys(SCANS).map((kind) => SCANS[kind].Model.find({ bill: { $in: billIds } }).select(SCAN_FIELDS[kind]).lean())
     ]);
 
+    const { reportTestNames } = require('../utils/billItemModality');
     const rows = bills.map((bill) => {
       const own = reports.filter((r) => String(r.bill) === String(bill._id));
       const labReports = own.map((r) => ({
         kind: 'lab',
         _id: r._id,
         label: own.length > 1 && r.entryMode === 'outsource' ? 'Outside lab report' : 'Lab report',
-        ready: isFinalReport(r),
-        reportDate: isFinalReport(r) ? r.reportDate : null
+        // Ready when signed off, or when the lab has published an outside-lab
+        // file for some of its tests (the rest may still be out).
+        ready: isReportOpenToReferrer(r),
+        reportDate: isReportOpenToReferrer(r) ? r.reportDate : null,
+        // Only this report's own tests (mixed bills: in-house vs outsource).
+        tests: reportTestNames(r, bill.items),
+        // Published outside-lab files only.
+        ...(() => {
+          const view = patientFileView(r, bill.items);
+          return { files: view.files, partial: view.partial, waitingTests: view.waitingTests, readySummary: view.summary };
+        })()
       }));
       const scans = Object.keys(SCANS).flatMap((kind, i) => scanLists[i]
         .filter((s) => String(s.bill) === String(bill._id) && s.serviceType !== 'without-report' && scanIsMine(req, s, true))
@@ -236,12 +253,13 @@ const shareBill = async (req, res, next) => {
 
 // ---- Lab report ----
 
-// The report must belong to one of their bills and be signed off.
+// The report must belong to one of their bills and be signed off (or have
+// published outside-lab files).
 const findOwnFinalReport = async (req, res) => {
   if (!OBJECT_ID.test(String(req.params.id || ''))) { errorResponse(res, NOT_FOUND, 404); return null; }
-  const report = await Report.findById(req.params.id).select('bill patient status fileUrl registrationNumber qrToken updatedAt');
+  const report = await Report.findById(req.params.id).select('bill patient status fileUrl files registrationNumber qrToken updatedAt');
   if (!report || !(await findOwnBill(req, report.bill))) { errorResponse(res, NOT_FOUND, 404); return null; }
-  if (!isFinalReport(report)) { errorResponse(res, PROCESSING, 403); return null; }
+  if (!isReportOpenToReferrer(report)) { errorResponse(res, PROCESSING, 403); return null; }
   return report;
 };
 
@@ -251,10 +269,16 @@ const reportPdf = async (req, res, next) => {
     const report = await findOwnFinalReport(req, res);
     if (!report) return undefined;
     // Same as the public report link: an uploaded report file is sent as is.
-    if (report.fileUrl) {
-      const abs = await require('../services/storageService').ensureFilePath(report.fileUrl);
-      if (abs && fs.existsSync(abs)) return res.download(abs, await reportFileNameFor(report, extOf(abs)));
+    // Only files the lab has published.
+    const { file, blocked, missing } = findPatientFile(report, req.query?.file);
+    if (blocked) return errorResponse(res, PROCESSING, 403);
+    if (missing) return errorResponse(res, NOT_FOUND, 404);
+    if (file) {
+      const abs = await require('../services/storageService').ensureFilePath(file.url);
+      if (abs && fs.existsSync(abs)) return res.download(abs, await reportFileNameFor(report, extOf(file.url)));
     }
+    // A partly published outside-lab report is never rendered as a whole.
+    if (!isFinalReport(report)) return errorResponse(res, NOT_FOUND, 404);
     return require('./reportController').sendReportPdf(req, res, next, { branchCheck: false });
   } catch (error) {
     next(error);

@@ -525,3 +525,15 @@ tr.ls-row:focus-within { background: var(--color-primary-light, #eff6ff); }
   align-items: center;
   gap: var(--space-2);
 }
+
+/* A held-back test (Print ready unticked) is dimmed and says why. */
+.ls-print-ready { display: inline-flex; align-items: center; gap: 0.35rem; }
+.ls-print-ready.is-held { font-weight: 600; }
+.ls-held-note { margin-left: 0.35rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 600; }
+
+/* Saved on the report but no longer on the bill (bill edited). */
+.re-stale-note { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.3rem; padding: 0.25rem 0.5rem; border-radius: 6px; background: #fef3c7; color: #92400e; font-size: 0.78rem; font-weight: 600; line-height: 1.35; }
+.re-stale-note svg { flex-shrink: 0; }
+.re-stale-remove { margin-left: auto; padding: 0.1rem 0.55rem; border: 1px solid #b45309; border-radius: 999px; background: #fff; color: #92400e; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.re-stale-remove:hover:not(:disabled) { background: #92400e; color: #fff; }
+.re-stale-remove:disabled { opacity: 0.6; cursor: not-allowed; }

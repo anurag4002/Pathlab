@@ -6,6 +6,7 @@ import { PageHeader, Button, StatGroup, IdentityCell, StatusBadge } from '../../
 import PeriodBar, { presetRange } from '../../../components/business/PeriodBar';
 import ReportTable from '../../../components/business/ReportTable';
 import { money, dayLabel } from '../../../utils/reportFormat';
+import { patientName } from '../../../utils/patientName';
 import '../../../components/business/business.css';
 
 const patientOf = (row) => (row.patient && typeof row.patient === 'object' ? row.patient : { name: row.patientName || row.patient || '' });
@@ -96,7 +97,7 @@ export default function DoctorPortalV2() {
           empty={q ? 'No patient matches your search.' : 'No referred patients in this period.'}
           columns={[
             { key: 'date', label: 'Date', render: (r) => <span className="muted">{dayLabel(dayOf(r))}</span> },
-            { key: 'patient', label: 'Patient', render: (r) => { const p = patientOf(r); return <IdentityCell name={[p.title, p.name].filter(Boolean).join(' ') || 'Patient'} clinical={{ age: p.age, ageUnit: p.ageUnit, gender: p.gender }} meta={[p.registrationNumber && `Reg ${p.registrationNumber}`]} />; } },
+            { key: 'patient', label: 'Patient', render: (r) => { const p = patientOf(r); return <IdentityCell name={patientName(p) || 'Patient'} clinical={{ age: p.age, ageUnit: p.ageUnit, gender: p.gender }} meta={[p.registrationNumber && `Reg ${p.registrationNumber}`]} />; } },
             { key: 'what', label: 'For', render: (r) => <><div className="strong">{r.kind}</div><div className="muted">{r.what}</div></> },
             { key: 'amount', label: 'Amount', align: 'right', render: (r) => (r.kind === 'Lab' && r.totalAmount != null ? money(r.totalAmount) : <span className="muted">-</span>) },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={statusText(r)} /> },

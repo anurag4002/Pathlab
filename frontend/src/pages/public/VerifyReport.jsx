@@ -46,9 +46,31 @@ const VerifyReportPage = () => {
         <div><strong>Status:</strong> {data.status}</div>
         {!!data.resultCount && <div><strong>Results:</strong> {data.resultCount} parameters</div>}
       </div>
-      <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, reportFileName(data.registrationNumber, data.patientName))} icon={<FileDown size={16} />}>
-        Download PDF
-      </Button>
+      {data.partial && data.readySummary && (
+        <p role="status" style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>{data.readySummary}</p>
+      )}
+      {data.hasUnpublishedFiles ? (
+        // The outside-lab report is in, but the lab has not released it yet.
+        <p role="status" style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>The lab is still working on this report. Please check again later.</p>
+      ) : Array.isArray(data.files) && (data.files.length > 1 || data.partial) ? (
+        // An outsourced report sent as several files (one per test or group).
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {data.files.map((file, i) => (
+            <Button
+              key={file._id}
+              variant={i === 0 ? 'primary' : 'secondary'}
+              onClick={() => downloadBlob(`/public/r/${token}/download?file=${encodeURIComponent(file._id)}`, reportFileName(data.registrationNumber, `${data.patientName || ''}_${i + 1}`, file.name))}
+              icon={<FileDown size={16} />}
+            >
+              {file.tests?.length ? file.tests.join(', ') : `File ${i + 1}`}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, reportFileName(data.registrationNumber, data.patientName))} icon={<FileDown size={16} />}>
+          Download PDF
+        </Button>
+      )}
     </div>
   );
 };

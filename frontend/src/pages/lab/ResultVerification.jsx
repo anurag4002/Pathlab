@@ -28,6 +28,7 @@ import useAuth from '../../hooks/useAuth';
 import '../../styles/ResultVerification.css';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
+import { patientName } from '../../utils/patientName';
 
 /* Local API error mapper: surfaces only the backend's user-facing `message`
    field (never `errors.stack`), with sensible fallbacks per failure type. */
@@ -275,7 +276,7 @@ const ResultVerification = () => {
         <tr key={report._id} className={pending ? 'rv-row-clickable' : undefined} onClick={pending ? (event) => { if (!event.target.closest('button, a')) openReview(report); } : undefined}>
           <td>
             <IdentityCell
-              name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+              name={patientName(patient) || 'Walk-in patient'}
               clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
               meta={[`Reg ${report.registrationNumber || '—'}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
             />

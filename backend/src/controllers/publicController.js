@@ -1,4 +1,7 @@
 const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
+const path = require('path');
+const { findPatientFile, patientFileView, reportFileList } = require('../utils/reportFiles');
+const BillItem = require('../models/BillItem');
 const Report = require('../models/Report');
 const Bill = require('../models/Bill');
 const LabProfile = require('../models/LabProfile');
@@ -27,15 +30,25 @@ const verifyReport = async (req, res, next) => {
   try {
     const report = await findReportByToken(req.params.token);
     if (!report) return errorResponse(res, 'Invalid or expired verification link', 404);
+    const items = report.bill?._id ? await BillItem.find({ billId: report.bill._id }).select('name itemType itemId reportDepartment').sort({ _id: 1 }).lean() : [];
+    const view = patientFileView(report, items);
     return successResponse(res, 'Report verified', {
       registrationNumber: report.registrationNumber,
       patientName: report.patient ? report.patient.name : '',
       reportDate: report.reportDate,
       status: report.status,
       resultCount: (report.results || []).length,
-      hasFile: !!report.fileUrl,
+      hasFile: view.files.length > 0,
       // Relative to the API base (/api) — the Verify page prefixes apiClient base.
-      downloadPath: `/public/r/${report.qrToken}/download`
+      downloadPath: `/public/r/${report.qrToken}/download`,
+      // Published outside-lab files only (a link sent while other outsourced
+      // tests are still out shows just what the lab has released).
+      files: view.files.map(file => ({ ...file, downloadPath: `/public/r/${report.qrToken}/download?file=${encodeURIComponent(file._id)}` })),
+      hasUnpublishedFiles: reportFileList(report).length > 0 && !view.files.length,
+      partial: view.partial,
+      readyTests: view.readyTests,
+      waitingTests: view.waitingTests,
+      readySummary: view.summary
     });
   } catch (error) {
     next(error);
@@ -47,10 +60,16 @@ const downloadPublicReport = async (req, res, next) => {
     const report = await findReportByToken(req.params.token);
     if (!report) return errorResponse(res, 'Invalid or expired verification link', 404);
     // Prefer the uploaded file; otherwise render the server PDF.
-    if (report.fileUrl) {
-      const abs = await storageService.ensureFilePath(report.fileUrl);
-      if (abs) return res.download(abs, await reportFileNameFor(report, extOf(report.fileUrl)));
+    // Only published outside-lab files leave the lab.
+    const { file, blocked, missing } = findPatientFile(report, req.query?.file);
+    if (blocked) return errorResponse(res, 'This part of the report is not ready yet', 403);
+    if (missing) return errorResponse(res, 'Report file not found', 404);
+    if (file) {
+      const abs = await storageService.ensureFilePath(file.url);
+      if (abs) return res.download(abs, await reportFileNameFor(report, extOf(file.url)));
     }
+    // A partly published outside-lab report is never rendered as a whole.
+    if (file && !['Signed', 'Verified', 'Completed'].includes(report.status)) return errorResponse(res, 'Report file not found', 404);
     const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
     const testMap = await require('../services/reportPrintSections').loadReportPrintTests(full);
     let profile = null;

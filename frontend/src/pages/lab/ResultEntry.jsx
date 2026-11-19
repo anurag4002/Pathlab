@@ -26,7 +26,8 @@ import {
   uploadReport,
   attachReportFile,
   signReport,
-  updateReportPrintSettings
+  updateReportPrintSettings,
+  removeStaleReportTest
 } from '../../services/reportService';
 import { getSignatures } from '../../services/setupService';
 import { downloadReportPdf } from '../../services/publicService';
@@ -51,6 +52,11 @@ import BarcodeSvg from '../../components/lab/BarcodeSvg';
 import InlineTestInterpretation from '../../components/lab/InlineTestInterpretation';
 import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { hasInterpretation } from '../../utils/interpretationContent';
+import { patientName } from '../../utils/patientName';
+import { reportTestNames, uploadTestNames, isInhouseItem, isOutsourceItem, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
+import OutsourceTestsField, { PublishNowCheckbox } from '../../components/lab/OutsourceTestsField';
+import ReportFilesPublish from '../../components/lab/ReportFilesPublish';
+import TestNames from '../../components/common/TestNames';
 
 const isOutsourceBill = (bill) => (
   bill?.caseType === 'OutsourceLabCase'
@@ -245,7 +251,8 @@ const ResultEntry = () => {
   const [savedAt, setSavedAt] = useState(0);
 
   // Action state
-  const [busy, setBusy] = useState(null); // null | 'draft' | 'submit'
+  const [busy, setBusy] = useState(null); // null | 'draft' | 'submit' | 'remove'
+  const [staleRemove, setStaleRemove] = useState(null); // { testId, name } awaiting confirm
   const [feedback, setFeedback] = useState(null); // { type: 'error' | 'success', text }
   const [openInterpretations, setOpenInterpretations] = useState({});
   const navigate = useNavigate();
@@ -436,7 +443,10 @@ const ResultEntry = () => {
         /* fall back to patient+bill upload */
       }
     }
-    setUploadTarget({ bill, patient, reportId });
+    // Upload is outsource work: name the report's outsourced tests only.
+    const uploadReportRow = row?.report?.entryMode === 'inhouse' ? { entryMode: 'outsource' } : row?.report;
+    setUploadTarget({ bill, patient, reportId, report: uploadReportRow });
+    setUploadPublish(true);
     setUploadPickBillId(String(bill._id));
     setUploadFile(null);
     setUploadError(null);
@@ -445,11 +455,27 @@ const ResultEntry = () => {
 
   const openUploadPicker = () => {
     setUploadTarget(null);
+    setUploadPublish(true);
     setUploadPickBillId('');
     setUploadFile(null);
     setUploadError(null);
     setUploadOpen(true);
   };
+
+  // The outsourced tests this upload can be tagged with, and their coverage.
+  const uploadInfo = useMemo(() => {
+    if (uploadTarget) return outsourceUploadInfo(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items);
+    const row = cases.find((c) => String(c?.bill?._id) === String(uploadPickBillId) && c?.report?.entryMode !== 'inhouse');
+    return row ? outsourceUploadInfo(row.report, row.bill?.items) : { tests: [], coverage: [] };
+  }, [uploadTarget, uploadPickBillId, cases]);
+  const [uploadTests, setUploadTests] = useState([]);
+  // "Publish to the patient now" for the file being uploaded (default on).
+  const [uploadPublish, setUploadPublish] = useState(true);
+  // Re-tick only when the tests or their coverage change (not on every list refresh).
+  const uploadInfoKey = JSON.stringify(uploadInfo);
+  useEffect(() => {
+    setUploadTests(defaultUploadTicks(JSON.parse(uploadInfoKey)));
+  }, [uploadInfoKey]);
 
   const handleUploadSubmit = async () => {
     let patientId = uploadTarget?.patient?._id;
@@ -467,11 +493,17 @@ const ResultEntry = () => {
       setUploadError('Please select a PDF or image report file.');
       return;
     }
+    if (uploadInfo.tests.length && !uploadTests.length) {
+      setUploadError('Tick the tests this file contains.');
+      return;
+    }
     setUploadLoading(true);
     setUploadError(null);
     try {
       const payload = new FormData();
       payload.append('file', uploadFile);
+      if (uploadInfo.tests.length) payload.append('tests', JSON.stringify(uploadTests));
+      payload.append('publish', uploadPublish ? 'true' : 'false');
       let res;
       if (uploadTarget?.reportId) {
         res = await attachReportFile(uploadTarget.reportId, payload);
@@ -557,6 +589,26 @@ const ResultEntry = () => {
       setEntryError(getApiErrorMessage(err, 'Failed to open this case.'));
     } finally {
       setEntryLoading(false);
+      inFlightRef.current = false;
+    }
+  };
+
+  // Take a test that was removed from the bill (or moved to outsource) off this report.
+  const handleRemoveStale = async () => {
+    const target = staleRemove;
+    if (!target?.testId || !entry?.report?._id || busy || inFlightRef.current) return;
+    inFlightRef.current = true;
+    setBusy('remove');
+    try {
+      const res = await removeStaleReportTest(entry.report._id, target.testId);
+      const fresh = await getReportForEntry(entry.report._id);
+      applyEntry(fresh.data);
+      setFeedback({ type: 'success', text: res?.message || `${target.name} removed from this report.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: getApiErrorMessage(err, 'Could not remove this test. Please try again.') });
+    } finally {
+      setStaleRemove(null);
+      setBusy(null);
       inFlightRef.current = false;
     }
   };
@@ -800,20 +852,22 @@ const ResultEntry = () => {
   // data-entry action (prevents "Enter/Submit persisting after submission").
 
   const itemsLabelForRow = (row) => {
-    let items = row?.bill?.items;
+    const items = row?.bill?.items;
     if (!Array.isArray(items) || !items.length) return '—';
     const mode = row?.report?.entryMode;
-    if (mode === 'inhouse') {
-      items = items.filter((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
-    } else if (mode === 'outsource') {
-      items = items.filter((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
-    }
-    if (!items.length) {
+    // Only this report's own tests (mixed bill: in-house vs outsource).
+    const names = reportTestNames(row?.report, items);
+    if (!names.length) {
       return mode === 'outsource' ? 'Outsource report' : mode === 'inhouse' ? 'In-house tests' : '—';
     }
-    const names = items.map((i) => i?.name || 'Item').filter(Boolean);
     const label = names.join(', ');
     return label.length > 48 ? `${label.slice(0, 48)}…` : label;
+  };
+
+  // Outsource report: "1 of 2 uploaded" (per-test detail on hover).
+  const coverageLine = (report) => {
+    const cover = coverageSummary(report);
+    return cover ? <span className="cell-sub" title={cover.title} style={{ display: 'block' }}>{cover.text}</span> : null;
   };
 
   const renderCaseRow = (row) => {
@@ -824,8 +878,8 @@ const ResultEntry = () => {
     const final = isReportFinal(row?.report?.status);
     const mode = row?.report?.entryMode;
     const items = Array.isArray(row?.bill?.items) ? row.bill.items : [];
-    const hasInhouse = items.some((i) => ['Test', 'TestPackage', 'TestPanel'].includes(i?.itemType) && i?.itemId);
-    const hasOutsource = items.some((i) => i?.itemType === 'Custom' || (!i?.itemId && i?.name));
+    const hasInhouse = items.some(isInhouseItem);
+    const hasOutsource = items.some(isOutsourceItem);
     // Legacy single "all" row on a mixed bill — offer both actions.
     const showBoth = (!mode || mode === 'all') && hasInhouse && hasOutsource && !final;
     const outsource = !showBoth && isOutsourceWork(row?.report, row?.bill);
@@ -846,7 +900,7 @@ const ResultEntry = () => {
             {/* Clinical screen: age · sex stay prominent next to the name. */}
             <td>
               <IdentityCell
-                name={[patient?.title, patient?.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                name={patientName(patient) || 'Walk-in patient'}
                 clinical={{ age: patient?.age, ageUnit: patient?.ageUnit, gender: patient?.gender }}
                 meta={[row?.bill?.billNumber && `Bill ${row.bill.billNumber}`, patient?.registrationNumber && patient.registrationNumber !== row?.bill?.billNumber && `Reg ${patient.registrationNumber}`]}
               />
@@ -855,9 +909,12 @@ const ResultEntry = () => {
             <td style={{ maxWidth: 260 }}>{(() => {
               const label = String(itemsLabelForRow(row));
               const parts = label.split(', ');
-              return parts.length > 1
-                ? <span title={label}>{parts[0]} <span className="cell-sub" style={{ display: 'inline' }}>+{parts.length - 1} more</span></span>
-                : label;
+              return (
+                <>
+                  {parts.length > 1 ? <TestNames names={parts} /> : label}
+                  {coverageLine(row?.report)}
+                </>
+              );
             })()}</td>
           </>
         ) : (
@@ -875,7 +932,7 @@ const ResultEntry = () => {
               ) : null}
             </td>
             <td>{demographics || '—'}</td>
-            <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}</td>
+            <td style={{ maxWidth: 200 }}>{itemsLabelForRow(row)}{coverageLine(row?.report)}</td>
           </>
         )}
         <td>
@@ -958,6 +1015,18 @@ const ResultEntry = () => {
             )}{(testEntry.parentName && testEntry.parameterCode ? String(testEntry.testName || '').replace(`${testEntry.parentName}: `, '') : testEntry.testName) || 'Test'}
             {isDerived && <span className="re-fx" title={testEntry.formula || 'Automatically calculated'} aria-label="Calculated test">fx</span>}
           </div>
+          {testEntry.notOnBill && (
+            <div className="re-stale-note" role="status">
+              <AlertTriangle size={13} aria-hidden="true" />
+              <span>{isDerived ? 'Calculated from a test that is not on the bill any more.' : testEntry.notOnBillNote || 'Not on the bill any more. Remove from this report?'}</span>
+              {!isDerived && (!isReportFinal(entry?.report?.status) || canSign) && (
+                <button type="button" className="re-stale-remove" disabled={busy !== null}
+                  onClick={() => setStaleRemove({ testId: testEntry.testId, name: testEntry.parentName || testEntry.testName })}>
+                  Remove
+                </button>
+              )}
+            </div>
+          )}
           {(hasInterpretation(testEntry.interpretation) || hasInterpretation(testEntry.catalogInterpretation)) && (
             <button type="button" className="ls-pill" aria-expanded={!!openInterpretations[key]}
               onClick={() => setOpenInterpretations(prev => ({ ...prev, [key]: !prev[key] }))}>
@@ -1233,7 +1302,7 @@ const ResultEntry = () => {
                   <div className="re-v2-head">
                     <div className="re-v2-who">
                       <h1 className="re-v2-name">
-                        {[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        {patientName(p) || 'Walk-in patient'}
                         {(age || sex) && <span className="re-v2-clinical identity-clinical">{[age, sex].filter(Boolean).join(' \u00b7 ')}</span>}
                       </h1>
                       <div className="re-v2-meta">
@@ -1269,7 +1338,7 @@ const ResultEntry = () => {
               <section className="ls-sheet" aria-label="Lab report entry" onKeyDown={onSheetKeyDown} onFocus={onSheetFocus}>
                 <div className="ls-patient-box">
                   <dl className="ls-patient">
-                    <dt>Patient Name:</dt><dd>{[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ') || '—'}</dd>
+                    <dt>Patient Name:</dt><dd>{patientName(entry.patient) || '—'}</dd>
                     <dt>Age / Sex:</dt><dd>{entry.patient?.age != null && entry.patient.age !== '' ? `${entry.patient.age} ${({ years: 'YRS', months: 'MONTHS', days: 'DAYS' })[entry.patient.ageUnit || 'years'] || entry.patient.ageUnit}` : '—'}{entry.patient?.gender ? ` / ${String(entry.patient.gender).charAt(0).toUpperCase()}` : ''}</dd>
                     <dt>Referred By:</dt><dd>{referrerName || 'Self'}</dd>
                     <dt>Reg. no.</dt><dd>{entry.report?.registrationNumber || '—'}</dd>
@@ -1308,6 +1377,21 @@ const ResultEntry = () => {
                       {label}
                     </label>
                   );
+                  // "Print ready" stays visible (ticked by default, as in the old LIS):
+                  // untick it to hold a test back while the rest of the report prints.
+                  const printReadyBox = (key) => {
+                    const ready = sectionSetting(key).printReady;
+                    return (
+                      <label className={`ls-check ls-print-ready${ready ? '' : ' is-held'}`}>
+                        <input type="checkbox" checked={!!ready} disabled={printSaving} onChange={() => toggleSection(key, 'printReady')} />
+                        Print ready
+                        {!ready && <span className="ls-held-note">Held back: not printed</span>}
+                      </label>
+                    );
+                  };
+                  const printOptionsFor = (key, className, rest) => (isV2
+                    ? <div className="re-v2-print-row">{printReadyBox(key)}<details className="re-v2-print"><summary>More print options</summary><div className={className}>{rest}</div></details></div>
+                    : <div className={className}>{printReadyBox(key)}{rest}</div>);
                   return departments.map((dept, deptIdx) => {
                     const panelKeys = dept.groups.filter((g) => g.panel).map((g) => g.key);
                     return (
@@ -1324,18 +1408,12 @@ const ResultEntry = () => {
                                 <h3 className="ls-panel-title">{isV2 ? String(group.name || '') : String(group.name || '').toUpperCase()}</h3>
                                 {panelKeys.length > 1 && reorder(group.name, () => moveSection(panelKeys, group.key, -1), () => moveSection(panelKeys, group.key, 1), panelKeys[0] === group.key, panelKeys.at(-1) === group.key)}
                               </div>
-                              {(() => {
-                                const opts = (
-                                  <div className="ls-print-options">
-                                    {check(group.key, 'printReady', 'Print ready')}
-                                    {check(group.key, 'keepTogether', 'Keep in same page')}
-                                    {check(group.key, 'newPage', 'Print from new page')}
-                                    {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                    {check(group.key, 'skipInterpretation', 'Skip interpretation')}
-                                  </div>
-                                );
-                                return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
-                              })()}
+                              {printOptionsFor(group.key, 'ls-print-options', <>
+                                {check(group.key, 'keepTogether', 'Keep in same page')}
+                                {check(group.key, 'newPage', 'Print from new page')}
+                                {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                {check(group.key, 'skipInterpretation', 'Skip interpretation')}
+                              </>)}
                             </>
                           )}
                           <table className="ls-table">
@@ -1348,16 +1426,10 @@ const ResultEntry = () => {
                               <React.Fragment key={entryKey(test) || index}>
                                 {!group.panel && (!index || group.tests[index - 1].sectionKey !== test.sectionKey) && (
                                   <tr className="ls-test-options"><td colSpan={5}>
-                                    {(() => {
-                                      const opts = (
-                                        <div className="ls-print-options ls-print-options-test">
-                                          {check(test.sectionKey, 'printReady', 'Print ready')}
-                                          {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                          {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
-                                        </div>
-                                      );
-                                      return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
-                                    })()}
+                                    {printOptionsFor(test.sectionKey, 'ls-print-options ls-print-options-test', <>
+                                      {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                      {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
+                                    </>)}
                                   </td></tr>
                                 )}
                                 {test.subheading && (!index || group.tests[index - 1].subheading !== test.subheading || group.tests[index - 1].parentName !== test.parentName) && (
@@ -1458,7 +1530,7 @@ const ResultEntry = () => {
                         <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id, undefined, reportFileName(entry.report.registrationNumber, entry.patient?.name))} disabled={busy !== null}>
                           PDF
                         </Button>
-                        <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={[entry.patient?.title, entry.patient?.name].filter(Boolean).join(' ')} size="md" label="Send on WhatsApp" />
+                        <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={patientName(entry.patient)} size="md" label="Send on WhatsApp" />
                         {nextCase && (
                           <Button variant="secondary" onClick={() => openCase(nextCase)} disabled={busy !== null}>
                             Next case: {nextCase.bill?.patient?.name || nextCase.bill?.billNumber || 'pending'}
@@ -1481,6 +1553,18 @@ const ResultEntry = () => {
           ) : null}
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={!!staleRemove}
+        onClose={() => busy === null && setStaleRemove(null)}
+        onConfirm={() => handleRemoveStale()}
+        title={`Remove ${staleRemove?.name || 'this test'} from this report?`}
+        message={`It is no longer on this part of the bill. Its entered values${isReportFinal(entry?.report?.status) ? ' will be removed and the report must be signed again' : ' will be removed'}.${dirty ? ' Unsaved changes on this case will be discarded.' : ''}`}
+        confirmText="Remove test"
+        loading={busy === 'remove'}
+        cancelText="Keep it"
+        confirmVariant="danger"
+      />
 
       <ConfirmDialog
         isOpen={discardOpen}
@@ -1520,8 +1604,8 @@ const ResultEntry = () => {
                 <dt>Invoice</dt>
                 <dd>
                   {uploadTarget.bill?.billNumber || '—'}
-                  {uploadTarget.bill?.items?.length
-                    ? ` · ${uploadTarget.bill.items.map((i) => i.name).filter(Boolean).join(', ')}`
+                  {uploadTestNames(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items).length
+                    ? ` · ${uploadTestNames(uploadTarget.report || { entryMode: 'outsource' }, uploadTarget.bill?.items).join(', ')}`
                     : ''}
                 </dd>
               </div>
@@ -1536,8 +1620,8 @@ const ResultEntry = () => {
               options={outsourcePending.map((c) => ({
                 value: String(c.bill._id),
                 label: `${c.bill.billNumber} · ${c.bill.patient?.name || 'Patient'}${
-                  c.bill.items?.length
-                    ? ` · ${c.bill.items.map((i) => i.name).filter(Boolean).slice(0, 2).join(', ')}`
+                  uploadTestNames(c.report, c.bill.items).length
+                    ? ` · ${uploadTestNames(c.report, c.bill.items).slice(0, 2).join(', ')}`
                     : ''
                 }`
               }))}
@@ -1547,12 +1631,23 @@ const ResultEntry = () => {
           <p className="re-sub" style={{ margin: 0 }}>
             Upload the external lab PDF or scan/image. No numeric result entry is required for outsource.
           </p>
+          <OutsourceTestsField info={uploadInfo} selected={uploadTests} onChange={(next) => { setUploadTests(next); setUploadError(null); }} />
+          {uploadTarget?.reportId && Array.isArray(uploadTarget.report?.files) && uploadTarget.report.files.length > 0 && (
+            <ReportFilesPublish
+              report={{ _id: uploadTarget.reportId, files: uploadTarget.report.files }}
+              onChanged={(updated) => {
+                setUploadTarget((t) => (t ? { ...t, report: { ...t.report, files: updated.files, fileCoverage: updated.fileCoverage } } : t));
+                refreshList();
+              }}
+            />
+          )}
           <FileUploader
             onChange={(file) => { setUploadFile(file); setUploadError(null); }}
             value={uploadFile}
             label="Select PDF Report or Scan / Image file"
             accept=".pdf,.jpg,.jpeg,.png"
           />
+          <PublishNowCheckbox checked={uploadPublish} onChange={setUploadPublish} id="re-publish-now" />
         </div>
       </Modal>
     </div>
