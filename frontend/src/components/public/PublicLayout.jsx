@@ -4,7 +4,8 @@ import { ArrowUpRight, Clock3, Mail, MapPin, Menu, Phone, X } from 'lucide-react
 import { LAB_PROFILE } from '../../constants/landingContent';
 import './PublicLayout.css';
 
-export const LAB_PHONE_LINK = `tel:${LAB_PROFILE.phone.replace(/[^+\d]/g, '')}`;
+// The lab can list more than one number ("9194112151, 9194102151"); links dial the first.
+export const LAB_PHONE_LINK = `tel:+91${(LAB_PROFILE.phone.split(/[,/;]/)[0] || '').replace(/\D/g, '').slice(-10)}`;
 
 export function PublicBrand({ inverse = false }) {
   return <Link to="/" className={`public-brand${inverse ? ' public-brand-inverse' : ''}`} aria-label="Pure Path Lab home">
