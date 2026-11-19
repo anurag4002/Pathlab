@@ -81,6 +81,18 @@ class StorageService {
   }
 
   /**
+   * Like getFilePath, but first writes the file back from the database copy
+   * when the (temporary) upload folder no longer has it.
+   * @param {string} relativePath
+   * @returns {Promise<string|null>}
+   */
+  async ensureFilePath(relativePath) {
+    if (!relativePath) return null;
+    if (!this.getFilePath(relativePath)) await require('../utils/labAssetStore').restoreLabAsset(relativePath);
+    return this.getFilePath(relativePath);
+  }
+
+  /**
    * Get readable stream for file
    * @param {string} relativePath
    * @returns {fs.ReadStream|null}

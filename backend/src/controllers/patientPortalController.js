@@ -334,7 +334,7 @@ const downloadPatientReport = async (req, res, next) => {
     const labReport = await Report.findById(id);
     if (labReport && patientIds.includes(String(labReport.patient))) {
       if (labReport.fileUrl) {
-        const absolutePath = storageService.getFilePath(labReport.fileUrl);
+        const absolutePath = await storageService.ensureFilePath(labReport.fileUrl);
         if (absolutePath) {
           return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}.pdf`);
         }
@@ -350,6 +350,8 @@ const downloadPatientReport = async (req, res, next) => {
       const sigDocs = sigIds.length ? await Signature.find({ _id: { $in: sigIds } }) : [];
       const sigById = {};
       sigDocs.forEach((s) => { sigById[String(s._id)] = s; });
+      // Signature images live in a temporary folder on the live server; bring back missing ones.
+      await require('../utils/labAssetStore').restoreUploads(sigDocs.map((s) => s.imageUrl));
       const signaturePngs = (full.signatures || []).map((s) => {
         const d = sigById[String(s.signature)];
         if (!d || !d.imageUrl) return null;
@@ -375,7 +377,7 @@ const downloadPatientReport = async (req, res, next) => {
       return res.send(xray.reportFile.data);
     }
     if (xray && patientIds.includes(String(xray.patient)) && xray.fileUrl) {
-      const absolutePath = storageService.getFilePath(xray.fileUrl);
+      const absolutePath = await storageService.ensureFilePath(xray.fileUrl);
       if (absolutePath) {
         return res.download(absolutePath, `XRay_${id}${path.extname(xray.fileUrl)}`);
       }

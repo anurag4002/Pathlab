@@ -129,14 +129,17 @@ const saveUploadedFile = (file, subfolder) => {
 
 /**
  * Persist req.file / req.files (memoryStorage) to disk using the
- * URL-derived subfolder. Call at the top of controllers that accept uploads.
- * Returns the primary file (or null) for convenience.
+ * URL-derived subfolder, and keep a copy in the database: on the live server
+ * the upload folder is temporary and is emptied on every deploy or restart.
+ * Call (with await) at the top of controllers that accept uploads.
+ * Resolves to the primary file (or null) for convenience.
  */
-const persistRequestFiles = (req, forcedSubfolder) => {
+const persistRequestFiles = async (req, forcedSubfolder) => {
   const subfolder = forcedSubfolder || resolveSubfolder(req);
+  const saved = [];
   let primary = null;
   if (req.file && req.file.buffer && !req.file.filename) {
-    saveUploadedFile(req.file, subfolder);
+    saved.push([saveUploadedFile(req.file, subfolder), req.file]);
     primary = req.file;
   } else if (req.file) {
     primary = req.file;
@@ -146,10 +149,12 @@ const persistRequestFiles = (req, forcedSubfolder) => {
       ? req.files
       : Object.values(req.files).flat();
     all.forEach((f) => {
-      if (f && f.buffer && !f.filename) saveUploadedFile(f, subfolder);
+      if (f && f.buffer && !f.filename) saved.push([saveUploadedFile(f, subfolder), f]);
     });
     if (!primary && all.length) primary = all[0];
   }
+  const { saveUploadBuffer } = require('../utils/labAssetStore');
+  await Promise.all(saved.filter(([info]) => info).map(([info, file]) => saveUploadBuffer(info.fileUrl, file.buffer, file.mimetype)));
   return primary;
 };
 

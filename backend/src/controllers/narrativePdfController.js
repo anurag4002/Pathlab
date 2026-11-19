@@ -24,6 +24,9 @@ exports.forModel = (Model, department, { verified = false } = {}) => async (req,
       res.type('application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${label}_${record._id}.pdf"`);
       return res.send(pdf);
     }
+    // Uploaded files live in a temporary folder on the live server; bring back any missing ones.
+    const { restoreUploads } = require('../utils/labAssetStore');
+    await restoreUploads([record.fileUrl, record.signatureUrl, ...(record.images || [])]);
     if (department === 'X-RAY' && /\.pdf$/i.test(record.fileUrl || '')) {
       const file = resolveUploadAbsolute(record.fileUrl);
       if (file) {
@@ -37,6 +40,7 @@ exports.forModel = (Model, department, { verified = false } = {}) => async (req,
     const signaturePngs = signaturePath ? [{ png: fs.readFileSync(signaturePath) }] : [];
     if (record.status === 'Signed' && record.signatures?.length) {
       const masters = await Signature.find({ _id: { $in: record.signatures.map(s => s.signature).filter(Boolean) } });
+      await restoreUploads(masters.map(m => m.imageUrl));
       for (const signed of record.signatures) {
         const master = masters.find(s => String(s._id) === String(signed.signature));
         const file = master && resolveUploadAbsolute(master.imageUrl);
