@@ -7,7 +7,6 @@ const securityHeaders = require('./middleware/securityHeaders');
 const requestLogger = require('./middleware/requestLogger');
 const { generalLimiter } = require('./middleware/rateLimitMiddleware');
 const connectDatabase = require('./config/database');
-const { runPurgeOnce, purgeStatus } = require('./maintenance/purgeDummyCases');
 const errorHandler = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -31,8 +30,6 @@ app.use('/api', generalLimiter);
 app.use(async (req, res, next) => {
   try {
     await connectDatabase();
-    // Temporary: one-time cleanup of the dummy cases (runs once per database).
-    await runPurgeOnce();
   } catch (err) {
     console.error('Database connection warning in middleware:', err.message);
   }
@@ -116,11 +113,6 @@ app.use('/api/branches', branchRoutes);
 // Health check endpoint
 app.get(['/api/health', '/health', '/'], (req, res) => {
   res.status(200).json({ status: 'ok', service: 'Pure Path Lab Backend', timestamp: new Date().toISOString() });
-});
-
-// Temporary: shows whether the one-time dummy-case cleanup has run (counts only).
-app.get('/api/health/cleanup', async (req, res, next) => {
-  try { res.json(await purgeStatus()); } catch (error) { next(error); }
 });
 
 // Central Error Handler
