@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { Download, Printer, Upload } from 'lucide-react';
 import { Button } from '../common';
 import apiClient from '../../services/apiClient';
@@ -49,14 +50,14 @@ const printBlob = (blob) => new Promise((resolve) => {
 
 export default function UploadedReportActions({ report, onReplace, size = 'sm', showReplace = true }) {
   const [busy, setBusy] = useState('');
-  const fileName = `Report_${report?.registrationNumber || report?._id}`;
+  const fileName = reportFileNameFor(report).replace(/\.pdf$/, '');
 
   const run = async (kind) => {
     if (busy || !report?._id) return;
     setBusy(kind);
     try {
-      const { blob, name } = await fetchUploadedFile(report._id);
-      if (kind === 'download') downloadBlob(blob, name || `${fileName}${extensionFor(blob)}`);
+      const { blob } = await fetchUploadedFile(report._id);
+      if (kind === 'download') downloadBlob(blob, `${fileName}${extensionFor(blob)}`);
       else await printBlob(blob);
     } catch (error) {
       notify(error?.response?.status === 404

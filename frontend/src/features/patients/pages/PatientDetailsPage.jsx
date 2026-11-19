@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportFileName, reportFileNameFor } from '../../../utils/reportFileName';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPatientById } from '../../../services/patientService';
 import { PageHeader, DataTable, StatusBadge, Button, LoadingSpinner } from '../../../components/common';
@@ -158,7 +159,7 @@ const PatientDetailsPage = () => {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
+                    onClick={() => downloadFile(`/${report.fileUrl}`, reportFileName(report.registrationNumber, patient?.name, report.fileUrl))}
                   >
                     Download
                   </Button>

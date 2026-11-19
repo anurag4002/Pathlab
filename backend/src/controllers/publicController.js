@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const Report = require('../models/Report');
 const Bill = require('../models/Bill');
 const LabProfile = require('../models/LabProfile');
@@ -48,7 +49,7 @@ const downloadPublicReport = async (req, res, next) => {
     // Prefer the uploaded file; otherwise render the server PDF.
     if (report.fileUrl) {
       const abs = await storageService.ensureFilePath(report.fileUrl);
-      if (abs) return res.download(abs, `Report_${report.registrationNumber}.pdf`);
+      if (abs) return res.download(abs, await reportFileNameFor(report, extOf(report.fileUrl)));
     }
     const full = await Report.findById(report._id).populate('patient').populate({ path: 'bill', populate: { path: 'referringDoctor', select: 'name' } });
     const testMap = await require('../services/reportPrintSections').loadReportPrintTests(full);
@@ -71,7 +72,7 @@ const downloadPublicReport = async (req, res, next) => {
     const qrPng = await qrBuffer(reportVerifyUrl(full.qrToken));
     const pdf = await reportPdf({ report: full, patient: full.patient, bill: full.bill, testMap, profile }, { qrPng, signaturePngs });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Report_${full.registrationNumber}.pdf"`);
+    res.setHeader('Content-Disposition', disposition(reportFileName(full.registrationNumber, full.patient?.name)));
     return res.send(pdf);
   } catch (error) {
     next(error);

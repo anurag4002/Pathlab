@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { reportFileName, reportFileNameFor } from '../../../../utils/reportFileName';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, FilePlus, Pencil, Printer } from 'lucide-react';
 import { getPatientById, updatePatient } from '../../../../services/patientService';
@@ -180,7 +181,7 @@ export default function PatientProfile() {
                 { key: 'test', label: 'Report', render: (r) => <span className="strong">{r.test ? r.test.name : 'General report'}</span> },
                 { key: 'date', label: 'Date', render: (r) => <span className="muted">{dayLabel(r.reportDate)}</span> },
                 { key: 'by', label: 'Uploaded by', render: (r) => r.uploadedBy?.name || '' },
-                { key: 'dl', label: '', align: 'right', render: (r) => <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); downloadFile(`/${r.fileUrl}`, `report_${patient.registrationNumber}.pdf`); }}>Download</Button> },
+                { key: 'dl', label: '', align: 'right', render: (r) => <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); downloadFile(`/${r.fileUrl}`, reportFileName(r.registrationNumber || patient.registrationNumber, patient.name, r.fileUrl)); }}>Download</Button> },
               ]} />
           )}
           {tab === 'payments' && (

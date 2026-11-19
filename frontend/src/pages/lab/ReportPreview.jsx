@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Download, FileDown, RefreshCw } from 'lucide-react';
 import {
@@ -361,7 +362,7 @@ const ReportPreview = () => {
     setPdfError(null);
     try {
       const regNo = entry?.report?.registrationNumber;
-      const filename = regNo ? `Report_${regNo}.pdf` : undefined;
+      const filename = reportFileName(regNo, entry?.patient?.name);
       await downloadReportPdf(id, pdfOptions, filename);
     } catch (err) {
       setPdfError(getApiErrorMessage(err, 'Failed to generate the PDF report.'));
@@ -485,7 +486,7 @@ const ReportPreview = () => {
             <div className="rpv2-actions">
               <Button variant="secondary" size="sm" icon={<RefreshCw size={14} />} onClick={refresh} disabled={loading} aria-label="Refresh">Refresh</Button>
               {reportDoc?.fileUrl && (
-                <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadFile(`/${reportDoc.fileUrl}`, `report_${registrationNumber}.pdf`)}>Attached file</Button>
+                <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadFile(`/${reportDoc.fileUrl}`, reportFileName(registrationNumber, entry?.patient?.name, reportDoc.fileUrl))}>Attached file</Button>
               )}
               <Button variant="secondary" size="sm" icon={<FileDown size={14} />} loading={pdfLoading} onClick={handleDownloadPdf}>Download PDF</Button>
               <ReportPrintActions reportId={id} onStationeryChange={setStationery} />
@@ -530,7 +531,7 @@ const ReportPreview = () => {
                 size="sm"
                 icon={<Download size={16} />}
                 onClick={() =>
-                  downloadFile(`/${reportDoc.fileUrl}`, `report_${registrationNumber}.pdf`)
+                  downloadFile(`/${reportDoc.fileUrl}`, reportFileName(registrationNumber, entry?.patient?.name, reportDoc.fileUrl))
                 }
               >
                 Download file

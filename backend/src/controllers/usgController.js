@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const USGCase = require('../models/USGCase');
 const Patient = require('../models/Patient');
 const { successResponse, errorResponse } = require('../utils/response');
@@ -172,7 +173,7 @@ const downloadUSGReport = async (req, res, next) => {
     if (!record) return errorResponse(res, 'USG case not found', 404);
     assertBranchAccess(req, record.branch);
     if (!record.reportFile?.data?.length) return errorResponse(res, 'No PDF report has been uploaded.', 404);
-    res.type('application/pdf'); res.attachment(record.reportFile.name || 'USG-report.pdf');
+    res.type('application/pdf'); res.attachment(await reportFileNameFor(record, extOf(record.reportFile.name)));
     return res.send(record.reportFile.data);
   } catch (error) { next(error); }
 };

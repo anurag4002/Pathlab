@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Download,
@@ -473,7 +474,7 @@ const PatientReportPortal = () => {
   const handleDownload = async (report) => {
     setDownloadingId(report.id); setPdfNotice(''); setDownloadError('');
     try {
-      const fileName = `${report.type}_Report_${report.registrationNumber}.pdf`;
+      const fileName = reportFileName(report.registrationNumber, report.patientName);
       await downloadPatientReport(report.id, fileName);
       setPdfNotice(`Report PDF download started for ${report.registrationNumber || 'report'}.`);
     } catch {

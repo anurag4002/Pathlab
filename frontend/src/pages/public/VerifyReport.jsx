@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { useParams } from 'react-router-dom';
 import { verifyReportToken, downloadBlob } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
@@ -45,7 +46,7 @@ const VerifyReportPage = () => {
         <div><strong>Status:</strong> {data.status}</div>
         {!!data.resultCount && <div><strong>Results:</strong> {data.resultCount} parameters</div>}
       </div>
-      <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, `Report_${data.registrationNumber}.pdf`)} icon={<FileDown size={16} />}>
+      <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, reportFileName(data.registrationNumber, data.patientName))} icon={<FileDown size={16} />}>
         Download PDF
       </Button>
     </div>

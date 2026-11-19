@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const path = require('path');
 const reportService = require('../services/reportService');
 const storageService = require('../services/storageService');
@@ -130,7 +131,7 @@ const downloadReport = async (req, res, next) => {
       return errorResponse(res, 'Physical report file missing on server', 404);
     }
 
-    const filename = `Report_${report.registrationNumber}_${id}${path.extname(report.fileUrl)}`;
+    const filename = await reportFileNameFor(report, extOf(report.fileUrl));
     return res.download(filepath, filename);
   } catch (error) {
     next(error);
@@ -425,7 +426,7 @@ async function sendReportPdf(req, res, next, { branchCheck = true } = {}) {
     res.setHeader('X-Report-PDF-Cache', cached.status);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('X-Report-PDF', 'v7-editable-interpretations');
-    res.setHeader('Content-Disposition', `attachment; filename="Report_${ctx.report.registrationNumber}.pdf"`);
+    res.setHeader('Content-Disposition', disposition(reportFileName(ctx.report.registrationNumber, ctx.patient?.name)));
     return res.send(cached.buffer);
   } catch (error) {
     next(error);
