@@ -67,6 +67,7 @@ import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
 import { notify } from '../../components/common/Toast/toast';
 import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -982,7 +983,7 @@ const TodaysReports = () => {
           const cover = coverageSummary(report);
           return (
             <>
-              <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>
+              <TestNames names={names} />
               {cover && <span className="cell-sub" title={cover.title} style={{ display: 'block', color: cover.done === cover.total ? 'var(--color-success, #166534)' : undefined }}>{cover.text}</span>}
             </>
           );
@@ -1237,7 +1238,7 @@ const TodaysReports = () => {
               const cover = coverageSummary(report);
               return (
                 <>
-                  <span title={names.join(', ')}>{names[0]}{names.length > 1 ? ` +${names.length - 1} more` : ''}</span>
+                  <TestNames names={names} />
                   {cover && <small title={cover.title} style={{ display: 'block' }}>{cover.text}</small>}
                 </>
               );

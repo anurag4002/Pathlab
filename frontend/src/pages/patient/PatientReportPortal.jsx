@@ -955,7 +955,7 @@ const PatientReportPortal = () => {
                     </thead>
                     <tbody>
                       <tr>
-                        <td><strong>{selectedReport.testName}</strong></td>
+                        <td><strong>{selectedReport.testNames?.length ? selectedReport.testNames.join(', ') : selectedReport.testName}</strong></td>
                         <td className="highlight-value">
                           {selectedReport.resultValue} {selectedReport.unit}
                         </td>

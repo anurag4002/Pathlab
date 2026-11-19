@@ -32,6 +32,7 @@ import UiVersionBanner from '../../../components/common/UiVersionBanner';
 import PageTip from '../../../components/common/PageTip';
 import { useUiVersion } from '../../../utils/uiVersion';
 import usePendingResultCount from '../../../hooks/usePendingResultCount';
+import TestNames from '../../../components/common/TestNames';
 
 const hasValue = (value) =>
   value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value));
@@ -311,8 +312,7 @@ const getReportTestNames = (report) => {
     .filter(Boolean);
   // A big panel report has hundreds of rows; show a short, readable summary.
   const unique = [...new Set(names.map((name) => name.split(':')[0].trim()))];
-  if (unique.length > 3) return `${unique.slice(0, 3).join(', ')} +${unique.length - 3} more`;
-  if (unique.length > 0) return unique.join(', ');
+  if (unique.length > 0) return <TestNames names={unique} visible={3} />;
   return report?.test?.name || '—';
 };
 

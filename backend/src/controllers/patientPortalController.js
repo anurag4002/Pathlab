@@ -136,8 +136,12 @@ const getPatientReports = async (req, res, next) => {
     };
     const itemsByBill = new Map(billIds.map(id => [id, billItems.filter(item => String(item.billId) === id)]));
     // Only this report's own tests (in-house vs outsource shell of a mixed bill).
-    const resultTestNames = (r) => summary(reportTestNames(r, itemsByBill.get(String(r.bill?._id || '')) || []))
-      || summary((r.results || []).map(x => String(x?.testName || '').split(':')[0]));
+    const resultTestList = (r) => {
+      const billed = reportTestNames(r, itemsByBill.get(String(r.bill?._id || '')) || []);
+      const names = billed.length ? billed : (r.results || []).map(x => String(x?.testName || '').split(':')[0]);
+      return [...new Set(names.map(name => String(name || '').trim()).filter(Boolean))];
+    };
+    const resultTestNames = (r) => summary(resultTestList(r));
 
     // 2. Fetch USG Reports
     const usgReports = await USGCase.find({ patient: { $in: patientIds } })
@@ -179,6 +183,8 @@ const getPatientReports = async (req, res, next) => {
           id: r._id,
           type: 'Pathology',
           testName: r.test ? r.test.name : (resultTestNames(r) || fallbackName),
+          // Every test name, so the portal can show all of them on tap.
+          testNames: r.test ? [r.test.name] : resultTestList(r),
           testCode: r.test ? r.test.code : (mode === 'outsource' ? 'OUT' : 'LAB'),
           patientName: r.patient ? r.patient.name : 'N/A',
           registrationNumber: r.registrationNumber,

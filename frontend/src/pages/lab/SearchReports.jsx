@@ -19,6 +19,7 @@ import { Download, FileDown } from 'lucide-react';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
 import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const STATUS_OPTIONS = [
   { value: 'Registered', label: 'New / Registered' },
@@ -182,7 +183,7 @@ const SearchReports = () => {
               </td>
               <td style={{ maxWidth: 260 }}>
                 {names.length
-                  ? <span title={names.join(', ')}>{names[0]}{names.length > 1 && <span className="cell-sub" style={{ display: 'inline', marginLeft: 6 }}>+{names.length - 1} more</span>}</span>
+                  ? <TestNames names={names} />
                   : report.results?.length ? `${report.results.length} values` : <span className="cell-empty">General findings</span>}
               </td>
               <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
@@ -206,7 +207,7 @@ const SearchReports = () => {
             <td>{report.bill?.referringDoctor?.name || report.referredBy || 'Self'}</td>
             <td>{report.test ? `${report.test.name} (${report.test.code})` : (() => {
               const names = reportTestNames(report);
-              if (names.length) return <span title={names.join(', ')}>{names[0]}{names.length > 1 ? ` +${names.length - 1} more` : ''}</span>;
+              if (names.length) return <TestNames names={names} />;
               return report.results?.length ? `${report.results.length} params` : 'General Findings';
             })()}</td>
             <td>{report.cc || 'Main'}</td>

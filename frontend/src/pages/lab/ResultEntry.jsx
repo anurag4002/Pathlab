@@ -54,6 +54,7 @@ import { hasInterpretation } from '../../utils/interpretationContent';
 import { patientName } from '../../utils/patientName';
 import { reportTestNames, uploadTestNames, isInhouseItem, isOutsourceItem, outsourceUploadInfo, defaultUploadTicks, coverageSummary } from '../../utils/reportTests';
 import OutsourceTestsField from '../../components/lab/OutsourceTestsField';
+import TestNames from '../../components/common/TestNames';
 
 const isOutsourceBill = (bill) => (
   bill?.caseType === 'OutsourceLabCase'
@@ -903,9 +904,7 @@ const ResultEntry = () => {
               const parts = label.split(', ');
               return (
                 <>
-                  {parts.length > 1
-                    ? <span title={label}>{parts[0]} <span className="cell-sub" style={{ display: 'inline' }}>+{parts.length - 1} more</span></span>
-                    : label}
+                  {parts.length > 1 ? <TestNames names={parts} /> : label}
                   {coverageLine(row?.report)}
                 </>
               );

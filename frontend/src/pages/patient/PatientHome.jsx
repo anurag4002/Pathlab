@@ -3,6 +3,7 @@ import { AlertCircle, CalendarPlus, CheckCircle2, ChevronRight, Clock, Download,
 import formatDate from '../../utils/formatDate';
 import formatCurrency from '../../utils/formatCurrency';
 import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 // Signed-in patient page: who you are, your reports, your bookings - one
 // simple column, made for a phone first.
@@ -93,7 +94,7 @@ export default function PatientHome({
                     </span>
                     <span className="ph-date">{formatDate(r.date).split(',')[0]}</span>
                   </div>
-                  <h3>{r.testName}</h3>
+                  <h3>{r.testNames?.length > 1 ? <TestNames names={r.testNames} visible={3} /> : r.testName}</h3>
                   <p className="ph-report-who">{r.patientName}{r.registrationNumber ? ` · Reg ${r.registrationNumber}` : ''}{r.type && r.type !== 'Lab' ? ` · ${r.type}` : ''}</p>
                   {isReady ? (
                     <div className="ph-actions">

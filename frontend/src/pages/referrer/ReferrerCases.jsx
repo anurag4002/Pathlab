@@ -10,6 +10,7 @@ import {
 } from '../../services/referrerService';
 import ReportViewer from './ReportViewer';
 import { patientName } from '../../utils/patientName';
+import TestNames from '../../components/common/TestNames';
 
 const day = (value) => {
   const d = value ? new Date(value) : null;
@@ -40,7 +41,7 @@ function ReportLine({ row, report, labName, onView }) {
         <FileText size={15} aria-hidden="true" />{report.label}
         {/* Only this report's own tests (mixed bills: in-house vs outside lab). */}
         {row.reports?.filter((r) => r.kind === 'lab').length > 1 && report.tests?.length > 0 && (
-          <small style={{ marginLeft: 6, opacity: 0.8 }}>{report.tests.length > 2 ? `${report.tests.slice(0, 2).join(', ')} +${report.tests.length - 2} more` : report.tests.join(', ')}</small>
+          <small style={{ marginLeft: 6, opacity: 0.8 }}><TestNames names={report.tests} visible={2} /></small>
         )}
       </span>
       {report.ready ? (
