@@ -10,6 +10,13 @@ export const validatePhone = (phone) => {
   return re.test(phone);
 };
 
+// The lab can list more than one number, separated by commas or slashes
+// ("9194112151, 9194102151"); each one must be a valid phone number.
+export const validatePhoneList = (value) => {
+  const parts = String(value || '').split(/[,/;]/).map((part) => part.trim());
+  return parts.length > 0 && parts.every(validatePhone);
+};
+
 export const validateNumber = (val) => {
   const num = Number(val);
   return !isNaN(num) && num >= 0;
