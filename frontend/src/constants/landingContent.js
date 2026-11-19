@@ -7,7 +7,7 @@ export const LAB_PROFILE = {
   name: 'PURE PATH LAB',
   tagline: 'Diagnostic & Pathology Laboratory',
   subtitle: 'Reliable laboratory testing with a simple and secure way to access your reports.',
-  phone: '8052112151',
+  phone: '9194112151, 9194102151',
   email: 'hishivammishrahello@gmail.com',
   address: 'Infront of Cantabile, beside District Hospital & Moti Chai, Gonda - 271001',
   operatingHours: {

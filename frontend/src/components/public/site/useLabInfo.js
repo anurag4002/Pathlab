@@ -31,11 +31,16 @@ export default function useLabInfo() {
     }).catch(() => {});
     return () => { alive = false; };
   }, []);
-  const digits = String(info.phone || '').replace(/\D/g, '').slice(-10);
+  // The phone field can hold several numbers ("9194112151, 9194102151"):
+  // show them all, and call / WhatsApp the first.
+  const numbers = String(info.phone || '').split(/[,/;]|\s{2,}/).map((n) => n.replace(/\D/g, '').slice(-10)).filter(Boolean);
+  const digits = numbers[0] || '';
+  const allTen = numbers.length > 0 && numbers.every((n) => n.length === 10);
   return {
     ...info,
     phoneDigits: digits,
-    phoneDisplay: digits.length === 10 ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}` : info.phone,
+    phoneNumbers: numbers,
+    phoneDisplay: allTen ? numbers.map((n) => `+91 ${n.slice(0, 5)} ${n.slice(5)}`).join(', ') : info.phone,
     telLink: digits ? `tel:+91${digits}` : 'tel:',
     whatsappLink: digits ? `https://wa.me/91${digits}` : '',
     mapsLink: info.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${info.labName} ${info.address}`)}` : '',
