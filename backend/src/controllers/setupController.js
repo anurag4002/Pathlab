@@ -10,7 +10,7 @@ const { ONBOARDING_STEPS } = require('../constants/onboarding');
 const { successResponse, errorResponse } = require('../utils/response');
 const Activity = require('../models/Activity');
 const { formatSettings, validateFormatSettings } = require('../services/documentTemplateService');
-const { registrationSequenceInfo, registrationSettingErrors } = require('../services/registrationSequenceService');
+const { registrationSequenceInfo, registrationSettingErrors, setNextRegistrationNumber } = require('../services/registrationSequenceService');
 
 const getProfile = async (req, res, next) => {
   try {
@@ -40,9 +40,13 @@ const updateProfile = async (req, res, next) => {
     const formatPatch = {};
     for (const key of ['documentFormats', 'reportFormatId', 'billFormatId']) if (body[key] !== undefined) formatPatch[key] = body[key];
     if (Object.keys(formatPatch).length) Object.assign(patch, validateFormatSettings(formatPatch, profile || {}));
+    // The numbering field holds the next number. When it is changed, numbering
+    // continues from it (also lower than now; numbers in use are skipped).
+    const before = body.caseStartNumber !== undefined ? await registrationSequenceInfo(profile || {}) : null;
     if (!profile) profile = new LabProfile(patch);
     else Object.assign(profile, patch);
     await profile.save();
+    if (before && Number(body.caseStartNumber) !== before.nextValue) await setNextRegistrationNumber(body.caseStartNumber);
     await Activity.create({
       user: req.user._id, action: 'Update Lab Profile', module: 'Settings',
       description: 'Updated lab profile settings.', ip: req.ip, userAgent: req.headers['user-agent'] || ''

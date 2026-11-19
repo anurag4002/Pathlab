@@ -47,7 +47,7 @@ test('profile displays the next available number without allocating it', async (
 test('saved start and digit count control both new patient registrations and their bills', async () => {
   const saved = await settings({ caseStartNumber: 100, registrationDigits: 8 });
   assert.equal(saved.registrationSequence.nextNumber, '00000100');
-  assert.equal(await Sequence.countDocuments(), 0);
+  assert.equal((await Sequence.findById('registration')).value, 99);
   originalPatient = await createPatient({ name: 'Settings Patient', age: 30, gender: 'Male', phone: '9999999999' });
   assert.equal(originalPatient.registrationNumber, '00000100');
   const bill = await createBill({ patient: originalPatient._id, items: [{ itemType: 'Custom', name: 'Fixture test', price: 100 }] }, admin._id);
@@ -56,11 +56,15 @@ test('saved start and digit count control both new patient registrations and the
   assert.equal(profile.registrationSequence.nextNumber, '00000101');
 });
 
-test('changing settings preserves old numbers and cannot reset the sequence backwards', async () => {
+test('changing the next number preserves old numbers and skips numbers already in use', async () => {
   assert.equal((await settings({ caseStartNumber: 500, registrationDigits: 4 })).registrationSequence.nextNumber, '0500');
   assert.equal(await generate(), '0500');
-  assert.equal((await settings({ caseStartNumber: 1 })).registrationSequence.nextNumber, '0501');
-  assert.equal(await generate(), '0501');
+  // Saving the number already shown leaves the sequence alone.
+  assert.equal((await settings({ caseStartNumber: 501 })).registrationSequence.nextNumber, '0501');
+  // The lab can move numbering back; a number a patient already has is skipped.
+  assert.equal((await settings({ caseStartNumber: 100 })).registrationSequence.nextNumber, '0101');
+  assert.equal(await generate(), '0101');
+  assert.equal(await generate(), '0102');
   assert.equal((await Patient.findById(originalPatient._id)).registrationNumber, '00000100');
   assert.equal((await Bill.findOne({ patient: originalPatient._id })).billNumber, '00000100');
   await settings({ registrationDigits: 12 });

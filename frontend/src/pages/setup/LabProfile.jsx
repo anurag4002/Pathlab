@@ -23,7 +23,7 @@ import '../manage/v2/manage.css';
 
 // New look: plain names for the fields, used to say what changed.
 const FIELD_NAMES = {
-  labName: 'Lab name', tagline: 'Tagline', website: 'Website', caseStartNumber: 'Starting number', registrationDigits: 'Number of digits',
+  labName: 'Lab name', tagline: 'Tagline', website: 'Website', caseStartNumber: 'Next number', registrationDigits: 'Number of digits',
   labRegistrationNumber: 'Lab registration number', phone: 'Phone', email: 'Email', address: 'Address', disclaimer: 'Patient note',
   invoiceFooter: 'Bill footer', letterheadTopMargin: 'Header space', smsSenderId: 'SMS sender name',
 };
@@ -91,18 +91,22 @@ const getErrorMessage = (error, fallback) => {
   return error?.message || fallback;
 };
 
-const getFormValues = (profile) => EDITABLE_FIELDS.reduce((values, field) => {
-  if (profile && Object.prototype.hasOwnProperty.call(profile, field)) {
-    values[field] = profile[field];
-  }
+const getFormValues = (profile) => {
+  const values = EDITABLE_FIELDS.reduce((acc, field) => {
+    if (profile && Object.prototype.hasOwnProperty.call(profile, field)) {
+      acc[field] = profile[field];
+    }
+    return acc;
+  }, {});
+  // The numbering field shows (and sets) the next number to be given out.
+  if (profile?.registrationSequence?.nextValue) values.caseStartNumber = profile.registrationSequence.nextValue;
   return values;
-}, {});
+};
 
 const registrationPreview = (profile, form) => {
-  const start = Number(form?.caseStartNumber ?? profile?.caseStartNumber ?? 1);
+  const next = Number(form?.caseStartNumber ?? profile?.registrationSequence?.nextValue ?? profile?.caseStartNumber ?? 1);
   const digits = Number(form?.registrationDigits ?? profile?.registrationDigits ?? 6);
-  if (!Number.isSafeInteger(start) || start < 1 || !Number.isInteger(digits) || digits < 4 || digits > 12) return '—';
-  const next = Math.max(start, Number(profile?.registrationSequence?.lastIssued || 0) + 1);
+  if (!Number.isSafeInteger(next) || next < 1 || !Number.isInteger(digits) || digits < 4 || digits > 12) return '—';
   return String(next).padStart(digits, '0');
 };
 
@@ -392,7 +396,7 @@ const LabProfile = () => {
           <div className={isV2 ? 'st-layout' : undefined}>
           {isV2 && <SettingsNav sections={V2_SECTIONS} />}
           <form className="lab-profile-form" noValidate onSubmit={(event) => {
-            if (isV2 && isEditing && ['caseStartNumber', 'registrationDigits'].some((k) => comparableValue(form[k]) !== comparableValue(profile?.[k]))) {
+            if (isV2 && isEditing && ['caseStartNumber', 'registrationDigits'].some((k) => comparableValue(form[k]) !== comparableValue(getFormValues(profile)[k]))) {
               event.preventDefault(); setConfirmNumbering(true); return;
             }
             saveProfile(event);
@@ -441,7 +445,7 @@ const LabProfile = () => {
                 <Input
                   id="caseStartNumber"
                   name="caseStartNumber"
-                  label="Sequence start number"
+                  label="Next registration / bill number"
                   type="number"
                   min={1}
                   step={1}
@@ -449,7 +453,7 @@ const LabProfile = () => {
                   onChange={(event) => updateField('caseStartNumber', event.target.value)}
                   error={fieldErrors.caseStartNumber}
                   disabled={fieldDisabled}
-                  helperText="Minimum starting number for new registrations. Existing numbers are preserved."
+                  helperText="The next new registration and bill get this number, then count up. Numbers already given to a patient or bill are skipped."
                 />
                 <Input
                   id="registrationDigits"
@@ -475,7 +479,7 @@ const LabProfile = () => {
                 />
                 <Input
                   id="nextRegistrationNumber"
-                  label="Next registration / bill number"
+                  label="Next number as printed"
                   value={registrationPreview(profile, form)}
                   readOnly
                   helperText="Preview using the latest loaded sequence. Saving applies these settings to new numbers."
@@ -665,7 +669,7 @@ const LabProfile = () => {
             onClose={() => setConfirmNumbering(false)}
             onConfirm={() => { setConfirmNumbering(false); saveProfile({ preventDefault() {} }); }}
             title="Change bill and registration numbering?"
-            message="New bills and registrations will use the new starting number or digit count. Numbers already given out stay the same, and numbers never go backwards."
+            message="New bills and registrations will continue from the number you entered, with the digit count you set. Numbers already given out stay the same, and any number already in use is skipped."
             confirmText="Change numbering"
           />
         </>
