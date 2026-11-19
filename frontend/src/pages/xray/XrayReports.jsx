@@ -16,6 +16,7 @@ import XrayImagePane from '../../components/xray/XrayImagePane';
 import XrayReportUpload from '../../components/xray/XrayReportUpload';
 import '../../styles/Xray.css';
 import { notify } from '../../components/common/Toast/toast';
+import { patientName } from '../../utils/patientName';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -199,7 +200,7 @@ const XrayReports = () => {
             <tr key={report._id}>
               <td>
                 <IdentityCell
-                  name={[report.patient?.title, report.patient?.name].filter(Boolean).join(' ')}
+                  name={patientName(report.patient)}
                   clinical={{ age: report.patient?.age, ageUnit: report.patient?.ageUnit, gender: report.patient?.gender }}
                   meta={[report.patient?.registrationNumber && `Reg ${report.patient.registrationNumber}`, formatDate(report.date).split(',')[0]]}
                 />

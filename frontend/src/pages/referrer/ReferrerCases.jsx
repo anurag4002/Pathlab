@@ -9,12 +9,13 @@ import {
   getReferrerCases, shareReferrerBill, shareReferrerReport, downloadReferrerBill, downloadReferrerReport
 } from '../../services/referrerService';
 import ReportViewer from './ReportViewer';
+import { patientName } from '../../utils/patientName';
 
 const day = (value) => {
   const d = value ? new Date(value) : null;
   return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 };
-const fullName = (p) => [p?.title, p?.name].filter(Boolean).join(' ') || 'Patient';
+const fullName = (p) => patientName(p) || 'Patient';
 const ageSex = (p) => {
   if (!p) return '';
   const unit = p.ageUnit && p.ageUnit !== 'years' ? ` ${p.ageUnit}` : ' yrs';

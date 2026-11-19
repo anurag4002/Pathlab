@@ -17,6 +17,7 @@ import usePagination from '../../hooks/usePagination';
 import { Download, FileDown } from 'lucide-react';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import { DataTable, PageHeader, AdvancedFilterBar, DURATION_OPTIONS } from '../../components/common';
+import { patientName } from '../../utils/patientName';
 
 const STATUS_OPTIONS = [
   { value: 'Registered', label: 'New / Registered' },
@@ -173,7 +174,7 @@ const SearchReports = () => {
             <tr key={report._id}>
               <td>
                 <IdentityCell
-                  name={[p.title, p.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                  name={patientName(p) || 'Walk-in patient'}
                   clinical={{ age: p.age, ageUnit: p.ageUnit, gender: p.gender }}
                   meta={[report.registrationNumber && `Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
                 />

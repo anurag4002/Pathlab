@@ -15,6 +15,7 @@ import useStickyState from '../../../../utils/useStickyState';
 import '../../../../components/business/business.css';
 import '../../../../pages/cases/v2/casesV2.css';
 import birthYearError from '../../../../utils/birthYear';
+import { patientName } from '../../../../utils/patientName';
 
 const initials = (name) => String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 const ageSex = (p) => {
@@ -136,7 +137,7 @@ export default function PatientProfile() {
       <div className="cases-hero">
         <span className="cases-hero-avatar" aria-hidden="true">{initials(patient.name)}</span>
         <div className="cases-hero-main">
-          <h2>{[patient.title, patient.name].filter(Boolean).join(' ')}{ageSex(patient) && <span className="cases-clinical">{ageSex(patient)}</span>}</h2>
+          <h2>{patientName(patient)}{ageSex(patient) && <span className="cases-clinical">{ageSex(patient)}</span>}</h2>
           <p>Reg {patient.registrationNumber}{patient.phone ? ` · +91 ${patient.phone}` : ''}{lastVisit ? ` · Last visit ${dayLabel(lastVisit)}` : ''}</p>
         </div>
         <div className="cases-hero-actions">

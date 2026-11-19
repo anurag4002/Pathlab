@@ -65,6 +65,7 @@ import ReportPrintActions from '../../components/lab/ReportPrintActions';
 import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
 import { notify } from '../../components/common/Toast/toast';
+import { patientName } from '../../utils/patientName';
 
 const getApiErrorMessage = (err, fallback) => {
   if (err?.response) {
@@ -939,7 +940,7 @@ const TodaysReports = () => {
       <tr key={report._id}>
         <td>
           <IdentityCell
-            name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+            name={patientName(patient) || 'Walk-in patient'}
             clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
             meta={[`Reg ${report.registrationNumber}`, report.bill?.billNumber && `Bill ${report.bill.billNumber}`]}
           />
@@ -976,7 +977,7 @@ const TodaysReports = () => {
                 {report.status === 'Reported' ? 'Edit results' : 'Enter results'}
               </Button>
             )}
-            {isReported && <WhatsAppShare kind="report" id={report._id} phone={patient.phone} name={[patient.title, patient.name].filter(Boolean).join(' ')} iconOnly />}
+            {isReported && <WhatsAppShare kind="report" id={report._id} phone={patient.phone} name={patientName(patient)} iconOnly />}
             <RowMenu label={`More actions for report ${report.registrationNumber}`} items={menu} />
           </div>
         </td>
@@ -1113,7 +1114,7 @@ const TodaysReports = () => {
                   <tr key={rowKey}>
                     <td>
                       <IdentityCell
-                        name={[patient.title, patient.name].filter(Boolean).join(' ') || 'Walk-in patient'}
+                        name={patientName(patient) || 'Walk-in patient'}
                         clinical={{ age: patient.age, ageUnit: patient.ageUnit, gender: patient.gender }}
                         meta={[patient.registrationNumber && `Reg ${patient.registrationNumber}`, bill.billNumber && `Bill ${bill.billNumber}`]}
                       />

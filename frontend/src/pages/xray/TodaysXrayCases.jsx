@@ -37,6 +37,7 @@ import { notify } from '../../components/common/Toast/toast';
 import IdentityCell from '../../components/common/IdentityCell/IdentityCell';
 import { useUiVersion } from '../../utils/uiVersion';
 import { istToday, istDayOf, istDayStartMs, istDayEndMs } from '../../utils/labDateTime';
+import { patientName } from '../../utils/patientName';
 
 /* Surfaces only the backend's user-facing `message` field (never stack traces),
    with sensible fallbacks per failure type (same mapping as the other lab
@@ -504,7 +505,7 @@ const TodaysXrayCases = () => {
                 {/* Clinical screen: age · sex beside the name when known. */}
                 <td>
                   <IdentityCell
-                    name={[c.patient?.title, c.patient?.name].filter(Boolean).join(' ')}
+                    name={patientName(c.patient)}
                     clinical={{ age: c.patient?.age, ageUnit: c.patient?.ageUnit, gender: c.patient?.gender }}
                     meta={[c.patient?.registrationNumber && `Reg ${c.patient.registrationNumber}`, formatDate(c.date).split(',')[0]]}
                   />

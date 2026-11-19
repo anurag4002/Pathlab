@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, CalendarPlus, CheckCircle2, ChevronRight, Clock, Download, Eye, LogOut, RefreshCw, Search, UserRound } from 'lucide-react';
 import formatDate from '../../utils/formatDate';
 import formatCurrency from '../../utils/formatCurrency';
+import { patientName } from '../../utils/patientName';
 
 // Signed-in patient page: who you are, your reports, your bookings - one
 // simple column, made for a phone first.
@@ -46,7 +47,7 @@ export default function PatientHome({
               <li key={p._id || p.name}>
                 <span className="ph-avatar" aria-hidden="true"><UserRound size={18} /></span>
                 <span className="ph-person">
-                  <b>{[p.title, p.name].filter(Boolean).join(' ')}</b>
+                  <b>{patientName(p)}</b>
                   <small>{[ageSex(p), p.registrationNumber && `Reg ${p.registrationNumber}`].filter(Boolean).join(' · ') || 'Patient'}</small>
                 </span>
               </li>

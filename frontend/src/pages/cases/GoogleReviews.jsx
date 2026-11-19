@@ -7,6 +7,7 @@ import { getBills, updateReviewRequest } from '../../services/billService';
 import { getLabProfile } from '../../services/setupService';
 import formatDate from '../../utils/formatDate';
 import useDebounce from '../../hooks/useDebounce';
+import { patientName } from '../../utils/patientName';
 import './GoogleReviews.css';
 
 const TABS = [
@@ -68,7 +69,7 @@ const GoogleReviews = () => {
     const asked = !!bill.reviewRequest?.askedAt;
     const patient = bill.patient || {};
     if (isV2) {
-      const name = [patient.title, patient.name].filter(Boolean).join(' ');
+      const name = patientName(patient);
       return (
         <tr key={bill._id}>
           <td>
@@ -101,7 +102,7 @@ const GoogleReviews = () => {
       <tr key={bill._id}>
         <td>{formatDate(bill.date || bill.createdAt)}</td>
         <td>{bill.billNumber}</td>
-        <td className="gr-patient">{[patient.title, patient.name].filter(Boolean).join(' ') || '—'}</td>
+        <td className="gr-patient">{patientName(patient) || '—'}</td>
         <td>{patient.phone || <span className="gr-muted">No phone</span>}</td>
         <td>
           {asked ? (
@@ -114,7 +115,7 @@ const GoogleReviews = () => {
         </td>
         <td>
           <div className="gr-actions">
-            <WhatsAppShare kind="review" phone={patient.phone} name={[patient.title, patient.name].filter(Boolean).join(' ')}
+            <WhatsAppShare kind="review" phone={patient.phone} name={patientName(patient)}
               label={asked ? 'Ask again' : 'Ask on WhatsApp'} onShared={() => mark(bill, true, 'whatsapp')} />
             {asked ? (
               <Button variant="secondary" size="sm" icon={<RotateCcw size={14} />} onClick={() => mark(bill, false)} loading={saving === bill._id} disabled={!!saving}>
