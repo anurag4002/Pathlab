@@ -1307,6 +1307,21 @@ const ResultEntry = () => {
                       {label}
                     </label>
                   );
+                  // "Print ready" stays visible (ticked by default, as in the old LIS):
+                  // untick it to hold a test back while the rest of the report prints.
+                  const printReadyBox = (key) => {
+                    const ready = sectionSetting(key).printReady;
+                    return (
+                      <label className={`ls-check ls-print-ready${ready ? '' : ' is-held'}`}>
+                        <input type="checkbox" checked={!!ready} disabled={printSaving} onChange={() => toggleSection(key, 'printReady')} />
+                        Print ready
+                        {!ready && <span className="ls-held-note">Held back: not printed</span>}
+                      </label>
+                    );
+                  };
+                  const printOptionsFor = (key, className, rest) => (isV2
+                    ? <div className="re-v2-print-row">{printReadyBox(key)}<details className="re-v2-print"><summary>More print options</summary><div className={className}>{rest}</div></details></div>
+                    : <div className={className}>{printReadyBox(key)}{rest}</div>);
                   return departments.map((dept, deptIdx) => {
                     const panelKeys = dept.groups.filter((g) => g.panel).map((g) => g.key);
                     return (
@@ -1323,18 +1338,12 @@ const ResultEntry = () => {
                                 <h3 className="ls-panel-title">{isV2 ? String(group.name || '') : String(group.name || '').toUpperCase()}</h3>
                                 {panelKeys.length > 1 && reorder(group.name, () => moveSection(panelKeys, group.key, -1), () => moveSection(panelKeys, group.key, 1), panelKeys[0] === group.key, panelKeys.at(-1) === group.key)}
                               </div>
-                              {(() => {
-                                const opts = (
-                                  <div className="ls-print-options">
-                                    {check(group.key, 'printReady', 'Print ready')}
-                                    {check(group.key, 'keepTogether', 'Keep in same page')}
-                                    {check(group.key, 'newPage', 'Print from new page')}
-                                    {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                    {check(group.key, 'skipInterpretation', 'Skip interpretation')}
-                                  </div>
-                                );
-                                return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
-                              })()}
+                              {printOptionsFor(group.key, 'ls-print-options', <>
+                                {check(group.key, 'keepTogether', 'Keep in same page')}
+                                {check(group.key, 'newPage', 'Print from new page')}
+                                {check(group.key, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                {check(group.key, 'skipInterpretation', 'Skip interpretation')}
+                              </>)}
                             </>
                           )}
                           <table className="ls-table">
@@ -1347,16 +1356,10 @@ const ResultEntry = () => {
                               <React.Fragment key={entryKey(test) || index}>
                                 {!group.panel && (!index || group.tests[index - 1].sectionKey !== test.sectionKey) && (
                                   <tr className="ls-test-options"><td colSpan={5}>
-                                    {(() => {
-                                      const opts = (
-                                        <div className="ls-print-options ls-print-options-test">
-                                          {check(test.sectionKey, 'printReady', 'Print ready')}
-                                          {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
-                                          {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
-                                        </div>
-                                      );
-                                      return isV2 ? <details className="re-v2-print"><summary>Print options</summary>{opts}</details> : opts;
-                                    })()}
+                                    {printOptionsFor(test.sectionKey, 'ls-print-options ls-print-options-test', <>
+                                      {check(test.sectionKey, 'pageBreakAfter', 'Page break after (PDF only)')}
+                                      {check(test.sectionKey, 'skipInterpretation', 'Skip interpretation')}
+                                    </>)}
                                   </td></tr>
                                 )}
                                 {test.subheading && (!index || group.tests[index - 1].subheading !== test.subheading || group.tests[index - 1].parentName !== test.parentName) && (

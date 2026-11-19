@@ -525,3 +525,8 @@ tr.ls-row:focus-within { background: var(--color-primary-light, #eff6ff); }
   align-items: center;
   gap: var(--space-2);
 }
+
+/* A held-back test (Print ready unticked) is dimmed and says why. */
+.ls-print-ready { display: inline-flex; align-items: center; gap: 0.35rem; }
+.ls-print-ready.is-held { font-weight: 600; }
+.ls-held-note { margin-left: 0.35rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 600; }
