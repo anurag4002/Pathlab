@@ -13,7 +13,7 @@ import {
 } from '../../components/common';
 import { isAdmin } from '../../utils/permissions';
 import useAuth from '../../hooks/useAuth';
-import { validateEmail, validatePhone, validateNumber } from '../../utils/validators';
+import { validateEmail, validatePhoneList, validateNumber } from '../../utils/validators';
 import { toast } from '../../components/common/Toast/toast';
 import '../../styles/LabProfile.css';
 import { useUiVersion } from '../../utils/uiVersion';
@@ -241,7 +241,7 @@ const LabProfile = () => {
     const phone = typeof form.phone === 'string' ? form.phone.trim() : form.phone;
 
     if (email && !validateEmail(email)) errors.email = 'Enter a valid email address.';
-    if (phone && !validatePhone(phone)) errors.phone = 'Enter a valid phone number.';
+    if (phone && !validatePhoneList(phone)) errors.phone = 'Enter a valid phone number. Separate more than one with a comma.';
 
     ['caseStartNumber'].forEach((field) => {
       const value = form[field];
