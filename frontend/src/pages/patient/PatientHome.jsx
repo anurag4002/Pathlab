@@ -25,7 +25,10 @@ export default function PatientHome({
     const names = [...new Set(reports.map((r) => r.patientName).filter(Boolean))];
     return names.map((name) => ({ name }));
   }, [profiles, reports]);
-  const first = people[0]?.name ? String(people[0].name).split(' ')[0] : '';
+  // First name only: a name saved as "Mr. Vinay" greets "Hello, Vinay", not "Hello, Mr.".
+  const first = people[0]?.name
+    ? (String(people[0].name).trim().replace(/^(mr|mrs|ms|miss|master|baby|dr|smt|shri|sri|kumari|km|b\/o)\.?\s+/i, '').split(/\s+/)[0] || '')
+    : '';
   const ready = reports.filter((r) => r.downloadable !== false);
   const q = search.trim().toLowerCase();
   const shown = q ? reports.filter((r) => `${r.testName} ${r.patientName} ${r.registrationNumber}`.toLowerCase().includes(q)) : reports;
