@@ -1,4 +1,5 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import React, { useEffect, useState } from 'react';
 import useStickyState from '../../utils/useStickyState';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -217,7 +218,7 @@ const XrayReports = () => {
                 <RowMenu label={`More for ${report.patient?.name || 'report'}`} items={[
                   { label: 'Open case', onClick: () => navigate(`/xray/today?case=${report._id}`) },
                   { label: report.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => setUploadFor(report) },
-                  !!report.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch((error) => notify(error.message)) },
+                  !!report.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${report._id}/file`, reportFileNameFor(report, report.reportFile.name)).catch((error) => notify(error.message)) },
                   !!report.fileUrl && { label: 'Download scan', onClick: () => downloadFile(`/${report.fileUrl}`, `xray_scan_${report.patient?.registrationNumber}${scanFileExt(report.fileUrl)}`) },
                 ]} />
               </td>
@@ -231,7 +232,7 @@ const XrayReports = () => {
             <td>{report.referringDoctor?.name || 'Self'}</td>
             <td>{report.status || 'Pending'}</td>
             <td>
-              {!!report.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${report._id}/file`, report.reportFile.name || 'X-Ray-report.pdf').catch(error => notify(error.message))}>Download PDF</Button>}
+              {!!report.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${report._id}/file`, reportFileNameFor(report, report.reportFile.name)).catch(error => notify(error.message))}>Download PDF</Button>}
               {report.fileUrl ? <button
                 type="button"
                 className="btn btn-primary"

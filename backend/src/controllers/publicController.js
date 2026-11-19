@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const path = require('path');
 const { findPatientFile, patientFileView, reportFileList } = require('../utils/reportFiles');
 const BillItem = require('../models/BillItem');
@@ -65,7 +66,7 @@ const downloadPublicReport = async (req, res, next) => {
     if (missing) return errorResponse(res, 'Report file not found', 404);
     if (file) {
       const abs = await storageService.ensureFilePath(file.url);
-      if (abs) return res.download(abs, `Report_${report.registrationNumber}${path.extname(file.url) || '.pdf'}`);
+      if (abs) return res.download(abs, await reportFileNameFor(report, extOf(file.url)));
     }
     // A partly published outside-lab report is never rendered as a whole.
     if (file && !['Signed', 'Verified', 'Completed'].includes(report.status)) return errorResponse(res, 'Report file not found', 404);
@@ -90,7 +91,7 @@ const downloadPublicReport = async (req, res, next) => {
     const qrPng = await qrBuffer(reportVerifyUrl(full.qrToken));
     const pdf = await reportPdf({ report: full, patient: full.patient, bill: full.bill, testMap, profile }, { qrPng, signaturePngs });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Report_${full.registrationNumber}.pdf"`);
+    res.setHeader('Content-Disposition', disposition(reportFileName(full.registrationNumber, full.patient?.name)));
     return res.send(pdf);
   } catch (error) {
     next(error);

@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
@@ -363,7 +364,7 @@ const downloadPatientReport = async (req, res, next) => {
       if (file) {
         const absolutePath = await storageService.ensureFilePath(file.url);
         if (absolutePath) {
-          return res.download(absolutePath, `Report_${labReport.registrationNumber}_${id}${path.extname(file.url) || '.pdf'}`);
+          return res.download(absolutePath, await reportFileNameFor(labReport, extOf(file.url)));
         }
       }
 
@@ -398,20 +399,20 @@ const downloadPatientReport = async (req, res, next) => {
         { qrPng, signaturePngs }
       );
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="Report_${full.registrationNumber}.pdf"`);
+      res.setHeader('Content-Disposition', disposition(reportFileName(full.registrationNumber, full.patient?.name)));
       return res.send(pdf);
     }
 
     // X-Ray: prefer the durable PDF, while keeping older scan downloads.
     const xray = await XrayCase.findById(id).select('+reportFile.data');
     if (xray && patientIds.includes(String(xray.patient)) && xray.reportFile?.data?.length) {
-      res.type('application/pdf'); res.attachment(xray.reportFile.name || `XRay_${id}.pdf`);
+      res.type('application/pdf'); res.attachment(await reportFileNameFor(xray, extOf(xray.reportFile.name)));
       return res.send(xray.reportFile.data);
     }
     if (xray && patientIds.includes(String(xray.patient)) && xray.fileUrl) {
       const absolutePath = await storageService.ensureFilePath(xray.fileUrl);
       if (absolutePath) {
-        return res.download(absolutePath, `XRay_${id}${path.extname(xray.fileUrl)}`);
+        return res.download(absolutePath, await reportFileNameFor(xray, extOf(xray.fileUrl)));
       }
     }
 

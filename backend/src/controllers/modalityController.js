@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const crypto = require('crypto');
 const ModalityCase = require('../models/ModalityCase');
 const USGCase = require('../models/USGCase');
@@ -125,7 +126,7 @@ const downloadCaseReport = async (req, res, next) => {
     assertBranchAccess(req, doc.branch);
     if (!doc.reportFile?.data?.length) return errorResponse(res, 'No uploaded report is available.', 404);
     res.type(doc.reportFile.contentType);
-    res.attachment(doc.reportFile.name || 'ECG-report.pdf');
+    res.attachment(await reportFileNameFor(doc, extOf(doc.reportFile.name)));
     return res.send(doc.reportFile.data);
   } catch (error) { next(error); }
 };

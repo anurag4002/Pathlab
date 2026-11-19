@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import useAuth from '../../hooks/useAuth';
 import useStickyState from '../../utils/useStickyState';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -985,7 +986,7 @@ const TodaysReports = () => {
       { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
     ] : [
       { label: 'Preview', onClick: () => handleOpenPreview(report), ariaLabel: `Preview report ${report.registrationNumber}` },
-      { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, pdfOptions), ariaLabel: `Download PDF ${report.registrationNumber}` },
+      { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, pdfOptions, reportFileNameFor(report)), ariaLabel: `Download PDF ${report.registrationNumber}` },
       isFinal && !isOutsourceReport(report) && { label: 'Edit results', onClick: () => navigate(`/lab/result-entry?report=${report._id}`) },
       { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
       { label: 'Print labels', onClick: () => setLabelTarget(report) },
@@ -1303,7 +1304,7 @@ const TodaysReports = () => {
                         <Eye size={14} />
                       </button>
                       <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
-                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, pdfOptions)} title="Download PDF">
+                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, pdfOptions, reportFileNameFor(report))} title="Download PDF">
                         <FileDown size={14} />
                       </button>
                     </>
@@ -1473,7 +1474,7 @@ const TodaysReports = () => {
               <Button variant="secondary" onClick={() => setEntryOpen(false)}>Close</Button>
               <Button variant="secondary" onClick={() => handleOpenPreview()} disabled={!activeReport?._id}><Eye size={14} /> Preview</Button>
               <ReportPrintActions reportId={activeReport?._id} onStationeryChange={setStationery} />
-              <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, pdfOptions)}><FileDown size={14} /> PDF</Button>
+              <Button variant="secondary" onClick={() => activeReport && downloadReportPdf(activeReport._id, pdfOptions, reportFileNameFor(activeReport))}><FileDown size={14} /> PDF</Button>
               <Button variant="secondary" onClick={() => openSend(activeReport)}><Send size={14} /> Send</Button>
               {entryFinal ? (
                 isAdminUser ? (

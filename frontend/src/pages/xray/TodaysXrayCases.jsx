@@ -1,4 +1,5 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import useStickyState from '../../utils/useStickyState';
 import { useSearchParams } from 'react-router-dom';
@@ -540,7 +541,7 @@ const TodaysXrayCases = () => {
                       { label: 'Edit findings', onClick: () => handleOpenEdit(c) },
                       { label: 'Preview / print', onClick: () => handlePrint(c) },
                       { label: c.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => setUploadFor(c) },
-                      !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch((error) => notify(error.message)) },
+                      !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/xray/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch((error) => notify(error.message)) },
                       !!c.fileUrl && { label: 'Download scan', onClick: () => downloadFile(`/${c.fileUrl}`, `scan_${c.patient?.registrationNumber}${scanFileExt(c.fileUrl)}`) },
                       isAdmin && { label: 'Delete case', danger: true, onClick: () => setDeleteTarget(c) },
                     ]} />
@@ -552,7 +553,7 @@ const TodaysXrayCases = () => {
               <StatusBadge status={c.status} />
             </td>
             <td>
-              {!!c.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${c._id}/file`, c.reportFile.name || 'X-Ray-report.pdf').catch(error => notify(error.message))}>Download PDF</Button>}
+              {!!c.reportFile?.size && <Button variant="secondary" size="sm" onClick={() => downloadBlob(`/xray/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch(error => notify(error.message))}>Download PDF</Button>}
               {c.fileUrl ? (
                 <button
                   className="btn btn-secondary"

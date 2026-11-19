@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import useStickyState from '../../utils/useStickyState';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, FileDown, FileEdit, Pencil, Plus, RefreshCw, Upload } from 'lucide-react';
@@ -1526,7 +1527,7 @@ const ResultEntry = () => {
                     {locked && (
                       <>
                         <ReportPrintActions reportId={entry.report._id} disabled={busy !== null} size="md" />
-                        <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id)} disabled={busy !== null}>
+                        <Button variant="secondary" icon={<FileDown size={16} />} onClick={() => downloadReportPdf(entry.report._id, undefined, reportFileName(entry.report.registrationNumber, entry.patient?.name))} disabled={busy !== null}>
                           PDF
                         </Button>
                         <WhatsAppShare kind="report" id={entry.report._id} phone={entry.patient?.phone} name={patientName(entry.patient)} size="md" label="Send on WhatsApp" />

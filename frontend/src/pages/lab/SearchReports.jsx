@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { isAdmin } from '../../utils/permissions';
@@ -169,8 +170,8 @@ const SearchReports = () => {
           // Only this report's own tests (in-house vs outsource shell).
           const names = report.test ? [report.test.name] : reportTestNames(report);
           const menu = [
-            { label: 'Download PDF', onClick: () => downloadReportPdf(report._id) },
-            report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`) },
+            { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, undefined, reportFileNameFor(report)) },
+            report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, reportFileNameFor(report, report.fileUrl)) },
           ].filter(Boolean);
           return (
             <tr key={report._id}>
@@ -223,11 +224,11 @@ const SearchReports = () => {
                 {['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && (
                   <WhatsAppShare kind="report" id={report._id} phone={report.patient?.phone} name={report.patient?.name} iconOnly />
                 )}
-                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id)}>
+                <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, undefined, reportFileNameFor(report))}>
                   <FileDown size={14} /> PDF
                 </button>
                 {report.fileUrl && (
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}>
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadFile(`/${report.fileUrl}`, reportFileNameFor(report, report.fileUrl))}>
                     <Download size={14} /> Download
                   </button>
                 )}

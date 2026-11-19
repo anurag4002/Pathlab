@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { useParams } from 'react-router-dom';
 import { verifyReportToken, downloadBlob } from '../../services/publicService';
 import formatDate from '../../utils/formatDate';
@@ -58,7 +59,7 @@ const VerifyReportPage = () => {
             <Button
               key={file._id}
               variant={i === 0 ? 'primary' : 'secondary'}
-              onClick={() => downloadBlob(`/public/r/${token}/download?file=${encodeURIComponent(file._id)}`, `Report_${data.registrationNumber}_${i + 1}${(String(file.name || '').match(/\.(pdf|png|jpe?g)$/i) || ['.pdf'])[0]}`)}
+              onClick={() => downloadBlob(`/public/r/${token}/download?file=${encodeURIComponent(file._id)}`, reportFileName(data.registrationNumber, `${data.patientName || ''}_${i + 1}`, file.name))}
               icon={<FileDown size={16} />}
             >
               {file.tests?.length ? file.tests.join(', ') : `File ${i + 1}`}
@@ -66,7 +67,7 @@ const VerifyReportPage = () => {
           ))}
         </div>
       ) : (
-        <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, `Report_${data.registrationNumber}.pdf`)} icon={<FileDown size={16} />}>
+        <Button variant="primary" onClick={() => downloadBlob(`/public/r/${token}/download`, reportFileName(data.registrationNumber, data.patientName))} icon={<FileDown size={16} />}>
           Download PDF
         </Button>
       )}

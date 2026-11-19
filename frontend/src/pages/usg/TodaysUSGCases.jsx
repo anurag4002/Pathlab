@@ -1,4 +1,5 @@
 import ServerPdfPreview from '../../components/lab/ServerPdfPreview';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import useStickyState from '../../utils/useStickyState';
 import { useSearchParams } from 'react-router-dom';
@@ -659,7 +660,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
                     { label: 'Edit case', onClick: () => handleOpenEdit(c) },
                     hasReport && { label: 'Preview / print', onClick: () => handlePrint(c) },
                     { label: c.reportFile?.size ? 'Replace PDF' : 'Upload PDF', onClick: () => { setUploadTarget(c); setUploadFile(null); setUploadError(''); } },
-                    !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => notify('Could not download the USG report.')) },
+                    !!c.reportFile?.size && { label: 'Download PDF', onClick: () => downloadBlob(`/usg/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch(() => notify('Could not download the USG report.')) },
                     isAdmin && { label: 'Delete case', danger: true, onClick: () => setDeleteTarget(c) },
                   ]} />
                 </td>
@@ -668,7 +669,7 @@ const TodaysUSGCases = ({ reportsView = false }) => {
             <td style={{ minWidth: 210 }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <Button variant="secondary" size="sm" icon={<Upload size={14} />} onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(''); }}>{c.reportFile?.size ? 'Replace PDF' : 'Upload PDF'}</Button>
-                {!!c.reportFile?.size && <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/usg/${c._id}/file`, c.reportFile.name || 'USG-report.pdf').catch(() => notify('Could not download the USG report.'))}>Download PDF</Button>}
+                {!!c.reportFile?.size && <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/usg/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch(() => notify('Could not download the USG report.'))}>Download PDF</Button>}
                 <button
                   className="btn btn-secondary"
                   style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}

@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { reportFileName, reportFileNameFor } from '../utils/reportFileName';
 import { downloadBlob } from './publicService';
 
 // Referring doctor's own API  ->  /api/referrer/* (role 'Referrer' only).
@@ -13,9 +14,7 @@ export const shareReferrerBill = async (id) => (await apiClient.post(`/referrer/
 const reportPath = (report) => (report.kind === 'lab'
   ? `/referrer/reports/${report._id}/pdf`
   : `/referrer/scans/${report.kind}/${report._id}/pdf`);
-const reportFilename = (row, report) => (report.kind === 'lab'
-  ? `Report_${row.billNumber || row.patient?.registrationNumber || report._id}.pdf`
-  : `${report.label.replace(/\s+/g, '_')}_${row.billNumber || report._id}.pdf`);
+const reportFilename = (row) => reportFileName(row.billNumber || row.patient?.registrationNumber, row.patient?.name);
 
 export const downloadReferrerBill = (bill) => downloadBlob(`/referrer/bills/${bill._id}/pdf`, `Bill_${bill.billNumber}.pdf`);
 // An outsourced report may hold several outside-lab files: download each.

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { Download, Printer, Upload } from 'lucide-react';
 import { Button } from '../common';
 import apiClient from '../../services/apiClient';
@@ -52,7 +53,7 @@ const printBlob = (blob) => new Promise((resolve) => {
 
 export default function UploadedReportActions({ report, onReplace, size = 'sm', showReplace = true }) {
   const [busy, setBusy] = useState('');
-  const fileName = `Report_${report?.registrationNumber || report?._id}`;
+  const fileName = reportFileNameFor(report).replace(/\.pdf$/, '');
   const count = Array.isArray(report?.files) ? report.files.length : 0;
   const many = count > 1 ? ` (${count} files)` : '';
   // Some outsourced tests still have no file: the next upload adds one.
@@ -64,9 +65,9 @@ export default function UploadedReportActions({ report, onReplace, size = 'sm', 
     try {
       const files = Array.isArray(report.files) && report.files.length ? report.files : [{ _id: null }];
       for (let i = 0; i < files.length; i += 1) {
-        const { blob, name } = await fetchUploadedFile(report._id, files[i]?._id ? String(files[i]._id) : null);
+        const { blob } = await fetchUploadedFile(report._id, files[i]?._id ? String(files[i]._id) : null);
         const suffix = files.length > 1 ? `_${i + 1}` : '';
-        if (kind === 'download') downloadBlob(blob, files.length > 1 ? `${fileName}${suffix}${extensionFor(blob)}` : (name || `${fileName}${extensionFor(blob)}`));
+        if (kind === 'download') downloadBlob(blob, `${fileName}${suffix}${extensionFor(blob)}`);
         else await printBlob(blob);
       }
     } catch (error) {

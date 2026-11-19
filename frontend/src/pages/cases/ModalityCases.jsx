@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportFileName, reportFileNameFor } from '../../utils/reportFileName';
 import { getModalityCases, createModalityCase, updateModalityCase, deleteModalityCase, uploadModalityReport } from '../../services/modalityService';
 import { useSearchParams } from 'react-router-dom';
 import { downloadBlob, printPdfPath } from '../../services/publicService';
@@ -210,7 +211,7 @@ const ModalityCases = () => {
                   c.modality === 'ECG' && c.status !== 'Signed' && !!c.reportFile?.size && { label: 'Replace report', onClick: () => { setUploadTarget(c); setUploadFile(null); setUploadError(''); } },
                   c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Preview report', onClick: () => setPreviewTarget(c) },
                   c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Print report', onClick: () => printEcg(c) },
-                  c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Download report', onClick: () => downloadBlob(`/modality/${c._id}/file`, c.reportFile.name || 'ECG-report.pdf').catch(() => setNotice('Could not download the ECG report.')) },
+                  c.modality === 'ECG' && !!c.reportFile?.size && { label: 'Download report', onClick: () => downloadBlob(`/modality/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch(() => setNotice('Could not download the ECG report.')) },
                   c.modality === 'ECG' && c.status !== 'Signed' && !!c.reportFile?.size && { label: NEXT_ACTION[c.status] || 'Next step', onClick: () => handleAdvance(c) },
                   isAdmin && { label: 'Delete case', onClick: () => setDeleteTarget(c), danger: true },
                 ]} />
@@ -233,7 +234,7 @@ const ModalityCases = () => {
                   {!!c.reportFile?.size && <>
                     <Button variant="secondary" size="sm" icon={<Eye size={14} />} onClick={() => setPreviewTarget(c)}>Preview</Button>
                     <Button variant="secondary" size="sm" icon={<Printer size={14} />} disabled={!!printingId} onClick={() => printEcg(c)}>{printingId === c._id ? 'Printing…' : 'Print'}</Button>
-                    <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/modality/${c._id}/file`, c.reportFile.name || 'ECG-report.pdf').catch(() => setNotice('Could not download the ECG report.'))}>Download report</Button>
+                    <Button variant="secondary" size="sm" icon={<Download size={14} />} onClick={() => downloadBlob(`/modality/${c._id}/file`, reportFileNameFor(c, c.reportFile.name)).catch(() => setNotice('Could not download the ECG report.'))}>Download report</Button>
                   </>}
                 </>}
                 {c.status !== 'Signed' && (

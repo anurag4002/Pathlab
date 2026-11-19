@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 // Referring doctor's own API (/api/referrer). A 'Referrer' login sees only
 // the bills, reports and scans where "Referred by" is the Doctor record(s)
 // linked to it. Every id from the client is checked against that on the
@@ -256,7 +257,7 @@ const shareBill = async (req, res, next) => {
 // published outside-lab files).
 const findOwnFinalReport = async (req, res) => {
   if (!OBJECT_ID.test(String(req.params.id || ''))) { errorResponse(res, NOT_FOUND, 404); return null; }
-  const report = await Report.findById(req.params.id).select('bill status fileUrl files registrationNumber qrToken updatedAt');
+  const report = await Report.findById(req.params.id).select('bill patient status fileUrl files registrationNumber qrToken updatedAt');
   if (!report || !(await findOwnBill(req, report.bill))) { errorResponse(res, NOT_FOUND, 404); return null; }
   if (!isReportOpenToReferrer(report)) { errorResponse(res, PROCESSING, 403); return null; }
   return report;
@@ -274,7 +275,7 @@ const reportPdf = async (req, res, next) => {
     if (missing) return errorResponse(res, NOT_FOUND, 404);
     if (file) {
       const abs = await require('../services/storageService').ensureFilePath(file.url);
-      if (abs && fs.existsSync(abs)) return res.download(abs, `Report_${report.registrationNumber}${require('path').extname(abs) || '.pdf'}`);
+      if (abs && fs.existsSync(abs)) return res.download(abs, await reportFileNameFor(report, extOf(file.url)));
     }
     // A partly published outside-lab report is never rendered as a whole.
     if (!isFinalReport(report)) return errorResponse(res, NOT_FOUND, 404);

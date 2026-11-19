@@ -1,3 +1,4 @@
+const { reportFileName, reportFileNameFor, extOf, disposition } = require('../utils/reportFileName');
 const fs = require('fs');
 const LabProfile = require('../models/LabProfile');
 const Signature = require('../models/Signature');
@@ -21,7 +22,7 @@ exports.forModel = (Model, department, { verified = false } = {}) => async (req,
       const original = record.reportFile?.data;
       if (!original?.length) throw Object.assign(new Error('Upload an ECG report before previewing or printing.'), { statusCode: 404 });
       const pdf = await require('../services/uploadedReportPdfService').uploadedReportPdf(original);
-      res.type('application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${label}_${record._id}.pdf"`);
+      res.type('application/pdf'); res.setHeader('Content-Disposition', disposition(await reportFileNameFor(record), 'inline'));
       return res.send(pdf);
     }
     // Uploaded files live in a temporary folder on the live server; bring back any missing ones.
@@ -55,7 +56,7 @@ exports.forModel = (Model, department, { verified = false } = {}) => async (req,
       images: [record.fileUrl, ...(record.images || [])].filter(url => /\.(png|jpe?g)$/i.test(url))
     }, { ...reportOptionsFromQuery(req.query), signaturePngs });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${department}_${record._id}.pdf"`);
+    res.setHeader('Content-Disposition', disposition(await reportFileNameFor(record), 'inline'));
     res.send(pdf);
   } catch (error) { next(error); }
 };
