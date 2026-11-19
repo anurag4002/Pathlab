@@ -62,6 +62,7 @@ import LabelPrintSheet from '../../components/lab/LabelPrintSheet';
 import ResultEntryGrid from '../../components/lab/ResultEntryGrid';
 import ReportTatEditor from '../../components/lab/ReportTatEditor';
 import ReportPrintActions from '../../components/lab/ReportPrintActions';
+import UploadedReportActions from '../../components/lab/UploadedReportActions';
 import { stationeryOptions } from '../../utils/reportPrintOptions';
 import { notify } from '../../components/common/Toast/toast';
 
@@ -658,7 +659,8 @@ const TodaysReports = () => {
 
     // entryMode from API wins for mixed bills; only fall back to bill-level heuristics.
     const mode = nextReport.entryMode || entryPayload?.entryMode || report.entryMode;
-    const outsource = mode === 'outsource'
+    // A report that already has an uploaded file always opens as that file.
+    const outsource = !!nextReport.fileUrl || mode === 'outsource'
       || (mode !== 'inhouse' && (
         isOutsourceWork(nextReport, nextReport?.bill)
         || (Array.isArray(nextReport?.bill?.items) && nextReport.bill.items.length > 0
@@ -920,15 +922,19 @@ const TodaysReports = () => {
     const isFinal = ['Signed', 'Verified', 'Completed'].includes(report.status);
     const isReported = ['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status);
     const patient = report.patient || {};
-    const menu = [
+    // An uploaded report is one finished file: Download / Print / Replace it.
+    const uploaded = !!report.fileUrl;
+    const menu = (uploaded ? [
+      { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
+      { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
+    ] : [
       { label: 'Preview', onClick: () => handleOpenPreview(report), ariaLabel: `Preview report ${report.registrationNumber}` },
       { label: 'Download PDF', onClick: () => downloadReportPdf(report._id, pdfOptions), ariaLabel: `Download PDF ${report.registrationNumber}` },
-      report.fileUrl && { label: 'Download uploaded file', onClick: () => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`) },
       isFinal && !isOutsourceReport(report) && { label: 'Edit results', onClick: () => navigate(`/lab/result-entry?report=${report._id}`) },
       { label: 'Send notification (SMS / email)', onClick: () => openSend(report) },
       { label: 'Print labels', onClick: () => setLabelTarget(report) },
       { label: 'Delete report', onClick: () => setDeleteTarget(report), danger: true, ariaLabel: `Delete report ${report.registrationNumber}` },
-    ].filter(Boolean);
+    ]).filter(Boolean);
     return (
       <tr key={report._id}>
         <td>
@@ -959,7 +965,9 @@ const TodaysReports = () => {
         </td>
         <td>
           <div className="row-actions-v2">
-            {isFinal ? (
+            {uploaded ? (
+              <UploadedReportActions report={report} onReplace={() => openEntry(report)} />
+            ) : isFinal ? (
               <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
             ) : isOutsourceReport(report) ? (
               <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => openEntry(report)}>Upload report</Button>
@@ -1199,7 +1207,9 @@ const TodaysReports = () => {
               <td>{report.uploadedBy?.name || 'N/A'}</td>
               <td style={{ minWidth: 150 }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {['Signed', 'Verified', 'Completed'].includes(report.status) ? (
+                  {report.fileUrl ? (
+                    <UploadedReportActions report={report} onReplace={() => openEntry(report)} />
+                  ) : ['Signed', 'Verified', 'Completed'].includes(report.status) ? (
                     <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Submitted</span>
                   ) : isOutsourceReport(report) ? (
                     <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '0.75rem', whiteSpace: 'nowrap' }} onClick={() => openEntry(report)}>
@@ -1211,23 +1221,18 @@ const TodaysReports = () => {
                     </button>
                   )}
                   {/* Phase 4 — in-app preview (shared print layout); PDF/Print
-                      inside the modal use printReportPdf/downloadReportPdf. */}
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)} title="Preview">
-                    <Eye size={14} />
-                  </button>
-                  <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, pdfOptions)} title="Download PDF">
-                    <FileDown size={14} />
-                  </button>
-                  {report.fileUrl && (
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => downloadFile(`/${report.fileUrl}`, `report_${report.registrationNumber}.pdf`)}
-                      title="Download uploaded file"
-                    >
-                      <Download size={14} />
-                    </button>
+                      inside the modal use printReportPdf/downloadReportPdf.
+                      Uploaded reports skip these: their file is the report. */}
+                  {!report.fileUrl && (
+                    <>
+                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenPreview(report)} title="Preview">
+                        <Eye size={14} />
+                      </button>
+                      <ReportPrintActions reportId={report._id} onStationeryChange={setStationery} />
+                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => downloadReportPdf(report._id, pdfOptions)} title="Download PDF">
+                        <FileDown size={14} />
+                      </button>
+                    </>
                   )}
                   {['Reported', 'Signed', 'Verified', 'Completed'].includes(report.status) && (
                     <WhatsAppShare kind="report" id={report._id} phone={report.patient?.phone} name={report.patient?.name} iconOnly />
@@ -1235,9 +1240,11 @@ const TodaysReports = () => {
                   <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => openSend(report)} title="Send report notification">
                     <Send size={14} />
                   </button>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setLabelTarget(report)} title="Print barcode labels on the label printer (bill / case / sample)">
-                    <Tag size={14} />
-                  </button>
+                  {!report.fileUrl && (
+                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setLabelTarget(report)} title="Print barcode labels on the label printer (bill / case / sample)">
+                      <Tag size={14} />
+                    </button>
+                  )}
                   <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setDeleteTarget(report)} title="Delete report">
                     <Trash2 size={14} />
                   </button>
@@ -1380,7 +1387,7 @@ const TodaysReports = () => {
         onClose={() => !entryLoading && setEntryOpen(false)}
         title={
           entryMode === 'upload'
-            ? `Upload Report — ${activeReport?.registrationNumber || ''}`
+            ? `${activeReport?.fileUrl ? 'Uploaded report' : 'Upload report'} — ${activeReport?.registrationNumber || ''}`
             : `Enter Results — ${activeReport?.registrationNumber || ''}`
         }
         size="xl"
@@ -1389,7 +1396,7 @@ const TodaysReports = () => {
             <>
               <Button variant="secondary" onClick={() => setEntryOpen(false)} disabled={entryLoading}>Close</Button>
               <Button variant="primary" onClick={handleEntryUploadSubmit} loading={entryLoading}>
-                <Plus size={14} /> Upload File
+                <Plus size={14} /> {activeReport?.fileUrl ? 'Replace file' : 'Upload file'}
               </Button>
             </>
           ) : (
@@ -1425,9 +1432,12 @@ const TodaysReports = () => {
               </p>
             )}
             {activeReport?.fileUrl ? (
-              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-success, #166534)' }}>
-                A file is already attached. Uploading again will replace it.
-              </p>
+              <>
+                <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-success, #166534)' }}>
+                  A report is already uploaded. Choose a new file below only if you want to replace it.
+                </p>
+                <UploadedReportActions report={activeReport} showReplace={false} />
+              </>
             ) : null}
             <FileUploader
               onChange={(file) => { setEntryUploadFile(file); setEntryUploadError(null); }}
