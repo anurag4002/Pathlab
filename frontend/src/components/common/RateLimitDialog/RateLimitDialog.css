@@ -1,0 +1,22 @@
+.rate-limit-dialog {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.rate-limit-dialog-icon {
+  flex: none;
+  color: var(--color-warning, #b45309);
+}
+
+.rate-limit-dialog-lead {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.rate-limit-dialog-help {
+  margin: 0;
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
