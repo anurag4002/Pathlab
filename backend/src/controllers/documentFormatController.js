@@ -12,7 +12,9 @@ exports.preview = async (req, res, next) => {
     const numberingErrors = registrationSettingErrors(body);
     if (Object.keys(numberingErrors).length) throw Object.assign(new Error('Invalid registration settings'), { statusCode: 400 });
     for (const field of ['caseStartNumber', 'registrationDigits']) if (body[field] !== undefined) profile[field] = Number(body[field]);
-    const { nextNumber } = await registrationSequenceInfo(profile);
+    const info = await registrationSequenceInfo(profile);
+    // An edited (unsaved) next number previews as typed.
+    const nextNumber = body.caseStartNumber !== undefined ? String(Number(body.caseStartNumber)).padStart(info.digits, '0') : info.nextNumber;
     const formatPatch = Object.fromEntries(['documentFormats', 'reportFormatId', 'billFormatId'].filter(key => body[key] !== undefined).map(key => [key, body[key]]));
     Object.assign(profile, validateFormatSettings(formatPatch, profile));
     // Preview unsaved text/toggles, but assets always come from the stored
