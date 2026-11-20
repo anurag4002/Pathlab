@@ -49,6 +49,9 @@ export const logout = async () => {
   }
 };
 
+export const changeOwnPassword = async (currentPassword, newPassword) =>
+  (await apiClient.post('/auth/change-password', { currentPassword, newPassword })).data;
+
 export const getUsers = async (params = {}) => {
   const response = await apiClient.get('/users', { params });
   return response.data;

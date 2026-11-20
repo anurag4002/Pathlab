@@ -14,5 +14,6 @@ router.post('/email-otp/request', authLimiter, authController.requestEmailOtp);
 router.post('/email-otp/verify', verifyLimiter, authController.verifyEmailOtp);
 router.get('/me', protect, authController.getCurrentUser);
 router.post('/logout', protect, authController.logout);
+router.post('/change-password', protect, verifyLimiter, authController.changePassword);
 
 module.exports = router;

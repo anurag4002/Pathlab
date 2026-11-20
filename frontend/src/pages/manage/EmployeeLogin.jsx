@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Edit2, Trash2, UserCheck, UserX, RefreshCw } from 'lucide-react';
-import { getUsers, createUser, updateUser, deleteUser } from '../../services/authService';
+import { getUsers, createUser, updateUser, deleteUser, changeOwnPassword } from '../../services/authService';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import useClientPagination from '../../hooks/useClientPagination';
@@ -108,6 +108,26 @@ const EmployeeLogin = () => {
   const [ownName, setOwnName] = useState('');
   const [nameError, setNameError] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
+  // Change your own password (current password required).
+  const EMPTY_PW = { current: '', next: '', confirm: '' };
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw, setPw] = useState(EMPTY_PW);
+  const [pwError, setPwError] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const saveOwnPassword = async (event) => {
+    event.preventDefault();
+    if (pwSaving) return;
+    if (!pw.current || !pw.next) { setPwError('Enter your current password and a new password.'); return; }
+    if (pw.next.length < 6) { setPwError('The new password must be at least 6 characters.'); return; }
+    if (pw.next !== pw.confirm) { setPwError('The two new passwords do not match.'); return; }
+    setPwSaving(true); setPwError('');
+    try {
+      const response = await changeOwnPassword(pw.current, pw.next);
+      if (!response?.success) { setPwError(response?.message || 'Could not change your password.'); return; }
+      setPwOpen(false); setPw(EMPTY_PW); setNotice('Your password has been changed. Use it the next time you sign in.');
+    } catch (error) { setPwError(getErrorMessage(error, 'Could not change your password.')); }
+    finally { setPwSaving(false); }
+  };
 
   const saveOwnName = async (event) => {
     event.preventDefault();
@@ -494,6 +514,9 @@ const EmployeeLogin = () => {
                     <Button variant="secondary" size="sm" disabled={!canManage} onClick={() => { setOwnName(account.name || ''); setNameError(''); setNameOpen(true); }}>
                       <Edit2 size={14} /> Change name
                     </Button>
+                    <Button variant="secondary" size="sm" onClick={() => { setPw(EMPTY_PW); setPwError(''); setPwOpen(true); }} data-testid="own-password">
+                      Change password
+                    </Button>
                   </div>
                 ) : isV2 ? (
                   <div className="user-management-actions">
@@ -526,6 +549,15 @@ const EmployeeLogin = () => {
         footer={<><Button variant="secondary" disabled={nameSaving} onClick={() => setNameOpen(false)}>Cancel</Button><Button type="submit" form="own-name-form" loading={nameSaving} disabled={nameSaving}>Save name</Button></>}>
         <form id="own-name-form" onSubmit={saveOwnName}>
           <Input label="Full name" name="ownName" value={ownName} onChange={event => { setOwnName(event.target.value); setNameError(''); }} error={nameError} required autoFocus disabled={nameSaving} />
+        </form>
+      </Modal>
+
+      <Modal isOpen={pwOpen} onClose={() => !pwSaving && setPwOpen(false)} title="Change your password" variant="drawer"
+        footer={<><Button variant="secondary" disabled={pwSaving} onClick={() => setPwOpen(false)}>Cancel</Button><Button type="submit" form="own-password-form" loading={pwSaving} disabled={pwSaving}>Change password</Button></>}>
+        <form id="own-password-form" onSubmit={saveOwnPassword} autoComplete="on">
+          <Input label="Current password" type="password" name="currentPassword" autoComplete="current-password" value={pw.current} onChange={event => { setPw(prev => ({ ...prev, current: event.target.value })); setPwError(''); }} required autoFocus disabled={pwSaving} />
+          <Input label="New password" type="password" name="newPassword" autoComplete="new-password" value={pw.next} onChange={event => { setPw(prev => ({ ...prev, next: event.target.value })); setPwError(''); }} helperText="At least 6 characters." required disabled={pwSaving} />
+          <Input label="Type the new password again" type="password" name="confirmPassword" autoComplete="new-password" value={pw.confirm} onChange={event => { setPw(prev => ({ ...prev, confirm: event.target.value })); setPwError(''); }} error={pwError} required disabled={pwSaving} />
         </form>
       </Modal>
 

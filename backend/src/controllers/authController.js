@@ -237,7 +237,34 @@ const logout = async (req, res, next) => {
   }
 };
 
+// Signed-in user changes their own password: the current one must match.
+// Wrong current password answers 400 (not 401) so the page does not sign out.
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
+      return errorResponse(res, 'Enter your current password and a new password.', 400);
+    }
+    if (newPassword.length < 6) return errorResponse(res, 'The new password must be at least 6 characters.', 400);
+    if (newPassword.length > 128) return errorResponse(res, 'The new password is too long.', 400);
+    if (newPassword === currentPassword) return errorResponse(res, 'The new password must be different from the current one.', 400);
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id);
+    if (!user || !(await user.comparePassword(currentPassword))) {
+      return errorResponse(res, 'Your current password is not correct.', 400);
+    }
+    user.password = newPassword;
+    user.passwordChangedAt = new Date();
+    await user.save();
+    await Activity.create({ user: user._id, action: 'Change Password', module: 'Auth', description: 'Changed their own password.' });
+    return successResponse(res, 'Your password has been changed.');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  changePassword,
   login,
   getGoogleAuthUrl,
   googleAuth,
