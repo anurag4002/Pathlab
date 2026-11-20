@@ -818,7 +818,8 @@ async function getReportForEntry(req, res, next) {
     ]);
     packages.forEach((pkg) => {
       (pkg.includedTests || []).forEach((t) => {
-        allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name, sectionKey: `package:${pkg._id}` });
+        // Package tests are entered and printed as if billed one by one.
+        allTests.push({ type: 'Test', itemId: t._id, name: t.name, packageName: pkg.name, sectionKey: `test:${t._id}` });
       });
     });
     panels.forEach((panel) => {

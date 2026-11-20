@@ -22,9 +22,11 @@ async function loadReportPrintTests(report) {
     packageIds.length ? TestPackage.find({ _id: { $in: packageIds } }).lean() : []
   ]);
   const membership = new Map();
-  // Panel membership takes priority when a test is also part of a package.
-  for (const item of [...packages.map(record => ({ record, type: 'package', children: record.includedTests })),
-    ...panels.map(record => ({ record, type: 'panel', children: record.tests }))]) {
+  // A package is a price bundle, not a report section: its tests print exactly
+  // as if each was billed on its own (CBC under Haematology, LFT and KFT under
+  // Biochemistry, each with its own interpretation). Only panels group rows.
+  const packageTestIds = packages.flatMap(record => (record.includedTests || []).map(String));
+  for (const item of panels.map(record => ({ record, type: 'panel', children: record.tests }))) {
     // reportSectionOrder keeps rows in the panel's defined order (as printed
     // by the reference sheet) rather than the order results were entered.
     (item.children || []).forEach((id, index) => (membership.get(String(id))?.reportSectionKey === `${item.type}:${item.record._id}`) || membership.set(String(id), {
@@ -34,7 +36,7 @@ async function loadReportPrintTests(report) {
       reportSectionCategory: item.record.category || null, reportSectionRank: item.record.displayOrder ?? null
     }));
   }
-  const billedTestIds = [...items.filter(item => item.itemType === 'Test').map(item => item.itemId), ...membership.keys()].filter(Boolean);
+  const billedTestIds = [...items.filter(item => item.itemType === 'Test').map(item => item.itemId), ...membership.keys(), ...packageTestIds].filter(Boolean);
   const loaded = new Set(tests.map(test => String(test._id)));
   const missing = [...new Set(billedTestIds.map(String))].filter(id => !loaded.has(id));
   if (missing.length) tests.push(...await Test.find({ _id: { $in: missing } }).populate('category', 'name createdAt').lean());
