@@ -53,9 +53,14 @@ function resolveReferenceRange(test = {}, patient = {}) {
     });
     if (!matching.length) return { ...test, referenceRange: 'No reference range configured for this age / sex', normalLow: null, normalHigh: null, criticalLow: null, criticalHigh: null, rangeMissing: true };
     const band = matching[0];
-    const bounds = parseBounds(band.referenceRange) || {};
-    return { ...test, ...bounds, ...Object.fromEntries(['normalLow', 'normalHigh', 'criticalLow', 'criticalHigh'].map((key) => [key, band[key] ?? bounds[key] ?? null])),
-      lowInclusive: band.lowInclusive ?? bounds.lowInclusive, highInclusive: band.highInclusive ?? bounds.highInclusive,
+    const parsed = parseBounds(band.referenceRange);
+    // The range printed on the report decides the flag ("< 180" is High only
+    // above 180). Stored numbers count only when the text has no numbers
+    // (e.g. "Negative"), so a stale 70 - 140 behind "< 180" cannot flag 140.3.
+    const limits = parsed
+      ? { normalLow: parsed.normalLow, normalHigh: parsed.normalHigh, lowInclusive: parsed.lowInclusive, highInclusive: parsed.highInclusive }
+      : { normalLow: band.normalLow ?? null, normalHigh: band.normalHigh ?? null, lowInclusive: band.lowInclusive, highInclusive: band.highInclusive };
+    return { ...test, ...limits, criticalLow: band.criticalLow ?? null, criticalHigh: band.criticalHigh ?? null,
       referenceRange: band.referenceRange || formatBounds(band), rangeMissing: false };
   }
   const sexRange = sex === 'male' ? test.maleReferenceRange : sex === 'female' ? test.femaleReferenceRange : '';
